@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Locale {
+  en
+  id
+}
+
+enum CurrencyCode {
+  IDR
+  USD
+  GBP
+  AUD
+  SGD
+  MYR
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  SOLD_OUT
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  STRIPE
+  BANK_TRANSFER
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+model User {
+  id             String         @id @default(cuid())
+  email          String         @unique
+  name           String?
+  passwordHash   String?
+  image          String?
+  role           UserRole       @default(CUSTOMER)
+  locale         Locale         @default(en)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  orders         Order[]
+  customRequests CustomRequest[]
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  nameEn      String
+  nameId      String
+  description String?
+  products    Product[]
+}
+
+model Product {
+  id               String        @id @default(cuid())
+  slug             String        @unique
+  titleEn          String
+  titleId          String
+  descriptionEn    String
+  descriptionId    String
+  priceBase        Int
+  currencyBase     CurrencyCode  @default(IDR)
+  status           ProductStatus @default(PUBLISHED)
+  isFeatured       Boolean       @default(false)
+  stock            Int           @default(1)
+  materialsEn      String[]
+  materialsId      String[]
+  storyEn          String
+  storyId          String
+  imageUrl         String
+  galleryImageUrls String[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  categoryId       String
+  category         Category      @relation(fields: [categoryId], references: [id])
+  orderItems       OrderItem[]
+}
+
+model Order {
+  id              String         @id @default(cuid())
+  orderNumber     String         @unique
+  status          OrderStatus    @default(PENDING)
+  currency        CurrencyCode
+  subtotal        Int
+  shipping        Int
+  total           Int
+  paymentMethod   PaymentMethod
+  stripeSessionId String?
+  notes           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  userId          String
+  user            User           @relation(fields: [userId], references: [id])
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  quantity   Int
+  unitPrice  Int
+  title      String
+  productId  String
+  orderId    String
+  order      Order   @relation(fields: [orderId], references: [id])
+  product    Product @relation(fields: [productId], references: [id])
+}
+
+model CustomRequest {
+  id                String       @id @default(cuid())
+  name              String
+  email             String
+  preferredLocale   Locale       @default(en)
+  inspiration       String
+  requestedSize     String?
+  budget            Int?
+  currency          CurrencyCode @default(IDR)
+  timeline          String?
+  notes             String?
+  referenceImageUrl String?
+  status            String       @default("new")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  userId            String?
+  user              User?        @relation(fields: [userId], references: [id])
+}
+
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  createdAt DateTime @default(now())
+}
