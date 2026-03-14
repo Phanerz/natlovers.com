@@ -164,7 +164,7 @@ const cardTransform = useMemo(() => {
                         <p className="mt-3 font-display text-[1.75rem] leading-none text-white">Tas Rumah Collection</p>
                       </div>
                       <div className="rounded-[1.2rem] border border-white/12 bg-white/8 p-4 text-sm leading-7 text-[#f4ead7]/88">
-                        {locale === "en" ? "Featured motif" : "Motif unggulan"}
+                        {locale === "en" ? "Natlovers’ signature whimsical, house-shaped handmade bag." : "Tas buatan tangan berbentuk rumah yang ikonik dan unik dari Natlovers."}
                       </div>
                     </div>
                   </div>
