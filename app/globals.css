@@ -2,6 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes glassSweep {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  50% {
+    transform: translateX(120%);
+  }
+
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+.museum-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(
+    110deg,
+    transparent 40%,
+    rgba(255,255,255,0.08) 50%,
+    transparent 60%
+  );
+  animation: glassSweep 12s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.museum-panel::after {
+  content: "";
+  position: absolute;
+  inset: 13px;
+  border-radius: calc(2.4rem - 13px);
+  border: 1px solid rgba(255,255,255,0.12);
+  pointer-events: none;
+  z-index: 2;
+}
+
 :root {
   color-scheme: light;
   --header-height: 5.75rem;
@@ -214,15 +254,6 @@ button {
 
 .museum-panel {
   position: relative;
-}
-
-.museum-panel::before {
-  content: "";
-  position: absolute;
-  inset: var(--space-13);
-  border: 1px solid rgba(240, 229, 205, 0.18);
-  border-radius: calc(2.4rem - var(--space-13));
-  pointer-events: none;
 }
 
 .gallery-room {
