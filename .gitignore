@@ -86,6 +86,9 @@ web_modules/
 .next
 out
 
+# Local media files
+public/videos/*
+
 # Nuxt.js build / generate output
 .nuxt
 dist
