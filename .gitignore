@@ -88,6 +88,7 @@ out
 
 # Local media files
 public/videos/*
+!public/videos/natlovers-hero.mp4
 
 # Nuxt.js build / generate output
 .nuxt
