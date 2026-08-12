@@ -8,7 +8,6 @@ import {useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
 import type {PointerEvent as ReactPointerEvent} from "react";
 import {
   ChevronDown,
-  LogOut,
   Menu,
   Minus,
   Plus,
@@ -20,8 +19,10 @@ import {
 } from "lucide-react";
 import {signOut, useSession} from "next-auth/react";
 import {formatCurrency} from "@/lib/format";
-import {currencies, locales} from "@/lib/site";
 import {getDictionary} from "@/lib/translations";
+import {NavAccountMenu} from "@/components/nav-account-menu";
+import {NavPreferencesModal} from "@/components/nav-preferences-modal";
+import {NavSearchModal} from "@/components/nav-search-modal";
 import {useActiveNavSection} from "@/components/use-active-nav-section";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {useStorefront} from "@/components/storefront-provider";
@@ -496,52 +497,19 @@ export function Header() {
                 <ChevronDown className="h-4 w-4" />
               </button>
               {selectorOpen ? (
-                <div className="menu-surface absolute right-0 top-14 z-50 w-[19rem] rounded-[1.7rem] border border-[#d8ccb6] bg-[#f8f1e6] p-5 text-forest-900 shadow-[0_24px_60px_rgba(28,25,18,0.24)]">
-                  <div className="rounded-[1.2rem] border border-[#ddd0b9] bg-[#fffaf1] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]">
-                    <p className="muted">{dict.common.locale}</p>
-                    <div className="mt-3 flex gap-2">
-                      {locales.map((option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => {
-                            setLocale(option);
-                            setSelectorOpen(false);
-                          }}
-                          className={`control-pill rounded-full border px-4 py-2 text-sm font-medium ${
-                            locale === option
-                              ? "border-[#183124] bg-[#12281b] text-[#fff8eb] shadow-[0_10px_22px_rgba(18,40,27,0.24)]"
-                              : "border-[#d9ccb3] bg-[#fffdf8] text-forest-700 shadow-[0_6px_16px_rgba(79,58,28,0.08)]"
-                          }`}
-                        >
-                          {option === "en" ? "English" : "Bahasa"}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="mt-4 rounded-[1.2rem] border border-[#ddd0b9] bg-[#fffaf1] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]">
-                    <p className="muted">{dict.common.currency}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {currencies.map((option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => {
-                            setCurrency(option);
-                            setSelectorOpen(false);
-                          }}
-                          className={`control-pill rounded-full border px-3 py-2 text-sm font-medium ${
-                            currency === option
-                              ? "border-[#baa066] bg-[#f4e2b6] text-forest-900 shadow-[0_10px_22px_rgba(146,111,47,0.18)]"
-                              : "border-[#d9ccb3] bg-[#fffdf8] text-forest-700 shadow-[0_6px_16px_rgba(79,58,28,0.08)]"
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                <NavPreferencesModal
+                  locale={locale}
+                  currency={currency}
+                  onSelectLocale={(value) => {
+                    setLocale(value);
+                    setSelectorOpen(false);
+                  }}
+                  onSelectCurrency={(value) => {
+                    setCurrency(value);
+                    setSelectorOpen(false);
+                  }}
+                  onClose={() => setSelectorOpen(false)}
+                />
               ) : null}
             </div>
 
@@ -585,23 +553,16 @@ export function Header() {
                     )}
                   </button>
                   {accountOpen ? (
-                    <div className="menu-surface absolute right-0 top-14 z-50 w-64 rounded-[1.7rem] border border-[#d8ccb6] bg-[#f8f1e6] p-5 text-forest-900 shadow-[0_24px_60px_rgba(28,25,18,0.24)]">
-                      <p className="muted">Signed in as</p>
-                      <p className="mt-2 truncate text-sm font-medium text-forest-900">
-                        {session.user.name ?? session.user.email}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAccountOpen(false);
-                          signOut({callbackUrl: "/"});
-                        }}
-                        className="button-lift mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-[#cdbfa6] bg-[#fffaf1] px-4 py-2.5 text-sm font-medium text-forest-700"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Sign out
-                      </button>
-                    </div>
+                    <NavAccountMenu
+                      name={session.user.name ?? "Natlovers collector"}
+                      email={session.user.email ?? ""}
+                      image={session.user.image}
+                      onNavigate={() => setAccountOpen(false)}
+                      onSignOut={() => {
+                        setAccountOpen(false);
+                        signOut({callbackUrl: "/signed-out"});
+                      }}
+                    />
                   ) : null}
                 </>
               ) : (
@@ -628,60 +589,17 @@ export function Header() {
       </header>
 
       {searchOpen ? (
-        <div data-scroll-lock className="fixed inset-0 z-50 bg-[rgba(7,18,12,0.42)] p-4 backdrop-blur-lg">
-          <div className="menu-surface mx-auto mt-12 max-w-5xl rounded-[2.2rem] border border-[#d7cab2] bg-[rgba(247,240,227,0.94)] p-6 text-forest-900 shadow-[0_30px_90px_rgba(18,20,14,0.28)] sm:p-8">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="muted">Search</p>
-                <h2 className="mt-2 font-display text-3xl text-forest-900">
-                  Find a Natlovers piece
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSearchOpen(false)}
-                className="icon-button rounded-full border border-[#d7cab2] bg-[#fffdf8] p-3 text-forest-900 shadow-[0_8px_22px_rgba(59,43,22,0.12)]"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search motif, material, or story"
-              className="mt-6 w-full rounded-full border border-[#d4c5ab] bg-[#fffdf9] px-6 py-4 text-forest-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_10px_28px_rgba(80,60,30,0.08)] placeholder:text-forest-500 outline-none"
-            />
-            <div className="mt-6 grid gap-4">
-              {results.map((product) => (
-                <div
-                  key={product.slug}
-                  className="motion-card rounded-[1.6rem] border border-[#d2c3a8] bg-[rgba(255,252,246,0.96)] p-5 shadow-[0_14px_32px_rgba(74,54,27,0.08)] hover:bg-white"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          openPreview(product.slug);
-                          setSearchOpen(false);
-                        }}
-                        className="text-left font-display text-2xl text-forest-900 hover:text-forest-700"
-                      >
-                        {product.title}
-                      </button>
-                      <p className="mt-2 text-sm leading-7 text-forest-700">
-                        {product.description}
-                      </p>
-                    </div>
-                    <p className="rounded-full border border-[#d7cab2] bg-[#fff8ea] px-4 py-2 text-sm font-semibold text-forest-900 shadow-[0_6px_16px_rgba(80,60,30,0.08)]">
-                      {formatCurrency(product.priceIdr, currency)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <NavSearchModal
+          query={query}
+          onQueryChange={setQuery}
+          results={results}
+          currency={currency}
+          onSelect={(slug) => {
+            openPreview(slug);
+            setSearchOpen(false);
+          }}
+          onClose={() => setSearchOpen(false)}
+        />
       ) : null}
 
       {cabinetOpen ? (

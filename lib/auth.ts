@@ -113,6 +113,14 @@ export const authOptions: NextAuthOptions = {
         return isAdminEmail(user.email);
       }
       return true;
+    },
+    // Database sessions don't carry the user id onto session.user by
+    // default — /api/account needs it to know which row to read/update.
+    async session({session, user}) {
+      if (session.user) {
+        session.user.id = user.id;
+      }
+      return session;
     }
   }
 };

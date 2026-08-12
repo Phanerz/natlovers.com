@@ -66,7 +66,12 @@ export const users = pgTable("user", {
   name: text("name"),
   email: text("email").unique(),
   emailVerified: timestamp("emailVerified", {mode: "date"}),
-  image: text("image")
+  image: text("image"),
+  // App-specific additions beyond the adapter's required shape — the
+  // adapter only ever reads/writes the four columns above, so these are
+  // safely ignored by it and only touched by our own /api/account route.
+  phone: text("phone"),
+  bio: text("bio")
 });
 
 export const accounts = pgTable(
