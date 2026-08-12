@@ -384,14 +384,7 @@ export function Header() {
 
   return (
     <>
-      {/*
-        No backdrop-blur here on purpose: the header's own background is
-        already ~95% opaque, so a blur was buying almost no visible
-        difference while still costing a real-time GPU recomposite behind
-        a *sticky* element on every single scroll frame, site-wide — one of
-        the more expensive things a scrolling page can ask a browser to do.
-      */}
-      <header className="sticky top-0 z-40 min-h-[var(--header-height)] border-b border-[#efe3cb]/12 bg-[linear-gradient(180deg,rgba(8,18,13,0.98),rgba(8,18,13,0.94))] text-sand-50 shadow-[0_16px_48px_rgba(0,0,0,0.32)]">
+      <header className="sticky top-0 z-40 min-h-[var(--header-height)] bg-forest-900/80 text-sand-50 shadow-[0_16px_48px_rgba(0,0,0,0.32)] backdrop-blur-xl">
         <div className="shell flex min-h-[var(--header-height)] items-center justify-between gap-4 py-3">
           <Link
             href="/"
@@ -496,6 +489,7 @@ export function Header() {
               <button
                 type="button"
                 onClick={() => setSelectorOpen((open) => !open)}
+                suppressHydrationWarning
                 className="liquid-glass control-pill header-text-shadow inline-flex min-w-[7.5rem] items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-[#fff7e5]"
               >
                 <span>{locale.toUpperCase()} / {currency}</span>

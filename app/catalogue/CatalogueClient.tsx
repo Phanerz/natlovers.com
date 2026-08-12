@@ -825,7 +825,7 @@ export function CatalogueContent() {
           <div ref={contentRef} className="flex min-h-0 min-w-0 flex-1 flex-col">
             <div className="min-h-0 flex-1 overflow-hidden border-l border-t border-[#d9cfc0]">
               {filteredProducts.length ? (
-                <div ref={trackRef} className="flex h-full" style={{width: `${pageCount * 100}%`}}>
+                <div key="cards" ref={trackRef} className="flex h-full" style={{width: `${pageCount * 100}%`}}>
                   {Array.from({length: pageCount}).map((_, pageIdx) => (
                     <div
                       key={pageIdx}
@@ -838,8 +838,15 @@ export function CatalogueContent() {
                     </div>
                   ))}
                 </div>
+              ) : typeProducts.length === 0 ? (
+                <div key="coming-soon" className="flex h-full flex-col items-center justify-center gap-2 bg-white/60 text-center">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#9a9a8a]">
+                    {productTypeLabels[selectedProductType][locale]}
+                  </p>
+                  <p className="font-display text-2xl text-[#4a4a3f]">Coming Soon</p>
+                </div>
               ) : (
-                <div className="flex h-full items-center justify-center bg-white/60 text-center text-sm text-[#6b6b5f]">
+                <div key="no-matches" className="flex h-full items-center justify-center bg-white/60 text-center text-sm text-[#6b6b5f]">
                   No pieces match those filters yet. Try clearing a few.
                 </div>
               )}
