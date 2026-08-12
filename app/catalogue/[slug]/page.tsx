@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import {notFound, useParams} from "next/navigation";
+import {ScrollSection} from "@/components/scroll-section";
 import {SectionHeading} from "@/components/section-heading";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {useStorefront} from "@/components/storefront-provider";
@@ -18,7 +19,7 @@ export default function ProductPage() {
 
   return (
     <main className="shell py-16">
-      <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
+      <ScrollSection className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
         <div
           className="card min-h-[520px] bg-cover bg-center"
           style={{backgroundImage: `url(${product.imageUrl})`}}
@@ -50,7 +51,7 @@ export default function ProductPage() {
             </button>
           </div>
         </div>
-      </div>
+      </ScrollSection>
     </main>
   );
 }

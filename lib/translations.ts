@@ -11,14 +11,10 @@ export const dictionaries: Record<Locale, Dictionary> = {
   en: {
     nav: {
       home: "Home",
-      about: "About",
       catalogue: "Catalogue",
       custom: "Custom",
-      gallery: "Gallery",
-      contact: "Contact",
-      socials: "Social Medias",
-      dashboard: "Dashboard",
-      admin: "Admin"
+      outlets: "Outlets",
+      about: "About"
     },
     home: {
       eyebrow: "Yogyakarta artisan craft house",
@@ -48,14 +44,10 @@ export const dictionaries: Record<Locale, Dictionary> = {
   id: {
     nav: {
       home: "Beranda",
-      about: "Tentang",
       catalogue: "Katalog",
       custom: "Custom",
-      gallery: "Galeri",
-      contact: "Kontak",
-      socials: "Media Sosial",
-      dashboard: "Dashboard",
-      admin: "Admin"
+      outlets: "Outlet",
+      about: "Tentang"
     },
     home: {
       eyebrow: "Rumah kriya artisan dari Yogyakarta",

@@ -54,11 +54,132 @@
 
 html {
   scroll-behavior: smooth;
+  scrollbar-color: rgba(63, 83, 60, 0.55) transparent;
+  scrollbar-width: thin;
+  overflow-x: clip;
+}
+
+/*
+ * Full-page section snapping for the home page's five sections (Hero,
+ * Catalogue, Custom, Outlets, About) — desktop only, at the same 1024px
+ * breakpoint the header/sidebar already switch on. This is pure CSS: the
+ * browser owns the actual scroll physics (momentum, rubber-banding,
+ * interrupting a snap mid-flight by scrolling again), nothing here
+ * intercepts wheel/touch events or drives scroll position with JS. Below
+ * this breakpoint .snap-page is inert — sections fall back to plain
+ * document flow and free scroll, since locked snapping is worse UX on the
+ * small-screen traffic this brand mostly gets.
+ *
+ * scroll-padding-top offsets every snap target by the sticky header's own
+ * height, so a section's top edge lands flush *underneath* the header
+ * instead of hidden behind it.
+ */
+@media (min-width: 1024px) {
+  html {
+    scroll-snap-type: y mandatory;
+    scroll-padding-top: var(--header-height);
+  }
+
+  .snap-page {
+    scroll-snap-align: start;
+    /* Not scroll-snap-stop: always — that forces the browser to fight a
+       gesture's natural momentum to guarantee landing on the very next
+       section no matter how hard the flick, which is part of what read as
+       rushed/robotic rather than a glide. Without it, a normal-strength
+       scroll still lands cleanly on the next section; only a genuinely
+       hard flick can carry through to the one after. */
+    height: calc(100dvh - var(--header-height));
+    /* auto, not scroll: a section whose content fits exactly (Hero,
+       Catalogue) should never become its own scroll container at all —
+       only the taller ones (About, sometimes Custom) actually need this. */
+    overflow-y: auto;
+    /* Deliberately NOT overscroll-behavior: contain. That property blocks
+       scroll chaining — once wheel input hits a section's own overflow
+       here, contain would stop it from ever reaching the outer document to
+       move to the next section, which is exactly what made scrolling stop
+       working at all. The default (chaining enabled) is what lets input
+       fall through to the next snap point once a section's own internal
+       scroll is exhausted — or immediately, for sections with nothing to
+       scroll in the first place. */
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  background-color: rgba(255, 255, 255, 0.05);
+  -webkit-backdrop-filter: blur(8px) saturate(180%);
+  backdrop-filter: blur(8px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    inset 0 -6px 10px rgba(34, 58, 38, 0.12),
+    0 4px 10px rgba(15, 24, 16, 0.16);
+  transition: background-color 260ms ease, box-shadow 260ms ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 0 1px rgba(233, 211, 155, 0.4),
+    inset 0 -6px 10px rgba(63, 83, 60, 0.18),
+    0 0 14px rgba(199, 167, 100, 0.3);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/*
+ * The page itself no longer free-scrolls — navigation between sections
+ * happens via the discrete long-scroll-navigator jumps, so a visible
+ * page-level scrollbar has nothing meaningful left to represent. Hide it
+ * on the root only; nested scrollable regions (sidebar list, mobile filter
+ * overlay) keep the glass scrollbar styled above.
+ */
+html,
+body {
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+/* For small inline scroll regions (e.g. a single-row tag list that scrolls
+ * sideways instead of wrapping) where a visible scrollbar would just be
+ * clutter — the content is still genuinely scrollable, just without the
+ * chrome. */
+.scrollbar-hide {
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 body {
   @apply bg-paper font-body antialiased;
   color: #112319;
+  overflow-x: clip;
   background:
     radial-gradient(circle at top left, rgba(226, 215, 188, 0.42), transparent 28%),
     linear-gradient(180deg, #f5f0e5 0%, #efe7d7 100%);
@@ -236,12 +357,234 @@ button {
   text-wrap: pretty;
 }
 
-.hero-supporting-copy {
-  max-width: 34ch;
-}
-
 .header-text-shadow {
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+/*
+ * Liquid Glass — Apple WWDC25-style frosted panel: heavy blur+saturate so
+ * whatever sits behind genuinely refracts through, a bright specular arc
+ * across the top-left to fake a curved glass surface catching light, and a
+ * hairline border that reads as a bezel rather than a flat outline.
+ */
+.liquid-glass {
+  position: relative;
+  /* No backdrop-filter here, same reasoning as the sticky <header> itself
+     (see the comment above it in header.tsx): every element in this file
+     using .liquid-glass lives inside that sticky header, so any blur here
+     was still forcing a real-time GPU recomposite on every scroll frame,
+     site-wide — trimming the radius (22px -> 10px, previously) cut the
+     per-frame cost but not the per-frame *work*. A solid, higher-opacity
+     tint reads as glass against the header's own near-opaque dark
+     background without ever needing to resample anything live. */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.45),
+    inset 0 -1px 8px rgba(255, 255, 255, 0.06),
+    0 10px 30px rgba(0, 0, 0, 0.28);
+}
+
+.liquid-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 40%);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* The pill that physically slides behind the active nav item. Slightly
+ * brighter and more saturated than the bar itself, with a faint iridescent
+ * fringe (the thin blue/pink hint at the border) so it reads as a distinct
+ * blob of glass moving over the surface, not just a highlight box. */
+.liquid-glass-active {
+  position: absolute;
+  border-radius: 9999px;
+  /* Same no-blur reasoning as .liquid-glass above — this pill lives inside
+     the same sticky header, so it paid the same site-wide per-scroll-frame
+     recomposite cost. Bumped opacity to stay legible without it. */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.16));
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.75),
+    inset 0 -6px 10px rgba(52, 67, 50, 0.16),
+    0 6px 18px rgba(0, 0, 0, 0.22);
+  transition-property: left, width, transform, box-shadow;
+  transition-duration: 560ms, 560ms, 220ms, 220ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1),
+    cubic-bezier(0.34, 1.56, 0.64, 1), ease;
+  pointer-events: none;
+}
+
+/* While being dragged, `left` needs to be excluded from the transition
+ * entirely (so the glass tracks the pointer with zero lag); `width` keeps a
+ * short one so it morphs cleanly as the drag crosses from one item's shape
+ * to the next instead of jump-cutting; transform/box-shadow keep animating
+ * too — this is what gives the "lift off the surface" pop on pickup without
+ * adding drag latency to the position itself. */
+.liquid-glass-active.is-dragging {
+  z-index: 20;
+  transition-property: width, transform, box-shadow;
+  transition-duration: 180ms, 220ms, 220ms;
+  transition-timing-function: ease, cubic-bezier(0.34, 1.56, 0.64, 1), ease;
+  transform: scale(1.07) translateY(-3px);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    inset 0 -6px 12px rgba(52, 67, 50, 0.22),
+    0 18px 36px rgba(0, 0, 0, 0.36);
+}
+
+.liquid-glass-active::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(120deg, rgba(140, 200, 255, 0.55), rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0) 70%, rgba(255, 170, 210, 0.5));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.liquid-glass-label {
+  display: inline-block;
+  transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.liquid-glass-link:hover .liquid-glass-label,
+.liquid-glass-link[data-active="true"] .liquid-glass-label {
+  transform: scale(1.14);
+}
+
+/*
+ * Light-backdrop variants — same bezel/blur/specular language as
+ * .liquid-glass, but inverted so it reads clearly over the site's cream
+ * page background instead of the dark header: a soft dark-tinted glass
+ * blob with a bright highlight on top, rather than a bright blob on dark.
+ */
+.liquid-glass-on-light {
+  position: relative;
+  background: linear-gradient(180deg, rgba(52, 67, 50, 0.05), rgba(52, 67, 50, 0.015));
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(52, 67, 50, 0.14);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.75),
+    inset 0 -1px 6px rgba(52, 67, 50, 0.05),
+    0 6px 18px rgba(52, 67, 50, 0.08);
+}
+
+.liquid-glass-active-on-light {
+  position: absolute;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, rgba(52, 67, 50, 0.94), rgba(41, 54, 40, 0.86));
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.32),
+    inset 0 -6px 10px rgba(0, 0, 0, 0.2),
+    0 6px 16px rgba(52, 67, 50, 0.22);
+  transition-property: left, width, transform, box-shadow;
+  transition-duration: 560ms, 560ms, 220ms, 220ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1),
+    cubic-bezier(0.34, 1.56, 0.64, 1), ease;
+  pointer-events: none;
+}
+
+.liquid-glass-active-on-light.is-dragging {
+  z-index: 20;
+  transition-property: width, transform, box-shadow;
+  transition-duration: 180ms, 220ms, 220ms;
+  transition-timing-function: ease, cubic-bezier(0.34, 1.56, 0.64, 1), ease;
+  transform: scale(1.07) translateY(-3px);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.4),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.26),
+    0 16px 34px rgba(52, 67, 50, 0.34);
+}
+
+.liquid-glass-active-on-light::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(120deg, rgba(140, 200, 255, 0.45), rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0) 70%, rgba(255, 170, 210, 0.4));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-glass-active,
+  .liquid-glass-active-on-light,
+  .liquid-glass-active.is-dragging,
+  .liquid-glass-active-on-light.is-dragging {
+    transition: none;
+    transform: none;
+  }
+
+  .liquid-glass-label {
+    transition: none;
+  }
+}
+
+/*
+ * Auth screens' sign-in card: same liquid-glass language as the header
+ * (heavy blur+saturate so the hero video genuinely refracts through, a
+ * specular sheen across the top-left), but tuned cream/warm instead of
+ * neutral-white so it still reads as "Natlovers" glass, not generic frosted
+ * UI chrome, and kept well short of fully transparent so copy stays legible
+ * over a busy moving background. The blur itself is applied as Tailwind's
+ * backdrop-blur/backdrop-saturate utilities on the element instead of a
+ * literal backdrop-filter here — this build's CSS pipeline silently drops
+ * hand-written backdrop-filter declarations (it does the same to the
+ * existing .liquid-glass rule below), but keeps ones emitted by Tailwind's
+ * own utility classes.
+ */
+.auth-glass-card {
+  position: relative;
+  background: linear-gradient(165deg, rgba(255, 253, 249, 0.72), rgba(250, 244, 231, 0.5));
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.6),
+    inset 0 -1px 12px rgba(255, 255, 255, 0.1),
+    0 28px 76px rgba(6, 17, 11, 0.4);
+}
+
+.auth-glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(125deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 42%);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* A crisp lit-glass edge instead of a flat 1px line: a masked gradient ring
+ * (bright top-left highlight fading through a warm sand glow bottom-right),
+ * the same technique the header's nav pill uses for its iridescent fringe. */
+.auth-glass-card::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0.16) 35%,
+    rgba(255, 255, 255, 0.1) 65%,
+    rgba(255, 238, 197, 0.65)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .hero-title-shadow {
@@ -256,99 +599,6 @@ button {
   position: relative;
 }
 
-.gallery-room {
-  position: relative;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at top, rgba(255, 247, 229, 0.75), rgba(247, 239, 225, 0.2) 36%, transparent 60%),
-    linear-gradient(180deg, #f5eee2 0%, #efe4d3 63%, #d6d1bf 63%, #53705a 78%, #385141 100%);
-}
-
-.gallery-room__ceiling {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 34%;
-  background: linear-gradient(180deg, rgba(255, 250, 239, 0.85), rgba(255, 250, 239, 0.18));
-}
-
-.gallery-room__floor {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 22%;
-  background:
-    linear-gradient(180deg, transparent 0%, rgba(73, 52, 31, 0.18) 30%, rgba(73, 52, 31, 0.34) 100%),
-    repeating-linear-gradient(135deg, rgba(123, 88, 55, 0.22) 0 24px, rgba(89, 59, 33, 0.16) 24px 48px);
-}
-
-.gallery-room__left-plant,
-.gallery-room__right-plant {
-  position: absolute;
-  bottom: var(--space-34);
-  width: 110px;
-  height: 150px;
-  border-radius: 999px 999px 24px 24px;
-  background:
-    radial-gradient(circle at 50% 20%, rgba(49, 94, 61, 0.65), transparent 45%),
-    linear-gradient(180deg, rgba(196, 149, 73, 0.9), rgba(101, 72, 31, 0.95));
-  opacity: 0.45;
-  filter: blur(0.2px);
-}
-
-.gallery-room__left-plant {
-  left: 21px;
-}
-
-.gallery-room__right-plant {
-  right: 21px;
-}
-
-.gallery-browser {
-  position: relative;
-}
-
-.gallery-browser__lamp {
-  width: 72px;
-  height: 16px;
-  margin: 0 auto var(--space-13);
-  border-radius: 999px;
-  background: linear-gradient(180deg, #c9a45b 0%, #9a6f2e 100%);
-  box-shadow: 0 8px 18px rgba(126, 88, 34, 0.22);
-}
-
-.gallery-browser__lamp::after {
-  content: "";
-  display: block;
-  width: 2px;
-  height: 18px;
-  margin: 0 auto;
-  background: linear-gradient(180deg, rgba(142, 108, 48, 0.65), rgba(142, 108, 48, 0));
-}
-
-.gallery-browser__frame {
-  border-radius: 1.75rem;
-  padding: var(--space-13);
-  background: linear-gradient(135deg, #c9a45b 0%, #e5cd97 20%, #8b6329 48%, #e7d6aa 70%, #a67836 100%);
-  box-shadow: 0 18px 40px rgba(88, 57, 21, 0.18), inset 0 1px 1px rgba(255, 247, 230, 0.55);
-}
-
-.gallery-browser__mat {
-  border-radius: 1.3rem;
-  padding: var(--space-13);
-  background: linear-gradient(180deg, rgba(250, 244, 230, 0.96), rgba(238, 228, 204, 0.92));
-  box-shadow: inset 0 0 0 1px rgba(166, 124, 54, 0.25);
-}
-
-.gallery-browser__art {
-  position: relative;
-  overflow: hidden;
-  border-radius: 1rem;
-  aspect-ratio: 4 / 5;
-  background: #ddcfb3;
-  box-shadow: inset 0 0 0 1px rgba(118, 86, 38, 0.22), 0 12px 24px rgba(59, 38, 15, 0.18);
-}
-
 @media (max-width: 1023px) {
   .hero-stage {
     height: auto;
@@ -359,15 +609,6 @@ button {
   .hero-definition {
     max-width: 30ch;
   }
-
-  .hero-supporting-copy {
-    max-width: 38ch;
-  }
-
-  .gallery-room__left-plant,
-  .gallery-room__right-plant {
-    display: none;
-  }
 }
 
 @media (max-width: 640px) {
@@ -377,10 +618,6 @@ button {
 
   .hero-definition {
     max-width: 24ch;
-  }
-
-  .hero-supporting-copy {
-    max-width: 30ch;
   }
 }
 
@@ -417,6 +654,8 @@ button {
     transform: translateY(-7px);
   }
 }
+
+
 
 @media (prefers-reduced-motion: reduce) {
   html {

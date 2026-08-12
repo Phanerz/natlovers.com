@@ -26,13 +26,6 @@ const optionalPositiveNumber = z.preprocess((value) => {
   return value;
 }, z.coerce.number().int().positive().optional());
 
-export const contactSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  subject: z.string().min(3),
-  message: z.string().min(10)
-});
-
 export const customRequestSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),

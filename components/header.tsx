@@ -3,23 +3,58 @@
 import Image from "next/image";
 import type {Route} from "next";
 import Link from "next/link";
-import {useMemo, useState} from "react";
+import {usePathname, useRouter} from "next/navigation";
+import {useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
+import type {PointerEvent as ReactPointerEvent} from "react";
 import {
   ChevronDown,
-  ExternalLink,
+  LogOut,
   Menu,
   Minus,
   Plus,
   Search,
   ShoppingBag,
   Trash2,
+  User,
   X
 } from "lucide-react";
+import {signOut, useSession} from "next-auth/react";
 import {formatCurrency} from "@/lib/format";
 import {currencies, locales} from "@/lib/site";
 import {getDictionary} from "@/lib/translations";
+import {useActiveNavSection} from "@/components/use-active-nav-section";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {useStorefront} from "@/components/storefront-provider";
+
+function easeOutCubic(t: number) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+// A nav click can cover a lot more ground than one CSS-snapped section
+// (Home to About is the whole page), so this runs longer than a single
+// section's own snap distance would need — fast enough to feel immediate,
+// slow enough not to be dizzying over that distance.
+const NAV_JUMP_DURATION_MS = 420;
+
+function smoothScrollTo(targetY: number) {
+  const startY = window.scrollY;
+  const distance = targetY - startY;
+  if (Math.abs(distance) < 2) {
+    return;
+  }
+
+  const startTime = performance.now();
+
+  function step(now: number) {
+    const t = Math.min(1, (now - startTime) / NAV_JUMP_DURATION_MS);
+    window.scrollTo(0, startY + distance * easeOutCubic(t));
+    if (t < 1) {
+      requestAnimationFrame(step);
+    }
+  }
+
+  requestAnimationFrame(step);
+}
 
 export function Header() {
   const {locale, currency, setLocale, setCurrency} = useSitePreferences();
@@ -41,10 +76,13 @@ export function Header() {
     getCartSubtotalIdr
   } = useStorefront();
 
+  const {data: session, status: sessionStatus} = useSession();
+
   const [query, setQuery] = useState("");
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [checkoutState, setCheckoutState] = useState<null | {
     orderRef: string;
     accountName: string;
@@ -57,15 +95,224 @@ export function Header() {
   const dict = getDictionary(locale);
   const navItems: Array<{href: Route; label: string}> = [
     {href: "/", label: dict.nav.home},
-    {href: "/about", label: dict.nav.about},
     {href: "/catalogue", label: dict.nav.catalogue},
     {href: "/custom", label: dict.nav.custom},
-    {href: "/gallery", label: dict.nav.gallery},
-    {href: "/contact", label: dict.nav.contact},
-    {href: "/social-medias", label: locale === "en" ? "Socials" : "Sosial"},
-    {href: "/dashboard", label: dict.nav.dashboard},
-    {href: "/admin", label: dict.nav.admin}
+    {href: "/outlets", label: dict.nav.outlets},
+    {href: "/about", label: dict.nav.about}
   ];
+
+  const pathname = usePathname();
+  const router = useRouter();
+  const navRef = useRef<HTMLElement | null>(null);
+  const linkRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
+  const [indicator, setIndicator] = useState<{left: number; width: number} | null>(null);
+  const scrollSectionHref = useActiveNavSection();
+  const draggingRef = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragLeft, setDragLeft] = useState<number | null>(null);
+  const [dragWidth, setDragWidth] = useState<number | null>(null);
+  // Set on drop when the glass is handed off toward a different page: keeps
+  // the pill pinned at the destination pill's exact position/width while
+  // router.push resolves, instead of snapping back to the origin first —
+  // cleared once the new route's activeHref actually catches up to match
+  // (or, failing that, by the backstop timeout below).
+  const pendingNavHrefRef = useRef<string | null>(null);
+  const pendingNavTimeoutRef = useRef<number | null>(null);
+
+  function isActiveHref(href: string) {
+    return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  const routeActiveHref = navItems.find((item) => isActiveHref(item.href))?.href ?? navItems[0].href;
+  // A page can embed multiple nav-worthy sections under one route (the home
+  // page's Hero and Catalogue both live at "/") — when that's happening,
+  // which section is actually in view wins over the plain route match, so
+  // the pill tracks what's on screen instead of sticking to "Home".
+  const activeHref =
+    scrollSectionHref && navItems.some((item) => item.href === scrollSectionHref) ? scrollSectionHref : routeActiveHref;
+
+  useLayoutEffect(() => {
+    function measure() {
+      const nav = navRef.current;
+      const activeLink = linkRefs.current.get(activeHref);
+      if (!nav || !activeLink) {
+        return;
+      }
+
+      const navBox = nav.getBoundingClientRect();
+      const linkBox = activeLink.getBoundingClientRect();
+      setIndicator({left: linkBox.left - navBox.left, width: linkBox.width});
+    }
+
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [activeHref, locale]);
+
+  // Once a drop hands off to a different item, the pill is pinned at the
+  // destination's exact position (see handleIndicatorPointerUp) while the
+  // scroll (or, rarely, a real navigation) resolves. The instant activeHref
+  // actually catches up to match, that pin is released — by then
+  // indicator.left already measures to the same value, so nothing visibly
+  // jumps.
+  useEffect(() => {
+    if (pendingNavHrefRef.current && activeHref === pendingNavHrefRef.current) {
+      pendingNavHrefRef.current = null;
+      if (pendingNavTimeoutRef.current !== null) {
+        window.clearTimeout(pendingNavTimeoutRef.current);
+        pendingNavTimeoutRef.current = null;
+      }
+      setDragLeft(null);
+      setDragWidth(null);
+    }
+  }, [activeHref]);
+
+  // Every section now lives on "/" — from there, a nav item is just an
+  // in-page jump to wherever its data-nav-href marker sits, not a real
+  // route change. Only when landing from somewhere else (a product detail
+  // page) does this still need an actual navigation.
+  function goToNavHref(href: Route) {
+    if (pathname !== "/") {
+      router.push(href === "/catalogue" || href === "/custom" || href === "/outlets" || href === "/about" ? "/" : href);
+      return;
+    }
+
+    const target = document.querySelector(`[data-nav-href="${href}"]`);
+    if (!target) {
+      return;
+    }
+
+    const headerEl = navRef.current?.closest("header");
+    const offset = headerEl ? headerEl.getBoundingClientRect().height : 0;
+    const targetY = target.getBoundingClientRect().top + window.scrollY - offset;
+    smoothScrollTo(Math.max(0, targetY));
+  }
+
+  function updateDragPosition(clientX: number) {
+    const navBox = navRef.current?.getBoundingClientRect();
+    if (!navBox || !indicator) {
+      return;
+    }
+
+    const half = indicator.width / 2;
+    const max = Math.max(0, navBox.width - indicator.width);
+    const left = Math.min(max, Math.max(0, clientX - navBox.left - half));
+    setDragLeft(left);
+
+    // The pill's width magnetically snaps to whichever item it's currently
+    // nearest, instead of staying frozen at the width of whatever item the
+    // drag started from — otherwise, as soon as it slides over a
+    // differently-sized label, it visibly stops matching anything it's
+    // supposed to be hovering (reads as a glitch, not a drag).
+    const dragCenter = left + indicator.width / 2;
+    let closestWidth = indicator.width;
+    let closestDistance = Infinity;
+
+    navItems.forEach((item) => {
+      const link = linkRefs.current.get(item.href);
+      if (!link) {
+        return;
+      }
+
+      const linkBox = link.getBoundingClientRect();
+      const center = linkBox.left - navBox.left + linkBox.width / 2;
+      const distance = Math.abs(center - dragCenter);
+
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestWidth = linkBox.width;
+      }
+    });
+
+    setDragWidth(closestWidth);
+  }
+
+  function handleIndicatorPointerDown(event: ReactPointerEvent<HTMLElement>) {
+    if (!indicator) {
+      return;
+    }
+
+    // Suppresses the click-through navigation a <a> would otherwise fire
+    // on pointerup — harmless here since it's always the already-active
+    // link, but this keeps drag-vs-click unambiguous either way.
+    event.preventDefault();
+    draggingRef.current = true;
+    setIsDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+    updateDragPosition(event.clientX);
+  }
+
+  function handleIndicatorPointerMove(event: ReactPointerEvent<HTMLElement>) {
+    if (!draggingRef.current) {
+      return;
+    }
+
+    updateDragPosition(event.clientX);
+  }
+
+  function handleIndicatorPointerUp(event: ReactPointerEvent<HTMLElement>) {
+    if (!draggingRef.current) {
+      return;
+    }
+
+    draggingRef.current = false;
+    setIsDragging(false);
+    event.currentTarget.releasePointerCapture(event.pointerId);
+
+    const navBox = navRef.current?.getBoundingClientRect();
+    const dropLeft = dragLeft;
+
+    if (!navBox || dropLeft === null || !indicator) {
+      setDragLeft(null);
+      setDragWidth(null);
+      return;
+    }
+
+    const dropCenter = dropLeft + indicator.width / 2;
+    let closestHref: Route | null = null;
+    let closestLink: HTMLAnchorElement | null = null;
+    let closestDistance = Infinity;
+
+    navItems.forEach((item) => {
+      const link = linkRefs.current.get(item.href);
+      if (!link) {
+        return;
+      }
+
+      const linkBox = link.getBoundingClientRect();
+      const center = linkBox.left - navBox.left + linkBox.width / 2;
+      const distance = Math.abs(center - dropCenter);
+
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestHref = item.href;
+        closestLink = link;
+      }
+    });
+
+    if (closestHref && closestLink && closestHref !== activeHref) {
+      // Glide the rest of the way to the destination pill's exact spot
+      // instead of snapping back to the origin first — release should read
+      // as "landing on the page you dropped on," not a bounce-back.
+      const targetBox = (closestLink as HTMLAnchorElement).getBoundingClientRect();
+      setDragLeft(targetBox.left - navBox.left);
+      setDragWidth(targetBox.width);
+      pendingNavHrefRef.current = closestHref;
+      if (pendingNavTimeoutRef.current !== null) {
+        window.clearTimeout(pendingNavTimeoutRef.current);
+      }
+      pendingNavTimeoutRef.current = window.setTimeout(() => {
+        pendingNavHrefRef.current = null;
+        pendingNavTimeoutRef.current = null;
+        setDragLeft(null);
+        setDragWidth(null);
+      }, 2000);
+      goToNavHref(closestHref);
+    } else {
+      setDragLeft(null);
+      setDragWidth(null);
+    }
+  }
 
   const products = getProducts(locale);
   const results = useMemo(() => {
@@ -137,7 +384,14 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 min-h-[var(--header-height)] border-b border-[#efe3cb]/12 bg-[linear-gradient(180deg,rgba(8,18,13,0.98),rgba(8,18,13,0.94))] text-sand-50 shadow-[0_16px_48px_rgba(0,0,0,0.32)] backdrop-blur-2xl">
+      {/*
+        No backdrop-blur here on purpose: the header's own background is
+        already ~95% opaque, so a blur was buying almost no visible
+        difference while still costing a real-time GPU recomposite behind
+        a *sticky* element on every single scroll frame, site-wide — one of
+        the more expensive things a scrolling page can ask a browser to do.
+      */}
+      <header className="sticky top-0 z-40 min-h-[var(--header-height)] border-b border-[#efe3cb]/12 bg-[linear-gradient(180deg,rgba(8,18,13,0.98),rgba(8,18,13,0.94))] text-sand-50 shadow-[0_16px_48px_rgba(0,0,0,0.32)]">
         <div className="shell flex min-h-[var(--header-height)] items-center justify-between gap-4 py-3">
           <Link
             href="/"
@@ -154,16 +408,87 @@ export function Header() {
             />
           </Link>
 
-          <nav className="hidden items-center gap-2 rounded-full border border-[#f2e7cf]/26 bg-[#081c13]/94 px-3 py-2 shadow-[0_18px_36px_rgba(0,0,0,0.28)] backdrop-blur-xl lg:flex">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="nav-link header-text-shadow whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium tracking-[0.08em] text-[#fff7e5]"
-              >
-                {item.label}
-              </Link>
-            ))}
+          <nav
+            ref={navRef}
+            className="liquid-glass relative hidden items-center gap-1 rounded-full px-2 py-2 lg:flex"
+          >
+            {indicator
+              ? (() => {
+                  const lensLeft = dragLeft ?? indicator.left;
+                  const lensWidth = dragWidth ?? indicator.width;
+
+                  // A magnified live clone of the nav labels used to render
+                  // inside this pill while dragging, but it only ever lined
+                  // up correctly at the instant its width exactly matched
+                  // whatever it was passing over — mid-morph (which is most
+                  // of the time, since width animates) the real label
+                  // underneath wasn't fully covered yet, so the zoomed clone
+                  // text and the real text showed through side by side and
+                  // read as garbled double vision. A solid frosted pill that
+                  // cleanly covers whatever it slides over (via the
+                  // z-index bump in .is-dragging) reads as an intentional
+                  // "picked up and moving" object instead.
+                  return (
+                    <span
+                      aria-hidden
+                      onPointerDown={handleIndicatorPointerDown}
+                      onPointerMove={handleIndicatorPointerMove}
+                      onPointerUp={handleIndicatorPointerUp}
+                      onPointerCancel={handleIndicatorPointerUp}
+                      className={`liquid-glass-active h-[calc(100%-0.5rem)] top-1 ${
+                        isDragging ? "is-dragging" : "cursor-grab active:cursor-grabbing"
+                      }`}
+                      style={{
+                        left: lensLeft,
+                        width: lensWidth,
+                        pointerEvents: "auto",
+                        touchAction: "none",
+                        cursor: isDragging ? "grabbing" : "grab"
+                      }}
+                    />
+                  );
+                })()
+              : null}
+            {navItems.map((item) => {
+              const isActive = item.href === activeHref;
+              return (
+                <Link
+                  key={item.href}
+                  ref={(el) => {
+                    if (el) {
+                      linkRefs.current.set(item.href, el);
+                    } else {
+                      linkRefs.current.delete(item.href);
+                    }
+                  }}
+                  href={item.href}
+                  data-active={isActive}
+                  onClick={(event) => {
+                    // Every section lives on "/" now, so a plain click is an
+                    // in-page scroll, not a real navigation — except from
+                    // somewhere off-flow (a product detail page), where
+                    // goToNavHref falls back to an actual route change.
+                    event.preventDefault();
+                    goToNavHref(item.href);
+                  }}
+                  // The active link visually sits directly on top of the glass
+                  // indicator (that's the whole point — it reads as one pill).
+                  // Its own z-10 means a pointerdown there hits this <a>, not
+                  // the indicator span underneath, so the drag has to be
+                  // initiated from here too, not just the indicator itself.
+                  onPointerDown={isActive ? handleIndicatorPointerDown : undefined}
+                  onPointerMove={isActive ? handleIndicatorPointerMove : undefined}
+                  onPointerUp={isActive ? handleIndicatorPointerUp : undefined}
+                  onPointerCancel={isActive ? handleIndicatorPointerUp : undefined}
+                  className={`liquid-glass-link header-text-shadow relative z-10 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium tracking-[0.08em] text-[#fff7e5] ${
+                    isActive ? (isDragging ? "cursor-grabbing" : "cursor-grab") : ""
+                  }`}
+                  style={isActive ? {touchAction: "none"} : undefined}
+                >
+                  <span className="liquid-glass-label">{item.label}</span>
+                </Link>
+              );
+            })}
           </nav>
 
           <div className="flex items-center gap-3 text-sand-50">
@@ -171,7 +496,7 @@ export function Header() {
               <button
                 type="button"
                 onClick={() => setSelectorOpen((open) => !open)}
-                className="control-pill header-text-shadow inline-flex min-w-[7.5rem] items-center justify-center gap-2 rounded-full border border-[#fff1cf]/20 bg-[#f2e7d0] px-4 py-2 text-sm font-semibold text-forest-900 shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
+                className="liquid-glass control-pill header-text-shadow inline-flex min-w-[7.5rem] items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-[#fff7e5]"
               >
                 <span>{locale.toUpperCase()} / {currency}</span>
                 <ChevronDown className="h-4 w-4" />
@@ -230,7 +555,7 @@ export function Header() {
               type="button"
               aria-label="Search"
               onClick={() => setSearchOpen(true)}
-              className="icon-button header-text-shadow rounded-full border border-[#fff1cf]/20 bg-[#f2e7d0] p-2 text-forest-900 shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
+              className="liquid-glass icon-button header-text-shadow rounded-full p-2 text-[#fff7e5]"
             >
               <Search className="h-4 w-4" />
             </button>
@@ -238,7 +563,7 @@ export function Header() {
               type="button"
               aria-label="Cart"
               onClick={openCabinet}
-              className="icon-button header-text-shadow relative rounded-full border border-[#fff1cf]/20 bg-[#f2e7d0] p-2 text-forest-900 shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
+              className="liquid-glass icon-button header-text-shadow relative rounded-full p-2 text-[#fff7e5]"
             >
               <ShoppingBag className="h-4 w-4" />
               {cartItems.length ? (
@@ -247,11 +572,60 @@ export function Header() {
                 </span>
               ) : null}
             </button>
+
+            <div className="relative">
+              {sessionStatus === "authenticated" && session?.user ? (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Account"
+                    onClick={() => setAccountOpen((open) => !open)}
+                    className="liquid-glass icon-button flex h-9 w-9 items-center justify-center overflow-hidden rounded-full p-0 text-[#fff7e5]"
+                  >
+                    {session.user.image ? (
+                      <Image src={session.user.image} alt="" width={36} height={36} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center bg-forest-900 text-xs font-semibold uppercase text-sand-50">
+                        {(session.user.name ?? session.user.email ?? "?").charAt(0)}
+                      </span>
+                    )}
+                  </button>
+                  {accountOpen ? (
+                    <div className="menu-surface absolute right-0 top-14 z-50 w-64 rounded-[1.7rem] border border-[#d8ccb6] bg-[#f8f1e6] p-5 text-forest-900 shadow-[0_24px_60px_rgba(28,25,18,0.24)]">
+                      <p className="muted">Signed in as</p>
+                      <p className="mt-2 truncate text-sm font-medium text-forest-900">
+                        {session.user.name ?? session.user.email}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAccountOpen(false);
+                          signOut({callbackUrl: "/"});
+                        }}
+                        className="button-lift mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-[#cdbfa6] bg-[#fffaf1] px-4 py-2.5 text-sm font-medium text-forest-700"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Sign out
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <Link
+                  href="/login"
+                  aria-label="Sign in"
+                  className="liquid-glass icon-button header-text-shadow inline-flex items-center justify-center rounded-full p-2 text-[#fff7e5]"
+                >
+                  <User className="h-4 w-4" />
+                </Link>
+              )}
+            </div>
+
             <button
               type="button"
               aria-label="Menu"
               onClick={() => setMobileOpen(true)}
-              className="icon-button header-text-shadow rounded-full border border-[#fff1cf]/20 bg-[#f2e7d0] p-2 text-forest-900 shadow-[0_12px_28px_rgba(0,0,0,0.22)] lg:hidden"
+              className="liquid-glass icon-button header-text-shadow rounded-full p-2 text-[#fff7e5] lg:hidden"
             >
               <Menu className="h-4 w-4" />
             </button>
@@ -260,7 +634,7 @@ export function Header() {
       </header>
 
       {searchOpen ? (
-        <div className="fixed inset-0 z-50 bg-[rgba(7,18,12,0.42)] p-4 backdrop-blur-lg">
+        <div data-scroll-lock className="fixed inset-0 z-50 bg-[rgba(7,18,12,0.42)] p-4 backdrop-blur-lg">
           <div className="menu-surface mx-auto mt-12 max-w-5xl rounded-[2.2rem] border border-[#d7cab2] bg-[rgba(247,240,227,0.94)] p-6 text-forest-900 shadow-[0_30px_90px_rgba(18,20,14,0.28)] sm:p-8">
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -317,7 +691,7 @@ export function Header() {
       ) : null}
 
       {cabinetOpen ? (
-        <div className="fixed inset-0 z-50 bg-[rgba(7,18,12,0.36)] backdrop-blur-lg">
+        <div data-scroll-lock className="fixed inset-0 z-50 bg-[rgba(7,18,12,0.36)] backdrop-blur-lg">
           <div className="ml-auto flex h-full w-full max-w-[33rem] flex-col border-l border-[#d7cab2] bg-[rgba(247,240,227,0.97)] p-6 shadow-[0_28px_90px_rgba(18,20,14,0.32)]">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -338,14 +712,8 @@ export function Header() {
               </button>
             </div>
 
-            <div className="mt-4 flex items-center justify-between rounded-[1.4rem] border border-[#d2c3a8] bg-[#fffaf1] px-4 py-4 text-sm text-forest-700 shadow-[0_12px_30px_rgba(79,58,28,0.08)]">
+            <div className="mt-4 rounded-[1.4rem] border border-[#d2c3a8] bg-[#fffaf1] px-4 py-4 text-sm text-forest-700 shadow-[0_12px_30px_rgba(79,58,28,0.08)]">
               <span>Bag, preview, and bank-transfer checkout are live now.</span>
-              <Link
-                href="/admin"
-                className="inline-flex items-center gap-2 font-medium text-forest-900 hover:text-forest-700"
-              >
-                Studio Control <ExternalLink className="h-4 w-4" />
-              </Link>
             </div>
 
             {previewProduct ? (
@@ -546,7 +914,7 @@ export function Header() {
       ) : null}
 
       {mobileOpen ? (
-        <div className="fixed inset-0 z-50 bg-[rgba(7,18,12,0.42)] p-4 backdrop-blur-lg lg:hidden">
+        <div data-scroll-lock className="fixed inset-0 z-50 bg-[rgba(7,18,12,0.42)] p-4 backdrop-blur-lg lg:hidden">
           <div className="menu-surface ml-auto max-w-sm rounded-[2rem] border border-[#d7cab2] bg-[#f8f1e6] p-6 text-forest-900 shadow-[0_24px_60px_rgba(28,25,18,0.24)]">
             <div className="flex items-center justify-between">
               <p className="font-display text-2xl text-forest-900">Menu</p>
@@ -563,7 +931,11 @@ export function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setMobileOpen(false)}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setMobileOpen(false);
+                    goToNavHref(item.href);
+                  }}
                   className="nav-link whitespace-nowrap rounded-[1rem] border border-[#d7cab2] bg-[#fffaf1] px-4 py-3 text-base text-forest-900 shadow-[0_8px_18px_rgba(59,43,22,0.08)]"
                 >
                   {item.label}

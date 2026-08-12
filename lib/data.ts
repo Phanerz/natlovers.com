@@ -85,20 +85,4 @@ export const featuredProducts: Record<Locale, ProductCard[]> = {
   ]
 };
 
-export const dashboardSummary = {
-  upcomingOrders: 2,
-  savedPieces: 4,
-  customRequests: 1
-};
-
-export const adminSummary = {
-  revenueMonth: {
-    IDR: 38750000,
-    USD: 2450
-  },
-  openOrders: 9,
-  newCustomRequests: 5,
-  artisanPartners: 34
-};
-
 export const supportedCurrencies: CurrencyCode[] = ["IDR", "USD", "GBP", "AUD", "SGD", "MYR"];

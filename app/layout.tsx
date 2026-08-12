@@ -1,5 +1,6 @@
 ﻿import "./globals.css";
 import {ReactNode} from "react";
+import {AuthSessionProvider} from "@/components/auth-session-provider";
 import {Footer} from "@/components/footer";
 import {Header} from "@/components/header";
 import {SitePreferencesProvider} from "@/components/site-preferences-provider";
@@ -13,14 +14,16 @@ export const metadata = {
 export default function RootLayout({children}: {children: ReactNode}) {
   return (
     <html lang="en">
-      <body>
-        <SitePreferencesProvider>
-          <StorefrontProvider>
-            <Header />
-            {children}
-            <Footer />
-          </StorefrontProvider>
-        </SitePreferencesProvider>
+      <body suppressHydrationWarning>
+        <AuthSessionProvider>
+          <SitePreferencesProvider>
+            <StorefrontProvider>
+              <Header />
+              {children}
+              <Footer />
+            </StorefrontProvider>
+          </SitePreferencesProvider>
+        </AuthSessionProvider>
       </body>
     </html>
   );

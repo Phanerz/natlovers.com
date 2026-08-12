@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {usePathname} from "next/navigation";
 import {Instagram, Mail, MapPin, MessageCircle} from "lucide-react";
 import {siteConfig} from "@/lib/site";
 import {getDictionary} from "@/lib/translations";
@@ -9,6 +10,11 @@ import {useSitePreferences} from "@/components/site-preferences-provider";
 export function Footer() {
   const {locale} = useSitePreferences();
   const dict = getDictionary(locale);
+  const pathname = usePathname();
+
+  if (pathname === "/catalogue" || pathname === "/mimin" || pathname === "/login") {
+    return null;
+  }
 
   return (
     <footer className="mt-24 border-t border-forest-100/70 bg-white/70">

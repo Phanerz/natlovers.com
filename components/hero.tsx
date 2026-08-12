@@ -1,14 +1,14 @@
 ﻿"use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import {useMemo, useState} from "react";
 import {ArrowRight} from "lucide-react";
 import {CurrencyCode, Locale} from "@/lib/site";
+import {HeroCardStack} from "@/components/hero-card-stack";
 
 const phonetic = "/\u02C8n\u00E6t.l\u0259\u028A.v\u0259z/";
 
-export function Hero({locale, currency}: {locale: Locale; currency: CurrencyCode}) {
+export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
   const [offset, setOffset] = useState({x: 0, y: 0});
 
 const titleTransform = useMemo(() => {
@@ -22,8 +22,6 @@ const backgroundTransform = useMemo(() => {
   return `translate3d(${offset.x * -4}px, ${offset.y * -3}px, 0) scale(1.05)`
 }, [offset.x, offset.y])
 
-const [light, setLight] = useState({ x: 50, y: 50 });
-
 const cardTransform = useMemo(() => {
   return `perspective(1200px)
           rotateX(${offset.y * -6}deg)
@@ -36,14 +34,10 @@ const cardTransform = useMemo(() => {
     const x = (event.clientX - bounds.left) / bounds.width - 0.5;
     const y = (event.clientY - bounds.top) / bounds.height - 0.5;
     setOffset({x, y});
-    const lx = ((event.clientX - bounds.left) / bounds.width) * 100;
-    const ly = ((event.clientY - bounds.top) / bounds.height) * 100;
-    setLight({ x: lx, y: ly });
   }
 
   function handleLeave() {
     setOffset({ x: 0, y: 0 })
-    setLight({ x: 50, y: 50 })
   }
 
   return (
@@ -66,7 +60,7 @@ const cardTransform = useMemo(() => {
             playsInline
             poster="/images/natlovers-bags-1.jpg"
           >
-            <source src="/videos/natlovers-hero.mp4" type="video/mp4" />
+            <source src="https://ftw7p3nsw06ehaup.public.blob.vercel-storage.com/natlovers-hero.mp4" type="video/mp4" />
           </video>
           <div className="absolute inset-0 bg-[#06110b]/76" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_28%,rgba(115,155,134,0.26),transparent_22%),radial-gradient(circle_at_82%_24%,rgba(232,221,190,0.12),transparent_18%),linear-gradient(180deg,rgba(6,17,11,0.72),rgba(6,17,11,0.46)_42%,rgba(6,17,11,0.74)_100%)]" />
@@ -124,7 +118,7 @@ const cardTransform = useMemo(() => {
                   </Link>
                   <Link
                     href="/custom"
-                    className="button-lift inline-flex items-center gap-2 rounded-full border border-white/38 bg-black/12 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10"
+                    className="liquid-glass button-lift inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white"
                   >
                     REQUEST A CUSTOM PIECE
                   </Link>
@@ -138,43 +132,7 @@ const cardTransform = useMemo(() => {
                 style={{ transform: cardTransform, transformStyle: "preserve-3d" }}
               >
                 <div className="overflow-hidden rounded-[1.6rem] border border-[#f0e5cd]/14 bg-white/8 p-[13px]">
-                  <div className="grid gap-[13px] sm:grid-cols-[minmax(0,1fr)_144px]">
-                    <div
-                      className="group relative aspect-[4/5] w-full rounded-[1.2rem] border border-white/12 overflow-hidden shadow-[0_18px_40px_rgba(0,0,0,0.35)]"
-                    >
-                    <Image
-                    src="/images/tas-rumah-natural.png"
-                    alt="Tas Rumah Natural"
-                    fill
-                    sizes="(max-width: 768px) 100vw, 400px"
-                    className="object-cover transition-transform duration-700 hover:scale-105"
-                  />
-                  <div
-                    className="absolute inset-0 opacity-40 blur-xl pointer-events-none transition-opacity duration-300"
-                    style={{
-                      background: `radial-gradient(circle at ${light.x}% ${light.y}%, rgba(255,255,255,0.18), transparent 55%)`
-                    }}
-                  />
-                </div>
-                    <div className="grid gap-[13px]">
-                      <div className="rounded-[1.2rem] border border-white/12 bg-[#efdfbf]/10 p-4">
-                        <p className="text-[10px] uppercase tracking-[0.34em] text-[#f2e8d2]/72">
-                          {locale === "en" ? "Collection card" : "Kartu koleksi"}
-                        </p>
-                        <p className="mt-3 font-display text-[1.75rem] leading-none text-white">Tas Rumah Collection</p>
-                      </div>
-                      <div className="rounded-[1.2rem] border border-white/12 bg-white/8 p-4 text-sm leading-7 text-[#f4ead7]/88">
-                        {locale === "en" ? "Natlovers’ signature whimsical, house-shaped handmade bag." : "Tas buatan tangan berbentuk rumah yang ikonik dan unik dari Natlovers."}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="header-text-shadow mt-[13px] rounded-[1.25rem] border border-white/12 bg-white/12 px-4 py-3 text-[13px] text-white/92">
-                  <span className="block whitespace-nowrap">
-                    {locale === "en"
-                      ? `${locale.toUpperCase()} / ${currency} preview`
-                      : `Pratinjau ${locale.toUpperCase()} / ${currency}`}
-                  </span>
+                  <HeroCardStack />
                 </div>
               </div>
             </div>
