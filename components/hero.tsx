@@ -126,9 +126,9 @@ const cardTransform = useMemo(() => {
               </div>
             </div>
 
-            <div className="flex min-w-0 items-center lg:justify-end">
+            <div className="flex min-w-0 items-center lg:justify-center">
               <div
-                className="floating-panel will-change-transform transition-transform duration-300 ease-out w-full max-w-[26rem] px-4 sm:px-6"
+                className="floating-panel will-change-transform transition-transform duration-300 ease-out w-full max-w-[24rem] p-5 sm:p-6"
                 style={{ transform: cardTransform, transformStyle: "preserve-3d" }}
               >
                 <HeroCardStack />

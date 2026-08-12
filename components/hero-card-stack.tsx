@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import {PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState} from "react";
+import {AnimatePresence, PanInfo, animate, motion, useMotionValue, useTransform} from "framer-motion";
+import {useEffect, useMemo, useRef, useState} from "react";
 
 type HeroCardType = "color" | "image" | "testimony";
 
@@ -30,17 +31,30 @@ function defaultCards(): HeroCard[] {
 }
 
 const SWIPE_THRESHOLD_RATIO = 0.3;
-const SWIPE_THRESHOLD_MIN = 110;
-const VELOCITY_THRESHOLD = 0.55; // px/ms — a fast flick swipes even under the distance threshold
+const VELOCITY_THRESHOLD = 550;
 const FLY_DISTANCE = 900;
-const MAX_ROTATION = 16;
 const VISIBLE_DEPTH = 3;
+const MAX_DRAG_ROTATION = 26;
+// The resting card leans very slightly clockwise (positive deg) for a
+// natural, ever-so-slightly-off-center feel — drag rotation is added on
+// top of this base tilt, not in place of it.
+const FRONT_CARD_BASE_TILT = 3;
 
+// Resting transform per stack position (0 = front, 1 & 2 = cards fanned out
+// behind). The offsets are deliberately larger than the front card's own
+// tilt-induced silhouette growth (~15px at 3deg) and alternate to opposite
+// sides, so both cards behind stay visibly peeking out instead of being
+// swallowed by the tilted front card.
 const STACK_TARGETS = [
-  {scale: 1, x: 0, y: 0, rotate: 0},
-  {scale: 0.95, x: 16, y: 14, rotate: 5},
-  {scale: 0.9, x: -22, y: 26, rotate: -7}
+  {scale: 1, x: 0, y: 0, rotate: FRONT_CARD_BASE_TILT, opacity: 1, zIndex: 3},
+  {scale: 0.95, x: 26, y: 16, rotate: 10, opacity: 0.92, zIndex: 2},
+  {scale: 0.9, x: -30, y: 28, rotate: -11, opacity: 0.8, zIndex: 1}
 ] as const;
+
+function normalizeVector(vx: number, vy: number): {x: number; y: number} {
+  const magnitude = Math.hypot(vx, vy) || 1;
+  return {x: vx / magnitude, y: vy / magnitude};
+}
 
 function CardFace({card}: {card: HeroCard}) {
   if (card.cardType === "image" && card.imageUrl) {
@@ -62,113 +76,81 @@ function CardFace({card}: {card: HeroCard}) {
   return <div className="h-full w-full" style={{backgroundColor: card.colorValue ?? "#7a7a7a"}} />;
 }
 
-function TopCard({card, onSwiped}: {card: HeroCard; onSwiped: () => void}) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const dragInfo = useRef<{
-    startX: number;
-    pointerId: number;
-    dragging: boolean;
-    lastX: number;
-    lastT: number;
-    velocity: number;
-  }>({
-    startX: 0,
-    pointerId: -1,
-    dragging: false,
-    lastX: 0,
-    lastT: 0,
-    velocity: 0
+function StackCard({
+  card,
+  distance,
+  exitDirection,
+  cardSize,
+  onSwiped
+}: {
+  card: HeroCard;
+  distance: 0 | 1 | 2;
+  exitDirection: {x: number; y: number};
+  cardSize: {width: number; height: number};
+  onSwiped: (direction: {x: number; y: number}) => void;
+}) {
+  // x/y are real, independent motion values driving both the live drag and
+  // the exit fling. rotate is derived from x (plus the front card's base
+  // tilt) so it keeps following automatically through drag and exit alike.
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotate = useTransform(x, (latest) => {
+    const dragRotation = Math.max(-MAX_DRAG_ROTATION, Math.min(MAX_DRAG_ROTATION, latest / 14));
+    return FRONT_CARD_BASE_TILT + dragRotation;
   });
 
-  const [offsetX, setOffsetX] = useState(0);
-  const [dragging, setDragging] = useState(false);
-  const [exitDirection, setExitDirection] = useState<1 | -1 | null>(null);
-  const [exitDurationMs, setExitDurationMs] = useState(320);
+  function handleDragEnd(_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
+    // The dismiss decision only looks at the horizontal component — a
+    // straight up/down drag has near-zero offset.x/velocity.x, so it always
+    // springs back to center regardless of how far vertically it went.
+    // Diagonal throws (down-left, up-right, etc.) still count as long as
+    // there's a real horizontal component, and the exit direction below
+    // uses the full 2D vector so those still fly off on the actual angle.
+    const thresholdX = cardSize.width * SWIPE_THRESHOLD_RATIO;
+    const pastThresholdX = Math.abs(info.offset.x) > thresholdX;
+    const isFastFlickX = Math.abs(info.velocity.x) > VELOCITY_THRESHOLD;
 
-  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (exitDirection !== null) return;
-    const now = performance.now();
-    dragInfo.current = {
-      startX: event.clientX,
-      pointerId: event.pointerId,
-      dragging: true,
-      lastX: event.clientX,
-      lastT: now,
-      velocity: 0
-    };
-    cardRef.current?.setPointerCapture(event.pointerId);
-    setDragging(true);
-  }
-
-  function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!dragInfo.current.dragging) return;
-    const now = performance.now();
-    const dt = now - dragInfo.current.lastT;
-    if (dt > 0) {
-      dragInfo.current.velocity = (event.clientX - dragInfo.current.lastX) / dt;
-    }
-    dragInfo.current.lastX = event.clientX;
-    dragInfo.current.lastT = now;
-    setOffsetX(event.clientX - dragInfo.current.startX);
-  }
-
-  function releaseDrag(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!dragInfo.current.dragging) return;
-    dragInfo.current.dragging = false;
-    cardRef.current?.releasePointerCapture(event.pointerId);
-    setDragging(false);
-
-    const width = cardRef.current?.offsetWidth ?? 380;
-    const threshold = Math.max(SWIPE_THRESHOLD_MIN, width * SWIPE_THRESHOLD_RATIO);
-    const delta = event.clientX - dragInfo.current.startX;
-    const velocity = dragInfo.current.velocity;
-    const isFastFlick = Math.abs(velocity) > VELOCITY_THRESHOLD;
-    const isPastThreshold = Math.abs(delta) > threshold;
-
-    if (isPastThreshold || isFastFlick) {
-      const direction: 1 | -1 = (isFastFlick ? velocity : delta) > 0 ? 1 : -1;
-      const speed = Math.min(Math.max(Math.abs(velocity), 0.3), 2.2);
-      const duration = Math.max(140, 320 - speed * 80);
-      setExitDurationMs(duration);
-      setExitDirection(direction);
-      requestAnimationFrame(() => setOffsetX(direction * FLY_DISTANCE));
-      window.setTimeout(onSwiped, duration);
+    if (pastThresholdX || isFastFlickX) {
+      const source = isFastFlickX ? info.velocity : info.offset;
+      onSwiped(normalizeVector(source.x, source.y));
     } else {
-      setExitDurationMs(320);
-      setOffsetX(0);
+      animate(x, 0, {type: "spring", stiffness: 380, damping: 34});
+      animate(y, 0, {type: "spring", stiffness: 380, damping: 34});
     }
   }
-
-  const rotation = Math.max(-MAX_ROTATION, Math.min(MAX_ROTATION, offsetX / 14));
-  const opacity = exitDirection !== null ? 0 : 1;
-  const liftScale = dragging ? 1.02 : 1;
 
   return (
-    <div
-      ref={cardRef}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={releaseDrag}
-      onPointerCancel={releaseDrag}
-      className="absolute inset-0 cursor-grab select-none overflow-hidden rounded-[1.4rem] shadow-[0_24px_60px_-14px_rgba(0,0,0,0.55),0_10px_26px_-10px_rgba(0,0,0,0.4)] active:cursor-grabbing"
-      style={{
-        touchAction: "none",
-        transform: `translateX(${offsetX}px) rotate(${rotation}deg) scale(${liftScale})`,
-        opacity,
-        transition: dragging
-          ? "none"
-          : `transform ${exitDurationMs}ms cubic-bezier(0.22, 1, 0.36, 1), opacity ${exitDurationMs}ms ease-out`,
-        zIndex: 10
+    <motion.div
+      className={`absolute inset-0 select-none overflow-hidden rounded-[1.4rem] shadow-[0_24px_60px_-14px_rgba(0,0,0,0.55),0_10px_26px_-10px_rgba(0,0,0,0.4)] ${
+        distance === 0 ? "cursor-grab active:cursor-grabbing" : ""
+      }`}
+      style={distance === 0 ? {x, y, rotate, touchAction: "none"} : undefined}
+      initial={{scale: 0.86, y: 46, opacity: 0}}
+      animate={STACK_TARGETS[distance]}
+      exit={{
+        x: exitDirection.x * FLY_DISTANCE,
+        y: exitDirection.y * FLY_DISTANCE,
+        opacity: 0,
+        transition: {duration: 0.32, ease: "easeOut"}
       }}
+      transition={{type: "spring", stiffness: 260, damping: 30}}
+      drag={distance === 0}
+      dragElastic={0.6}
+      dragMomentum={false}
+      onDragEnd={distance === 0 ? handleDragEnd : undefined}
+      whileDrag={{scale: 1.02}}
     >
       <CardFace card={card} />
-    </div>
+    </motion.div>
   );
 }
 
 export function HeroCardStack() {
   const [cards, setCards] = useState<HeroCard[]>(defaultCards());
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [exitDirection, setExitDirection] = useState<{x: number; y: number}>({x: -1, y: 0});
+  const [cardSize, setCardSize] = useState({width: 320, height: 427});
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -186,8 +168,18 @@ export function HeroCardStack() {
     };
   }, []);
 
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const rect = entries[0]?.contentRect;
+      if (rect?.width && rect?.height) setCardSize({width: rect.width, height: rect.height});
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const total = cards.length;
-  const topCardId = total ? cards[currentIndex % total].id : null;
 
   const visible = useMemo(() => {
     if (!total) return [];
@@ -197,30 +189,26 @@ export function HeroCardStack() {
     }));
   }, [cards, currentIndex, total]);
 
-  function advance() {
+  function advance(direction: {x: number; y: number}) {
     if (total < 2) return;
+    setExitDirection(direction);
     setCurrentIndex((index) => (index + 1) % total);
   }
 
   return (
-    <div className="relative aspect-[4/5] w-full">
-      {visible.map(({distance, card}) =>
-        distance === 0 ? (
-          <TopCard key={card.id} card={card} onSwiped={advance} />
-        ) : (
-          <div
+    <div ref={containerRef} className="relative aspect-[3/4] w-full">
+      <AnimatePresence initial={false}>
+        {visible.map(({distance, card}) => (
+          <StackCard
             key={card.id}
-            className="absolute inset-0 overflow-hidden rounded-[1.4rem] shadow-[0_18px_46px_-16px_rgba(0,0,0,0.5)] transition-transform duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
-            style={{
-              transform: `translate(${STACK_TARGETS[distance].x}px, ${STACK_TARGETS[distance].y}px) scale(${STACK_TARGETS[distance].scale}) rotate(${STACK_TARGETS[distance].rotate}deg)`,
-              zIndex: 10 - distance
-            }}
-          >
-            <CardFace card={card} />
-          </div>
-        )
-      )}
-      {!topCardId ? <div className="absolute inset-0 rounded-[1.4rem] bg-white/5" /> : null}
+            card={card}
+            distance={distance as 0 | 1 | 2}
+            exitDirection={exitDirection}
+            cardSize={cardSize}
+            onSwiped={advance}
+          />
+        ))}
+      </AnimatePresence>
     </div>
   );
 }

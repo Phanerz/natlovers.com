@@ -49,9 +49,8 @@ const copy = {
 };
 
 // Counts are scoped to whichever product type is currently selected (passed
-// in via `products`) so switching between Bags/Dolls/Accessories/Apparels
-// keeps the numbers meaningful instead of always reflecting the whole
-// catalogue.
+// in via `products`) so the numbers stay meaningful instead of always
+// reflecting the whole catalogue.
 function countBy<T extends string>(products: ShopProduct[], values: T[], pick: (product: ShopProduct) => T | T[]) {
   const counts = {} as Record<T, number>;
   for (const value of values) {
