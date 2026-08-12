@@ -1,7 +1,6 @@
 ﻿import "./globals.css";
 import {ReactNode} from "react";
 import {AuthSessionProvider} from "@/components/auth-session-provider";
-import {CardSpotlightProvider} from "@/components/card-spotlight";
 import {Footer} from "@/components/footer";
 import {Header} from "@/components/header";
 import {SitePreferencesProvider} from "@/components/site-preferences-provider";
@@ -19,11 +18,9 @@ export default function RootLayout({children}: {children: ReactNode}) {
         <AuthSessionProvider>
           <SitePreferencesProvider>
             <StorefrontProvider>
-              <CardSpotlightProvider>
-                <Header />
-                {children}
-                <Footer />
-              </CardSpotlightProvider>
+              <Header />
+              {children}
+              <Footer />
             </StorefrontProvider>
           </SitePreferencesProvider>
         </AuthSessionProvider>

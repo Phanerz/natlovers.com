@@ -4,7 +4,6 @@ import {useState} from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {Heart, Plus} from "lucide-react";
-import {useCardSpotlight} from "@/components/card-spotlight";
 import {formatCurrency} from "@/lib/format";
 import {CurrencyCode, Locale} from "@/lib/site";
 import {ShopProduct, handleLabels, handlePillStyle, materialImageStyle, sizeLabels, sizePillStyle} from "./shop-data";
@@ -20,7 +19,6 @@ export function ShopProductCard({
 }) {
   const imageStyle = materialImageStyle[product.materials[0]];
   const [favorited, setFavorited] = useState(false);
-  const spotlight = useCardSpotlight<HTMLElement>();
 
   return (
     // className="contents" makes this <a> layout-invisible (display:
@@ -45,12 +43,7 @@ export function ShopProductCard({
     // which is a worse bug in a different place. This is the last line of
     // defense against that, not the primary mechanism.
     <Link href={`/catalogue/${product.slug}`} className="contents">
-    <article
-      className="group relative aspect-square self-start overflow-hidden border-b border-r border-[#d9cfc0] transition-colors duration-300 hover:border-[#344332]"
-      onMouseEnter={spotlight.onMouseEnter}
-      onMouseMove={spotlight.onMouseMove}
-      onMouseLeave={spotlight.onMouseLeave}
-    >
+    <article className="group relative aspect-square self-start overflow-hidden border-b border-r border-[#d9cfc0] transition-colors duration-300 hover:border-[#344332]">
       <div className="absolute inset-0 overflow-hidden" style={{backgroundColor: imageStyle.bg}}>
         <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-8">
           <div className="relative h-full w-full">
