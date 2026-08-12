@@ -128,12 +128,10 @@ const cardTransform = useMemo(() => {
 
             <div className="flex min-w-0 items-center lg:justify-end">
               <div
-                className="floating-panel will-change-transform transition-transform duration-300 ease-out w-full max-w-[31rem] rounded-[2.1rem] border border-[#f0e5cd]/18 bg-[linear-gradient(180deg,rgba(7,20,14,0.62),rgba(7,20,14,0.28))] p-[13px] text-white backdrop-blur-sm shadow-2xl sm:p-[21px]"
+                className="floating-panel will-change-transform transition-transform duration-300 ease-out w-full max-w-[26rem] px-4 sm:px-6"
                 style={{ transform: cardTransform, transformStyle: "preserve-3d" }}
               >
-                <div className="overflow-hidden rounded-[1.6rem] border border-[#f0e5cd]/14 bg-white/8 p-[13px]">
-                  <HeroCardStack />
-                </div>
+                <HeroCardStack />
               </div>
             </div>
           </div>
