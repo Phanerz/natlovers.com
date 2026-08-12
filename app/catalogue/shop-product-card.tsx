@@ -2,7 +2,9 @@
 
 import {useState} from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {Heart, Plus} from "lucide-react";
+import {useCardSpotlight} from "@/components/card-spotlight";
 import {formatCurrency} from "@/lib/format";
 import {CurrencyCode, Locale} from "@/lib/site";
 import {ShopProduct, handleLabels, handlePillStyle, materialImageStyle, sizeLabels, sizePillStyle} from "./shop-data";
@@ -18,8 +20,13 @@ export function ShopProductCard({
 }) {
   const imageStyle = materialImageStyle[product.materials[0]];
   const [favorited, setFavorited] = useState(false);
+  const spotlight = useCardSpotlight<HTMLElement>();
 
   return (
+    // className="contents" makes this <a> layout-invisible (display:
+    // contents), so the <article> below is still the direct grid child for
+    // sizing purposes — the Link only adds click-through behavior, it
+    // never participates in the grid/flow itself.
     // self-start opts this card out of CSS Grid's default align-items:
     // stretch — without it, if anything in the row makes the row taller
     // than one card's own aspect-square height, every card in that row
@@ -37,7 +44,13 @@ export function ShopProductCard({
     // that the *page's* own fixed-height container clips it instead,
     // which is a worse bug in a different place. This is the last line of
     // defense against that, not the primary mechanism.
-    <article className="group relative aspect-square self-start overflow-hidden border-b border-r border-[#d9cfc0] transition-colors duration-300 hover:border-[#344332]">
+    <Link href={`/catalogue/${product.slug}`} className="contents">
+    <article
+      className="group relative aspect-square self-start overflow-hidden border-b border-r border-[#d9cfc0] transition-colors duration-300 hover:border-[#344332]"
+      onMouseEnter={spotlight.onMouseEnter}
+      onMouseMove={spotlight.onMouseMove}
+      onMouseLeave={spotlight.onMouseLeave}
+    >
       <div className="absolute inset-0 overflow-hidden" style={{backgroundColor: imageStyle.bg}}>
         <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-8">
           <div className="relative h-full w-full">
@@ -152,5 +165,6 @@ export function ShopProductCard({
         </div>
       </div>
     </article>
+    </Link>
   );
 }
