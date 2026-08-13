@@ -2,12 +2,17 @@
 
 import {FormEvent, ReactNode} from "react";
 import {
+  accessoryCategories,
+  accessoryCategoryLabels,
+  bagMaterials,
+  dollMaterials,
+  genderLabels,
   handleLabels,
   materialLabels,
   productTypeLabels,
   shapeLabels,
+  shopGenders,
   shopHandles,
-  shopMaterials,
   shopProductTypes,
   shopShapes,
   shopSizes,
@@ -33,6 +38,93 @@ function SectionCard({step, title, children}: {step: number; title: string; chil
 
 const fieldClass =
   "w-full rounded-xl border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-base text-forest-900 outline-none focus:border-forest-400";
+
+// Each Product Type owns its own attribute set — a Doll gets Gender + Size +
+// Materials (from dollMaterials, which includes Mendong), an Accessory gets
+// only Category, Apparel gets nothing beyond Basic Info/Images. No shared
+// generic block that shows fields irrelevant to the selected type.
+function AttributeFields({form, onChange}: {form: ProductFormState; onChange: (next: ProductFormState) => void}) {
+  if (form.productType === "Bags") {
+    return (
+      <>
+        <div className="grid gap-6 sm:grid-cols-2">
+          <PillSingleSelect
+            label="Size"
+            options={shopSizes}
+            getLabel={(option) => sizeLabels[option].en}
+            value={form.size}
+            onChange={(value) => onChange({...form, size: value})}
+          />
+          <PillSingleSelect
+            label="Shape"
+            options={shopShapes}
+            getLabel={(option) => shapeLabels[option].en}
+            value={form.shape}
+            onChange={(value) => onChange({...form, shape: value})}
+          />
+          <PillSingleSelect
+            label="Handle"
+            options={shopHandles}
+            getLabel={(option) => handleLabels[option].en}
+            value={form.handle}
+            onChange={(value) => onChange({...form, handle: value})}
+          />
+        </div>
+        <PillMultiSelect
+          label="Materials"
+          options={bagMaterials}
+          getLabel={(option) => materialLabels[option].en}
+          value={form.materials}
+          onChange={(value) => onChange({...form, materials: value})}
+        />
+      </>
+    );
+  }
+
+  if (form.productType === "Dolls") {
+    return (
+      <>
+        <div className="grid gap-6 sm:grid-cols-2">
+          <PillSingleSelect
+            label="Gender"
+            options={shopGenders}
+            getLabel={(option) => genderLabels[option].en}
+            value={form.gender}
+            onChange={(value) => onChange({...form, gender: value})}
+          />
+          <PillSingleSelect
+            label="Size"
+            options={shopSizes}
+            getLabel={(option) => sizeLabels[option].en}
+            value={form.size}
+            onChange={(value) => onChange({...form, size: value})}
+          />
+        </div>
+        <PillMultiSelect
+          label="Materials"
+          options={dollMaterials}
+          getLabel={(option) => materialLabels[option].en}
+          value={form.materials}
+          onChange={(value) => onChange({...form, materials: value})}
+        />
+      </>
+    );
+  }
+
+  if (form.productType === "Accessories") {
+    return (
+      <PillSingleSelect
+        label="Category"
+        options={accessoryCategories}
+        getLabel={(option) => accessoryCategoryLabels[option].en}
+        value={form.accessoryCategory}
+        onChange={(value) => onChange({...form, accessoryCategory: value})}
+      />
+    );
+  }
+
+  return <p className="text-sm text-forest-500">Apparel has no additional attributes yet.</p>;
+}
 
 export function ProductForm({
   mode,
@@ -97,36 +189,15 @@ export function ProductForm({
       </SectionCard>
 
       <SectionCard step={2} title="Attributes">
-        <div className="grid gap-6 sm:grid-cols-2">
-          <PillSingleSelect
-            label="Product Type"
-            options={shopProductTypes}
-            getLabel={(option) => productTypeLabels[option].en}
-            value={form.productType}
-            onChange={(value) => onChange({...form, productType: value})}
-          />
-          <PillSingleSelect
-            label="Size"
-            options={shopSizes}
-            getLabel={(option) => sizeLabels[option].en}
-            value={form.size}
-            onChange={(value) => onChange({...form, size: value})}
-          />
-          <PillSingleSelect
-            label="Shape"
-            options={shopShapes}
-            getLabel={(option) => shapeLabels[option].en}
-            value={form.shape}
-            onChange={(value) => onChange({...form, shape: value})}
-          />
-          <PillSingleSelect
-            label="Handle"
-            options={shopHandles}
-            getLabel={(option) => handleLabels[option].en}
-            value={form.handle}
-            onChange={(value) => onChange({...form, handle: value})}
-          />
-        </div>
+        <PillSingleSelect
+          label="Product Type"
+          options={shopProductTypes}
+          getLabel={(option) => productTypeLabels[option].en}
+          value={form.productType}
+          onChange={(value) => onChange({...form, productType: value})}
+        />
+
+        <AttributeFields form={form} onChange={onChange} />
 
         <label className="block space-y-2 text-sm text-forest-700">
           <span className="muted">Tags (comma separated)</span>
@@ -137,14 +208,6 @@ export function ProductForm({
             className={fieldClass}
           />
         </label>
-
-        <PillMultiSelect
-          label="Materials"
-          options={shopMaterials}
-          getLabel={(option) => materialLabels[option].en}
-          value={form.materials}
-          onChange={(value) => onChange({...form, materials: value})}
-        />
       </SectionCard>
 
       <SectionCard step={3} title="Images">
