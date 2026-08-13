@@ -1,15 +1,11 @@
-﻿"use client";
+"use client";
 
-import {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useMemo,
-  useState
-} from "react";
-import {featuredProducts, ProductCard as ProductCardType} from "@/lib/data";
+import {createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState} from "react";
+import {useRouter} from "next/navigation";
+import {useSession} from "next-auth/react";
+import type {ProductCard as ProductCardType} from "@/lib/data";
 import {Locale} from "@/lib/site";
+import type {AdminProduct} from "@/lib/admin-products";
 
 type CartItem = {
   slug: string;
@@ -21,16 +17,14 @@ type CheckoutDraft = {
   direct?: boolean;
 } | null;
 
-type ProductPatch = Partial<Omit<ProductCardType, "slug">>;
-
 type StorefrontContextValue = {
-  products: Record<Locale, ProductCardType[]>;
+  products: ProductCardType[];
   cartItems: CartItem[];
   cabinetOpen: boolean;
   previewSlug: string | null;
   checkoutDraft: CheckoutDraft;
-  getProducts: (locale: Locale) => ProductCardType[];
-  resolveProduct: (slug: string, locale: Locale) => ProductCardType | undefined;
+  getProducts: (locale?: Locale) => ProductCardType[];
+  resolveProduct: (slug: string, locale?: Locale) => ProductCardType | undefined;
   addToCart: (slug: string, quantity?: number) => void;
   removeFromCart: (slug: string) => void;
   updateQuantity: (slug: string, quantity: number) => void;
@@ -42,89 +36,109 @@ type StorefrontContextValue = {
   startBankTransferForProduct: (slug: string) => void;
   startBankTransferForCart: () => void;
   clearCheckoutDraft: () => void;
-  updateProduct: (locale: Locale, slug: string, patch: ProductPatch) => void;
-  addProduct: (locale: Locale) => string;
-  removeProductEntry: (locale: Locale, slug: string) => void;
-  getCartSubtotalIdr: (locale: Locale) => number;
+  getCartSubtotalIdr: (locale?: Locale) => number;
 };
-
-const productStorageKey = "natlovers-products-v1";
-const cartStorageKey = "natlovers-cart-v1";
 
 const StorefrontContext = createContext<StorefrontContextValue | null>(null);
 
-function cloneBaseProducts(): Record<Locale, ProductCardType[]> {
+// The real catalogue (from /api/admin/products) is mapped onto the same
+// shape the cart drawer, search modal, and quick-preview panel already
+// render (title/story/imageUrl/materials as string[]) so none of that JSX
+// needed to change — only where the data comes from did.
+function toProductCard(product: AdminProduct): ProductCardType {
   return {
-    en: featuredProducts.en.map((product) => ({...product, materials: [...product.materials]})),
-    id: featuredProducts.id.map((product) => ({...product, materials: [...product.materials]}))
+    slug: product.slug,
+    title: product.name,
+    description: product.description ?? "",
+    priceIdr: product.priceIdr,
+    imageUrl: product.images[0] ?? product.imageUrl,
+    story: product.description ?? "",
+    materials: product.materials,
+    collection: "bags"
   };
 }
 
 export function StorefrontProvider({children}: {children: ReactNode}) {
-  const [products, setProducts] = useState<Record<Locale, ProductCardType[]>>(cloneBaseProducts);
+  const {status} = useSession();
+  const router = useRouter();
+
+  const [products, setProducts] = useState<ProductCardType[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cabinetOpen, setCabinetOpen] = useState(false);
   const [previewSlug, setPreviewSlug] = useState<string | null>(null);
   const [checkoutDraft, setCheckoutDraft] = useState<CheckoutDraft>(null);
 
   useEffect(() => {
-    const savedProducts = window.localStorage.getItem(productStorageKey);
-    const savedCart = window.localStorage.getItem(cartStorageKey);
-
-    if (savedProducts) {
-      try {
-        const parsed = JSON.parse(savedProducts) as Record<Locale, ProductCardType[]>;
-        if (parsed?.en && parsed?.id) {
-          setProducts(parsed);
+    let cancelled = false;
+    fetch("/api/admin/products", {cache: "no-store"})
+      .then((response) => (response.ok ? response.json() : []))
+      .then((data: unknown) => {
+        if (!cancelled && Array.isArray(data)) {
+          setProducts((data as AdminProduct[]).map(toProductCard));
         }
-      } catch {
-        window.localStorage.removeItem(productStorageKey);
-      }
-    }
-
-    if (savedCart) {
-      try {
-        const parsed = JSON.parse(savedCart) as CartItem[];
-        if (Array.isArray(parsed)) {
-          setCartItems(parsed.filter((item) => item.slug && item.quantity > 0));
-        }
-      } catch {
-        window.localStorage.removeItem(cartStorageKey);
-      }
-    }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
+  // Cart lives in Postgres per account, not localStorage — it's hydrated
+  // here whenever sign-in state changes, and cleared locally on sign-out so
+  // the drawer doesn't keep showing the previous account's items.
   useEffect(() => {
-    window.localStorage.setItem(productStorageKey, JSON.stringify(products));
-  }, [products]);
+    if (status !== "authenticated") {
+      if (status === "unauthenticated") {
+        setCartItems([]);
+      }
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/cart", {cache: "no-store"})
+      .then((response) => (response.ok ? response.json() : {items: []}))
+      .then((data: {items: CartItem[]}) => {
+        if (!cancelled) {
+          setCartItems(Array.isArray(data.items) ? data.items : []);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [status]);
 
-  useEffect(() => {
-    window.localStorage.setItem(cartStorageKey, JSON.stringify(cartItems));
-  }, [cartItems]);
+  const persistQuantity = useCallback((slug: string, quantity: number) => {
+    fetch("/api/cart", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({slug, quantity})
+    }).catch(() => undefined);
+  }, []);
 
-  function getProducts(locale: Locale) {
-    return products[locale];
+  function getProducts() {
+    return products;
   }
 
-  function resolveProduct(slug: string, locale: Locale) {
-    return products[locale].find((product) => product.slug === slug)
-      ?? products.en.find((product) => product.slug === slug)
-      ?? products.id.find((product) => product.slug === slug);
+  function resolveProduct(slug: string) {
+    return products.find((product) => product.slug === slug);
   }
 
   function addToCart(slug: string, quantity = 1) {
-    setCartItems((current) => {
-      const existing = current.find((item) => item.slug === slug);
-      if (existing) {
-        return current.map((item) => item.slug === slug ? {...item, quantity: item.quantity + quantity} : item);
-      }
-      return [...current, {slug, quantity}];
-    });
-    setCabinetOpen(true);
-  }
+    if (status !== "authenticated") {
+      router.push("/login");
+      return;
+    }
 
-  function removeFromCart(slug: string) {
-    setCartItems((current) => current.filter((item) => item.slug !== slug));
+    const existing = cartItems.find((item) => item.slug === slug);
+    const nextQuantity = (existing?.quantity ?? 0) + quantity;
+
+    setCartItems((current) =>
+      existing
+        ? current.map((item) => (item.slug === slug ? {...item, quantity: nextQuantity} : item))
+        : [...current, {slug, quantity: nextQuantity}]
+    );
+    setCabinetOpen(true);
+    persistQuantity(slug, nextQuantity);
   }
 
   function updateQuantity(slug: string, quantity: number) {
@@ -133,11 +147,19 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
       return;
     }
 
-    setCartItems((current) => current.map((item) => item.slug === slug ? {...item, quantity} : item));
+    setCartItems((current) => current.map((item) => (item.slug === slug ? {...item, quantity} : item)));
+    persistQuantity(slug, quantity);
+  }
+
+  function removeFromCart(slug: string) {
+    setCartItems((current) => current.filter((item) => item.slug !== slug));
+    persistQuantity(slug, 0);
   }
 
   function clearCart() {
+    const slugs = cartItems.map((item) => item.slug);
     setCartItems([]);
+    slugs.forEach((slug) => persistQuantity(slug, 0));
   }
 
   function openCabinet() {
@@ -175,56 +197,10 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
     setCheckoutDraft(null);
   }
 
-  function updateProduct(locale: Locale, slug: string, patch: ProductPatch) {
-    setProducts((current) => ({
-      ...current,
-      [locale]: current[locale].map((product) => (
-        product.slug === slug
-          ? {
-              ...product,
-              ...patch,
-              materials: patch.materials ?? product.materials
-            }
-          : product
-      ))
-    }));
-  }
-
-  function addProduct(locale: Locale) {
-    const slug = `new-piece-${Date.now()}`;
-    const draft: ProductCardType = {
-      slug,
-      title: locale === "en" ? "New Natlovers Piece" : "Karya Natlovers Baru",
-      description: locale === "en" ? "Add a concise product description." : "Tambahkan deskripsi produk singkat.",
-      priceIdr: 1500000,
-      imageUrl: "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=1200&q=80",
-      story: locale === "en" ? "Use this area for the longer product story and craftsmanship details." : "Gunakan area ini untuk cerita produk dan detail craftsmanship.",
-      materials: locale === "en" ? ["Natural fiber", "Embroidery"] : ["Serat alami", "Bordir"],
-      collection: "accessories"
-    };
-
-    setProducts((current) => ({
-      ...current,
-      [locale]: [draft, ...current[locale]]
-    }));
-
-    return slug;
-  }
-
-  function removeProductEntry(locale: Locale, slug: string) {
-    setProducts((current) => ({
-      ...current,
-      [locale]: current[locale].filter((product) => product.slug !== slug)
-    }));
-    removeFromCart(slug);
-    if (previewSlug === slug) {
-      setPreviewSlug(null);
-    }
-  }
-
-  function getCartSubtotalIdr(locale: Locale) {
+  function getCartSubtotalIdr() {
+    // Locale param kept for call-site compatibility; pricing is locale-independent now.
     return cartItems.reduce((sum, item) => {
-      const product = resolveProduct(item.slug, locale);
+      const product = resolveProduct(item.slug);
       return product ? sum + product.priceIdr * item.quantity : sum;
     }, 0);
   }
@@ -249,12 +225,10 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
       startBankTransferForProduct,
       startBankTransferForCart,
       clearCheckoutDraft,
-      updateProduct,
-      addProduct,
-      removeProductEntry,
       getCartSubtotalIdr
     }),
-    [products, cartItems, cabinetOpen, previewSlug, checkoutDraft]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [products, cartItems, cabinetOpen, previewSlug, checkoutDraft, status]
   );
 
   return <StorefrontContext.Provider value={value}>{children}</StorefrontContext.Provider>;
@@ -269,6 +243,3 @@ export function useStorefront() {
 
   return context;
 }
-
-
-

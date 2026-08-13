@@ -4,6 +4,8 @@ import {useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
 import type {PointerEvent as ReactPointerEvent} from "react";
 import {Baby, ChevronDown, Gem, PanelLeftClose, PanelLeftOpen, Shirt, ShoppingBag, SlidersHorizontal, X} from "lucide-react";
 import {useSitePreferences} from "@/components/site-preferences-provider";
+import {useClickOutside} from "@/components/use-click-outside";
+import {useDelayedMount} from "@/components/use-delayed-mount";
 import {FilterSidebar} from "./filter-sidebar";
 import {ShopProductCard} from "./shop-product-card";
 import {
@@ -125,8 +127,12 @@ export function CatalogueContent() {
   const [selectedHandles, setSelectedHandles] = useState<ShopHandle[]>([]);
   const [sort, setSort] = useState<SortOption>("newest");
   const [sortOpen, setSortOpen] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement | null>(null);
+  useClickOutside(sortMenuRef, () => setSortOpen(false), sortOpen);
+  const {mounted: sortMenuMounted, entered: sortMenuEntered} = useDelayedMount(sortOpen, 120);
   const [pageIndex, setPageIndex] = useState(0);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const {mounted: mobileFiltersMounted, entered: mobileFiltersEntered} = useDelayedMount(mobileFiltersOpen, 180);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [capacity, setCapacity] = useState(DESKTOP_CAPACITY);
   const contentRef = useRef<HTMLDivElement | null>(null);
@@ -141,6 +147,7 @@ export function CatalogueContent() {
   const [isTabDragging, setIsTabDragging] = useState(false);
   const [tabDragLeft, setTabDragLeft] = useState<number | null>(null);
   const [tabDragWidth, setTabDragWidth] = useState<number | null>(null);
+  const [dragOverType, setDragOverType] = useState<ShopProductType | null>(null);
 
   const progressTrackRef = useRef<HTMLDivElement | null>(null);
   const draggingProgressRef = useRef(false);
@@ -219,6 +226,7 @@ export function CatalogueContent() {
     // slides over one of a different size.
     const dragCenter = left + tabIndicator.width / 2;
     let closestWidth = tabIndicator.width;
+    let closestType: ShopProductType | null = null;
     let closestDistance = Infinity;
 
     shopProductTypes.forEach((type) => {
@@ -234,10 +242,16 @@ export function CatalogueContent() {
       if (distance < closestDistance) {
         closestDistance = distance;
         closestWidth = tabBox.width;
+        closestType = type;
       }
     });
 
     setTabDragWidth(closestWidth);
+    // The label directly under the pill needs to switch to light text as
+    // soon as the pill slides onto it — waiting for drop would leave a dark
+    // label sitting underneath an opaque dark pill while dragging, which is
+    // exactly the "can't read the text while dragging" bug this fixes.
+    setDragOverType(closestType);
   }
 
   function handleTabIndicatorPointerDown(event: ReactPointerEvent<HTMLElement>) {
@@ -276,6 +290,7 @@ export function CatalogueContent() {
     const dropLeft = tabDragLeft;
     setTabDragLeft(null);
     setTabDragWidth(null);
+    setDragOverType(null);
 
     if (!containerBox || dropLeft === null || !tabIndicator) {
       return;
@@ -647,7 +662,7 @@ export function CatalogueContent() {
                       onPointerMove={handleTabIndicatorPointerMove}
                       onPointerUp={handleTabIndicatorPointerUp}
                       onPointerCancel={handleTabIndicatorPointerUp}
-                      className={`liquid-glass-active-on-light top-1.5 h-[calc(100%-0.75rem)] ${
+                      className={`liquid-glass-active top-1.5 h-[calc(100%-0.75rem)] ${
                         isTabDragging ? "is-dragging" : "cursor-grab active:cursor-grabbing"
                       }`}
                       style={{
@@ -663,7 +678,12 @@ export function CatalogueContent() {
               : null}
             {shopProductTypes.map((type) => {
               const Icon = productTypeIcons[type];
-              const active = type === selectedProductType;
+              // While the pill is being dragged, "active" (and therefore
+              // light label text) follows whichever tab it's currently over
+              // instead of the tab it started from, so the label under the
+              // opaque pill always stays readable in real time rather than
+              // only updating once the drag is dropped.
+              const active = isTabDragging ? type === dragOverType : type === selectedProductType;
               return (
                 <button
                   key={type}
@@ -692,8 +712,8 @@ export function CatalogueContent() {
                   }`}
                   style={active ? {touchAction: "none"} : undefined}
                 >
-                  <Icon className={`h-3.5 w-3.5 transition-colors duration-200 ${active ? "text-[#f7f4ee]" : ""}`} />
-                  <span className={`liquid-glass-label transition-colors duration-200 ${active ? "text-[#f7f4ee]" : ""}`}>
+                  <Icon className={`h-3.5 w-3.5 transition-colors duration-200 ${active ? "text-[#20241b]" : ""}`} />
+                  <span className={`liquid-glass-label transition-colors duration-200 ${active ? "text-[#20241b]" : ""}`}>
                     {productTypeLabels[type][locale]}
                   </span>
                 </button>
@@ -710,10 +730,10 @@ export function CatalogueContent() {
               <SlidersHorizontal className="h-3.5 w-3.5" />
               Filters
             </button>
-            <p className="text-sm text-[#6b6b5f]">
+            <p className="text-xs text-[#8a8a7a]">
               {filteredProducts.length ? `${rangeStart}–${rangeEnd}` : "0"} of {filteredProducts.length}
             </p>
-            <div className="relative">
+            <div className="relative" ref={sortMenuRef}>
               <button
                 type="button"
                 onClick={() => setSortOpen((open) => !open)}
@@ -724,8 +744,15 @@ export function CatalogueContent() {
                 <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${sortOpen ? "rotate-180" : ""}`} />
               </button>
 
-              {sortOpen ? (
-                <div className="absolute right-0 top-8 z-20 w-52 border border-[#d9cfc0] bg-[#f7f4ee] py-2 shadow-[0_16px_40px_rgba(46,46,40,0.14)]">
+              {sortMenuMounted ? (
+                <div
+                  style={{transformOrigin: "top right"}}
+                  className={`absolute right-0 top-11 z-20 w-52 rounded-2xl border border-[#d9cfc0] bg-[#f7f4ee] py-2 shadow-[0_16px_40px_rgba(46,46,40,0.14)] transition-all ${
+                    sortMenuEntered
+                      ? "translate-y-0 scale-100 opacity-100 duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                      : "translate-y-1 scale-[0.92] opacity-0 duration-100 ease-out"
+                  }`}
+                >
                   {sortOptions.map((option) => (
                     <button
                       key={option.value}
@@ -795,8 +822,15 @@ export function CatalogueContent() {
             </div>
           </div>
 
-          {mobileFiltersOpen ? (
-            <div data-scroll-lock className="fixed inset-0 z-30 overflow-y-auto bg-[#f7f4ee] px-6 py-6 lg:hidden">
+          {mobileFiltersMounted ? (
+            <div
+              data-scroll-lock
+              className={`fixed inset-0 z-30 overflow-y-auto bg-[#f7f4ee] px-6 py-6 transition-all lg:hidden ${
+                mobileFiltersEntered
+                  ? "translate-y-0 opacity-100 duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                  : "translate-y-4 opacity-0 duration-150 ease-in"
+              }`}
+            >
               <button
                 type="button"
                 aria-label="Close filters"

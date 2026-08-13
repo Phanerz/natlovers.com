@@ -22,6 +22,7 @@ export function NavSearchModal({
   onQueryChange,
   results,
   currency,
+  entered,
   onSelect,
   onClose
 }: {
@@ -29,6 +30,7 @@ export function NavSearchModal({
   onQueryChange: (value: string) => void;
   results: SearchResult[];
   currency: CurrencyCode;
+  entered: boolean;
   onSelect: (slug: string) => void;
   onClose: () => void;
 }) {
@@ -41,10 +43,20 @@ export function NavSearchModal({
   return createPortal(
     <div
       data-scroll-lock
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/30 px-4 py-16 backdrop-blur-md"
+      onClick={onClose}
+      className={`fixed inset-0 z-50 overflow-y-auto bg-black/30 px-4 py-16 backdrop-blur-md transition-opacity duration-150 ${
+        entered ? "opacity-100" : "opacity-0"
+      } ${!entered ? "pointer-events-none" : ""}`}
     >
       <div className="mx-auto flex min-h-full max-w-xl items-center">
-      <div className="menu-surface w-full max-w-xl overflow-hidden rounded-[2rem] border border-[#e4d9c1] bg-[rgba(250,246,236,0.98)] shadow-[0_30px_90px_rgba(18,20,14,0.24)]">
+      <div
+        onClick={(event) => event.stopPropagation()}
+        className={`menu-surface w-full max-w-xl overflow-hidden rounded-[2rem] border border-[#e4d9c1] bg-[rgba(250,246,236,0.98)] shadow-[0_30px_90px_rgba(18,20,14,0.24)] transition-all ${
+          entered
+            ? "translate-y-0 scale-100 opacity-100 duration-[420ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+            : "translate-y-4 scale-[0.88] opacity-0 duration-150 ease-out"
+        }`}
+      >
         <div className="flex items-start justify-between gap-4 px-6 pt-6 sm:px-8">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-forest-500">Search</p>
@@ -85,17 +97,32 @@ export function NavSearchModal({
                 View all results <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
-            <div className="max-h-[22rem] space-y-1.5 overflow-y-auto pb-2">
+            {/*
+              Same reasoning as the cart drawer's list: a rounded card
+              sitting flush against a plain overflow:auto edge gets hard-
+              clipped by the container's straight boundary the moment the
+              list scrolls, reading as a broken/cut-off card rather than
+              content that's simply scrolled past. The mask fades whichever
+              row is nearest the edge out gracefully instead.
+            */}
+            <div
+              className="max-h-[22rem] space-y-2 overflow-y-auto py-1 pb-2"
+              style={{
+                maskImage: "linear-gradient(to bottom, transparent, black 14px, black calc(100% - 14px), transparent)",
+                WebkitMaskImage:
+                  "linear-gradient(to bottom, transparent, black 14px, black calc(100% - 14px), transparent)"
+              }}
+            >
               {visible.map((product) => (
                 <button
                   key={product.slug}
                   type="button"
                   onClick={() => onSelect(product.slug)}
-                  className="flex w-full items-center gap-4 rounded-2xl px-2 py-2 text-left transition-colors duration-200 hover:bg-white/70"
+                  className="motion-card flex w-full items-center gap-4 rounded-2xl border border-[#e4d9c1] bg-white/70 p-3 text-left shadow-[0_6px_18px_rgba(59,43,22,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#d5c8b1] hover:bg-white hover:shadow-[0_10px_26px_rgba(59,43,22,0.12)]"
                 >
-                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[#eee4cd]">
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#e4d9c1] bg-[#eee4cd]">
                     {product.imageUrl ? (
-                      <Image src={product.imageUrl} alt="" fill sizes="56px" className="object-cover" />
+                      <Image src={product.imageUrl} alt="" fill sizes="64px" className="object-contain p-1" />
                     ) : null}
                   </div>
                   <div className="min-w-0 flex-1">

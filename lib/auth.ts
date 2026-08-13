@@ -68,8 +68,22 @@ export const authOptions: NextAuthOptions = {
   }),
   providers: [
     GoogleProvider({
+      id: "google-admin",
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? ""
+    }),
+    // Same Google OAuth app as the admin provider, registered under a
+    // second id so the signIn callback can tell them apart and only gate
+    // the admin one with ADMIN_EMAILS. allowDangerousEmailAccountLinking
+    // is safe here specifically because Google verifies the email itself —
+    // a customer who signed up via magic link and later hits "Continue
+    // with Google" on the same address should land in the same account
+    // rather than hit a linking conflict.
+    GoogleProvider({
+      id: "google-customer",
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      allowDangerousEmailAccountLinking: true
     }),
     EmailProvider({
       from: magicLinkFrom,
@@ -103,13 +117,14 @@ export const authOptions: NextAuthOptions = {
     signIn: "/mimin"
   },
   callbacks: {
-    // Google is the admin login — the allowlist is what actually gates
-    // entry, since proving who you are via Google says nothing about
+    // google-admin is the admin login — the allowlist is what actually
+    // gates entry, since proving who you are via Google says nothing about
     // whether you should have admin access. Fails closed if ADMIN_EMAILS
-    // isn't configured. The email/magic-link provider is the customer
-    // login path and isn't gated — any address can complete it.
+    // isn't configured. google-customer and the email/magic-link provider
+    // are the customer login paths and aren't gated — any address can
+    // complete them.
     async signIn({user, account}) {
-      if (account?.provider === "google") {
+      if (account?.provider === "google-admin") {
         return isAdminEmail(user.email);
       }
       return true;

@@ -125,7 +125,17 @@ function StackCard({
         distance === 0 ? "cursor-grab active:cursor-grabbing" : ""
       }`}
       style={distance === 0 ? {x, y, rotate, touchAction: "none"} : undefined}
-      initial={{scale: 0.86, y: 46, opacity: 0}}
+      // Cards must never play a mount-in animation: the real hero cards load
+      // from the API a beat after the placeholder colors render, and since
+      // their ids differ from the placeholders', AnimatePresence treats them
+      // as brand-new elements entering — which used to fade/scale them in
+      // right as the page loads, reading as an unwanted "boot up" animation.
+      // initial={false} makes every card (placeholder, real, or newly
+      // revealed at the back of the stack during a swipe) render directly at
+      // its resting `animate` position with no entrance transition; the
+      // swipe drag/exit-fling behavior is untouched since that's driven by
+      // the x/y motion values and the `exit` prop, not `initial`.
+      initial={false}
       animate={STACK_TARGETS[distance]}
       exit={{
         x: exitDirection.x * FLY_DISTANCE,

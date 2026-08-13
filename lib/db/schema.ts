@@ -88,6 +88,54 @@ export const wishlistItems = pgTable(
   })
 );
 
+export const cartItems = pgTable(
+  "cart_items",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, {onDelete: "cascade"}),
+    productSlug: text("product_slug").notNull(),
+    quantity: integer("quantity").notNull().default(1),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow()
+  },
+  (table) => ({
+    compositePk: primaryKey({columns: [table.userId, table.productSlug]})
+  })
+);
+
+export const orders = pgTable("orders", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, {onDelete: "cascade"}),
+  orderRef: text("order_ref").notNull().unique(),
+  status: text("status").notNull().default("pending_transfer"),
+  totalIdr: integer("total_idr").notNull(),
+  bankName: text("bank_name").notNull(),
+  accountName: text("account_name").notNull(),
+  accountNumber: text("account_number").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+
+// Snapshots product name/price at order time — deliberately not a foreign
+// key to `products`, so an order stays accurate even if the product is
+// later edited, deactivated, or deleted from the catalogue.
+export const orderItems = pgTable("order_items", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  orderId: text("order_id")
+    .notNull()
+    .references(() => orders.id, {onDelete: "cascade"}),
+  productSlug: text("product_slug").notNull(),
+  productName: text("product_name").notNull(),
+  priceIdr: integer("price_idr").notNull(),
+  quantity: integer("quantity").notNull()
+});
+
 export const accounts = pgTable(
   "account",
   {

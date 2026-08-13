@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {Heart, Plus} from "lucide-react";
+import {Heart, ShoppingBag} from "lucide-react";
 import {useStorefront} from "@/components/storefront-provider";
 import {useWishlist} from "@/components/use-wishlist";
 import {formatCurrency} from "@/lib/format";
@@ -63,66 +63,60 @@ export function ShopProductCard({
         <div className="pointer-events-none absolute inset-0 bg-[#344332] opacity-0 transition-opacity duration-500 group-hover:opacity-[0.04]" />
 
         {product.soldOut ? (
-          // A corner box sized as a fraction of the card (h/w-2/5, resolved
-          // against the imageStyle div above — its nearest positioned
-          // ancestor) rather than fixed pixels, so the ribbon scales with
-          // the card instead of only lining up flush with the corner at
-          // whatever size it happened to be tuned for (it previously used
-          // fixed px offsets, which is why it sat off-corner at the 2-col
-          // mobile card size). left/top/width below are the standard
-          // corner-ribbon ratios (-39% / 19% / 150%) expressed as
-          // percentages of this box, so the ribbon's ends land flush with
-          // the box's own edges — and therefore the card's corner — at any
-          // card size. Clipped by this box's own overflow-hidden so the
-          // overhang never bleeds into the next card.
-          <div className="pointer-events-none absolute left-0 top-0 z-20 h-2/5 w-2/5 overflow-hidden">
-            <div className="absolute left-[-39%] top-[19%] w-[150%] -rotate-45 whitespace-nowrap bg-gradient-to-b from-[#3d5140] to-[#26301f] py-1.5 text-center shadow-[0_3px_10px_rgba(0,0,0,0.32)] ring-1 ring-inset ring-white/15">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#f7f4ee]">
-                {locale === "en" ? "Sold Out" : "Habis Terjual"}
-              </span>
-            </div>
+          // A rotated diagonal ribbon here used to be sized as a fraction of
+          // the card (h/w-2/5) so it would scale with the card — but that
+          // made its footprint grow right along with the card, so at the
+          // 2-col mobile width it swelled large enough to crowd the
+          // heart/bag buttons in the opposite corner, and its rotated edges
+          // always looked slightly different (never quite as crisp) at
+          // every other card size in between. A flat, fixed-size badge in
+          // the same top-left slot has a constant footprint no matter how
+          // wide the card is, so it never grows into the icons' corner and
+          // renders identically — same shape, same clearance — on every
+          // layout instead of just the size it happened to be tuned for.
+          <div className="pointer-events-none absolute left-2.5 top-2.5 z-20 sm:left-3 sm:top-3">
+            {/* h-8 matches the heart/bag buttons' own h-8 exactly, so this
+                sits on the same vertical center as them instead of its
+                height being whatever the text/padding happened to add up
+                to. */}
+            <span className="inline-flex h-8 items-center whitespace-nowrap rounded-full bg-gradient-to-b from-[#3d5140] to-[#26301f] px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f7f4ee] shadow-[0_3px_10px_rgba(0,0,0,0.28)] ring-1 ring-inset ring-white/15">
+              {locale === "en" ? "Sold Out" : "Habis Terjual"}
+            </span>
           </div>
         ) : null}
       </div>
 
-      <button
-        type="button"
-        aria-label={favorited ? "Remove from wishlist" : "Add to wishlist"}
-        onClick={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          toggle(product.slug);
-        }}
-        className="absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/85 shadow-[0_2px_8px_rgba(0,0,0,0.12)] backdrop-blur transition-all duration-200 hover:bg-white active:scale-90 sm:right-3 sm:top-3"
-      >
-        <Heart
-          className={`h-4 w-4 transition-colors duration-200 ${favorited ? "fill-[#344332] text-[#344332]" : "text-[#344332]"}`}
-        />
-      </button>
+      <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-2 sm:right-3 sm:top-3">
+        <button
+          type="button"
+          aria-label={favorited ? "Remove from wishlist" : "Add to wishlist"}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            toggle(product.slug);
+          }}
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/85 shadow-[0_2px_8px_rgba(0,0,0,0.12)] backdrop-blur transition-all duration-200 hover:bg-white active:scale-90"
+        >
+          <Heart
+            className={`h-4 w-4 transition-colors duration-200 ${favorited ? "fill-[#344332] text-[#344332]" : "text-[#344332]"}`}
+          />
+        </button>
 
-      {/*
-        Pinned to the image at a fixed offset from the card's bottom edge —
-        deliberately NOT sharing a row (flex or otherwise) with the tags
-        below. A shared row still puts them in the same stacking area,
-        which read as an awkward "shelf" bolted under the product info
-        instead of Coach's actual pattern: the + sits on the image itself,
-        the text block is a separate zone it can never be pushed into,
-        no matter how many tags or how long the name gets.
-      */}
-      <button
-        type="button"
-        disabled={product.soldOut}
-        title={product.soldOut ? (locale === "en" ? "Sold out" : "Habis terjual") : (locale === "en" ? "Add to bag" : "Tambah ke tas")}
-        aria-label={product.soldOut ? (locale === "en" ? "Sold out" : "Habis terjual") : (locale === "en" ? "Add to bag" : "Tambah ke tas")}
-        onClick={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          addToCart(product.slug);
-        }}
-        className="pointer-events-auto absolute bottom-20 right-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-[#344332]/20 bg-white/95 text-[#344332] shadow-[0_3px_10px_rgba(0,0,0,0.18)] backdrop-blur transition-transform duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 sm:bottom-24 sm:right-3 sm:h-9 sm:w-9"
-      >
-        <Plus className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
-      </button>
+        <button
+          type="button"
+          disabled={product.soldOut}
+          title={product.soldOut ? (locale === "en" ? "Sold out" : "Habis terjual") : (locale === "en" ? "Add to bag" : "Tambah ke tas")}
+          aria-label={product.soldOut ? (locale === "en" ? "Sold out" : "Habis terjual") : (locale === "en" ? "Add to bag" : "Tambah ke tas")}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            addToCart(product.slug);
+          }}
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/85 shadow-[0_2px_8px_rgba(0,0,0,0.12)] backdrop-blur transition-all duration-200 hover:bg-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+        >
+          <ShoppingBag className="h-4 w-4" />
+        </button>
+      </div>
 
       {/*
         This card has to stay exactly aspect-square — it's laid out inside

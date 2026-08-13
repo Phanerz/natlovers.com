@@ -1,9 +1,9 @@
 "use client";
 
-import {useEffect, useRef, useState} from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {CircleHelp, CreditCard, Heart, LogOut, Package, Settings, User} from "lucide-react";
+import {useDelayedMount} from "@/components/use-delayed-mount";
 
 type MenuItem = {
   href: {pathname: "/account"; query?: {tab: string}};
@@ -41,46 +41,7 @@ export function NavAccountMenu({
   onNavigate: () => void;
   onSignOut: () => void;
 }) {
-  const [mounted, setMounted] = useState(open);
-  const [entered, setEntered] = useState(false);
-  const closeTimerRef = useRef<number | null>(null);
-
-  // Same delayed-unmount pattern as NavPreferencesModal: stay mounted
-  // through the exit transition instead of vanishing the instant `open`
-  // flips false, and flip `entered` a frame after mount so the enter
-  // transition has an initial state to animate from.
-  useEffect(() => {
-    if (open) {
-      if (closeTimerRef.current !== null) {
-        window.clearTimeout(closeTimerRef.current);
-        closeTimerRef.current = null;
-      }
-      setMounted(true);
-      const raf = requestAnimationFrame(() => setEntered(true));
-      return () => cancelAnimationFrame(raf);
-    }
-
-    setEntered(false);
-    closeTimerRef.current = window.setTimeout(() => {
-      setMounted(false);
-      closeTimerRef.current = null;
-    }, EXIT_MS);
-    return () => {
-      if (closeTimerRef.current !== null) {
-        window.clearTimeout(closeTimerRef.current);
-        closeTimerRef.current = null;
-      }
-    };
-  }, [open]);
-
-  useEffect(
-    () => () => {
-      if (closeTimerRef.current !== null) {
-        window.clearTimeout(closeTimerRef.current);
-      }
-    },
-    []
-  );
+  const {mounted, entered} = useDelayedMount(open, EXIT_MS);
 
   if (!mounted) {
     return null;

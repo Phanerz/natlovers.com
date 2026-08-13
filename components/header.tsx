@@ -24,6 +24,8 @@ import {NavAccountMenu} from "@/components/nav-account-menu";
 import {NavPreferencesModal} from "@/components/nav-preferences-modal";
 import {NavSearchModal} from "@/components/nav-search-modal";
 import {useActiveNavSection} from "@/components/use-active-nav-section";
+import {useClickOutside} from "@/components/use-click-outside";
+import {useDelayedMount} from "@/components/use-delayed-mount";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {useStorefront} from "@/components/storefront-provider";
 
@@ -72,6 +74,7 @@ export function Header() {
     closePreview,
     removeFromCart,
     updateQuantity,
+    clearCart,
     startBankTransferForCart,
     clearCheckoutDraft,
     getCartSubtotalIdr
@@ -84,6 +87,8 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+  useClickOutside(accountMenuRef, () => setAccountOpen(false), accountOpen);
   const [checkoutState, setCheckoutState] = useState<null | {
     orderRef: string;
     accountName: string;
@@ -92,6 +97,10 @@ export function Header() {
     total: number;
   }>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  const {mounted: searchMounted, entered: searchEntered} = useDelayedMount(searchOpen);
+  const {mounted: cabinetMounted, entered: cabinetEntered} = useDelayedMount(cabinetOpen);
+  const {mounted: mobileMounted, entered: mobileEntered} = useDelayedMount(mobileOpen);
 
   const dict = getDictionary(locale);
   const navItems: Array<{href: Route; label: string}> = [
@@ -374,6 +383,13 @@ export function Header() {
 
       const payload = await response.json();
       setCheckoutState(payload);
+      // The server always clears the full cart on a successful order (even
+      // for a "direct buy" of one item), so the client cart needs to mirror
+      // that immediately — otherwise the drawer keeps showing the
+      // just-ordered item as if it were still sitting in the bag.
+      if (payload?.ok) {
+        clearCart();
+      }
     } finally {
       setCheckoutLoading(false);
     }
@@ -536,7 +552,7 @@ export function Header() {
               ) : null}
             </button>
 
-            <div className="relative">
+            <div className="relative" ref={accountMenuRef}>
               {sessionStatus === "authenticated" && session?.user ? (
                 <>
                   <button
@@ -588,12 +604,13 @@ export function Header() {
         </div>
       </header>
 
-      {searchOpen ? (
+      {searchMounted ? (
         <NavSearchModal
           query={query}
           onQueryChange={setQuery}
           results={results}
           currency={currency}
+          entered={searchEntered}
           onSelect={(slug) => {
             openPreview(slug);
             setSearchOpen(false);
@@ -602,9 +619,25 @@ export function Header() {
         />
       ) : null}
 
-      {cabinetOpen ? (
-        <div data-scroll-lock className="fixed inset-0 z-50 bg-[rgba(7,18,12,0.36)] backdrop-blur-lg">
-          <div className="ml-auto flex h-full w-full max-w-[33rem] flex-col border-l border-[#d7cab2] bg-[rgba(247,240,227,0.97)] p-6 shadow-[0_28px_90px_rgba(18,20,14,0.32)]">
+      {cabinetMounted ? (
+        <div
+          data-scroll-lock
+          onClick={() => {
+            closeCabinet();
+            closeAllCabinetViews();
+          }}
+          className={`fixed inset-0 z-50 bg-[rgba(7,18,12,0.36)] backdrop-blur-lg transition-opacity duration-200 ${
+            cabinetEntered ? "opacity-100" : "opacity-0"
+          } ${!cabinetEntered ? "pointer-events-none" : ""}`}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            className={`ml-auto flex h-full w-full max-w-[33rem] flex-col border-l border-[#d7cab2] bg-[rgba(247,240,227,0.97)] p-6 shadow-[0_28px_90px_rgba(18,20,14,0.32)] transition-transform ${
+              cabinetEntered
+                ? "translate-x-0 duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                : "translate-x-full duration-200 ease-in"
+            }`}
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="muted">Collector Cabinet</p>
@@ -689,15 +722,20 @@ export function Header() {
                   {checkoutProducts.map((item) => (
                     <div
                       key={item.slug}
-                      className="flex items-center justify-between gap-4 rounded-[1rem] border border-white/18 bg-white/8 px-3 py-3"
+                      className="flex items-center gap-4 rounded-[1rem] border border-white/18 bg-white/8 px-3 py-3"
                     >
-                      <div>
-                        <p className="font-medium text-sand-50">{item.title}</p>
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[0.75rem] border border-white/15 bg-white/10">
+                        {item.imageUrl ? (
+                          <Image src={item.imageUrl} alt="" fill sizes="56px" className="object-contain p-1" />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-sand-50">{item.title}</p>
                         <p className="text-xs uppercase tracking-[0.24em] text-sand-100/68">
                           Qty {item.quantity}
                         </p>
                       </div>
-                      <span>{formatCurrency(item.priceIdr * item.quantity, currency)}</span>
+                      <span className="shrink-0">{formatCurrency(item.priceIdr * item.quantity, currency)}</span>
                     </div>
                   ))}
                 </div>
@@ -732,60 +770,87 @@ export function Header() {
               </div>
             ) : null}
 
-            <div className="mt-6 flex-1 overflow-y-auto pr-1">
+            {/*
+              A card's rounded corner and shadow sitting flush against a
+              plain overflow:auto edge gets sliced by a hard rectangular
+              boundary the instant the list scrolls even slightly — reading
+              as the product card being "cut off" rather than just scrolled.
+              Fading the scrollable area's own top/bottom edges via mask-
+              image means whatever card is nearest that edge dissolves out
+              gracefully instead of being hard-clipped.
+            */}
+            <div
+              className="mt-6 flex-1 overflow-y-auto py-1 pr-1"
+              style={{
+                maskImage: "linear-gradient(to bottom, transparent, black 14px, black calc(100% - 14px), transparent)",
+                WebkitMaskImage:
+                  "linear-gradient(to bottom, transparent, black 14px, black calc(100% - 14px), transparent)"
+              }}
+            >
               {cartProducts.length ? (
                 <div className="space-y-4">
                   {cartProducts.map((item) => (
                     <div
                       key={item.slug}
-                      className="motion-card rounded-[1.5rem] border border-[#d2c3a8] bg-[#fffaf2] p-4 shadow-[0_14px_34px_rgba(79,58,28,0.08)]"
+                      className="motion-card flex gap-4 rounded-[1.5rem] border border-[#d2c3a8] bg-[#fffaf2] p-4 shadow-[0_14px_34px_rgba(79,58,28,0.08)]"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
+                      <button
+                        type="button"
+                        onClick={() => openPreview(item.slug)}
+                        className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[1.1rem] border border-[#d5c8b1] bg-[#eee4cd] shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]"
+                      >
+                        {item.imageUrl ? (
+                          <Image src={item.imageUrl} alt="" fill sizes="96px" className="object-contain p-1.5" />
+                        ) : null}
+                      </button>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <button
+                              type="button"
+                              onClick={() => openPreview(item.slug)}
+                              className="block w-full truncate text-left font-display text-xl text-forest-900 hover:text-forest-700"
+                            >
+                              {item.title}
+                            </button>
+                            <p className="mt-1 truncate text-sm text-forest-600">{item.description}</p>
+                          </div>
                           <button
                             type="button"
-                            onClick={() => openPreview(item.slug)}
-                            className="text-left font-display text-2xl text-forest-900 hover:text-forest-700"
+                            onClick={() => removeFromCart(item.slug)}
+                            className="icon-button shrink-0 rounded-full border border-[#d7cab2] bg-[#fffdf8] p-2 text-forest-700 shadow-[0_8px_18px_rgba(59,43,22,0.1)]"
                           >
-                            {item.title}
-                          </button>
-                          <p className="mt-1 text-sm text-forest-600">{item.description}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeFromCart(item.slug)}
-                          className="icon-button rounded-full border border-[#d7cab2] bg-[#fffdf8] p-2 text-forest-700 shadow-[0_8px_18px_rgba(59,43,22,0.1)]"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <div className="mt-4 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 rounded-full border border-[#d5c8b1] bg-[#fffdf8] px-2 py-2 shadow-[0_6px_16px_rgba(79,58,28,0.06)]">
-                          <button
-                            type="button"
-                            onClick={() => updateQuantity(item.slug, item.quantity - 1)}
-                            className="icon-button rounded-full p-1 text-forest-900"
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          <span className="min-w-8 text-center text-sm font-medium text-forest-900">
-                            {item.quantity}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => updateQuantity(item.slug, item.quantity + 1)}
-                            className="icon-button rounded-full p-1 text-forest-900"
-                          >
-                            <Plus className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs uppercase tracking-[0.22em] text-forest-500">
-                            Total
-                          </p>
-                          <p className="mt-1 text-sm font-semibold text-forest-900">
-                            {formatCurrency(item.priceIdr * item.quantity, currency)}
-                          </p>
+                        <div className="mt-3 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 rounded-full border border-[#d5c8b1] bg-[#fffdf8] px-2 py-2 shadow-[0_6px_16px_rgba(79,58,28,0.06)]">
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.slug, item.quantity - 1)}
+                              className="icon-button rounded-full p-1 text-forest-900"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </button>
+                            <span className="min-w-8 text-center text-sm font-medium text-forest-900">
+                              {item.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.slug, item.quantity + 1)}
+                              className="icon-button rounded-full p-1 text-forest-900"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs uppercase tracking-[0.22em] text-forest-500">
+                              Total
+                            </p>
+                            <p className="mt-1 text-sm font-semibold text-forest-900">
+                              {formatCurrency(item.priceIdr * item.quantity, currency)}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -825,9 +890,22 @@ export function Header() {
         </div>
       ) : null}
 
-      {mobileOpen ? (
-        <div data-scroll-lock className="fixed inset-0 z-50 bg-[rgba(7,18,12,0.42)] p-4 backdrop-blur-lg lg:hidden">
-          <div className="menu-surface ml-auto max-w-sm rounded-[2rem] border border-[#d7cab2] bg-[#f8f1e6] p-6 text-forest-900 shadow-[0_24px_60px_rgba(28,25,18,0.24)]">
+      {mobileMounted ? (
+        <div
+          data-scroll-lock
+          onClick={() => setMobileOpen(false)}
+          className={`fixed inset-0 z-50 bg-[rgba(7,18,12,0.42)] p-4 backdrop-blur-lg transition-opacity duration-200 lg:hidden ${
+            mobileEntered ? "opacity-100" : "opacity-0"
+          } ${!mobileEntered ? "pointer-events-none" : ""}`}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            className={`menu-surface ml-auto max-w-sm rounded-[2rem] border border-[#d7cab2] bg-[#f8f1e6] p-6 text-forest-900 shadow-[0_24px_60px_rgba(28,25,18,0.24)] transition-all ${
+              mobileEntered
+                ? "translate-x-0 scale-100 opacity-100 duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                : "translate-x-10 scale-[0.9] opacity-0 duration-150 ease-in"
+            }`}
+          >
             <div className="flex items-center justify-between">
               <p className="font-display text-2xl text-forest-900">Menu</p>
               <button

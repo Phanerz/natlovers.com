@@ -7,7 +7,10 @@ import {useRouter, useSearchParams} from "next/navigation";
 import {signOut, useSession} from "next-auth/react";
 import {CircleHelp, CreditCard, Heart, LogOut, Mail, MessageCircle, Package, Settings, User} from "lucide-react";
 import {useSitePreferences} from "@/components/site-preferences-provider";
+import {formatCurrency} from "@/lib/format";
 import {CurrencyCode, Locale, currencies, currencySymbols, locales} from "@/lib/site";
+import type {AdminProduct} from "@/lib/admin-products";
+import type {OrderView} from "@/lib/orders";
 
 type TabKey = "profile" | "orders" | "wishlist" | "payment" | "settings" | "help";
 
@@ -46,6 +49,8 @@ function AccountContent() {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [orders, setOrders] = useState<OrderView[] | null>(null);
+  const [wishlistProducts, setWishlistProducts] = useState<AdminProduct[] | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -74,6 +79,54 @@ function AccountContent() {
       cancelled = true;
     };
   }, [status]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || tab !== "orders" || orders !== null) {
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/orders", {cache: "no-store"})
+      .then((response) => (response.ok ? response.json() : {orders: []}))
+      .then((data: {orders: OrderView[]}) => {
+        if (!cancelled) {
+          setOrders(Array.isArray(data.orders) ? data.orders : []);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setOrders([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [status, tab, orders]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || tab !== "wishlist" || wishlistProducts !== null) {
+      return;
+    }
+    let cancelled = false;
+    Promise.all([
+      fetch("/api/wishlist", {cache: "no-store"}).then((response) => (response.ok ? response.json() : {slugs: []})),
+      fetch("/api/admin/products", {cache: "no-store"}).then((response) => (response.ok ? response.json() : []))
+    ])
+      .then(([wishlist, allProducts]: [{slugs: string[]}, AdminProduct[]]) => {
+        if (cancelled) {
+          return;
+        }
+        const slugs = new Set(Array.isArray(wishlist.slugs) ? wishlist.slugs : []);
+        setWishlistProducts(Array.isArray(allProducts) ? allProducts.filter((product) => slugs.has(product.slug)) : []);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setWishlistProducts([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [status, tab, wishlistProducts]);
 
   function selectTab(key: TabKey) {
     router.replace(key === "profile" ? "/account" : `/account?tab=${key}`, {scroll: false});
@@ -229,17 +282,79 @@ function AccountContent() {
           ) : null}
 
           {tab === "orders" ? (
-            <EmptyState
-              title="Orders & purchases"
-              body="No orders yet. Pieces you buy through bank-transfer checkout will show up here."
-            />
+            orders === null ? (
+              <p className="py-16 text-center text-sm text-forest-500">Loading...</p>
+            ) : orders.length === 0 ? (
+              <EmptyState
+                title="Orders & purchases"
+                body="No orders yet. Pieces you buy through bank-transfer checkout will show up here."
+              />
+            ) : (
+              <div className="space-y-4">
+                <h2 className="font-display text-2xl text-forest-900">Orders & purchases</h2>
+                {orders.map((order) => (
+                  <div key={order.id} className="rounded-2xl border border-[#e4d9c1] bg-white/70 p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-display text-lg text-forest-900">{order.orderRef}</p>
+                      <span className="rounded-full border border-[#e4d9c1] bg-[#eee4cd] px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-forest-700">
+                        {order.status === "pending_transfer" ? "Awaiting transfer" : order.status}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-forest-500">
+                      {new Date(order.createdAt).toLocaleDateString(undefined, {dateStyle: "medium"})}
+                    </p>
+                    <div className="mt-3 space-y-1.5 border-t border-[#e4d9c1] pt-3">
+                      {order.items.map((item) => (
+                        <div key={item.slug} className="flex items-center justify-between text-sm text-forest-700">
+                          <span>
+                            {item.name} <span className="text-forest-500">&times;{item.quantity}</span>
+                          </span>
+                          <span>{formatCurrency(item.priceIdr * item.quantity, currency)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between border-t border-[#e4d9c1] pt-3 text-sm font-semibold text-forest-900">
+                      <span>Total</span>
+                      <span>{formatCurrency(order.totalIdr, currency)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
           ) : null}
 
           {tab === "wishlist" ? (
-            <EmptyState
-              title="Wishlist"
-              body="Your wishlist is empty. Tap the heart on a piece in the catalogue to save it here."
-            />
+            wishlistProducts === null ? (
+              <p className="py-16 text-center text-sm text-forest-500">Loading...</p>
+            ) : wishlistProducts.length === 0 ? (
+              <EmptyState
+                title="Wishlist"
+                body="Your wishlist is empty. Tap the heart on a piece in the catalogue to save it here."
+              />
+            ) : (
+              <div>
+                <h2 className="font-display text-2xl text-forest-900">Wishlist</h2>
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  {wishlistProducts.map((product) => (
+                    <Link
+                      key={product.slug}
+                      href={`/catalogue/${product.slug}`}
+                      className="flex items-center gap-3 rounded-2xl border border-[#e4d9c1] bg-white/70 p-3 transition-colors duration-150 hover:bg-white"
+                    >
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#eee4cd]">
+                        {product.imageUrl ? (
+                          <Image src={product.imageUrl} alt="" fill sizes="64px" className="object-cover" />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate font-display text-base text-forest-900">{product.name}</p>
+                        <p className="text-sm text-forest-600">{formatCurrency(product.priceIdr, currency)}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )
           ) : null}
 
           {tab === "payment" ? (

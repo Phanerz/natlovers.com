@@ -1,9 +1,10 @@
 "use client";
 
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useState} from "react";
 import {createPortal} from "react-dom";
 import {Globe2, X} from "lucide-react";
 import {CurrencyCode, Locale, currencies, currencySymbols, locales} from "@/lib/site";
+import {useDelayedMount} from "@/components/use-delayed-mount";
 
 function Sprig() {
   return (
@@ -48,56 +49,13 @@ export function NavPreferencesModal({
   onClose: () => void;
 }) {
   const [savedPulse, setSavedPulse] = useState(false);
-  const [mounted, setMounted] = useState(open);
-  const [entered, setEntered] = useState(false);
-  const closeTimerRef = useRef<number | null>(null);
+  const {mounted, entered} = useDelayedMount(open, EXIT_MS);
 
   useEffect(() => {
     setSavedPulse(true);
     const timeout = window.setTimeout(() => setSavedPulse(false), 900);
     return () => window.clearTimeout(timeout);
   }, [locale, currency]);
-
-  // Keeps the component mounted through the exit transition instead of
-  // hard-unmounting the instant `open` flips false: on open, cancel any
-  // pending close and flip `entered` true one frame later (so the initial
-  // hidden style actually paints before transitioning — a node can't
-  // transition from a style it was never rendered with). On close, drop
-  // `entered` immediately to start the exit transition, then unmount once
-  // it's had time to finish. A fast re-open cancels the pending unmount and
-  // reverses cleanly since CSS transitions can reverse mid-flight.
-  useEffect(() => {
-    if (open) {
-      if (closeTimerRef.current !== null) {
-        window.clearTimeout(closeTimerRef.current);
-        closeTimerRef.current = null;
-      }
-      setMounted(true);
-      const raf = requestAnimationFrame(() => setEntered(true));
-      return () => cancelAnimationFrame(raf);
-    }
-
-    setEntered(false);
-    closeTimerRef.current = window.setTimeout(() => {
-      setMounted(false);
-      closeTimerRef.current = null;
-    }, EXIT_MS);
-    return () => {
-      if (closeTimerRef.current !== null) {
-        window.clearTimeout(closeTimerRef.current);
-        closeTimerRef.current = null;
-      }
-    };
-  }, [open]);
-
-  useEffect(
-    () => () => {
-      if (closeTimerRef.current !== null) {
-        window.clearTimeout(closeTimerRef.current);
-      }
-    },
-    []
-  );
 
   if (!mounted) {
     return null;
@@ -111,16 +69,18 @@ export function NavPreferencesModal({
   return createPortal(
     <div
       data-scroll-lock
+      onClick={onClose}
       className={`fixed inset-0 z-50 overflow-y-auto bg-black/30 px-4 py-16 backdrop-blur-md transition-opacity duration-150 ${
         entered ? "opacity-100" : "opacity-0"
       } ${!open ? "pointer-events-none" : ""}`}
     >
       <div className="mx-auto flex min-h-full max-w-2xl items-center">
         <div
-          className={`menu-surface w-full max-w-2xl overflow-hidden rounded-[2rem] border border-[#e4d9c1] bg-[rgba(250,246,236,0.98)] shadow-[0_30px_90px_rgba(18,20,14,0.24)] transition-all ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          onClick={(event) => event.stopPropagation()}
+          className={`menu-surface w-full max-w-2xl overflow-hidden rounded-[2rem] border border-[#e4d9c1] bg-[rgba(250,246,236,0.98)] shadow-[0_30px_90px_rgba(18,20,14,0.24)] transition-all ${
             entered
-              ? "translate-y-0 scale-100 opacity-100 duration-200"
-              : `translate-y-2 scale-[0.96] opacity-0 ${open ? "duration-200" : "duration-150"}`
+              ? "translate-y-0 scale-100 opacity-100 duration-[420ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+              : `translate-y-4 scale-[0.88] opacity-0 ease-out ${open ? "duration-200" : "duration-150"}`
           }`}
         >
           <div className="flex items-center justify-end px-5 pt-5">
