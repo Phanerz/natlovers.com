@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import {useEffect, useState} from "react";
-import {GalleryHorizontal, LayoutDashboard, PlusCircle, Receipt, ShoppingBag} from "lucide-react";
+import {ChevronDown, GalleryHorizontal, LayoutDashboard, PlusCircle, Receipt, ShoppingBag} from "lucide-react";
+import {ShopProductType, productTypeLabels, shopProductTypes} from "@/app/catalogue/shop-data";
 
 type Tab = "dashboard" | "add" | "manage" | "add-hero-card" | "manage-hero-cards";
 
@@ -44,8 +45,24 @@ function AddButton({active, onClick, label}: {active: boolean; onClick: () => vo
   );
 }
 
+function SubItem({label, active, onClick}: {label: string; active: boolean; onClick: () => void}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-left text-[13px] transition-colors duration-150 ${
+        active ? "font-medium text-forest-900" : "text-[#6b6b5f] hover:text-[#344332]"
+      }`}
+    >
+      <span className={`h-1 w-1 rounded-full ${active ? "bg-forest-900" : "bg-transparent"}`} />
+      {label}
+    </button>
+  );
+}
+
 export function AdminSidebar({tab, onTabChange}: {tab: Tab; onTabChange: (tab: Tab) => void}) {
   const [ordersAwaiting, setOrdersAwaiting] = useState<number | null>(null);
+  const [productsExpanded, setProductsExpanded] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,12 +94,39 @@ export function AdminSidebar({tab, onTabChange}: {tab: Tab; onTabChange: (tab: T
         <div className="space-y-0.5">
           <div className="flex items-center gap-1">
             <div className="min-w-0 flex-1">
-              <NavRow active={tab === "manage"} onClick={() => onTabChange("manage")} icon={ShoppingBag}>
-                Manage Products
-              </NavRow>
+              <button
+                type="button"
+                onClick={() => {
+                  onTabChange("manage");
+                  setProductsExpanded(true);
+                }}
+                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-colors duration-150 ${
+                  tab === "manage" ? "bg-forest-900 text-sand-50" : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
+                }`}
+              >
+                <ShoppingBag className="h-4 w-4 shrink-0" />
+                <span className="flex-1">Manage Products</span>
+                <ChevronDown
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setProductsExpanded((value) => !value);
+                  }}
+                  className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${productsExpanded ? "" : "-rotate-90"}`}
+                />
+              </button>
             </div>
             <AddButton active={tab === "add"} onClick={() => onTabChange("add")} label="Add product" />
           </div>
+
+          {productsExpanded ? (
+            <div className="space-y-0.5 pt-0.5">
+              <SubItem label="All Products" active={tab === "manage"} onClick={() => onTabChange("manage")} />
+              {shopProductTypes.map((type: ShopProductType) => (
+                <SubItem key={type} label={productTypeLabels[type].en} active={false} onClick={() => onTabChange("manage")} />
+              ))}
+            </div>
+          ) : null}
+
           <div className="flex items-center gap-1">
             <div className="min-w-0 flex-1">
               <NavRow active={tab === "manage-hero-cards"} onClick={() => onTabChange("manage-hero-cards")} icon={GalleryHorizontal}>

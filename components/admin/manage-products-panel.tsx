@@ -1,18 +1,33 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import {useMemo, useState} from "react";
-import {Filter, Pencil, RotateCcw, Search, Trash2} from "lucide-react";
+import {Eye, Filter, Pencil, RotateCcw, Search, Trash2} from "lucide-react";
+import {ShopProductType, productTypeLabels, shopProductTypes} from "@/app/catalogue/shop-data";
 import {AdminProduct} from "./types";
 
 const PAGE_SIZE = 8;
 type StatusFilter = "all" | "active" | "inactive";
+type TypeFilter = "all" | ShopProductType;
 
 const statusFilterLabels: Record<StatusFilter, string> = {
   all: "All products",
   active: "Active only",
   inactive: "Inactive only"
 };
+
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
+  return new Date(iso).toLocaleDateString(undefined, {dateStyle: "medium"});
+}
 
 export function ManageProductsPanel({
   products,
@@ -31,17 +46,26 @@ export function ManageProductsPanel({
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
+
+  const typeCounts = useMemo(() => {
+    const counts = {} as Record<ShopProductType, number>;
+    for (const type of shopProductTypes) counts[type] = 0;
+    for (const product of products) counts[product.productType] += 1;
+    return counts;
+  }, [products]);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
     return products.filter((product) => {
       const matchesQuery = !term || product.name.toLowerCase().includes(term);
       const matchesStatus = statusFilter === "all" || (statusFilter === "active" ? product.isActive : !product.isActive);
-      return matchesQuery && matchesStatus;
+      const matchesType = typeFilter === "all" || product.productType === typeFilter;
+      return matchesQuery && matchesStatus && matchesType;
     });
-  }, [products, query, statusFilter]);
+  }, [products, query, statusFilter, typeFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -58,9 +82,43 @@ export function ManageProductsPanel({
     setPage(1);
   }
 
+  function updateTypeFilter(value: TypeFilter) {
+    setTypeFilter(value);
+    setPage(1);
+  }
+
   return (
     <div className="card space-y-5 p-6 sm:p-8">
-      <h2 className="font-display text-2xl text-forest-900">Manage Products ({filtered.length})</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-2xl text-forest-900">Manage Products</h2>
+        <div className="text-sm text-forest-600">{filtered.length} of {products.length}</div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => updateTypeFilter("all")}
+          className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150 ${
+            typeFilter === "all" ? "bg-forest-900 text-sand-50" : "border border-[#d4c5ab] bg-[#fffaf1] text-forest-700 hover:bg-[#f0e7d4]"
+          }`}
+        >
+          All Products
+          <span className={typeFilter === "all" ? "text-sand-200" : "text-forest-500"}>{products.length}</span>
+        </button>
+        {shopProductTypes.map((type) => (
+          <button
+            key={type}
+            type="button"
+            onClick={() => updateTypeFilter(type)}
+            className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150 ${
+              typeFilter === type ? "bg-forest-900 text-sand-50" : "border border-[#d4c5ab] bg-[#fffaf1] text-forest-700 hover:bg-[#f0e7d4]"
+            }`}
+          >
+            {productTypeLabels[type].en}
+            <span className={typeFilter === type ? "text-sand-200" : "text-forest-500"}>{typeCounts[type]}</span>
+          </button>
+        ))}
+      </div>
 
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
@@ -107,12 +165,16 @@ export function ManageProductsPanel({
       ) : pageItems.length ? (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] border-collapse text-sm">
+            <table className="w-full min-w-[880px] border-collapse text-sm">
               <thead>
                 <tr className="text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-500">
                   <th className="pb-3 pr-3">Product</th>
+                  <th className="pb-3 pr-3">Type</th>
                   <th className="pb-3 pr-3">Price (IDR)</th>
                   <th className="pb-3 pr-3">Status</th>
+                  <th className="pb-3 pr-3">Visibility</th>
+                  <th className="pb-3 pr-3">Stock</th>
+                  <th className="pb-3 pr-3">Updated</th>
                   <th className="pb-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -129,6 +191,7 @@ export function ManageProductsPanel({
                         <span className="font-display text-base text-forest-900">{product.name}</span>
                       </div>
                     </td>
+                    <td className="py-3 pr-3 text-forest-700">{productTypeLabels[product.productType].en}</td>
                     <td className="py-3 pr-3 text-forest-700">Rp{product.priceIdr.toLocaleString("id-ID")}</td>
                     <td className="py-3 pr-3">
                       <span
@@ -139,8 +202,27 @@ export function ManageProductsPanel({
                         {product.isActive ? "Active" : "Inactive"}
                       </span>
                     </td>
+                    <td className="py-3 pr-3">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-forest-600">
+                        <Eye className="h-3.5 w-3.5" />
+                        {product.isActive ? "Visible" : "Hidden"}
+                      </span>
+                    </td>
+                    {/* No stock/inventory schema exists yet — an honest
+                        placeholder, not a fabricated number, reserving the
+                        column for when that data is real. */}
+                    <td className="py-3 pr-3 text-forest-400">—</td>
+                    <td className="py-3 pr-3 whitespace-nowrap text-forest-600">{timeAgo(product.updatedAt)}</td>
                     <td className="py-3 text-right">
                       <div className="flex justify-end gap-2">
+                        <Link
+                          href={`/catalogue/${product.slug}`}
+                          target="_blank"
+                          aria-label={`Preview ${product.name}`}
+                          className="icon-button flex h-9 w-9 items-center justify-center rounded-full border border-[#d4c5ab] text-forest-700"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Link>
                         <button
                           type="button"
                           onClick={() => onEdit(product)}
