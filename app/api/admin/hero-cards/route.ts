@@ -9,6 +9,10 @@ import {
 } from "@/lib/admin-hero-cards";
 import {authOptions, isAdminEmail} from "@/lib/auth";
 
+// Serves live hero-card data to the storefront — must never be served from
+// Next's Full Route Cache.
+export const dynamic = "force-dynamic";
+
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
   return isAdminEmail(session?.user?.email);

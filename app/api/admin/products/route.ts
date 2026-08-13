@@ -3,6 +3,10 @@ import {NextRequest, NextResponse} from "next/server";
 import {createProduct, deactivateProduct, getAllProducts, getAllProductsForAdmin, setProductActive, updateProduct} from "@/lib/admin-products";
 import {authOptions, isAdminEmail} from "@/lib/auth";
 
+// Serves live product/price data to the storefront — must never be served
+// from Next's Full Route Cache.
+export const dynamic = "force-dynamic";
+
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
   return isAdminEmail(session?.user?.email);
