@@ -208,10 +208,6 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
       setCreateHeroCardError("Please choose an image.");
       return;
     }
-    if (createHeroCardForm.cardType === "testimony" && !createHeroCardForm.textContent.trim()) {
-      setCreateHeroCardError("Please enter text content.");
-      return;
-    }
 
     setCreatingHeroCard(true);
     setCreateHeroCardProgress(0);

@@ -5,14 +5,13 @@ import {db, heroCards} from "@/lib/db";
 
 const IMAGE_PREFIX = "hero-cards";
 
-export type HeroCardType = "color" | "image" | "testimony";
+export type HeroCardType = "color" | "image";
 
 export type PublicHeroCard = {
   id: string;
   cardType: HeroCardType;
   colorValue: string | null;
   imageUrl: string | null;
-  textContent: string | null;
 };
 
 export type AdminHeroCard = PublicHeroCard & {
@@ -22,9 +21,8 @@ export type AdminHeroCard = PublicHeroCard & {
 const hexColor = /^#[0-9a-fA-F]{6}$/;
 
 const createSchema = z.object({
-  cardType: z.enum(["color", "image", "testimony"]),
-  colorValue: z.string().regex(hexColor, "Color must be a hex value like #A1B2C3.").optional(),
-  textContent: z.string().trim().min(1).optional()
+  cardType: z.enum(["color", "image"]),
+  colorValue: z.string().regex(hexColor, "Color must be a hex value like #A1B2C3.").optional()
 });
 
 function toPublicCard(row: typeof heroCards.$inferSelect): PublicHeroCard {
@@ -32,8 +30,7 @@ function toPublicCard(row: typeof heroCards.$inferSelect): PublicHeroCard {
     id: row.id,
     cardType: row.cardType as HeroCardType,
     colorValue: row.colorValue,
-    imageUrl: row.imageUrl,
-    textContent: row.textContent
+    imageUrl: row.imageUrl
   };
 }
 
@@ -59,30 +56,23 @@ export async function getAllHeroCardsForAdmin(): Promise<AdminHeroCard[]> {
 export async function createHeroCard(formData: FormData): Promise<AdminHeroCard> {
   const parsed = createSchema.parse({
     cardType: formData.get("cardType"),
-    colorValue: formData.get("colorValue") || undefined,
-    textContent: formData.get("textContent") || undefined
+    colorValue: formData.get("colorValue") || undefined
   });
 
   let colorValue: string | null = null;
   let imageUrl: string | null = null;
-  let textContent: string | null = null;
 
   if (parsed.cardType === "color") {
     if (!parsed.colorValue) {
       throw new Error("A color value is required.");
     }
     colorValue = parsed.colorValue;
-  } else if (parsed.cardType === "image") {
+  } else {
     const image = formData.get("image");
     if (!(image instanceof File) || image.size === 0) {
       throw new Error("An image is required.");
     }
     imageUrl = await uploadCardImage(image);
-  } else {
-    if (!parsed.textContent) {
-      throw new Error("Text content is required.");
-    }
-    textContent = parsed.textContent;
   }
 
   const [{maxOrder}] = await db.select({maxOrder: max(heroCards.displayOrder)}).from(heroCards);
@@ -90,7 +80,7 @@ export async function createHeroCard(formData: FormData): Promise<AdminHeroCard>
 
   const [row] = await db
     .insert(heroCards)
-    .values({cardType: parsed.cardType, colorValue, imageUrl, textContent, displayOrder})
+    .values({cardType: parsed.cardType, colorValue, imageUrl, displayOrder})
     .returning();
 
   return toAdminCard(row);

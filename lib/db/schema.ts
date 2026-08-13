@@ -25,7 +25,7 @@ export const products = pgTable("products", {
 
 // Hero card stack (Tinder-style swipeable deck on the homepage hero). Rows
 // are shown in displayOrder; card_type picks which field the card renders
-// from ('color' -> colorValue, 'image' -> imageUrl, 'testimony' -> textContent).
+// from ('color' -> colorValue, 'image' -> imageUrl).
 export const heroCards = pgTable("hero_cards", {
   id: text("id")
     .primaryKey()
@@ -34,7 +34,6 @@ export const heroCards = pgTable("hero_cards", {
   cardType: text("card_type").notNull().default("color"),
   colorValue: text("color_value"),
   imageUrl: text("image_url"),
-  textContent: text("text_content"),
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 

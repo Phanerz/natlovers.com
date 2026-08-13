@@ -1,0 +1,1 @@
+ALTER TABLE "hero_cards" DROP COLUMN "text_content";

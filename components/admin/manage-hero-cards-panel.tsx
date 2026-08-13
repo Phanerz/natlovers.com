@@ -12,13 +12,6 @@ function CardPreview({card}: {card: AdminHeroCard}) {
       </div>
     );
   }
-  if (card.cardType === "testimony") {
-    return (
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-[#d9ccb3] bg-[#f2ecdc] text-[10px] font-semibold text-forest-700">
-        TEXT
-      </div>
-    );
-  }
   return (
     <div
       className="h-14 w-14 shrink-0 rounded-xl border border-[#d9ccb3]"
@@ -63,11 +56,7 @@ export function ManageHeroCardsPanel({
                 <div className="min-w-[12rem] flex-1">
                   <p className="font-display text-base capitalize text-forest-900">{card.cardType}</p>
                   <p className="line-clamp-2 text-sm text-forest-600">
-                    {card.cardType === "color"
-                      ? card.colorValue
-                      : card.cardType === "testimony"
-                        ? card.textContent
-                        : "Image card"}
+                    {card.cardType === "color" ? card.colorValue : "Image card"}
                   </p>
                 </div>
 

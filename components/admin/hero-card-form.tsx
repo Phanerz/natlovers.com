@@ -9,7 +9,6 @@ const fieldClass =
 
 const TYPE_OPTIONS: {value: HeroCardType; label: string}[] = [
   {value: "image", label: "Image"},
-  {value: "testimony", label: "Text"},
   {value: "color", label: "Color swatch"}
 ];
 
@@ -76,20 +75,6 @@ export function HeroCardForm({
           onFilesChange={(files) => onChange({...form, image: files.slice(-1)})}
           uploadProgress={uploadProgress}
         />
-      ) : null}
-
-      {form.cardType === "testimony" ? (
-        <label className="space-y-2 text-sm text-forest-700">
-          <span className="muted">Text content</span>
-          <textarea
-            value={form.textContent}
-            onChange={(event) => onChange({...form, textContent: event.target.value})}
-            required
-            rows={4}
-            placeholder="Enter the card's text..."
-            className={fieldClass}
-          />
-        </label>
       ) : null}
 
       {errorMessage ? <p className="text-sm font-medium text-red-600">{errorMessage}</p> : null}

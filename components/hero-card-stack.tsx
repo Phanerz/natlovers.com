@@ -4,14 +4,13 @@ import Image from "next/image";
 import {AnimatePresence, PanInfo, animate, motion, useMotionValue, useTransform} from "framer-motion";
 import {useEffect, useMemo, useRef, useState} from "react";
 
-type HeroCardType = "color" | "image" | "testimony";
+type HeroCardType = "color" | "image";
 
 type HeroCard = {
   id: string;
   cardType: HeroCardType;
   colorValue: string | null;
   imageUrl: string | null;
-  textContent: string | null;
 };
 
 const DEFAULT_COLORS = [
@@ -25,8 +24,7 @@ function defaultCards(): HeroCard[] {
     id: `placeholder-${index}`,
     cardType: "color",
     colorValue: color,
-    imageUrl: null,
-    textContent: null
+    imageUrl: null
   }));
 }
 
@@ -61,15 +59,6 @@ function CardFace({card}: {card: HeroCard}) {
     return (
       <div className="relative h-full w-full">
         <Image src={card.imageUrl} alt="" fill draggable={false} sizes="380px" className="object-cover" />
-      </div>
-    );
-  }
-  if (card.cardType === "testimony" && card.textContent) {
-    return (
-      <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(180deg,rgba(7,20,14,0.72),rgba(7,20,14,0.4))] p-6 text-center">
-        <p className="font-display italic text-[clamp(1.1rem,1.9vw,1.5rem)] leading-snug text-white">
-          &ldquo;{card.textContent}&rdquo;
-        </p>
       </div>
     );
   }
