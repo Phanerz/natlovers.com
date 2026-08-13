@@ -23,24 +23,6 @@ export const products = pgTable("products", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
-// Groups of 3 rows sharing `groupId` (position 1 = 'bag' image, 2 = 'testimony'
-// text, 3 = 'bag_with_customer' image) drive the swipeable hero card deck.
-export const testimonialCards = pgTable("testimonial_cards", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  groupId: text("group_id").notNull(),
-  position: integer("position").notNull(),
-  imageUrl: text("image_url"),
-  cardType: text("card_type").notNull(),
-  testimonyText: text("testimony_text"),
-  customerName: text("customer_name"),
-  displayOrder: integer("display_order").notNull().default(0),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
-});
-
 // Hero card stack (Tinder-style swipeable deck on the homepage hero). Rows
 // are shown in displayOrder; card_type picks which field the card renders
 // from ('color' -> colorValue, 'image' -> imageUrl, 'testimony' -> textContent).

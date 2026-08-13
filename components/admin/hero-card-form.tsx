@@ -8,9 +8,9 @@ const fieldClass =
   "w-full rounded-xl border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-base text-forest-900 outline-none focus:border-forest-400";
 
 const TYPE_OPTIONS: {value: HeroCardType; label: string}[] = [
-  {value: "color", label: "Color swatch"},
   {value: "image", label: "Image"},
-  {value: "testimony", label: "Text"}
+  {value: "testimony", label: "Text"},
+  {value: "color", label: "Color swatch"}
 ];
 
 export function HeroCardForm({

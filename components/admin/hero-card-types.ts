@@ -17,7 +17,7 @@ export type HeroCardFormState = {
 };
 
 export function emptyHeroCardForm(): HeroCardFormState {
-  return {cardType: "color", colorValue: "#43AA8B", textContent: "", image: []};
+  return {cardType: "image", colorValue: "#43AA8B", textContent: "", image: []};
 }
 
 export function buildHeroCardFormData(form: HeroCardFormState) {

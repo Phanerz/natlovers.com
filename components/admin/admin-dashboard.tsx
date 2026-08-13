@@ -9,17 +9,7 @@ import {AdminHeroCard, HeroCardFormState, buildHeroCardFormData, emptyHeroCardFo
 import {HeroCardForm} from "./hero-card-form";
 import {ManageHeroCardsPanel} from "./manage-hero-cards-panel";
 import {ManageProductsPanel} from "./manage-products-panel";
-import {ManageTestimonialsPanel} from "./manage-testimonials-panel";
 import {ProductForm} from "./product-form";
-import {TestimonialForm} from "./testimonial-form";
-import {
-  AdminTestimonialGroup,
-  TestimonialGroupFormState,
-  buildTestimonialFormData,
-  emptyTestimonialForm,
-  groupImageUrl,
-  testimonialFormFromGroup
-} from "./testimonial-types";
 import {Toast, ToastState} from "./toast";
 import {AdminProduct, ProductFormState, buildFormData, emptyForm, formFromProduct} from "./types";
 
@@ -43,21 +33,6 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
   const [editProgress, setEditProgress] = useState<number | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
 
-  const [testimonialGroups, setTestimonialGroups] = useState<AdminTestimonialGroup[]>([]);
-  const [loadingTestimonials, setLoadingTestimonials] = useState(true);
-  const [busyGroupId, setBusyGroupId] = useState<string | null>(null);
-
-  const [createTestimonialForm, setCreateTestimonialForm] = useState<TestimonialGroupFormState>(emptyTestimonialForm());
-  const [creatingTestimonial, setCreatingTestimonial] = useState(false);
-  const [createTestimonialProgress, setCreateTestimonialProgress] = useState<number | null>(null);
-  const [createTestimonialError, setCreateTestimonialError] = useState<string | null>(null);
-
-  const [editingTestimonialGroup, setEditingTestimonialGroup] = useState<AdminTestimonialGroup | null>(null);
-  const [editTestimonialForm, setEditTestimonialForm] = useState<TestimonialGroupFormState>(emptyTestimonialForm());
-  const [editTestimonialSubmitting, setEditTestimonialSubmitting] = useState(false);
-  const [editTestimonialProgress, setEditTestimonialProgress] = useState<number | null>(null);
-  const [editTestimonialError, setEditTestimonialError] = useState<string | null>(null);
-
   const [heroCards, setHeroCards] = useState<AdminHeroCard[]>([]);
   const [loadingHeroCards, setLoadingHeroCards] = useState(true);
   const [busyHeroCardId, setBusyHeroCardId] = useState<string | null>(null);
@@ -78,17 +53,6 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
     }
   }
 
-  async function loadTestimonials() {
-    setLoadingTestimonials(true);
-    try {
-      const response = await fetch("/api/admin/testimonials?scope=all", {cache: "no-store"});
-      const data: unknown = response.ok ? await response.json().catch(() => []) : [];
-      setTestimonialGroups(Array.isArray(data) ? (data as AdminTestimonialGroup[]) : []);
-    } finally {
-      setLoadingTestimonials(false);
-    }
-  }
-
   async function loadHeroCards() {
     setLoadingHeroCards(true);
     try {
@@ -102,7 +66,6 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
 
   useEffect(() => {
     loadProducts();
-    loadTestimonials();
     loadHeroCards();
   }, []);
 
@@ -237,166 +200,6 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
     }
   }
 
-  async function handleCreateTestimonial(event: FormEvent) {
-    event.preventDefault();
-    setCreateTestimonialError(null);
-
-    if (!createTestimonialForm.bagImage.length) {
-      setCreateTestimonialError("Please choose a bag image.");
-      return;
-    }
-    if (!createTestimonialForm.bagCustomerImage.length) {
-      setCreateTestimonialError("Please choose a bag + customer image.");
-      return;
-    }
-
-    setCreatingTestimonial(true);
-    setCreateTestimonialProgress(0);
-    try {
-      const result = await submitFormData(
-        "/api/admin/testimonials",
-        "POST",
-        buildTestimonialFormData(createTestimonialForm),
-        setCreateTestimonialProgress
-      );
-      if (!result.ok) {
-        setCreateTestimonialError(result.data?.error ?? "Could not save testimonial.");
-        return;
-      }
-      setCreateTestimonialForm(emptyTestimonialForm());
-      setToast({type: "success", message: "Testimonial was added."});
-      await loadTestimonials();
-      setTab("manage-testimonials");
-    } catch {
-      setCreateTestimonialError("Could not reach the server. Please check your connection and try again.");
-    } finally {
-      setCreatingTestimonial(false);
-      setCreateTestimonialProgress(null);
-    }
-  }
-
-  function startEditTestimonial(group: AdminTestimonialGroup) {
-    setEditingTestimonialGroup(group);
-    setEditTestimonialForm(testimonialFormFromGroup(group));
-    setEditTestimonialError(null);
-    setTab("add-testimonial");
-  }
-
-  function cancelEditTestimonial() {
-    setEditingTestimonialGroup(null);
-    setEditTestimonialError(null);
-    setTab("manage-testimonials");
-  }
-
-  async function handleEditTestimonialSubmit(event: FormEvent) {
-    event.preventDefault();
-    if (!editingTestimonialGroup) {
-      return;
-    }
-    setEditTestimonialError(null);
-
-    setEditTestimonialSubmitting(true);
-    setEditTestimonialProgress(0);
-    try {
-      const result = await submitFormData(
-        `/api/admin/testimonials?groupId=${encodeURIComponent(editingTestimonialGroup.groupId)}`,
-        "PATCH",
-        buildTestimonialFormData(editTestimonialForm),
-        setEditTestimonialProgress
-      );
-      if (!result.ok) {
-        setEditTestimonialError(result.data?.error ?? "Could not update testimonial.");
-        return;
-      }
-      setToast({type: "success", message: "Testimonial was updated."});
-      setEditingTestimonialGroup(null);
-      await loadTestimonials();
-      setTab("manage-testimonials");
-    } catch {
-      setEditTestimonialError("Could not reach the server. Please check your connection and try again.");
-    } finally {
-      setEditTestimonialSubmitting(false);
-      setEditTestimonialProgress(null);
-    }
-  }
-
-  async function handleDeactivateTestimonial(group: AdminTestimonialGroup) {
-    setBusyGroupId(group.groupId);
-    try {
-      const response = await fetch(
-        `/api/admin/testimonials?groupId=${encodeURIComponent(group.groupId)}&action=deactivate`,
-        {method: "PATCH"}
-      );
-      if (!response.ok) {
-        setToast({type: "error", message: "Could not deactivate the testimonial."});
-        return;
-      }
-      setToast({type: "success", message: "Testimonial was deactivated."});
-      await loadTestimonials();
-    } finally {
-      setBusyGroupId(null);
-    }
-  }
-
-  async function handleActivateTestimonial(group: AdminTestimonialGroup) {
-    setBusyGroupId(group.groupId);
-    try {
-      const response = await fetch(
-        `/api/admin/testimonials?groupId=${encodeURIComponent(group.groupId)}&action=activate`,
-        {method: "PATCH"}
-      );
-      if (!response.ok) {
-        setToast({type: "error", message: "Could not reactivate the testimonial."});
-        return;
-      }
-      setToast({type: "success", message: "Testimonial is active again."});
-      await loadTestimonials();
-    } finally {
-      setBusyGroupId(null);
-    }
-  }
-
-  async function handleDeleteTestimonial(group: AdminTestimonialGroup) {
-    if (!window.confirm("Permanently delete this testimonial? This cannot be undone.")) {
-      return;
-    }
-    setBusyGroupId(group.groupId);
-    try {
-      const response = await fetch(`/api/admin/testimonials?groupId=${encodeURIComponent(group.groupId)}`, {
-        method: "DELETE"
-      });
-      if (!response.ok) {
-        setToast({type: "error", message: "Could not delete the testimonial."});
-        return;
-      }
-      setToast({type: "success", message: "Testimonial was deleted."});
-      await loadTestimonials();
-    } finally {
-      setBusyGroupId(null);
-    }
-  }
-
-  async function handleReorderTestimonial(group: AdminTestimonialGroup, direction: "up" | "down") {
-    setBusyGroupId(group.groupId);
-    try {
-      const response = await fetch(
-        `/api/admin/testimonials?groupId=${encodeURIComponent(group.groupId)}&action=reorder`,
-        {
-          method: "PATCH",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({direction})
-        }
-      );
-      if (!response.ok) {
-        setToast({type: "error", message: "Could not reorder the testimonial."});
-        return;
-      }
-      await loadTestimonials();
-    } finally {
-      setBusyGroupId(null);
-    }
-  }
-
   async function handleCreateHeroCard(event: FormEvent) {
     event.preventDefault();
     setCreateHeroCardError(null);
@@ -476,14 +279,11 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
   }
 
   const isEditing = Boolean(editingProduct);
-  const isEditingTestimonial = Boolean(editingTestimonialGroup);
 
   const pageTitles: Record<Tab, string> = {
     dashboard: "Dashboard",
     add: isEditing ? "Edit Product" : "Add Product",
     manage: "Manage Products",
-    "add-testimonial": isEditingTestimonial ? "Edit Testimonial" : "Add Testimonial",
-    "manage-testimonials": "Manage Testimonials",
     "add-hero-card": "Add Hero Card",
     "manage-hero-cards": "Manage Hero Cards"
   };
@@ -508,105 +308,65 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
         <AdminSidebar tab={tab} onTabChange={setTab} />
 
         <div className="min-w-0 flex-1 space-y-8">
-      {tab === "dashboard" ? <DashboardHome onNavigate={setTab} /> : null}
+          {tab === "dashboard" ? <DashboardHome onNavigate={setTab} /> : null}
 
-      {tab === "add" ? (
-        isEditing && editingProduct ? (
-          <ProductForm
-            mode="edit"
-            form={editForm}
-            onChange={setEditForm}
-            onSubmit={handleEditSubmit}
-            submitting={editSubmitting}
-            uploadProgress={editProgress}
-            errorMessage={editError}
-            existingImages={editingProduct.images}
-            onCancel={cancelEdit}
-          />
-        ) : (
-          <ProductForm
-            mode="create"
-            form={createForm}
-            onChange={setCreateForm}
-            onSubmit={handleCreate}
-            submitting={creating}
-            uploadProgress={createProgress}
-            errorMessage={createError}
-          />
-        )
-      ) : null}
+          {tab === "add" ? (
+            isEditing && editingProduct ? (
+              <ProductForm
+                mode="edit"
+                form={editForm}
+                onChange={setEditForm}
+                onSubmit={handleEditSubmit}
+                submitting={editSubmitting}
+                uploadProgress={editProgress}
+                errorMessage={editError}
+                existingImages={editingProduct.images}
+                onCancel={cancelEdit}
+              />
+            ) : (
+              <ProductForm
+                mode="create"
+                form={createForm}
+                onChange={setCreateForm}
+                onSubmit={handleCreate}
+                submitting={creating}
+                uploadProgress={createProgress}
+                errorMessage={createError}
+              />
+            )
+          ) : null}
 
-      {tab === "manage" ? (
-        <ManageProductsPanel
-          products={products}
-          loading={loadingList}
-          onEdit={startEdit}
-          onDeactivate={handleDeactivate}
-          onActivate={handleActivate}
-          busySlug={busySlug}
-        />
-      ) : null}
+          {tab === "manage" ? (
+            <ManageProductsPanel
+              products={products}
+              loading={loadingList}
+              onEdit={startEdit}
+              onDeactivate={handleDeactivate}
+              onActivate={handleActivate}
+              busySlug={busySlug}
+            />
+          ) : null}
 
-      {tab === "add-testimonial" ? (
-        isEditingTestimonial && editingTestimonialGroup ? (
-          <TestimonialForm
-            mode="edit"
-            form={editTestimonialForm}
-            onChange={setEditTestimonialForm}
-            onSubmit={handleEditTestimonialSubmit}
-            submitting={editTestimonialSubmitting}
-            uploadProgress={editTestimonialProgress}
-            errorMessage={editTestimonialError}
-            existingBagImage={groupImageUrl(editingTestimonialGroup, 1)}
-            existingBagCustomerImage={groupImageUrl(editingTestimonialGroup, 3)}
-            onCancel={cancelEditTestimonial}
-          />
-        ) : (
-          <TestimonialForm
-            mode="create"
-            form={createTestimonialForm}
-            onChange={setCreateTestimonialForm}
-            onSubmit={handleCreateTestimonial}
-            submitting={creatingTestimonial}
-            uploadProgress={createTestimonialProgress}
-            errorMessage={createTestimonialError}
-          />
-        )
-      ) : null}
+          {tab === "add-hero-card" ? (
+            <HeroCardForm
+              form={createHeroCardForm}
+              onChange={setCreateHeroCardForm}
+              onSubmit={handleCreateHeroCard}
+              submitting={creatingHeroCard}
+              uploadProgress={createHeroCardProgress}
+              errorMessage={createHeroCardError}
+            />
+          ) : null}
 
-      {tab === "manage-testimonials" ? (
-        <ManageTestimonialsPanel
-          groups={testimonialGroups}
-          loading={loadingTestimonials}
-          onEdit={startEditTestimonial}
-          onDeactivate={handleDeactivateTestimonial}
-          onActivate={handleActivateTestimonial}
-          onDelete={handleDeleteTestimonial}
-          onReorder={handleReorderTestimonial}
-          busyGroupId={busyGroupId}
-        />
-      ) : null}
-
-      {tab === "add-hero-card" ? (
-        <HeroCardForm
-          form={createHeroCardForm}
-          onChange={setCreateHeroCardForm}
-          onSubmit={handleCreateHeroCard}
-          submitting={creatingHeroCard}
-          uploadProgress={createHeroCardProgress}
-          errorMessage={createHeroCardError}
-        />
-      ) : null}
-
-      {tab === "manage-hero-cards" ? (
-        <ManageHeroCardsPanel
-          cards={heroCards}
-          loading={loadingHeroCards}
-          onDelete={handleDeleteHeroCard}
-          onReorder={handleReorderHeroCard}
-          busyId={busyHeroCardId}
-        />
-      ) : null}
+          {tab === "manage-hero-cards" ? (
+            <ManageHeroCardsPanel
+              cards={heroCards}
+              loading={loadingHeroCards}
+              onDelete={handleDeleteHeroCard}
+              onReorder={handleReorderHeroCard}
+              busyId={busyHeroCardId}
+            />
+          ) : null}
         </div>
       </div>
 

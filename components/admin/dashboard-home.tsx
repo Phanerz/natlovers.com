@@ -4,6 +4,7 @@ import Link from "next/link";
 import type {Route} from "next";
 import {useEffect, useState} from "react";
 import {AlertTriangle, GalleryHorizontal, PackageCheck, PackageX, ShoppingBag} from "lucide-react";
+import {OrdersChart} from "./orders-chart";
 
 type Stats = {
   totalProducts: number;
@@ -13,6 +14,11 @@ type Stats = {
   ordersAwaitingTransfer: number;
 };
 
+// Icon, label, and number are stacked top-to-bottom (not centered as a
+// block) so a longer label wrapping to two lines only pushes that one
+// card's own number down slightly — it can never shift the icon's position
+// relative to its neighbors, since every card starts from the same top
+// edge. min-h keeps all 5 cards the same height even when one wraps.
 function StatCard({
   icon: Icon,
   label,
@@ -30,18 +36,16 @@ function StatCard({
 }) {
   const content = (
     <>
-      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#eee4cd] text-forest-700">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eee4cd] text-forest-700">
         <Icon className="h-5 w-5" />
       </div>
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-forest-500">{label}</p>
-        <p className="mt-1 font-display text-3xl text-forest-900">{loading ? "—" : value}</p>
-      </div>
+      <p className="mt-3 text-[11px] font-semibold uppercase leading-tight tracking-[0.16em] text-forest-500">{label}</p>
+      <p className="mt-1 font-display text-3xl text-forest-900">{loading ? "—" : value}</p>
     </>
   );
 
   const className =
-    "button-lift flex items-center gap-4 rounded-[1.4rem] border border-[#d4c5ab] bg-[#fffaf1] p-5 text-left transition-colors duration-150 hover:bg-[#f6efdd]";
+    "button-lift flex min-h-[128px] flex-col items-start rounded-[1.4rem] border border-[#d4c5ab] bg-[#fffaf1] p-4 text-left transition-colors duration-150 hover:bg-[#f6efdd]";
 
   if (href) {
     return (
@@ -105,8 +109,8 @@ export function DashboardHome({onNavigate}: {onNavigate: (tab: "manage" | "manag
         </Link>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard icon={ShoppingBag} label="Total Products" value={stats?.totalProducts ?? 0} onClick={() => onNavigate("manage")} loading={loading} />
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <StatCard icon={ShoppingBag} label="Products" value={stats?.totalProducts ?? 0} onClick={() => onNavigate("manage")} loading={loading} />
         <StatCard icon={PackageCheck} label="Active" value={stats?.activeProducts ?? 0} onClick={() => onNavigate("manage")} loading={loading} />
         <StatCard icon={PackageX} label="Hidden" value={stats?.hiddenProducts ?? 0} onClick={() => onNavigate("manage")} loading={loading} />
         <StatCard
@@ -116,8 +120,10 @@ export function DashboardHome({onNavigate}: {onNavigate: (tab: "manage" | "manag
           onClick={() => onNavigate("manage-hero-cards")}
           loading={loading}
         />
-        <StatCard icon={AlertTriangle} label="Orders Awaiting Transfer" value={awaiting} href="/mimin/orders" loading={loading} />
+        <StatCard icon={AlertTriangle} label="Awaiting Transfer" value={awaiting} href="/mimin/orders" loading={loading} />
       </div>
+
+      <OrdersChart />
     </div>
   );
 }
