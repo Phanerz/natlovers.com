@@ -10,10 +10,12 @@ const nextConfig: NextConfig = {
     // segment like /catalogue), so that effect never re-ran and admin edits
     // stayed invisible until a hard reload or the cache aged out. Zeroing
     // both staleTimes means every navigation back to these pages remounts
-    // fresh and refetches, matching what a hard refresh already did.
+    // fresh and refetches, matching what a hard refresh already did. 30 is
+    // the framework's enforced minimum for "static" (0 is rejected at
+    // startup) — still a massive drop from the 5-minute default.
     staleTimes: {
       dynamic: 0,
-      static: 0
+      static: 30
     }
   },
   images: {

@@ -36,10 +36,7 @@ export default function ErrorBoundary({error, reset}: {error: Error & {digest?: 
     <main className="page-enter flex min-h-[70vh] items-center justify-center px-4 py-20">
       <div className="flex max-w-md flex-col items-center text-center">
         <Sprig />
-        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.3em] text-forest-500">
-          {locale === "en" ? "Dictionary entry / Something slipped" : "Entri kamus / Terjadi kesalahan"}
-        </p>
-        <h1 className="mt-3 font-display text-4xl leading-tight text-forest-900 sm:text-5xl">
+        <h1 className="mt-6 font-display text-4xl leading-tight text-forest-900 sm:text-5xl">
           {locale === "en" ? "A stitch came loose" : "Ada yang tidak beres"}
         </h1>
         <p className="mt-5 text-base leading-7 text-forest-600">

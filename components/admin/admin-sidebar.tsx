@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import type {Route} from "next";
+import {usePathname, useSearchParams} from "next/navigation";
 import {useEffect, useState} from "react";
-import {ChevronDown, GalleryHorizontal, LayoutDashboard, PlusCircle, Receipt, ShoppingBag} from "lucide-react";
+import {ChevronDown, GalleryHorizontal, LayoutDashboard, PlusCircle, Receipt, ShoppingBag, Users, Warehouse} from "lucide-react";
 import {ShopProductType, productTypeLabels, shopProductTypes} from "@/app/catalogue/shop-data";
-
-type Tab = "dashboard" | "add" | "manage" | "add-hero-card" | "manage-hero-cards";
 
 // Typography/spacing lifted directly from app/catalogue/filter-sidebar.tsx's
 // FilterSection — same uppercase tracked label, same border-b rhythm
@@ -15,58 +15,67 @@ function SectionLabel({children}: {children: React.ReactNode}) {
   return <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#2e2e28]">{children}</span>;
 }
 
-function NavRow({active, onClick, icon: Icon, children}: {active: boolean; onClick: () => void; icon: typeof LayoutDashboard; children: React.ReactNode}) {
+function NavLink({
+  href,
+  active,
+  icon: Icon,
+  children
+}: {
+  href: Route;
+  active: boolean;
+  icon: typeof LayoutDashboard;
+  children: React.ReactNode;
+}) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-colors duration-150 ${
-        active ? "bg-forest-900 text-sand-50" : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
+    <Link
+      href={href}
+      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        active ? "bg-forest-900 text-sand-50 shadow-[0_4px_14px_rgba(23,32,21,0.22)]" : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
       }`}
     >
       <Icon className="h-4 w-4 shrink-0" />
       {children}
-    </button>
+    </Link>
   );
 }
 
-function AddButton({active, onClick, label}: {active: boolean; onClick: () => void; label: string}) {
+function AddLink({href, active, label}: {href: Route; active: boolean; label: string}) {
   return (
-    <button
-      type="button"
+    <Link
+      href={href}
       aria-label={label}
-      onClick={onClick}
-      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors duration-150 ${
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-105 active:scale-95 ${
         active ? "bg-forest-900 text-sand-50" : "text-[#a39d8d] hover:bg-[#eee7d8] hover:text-[#344332]"
       }`}
     >
       <PlusCircle className="h-4 w-4" />
-    </button>
+    </Link>
   );
 }
 
-function SubItem({label, active, onClick}: {label: string; active: boolean; onClick: () => void}) {
+function SubItem({href, label, active}: {href: Route; label: string; active: boolean}) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <Link
+      href={href}
       className={`flex w-full items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-left text-[13px] transition-colors duration-150 ${
         active ? "font-medium text-forest-900" : "text-[#6b6b5f] hover:text-[#344332]"
       }`}
     >
-      <span className={`h-1 w-1 rounded-full ${active ? "bg-forest-900" : "bg-transparent"}`} />
+      <span className={`h-1 w-1 rounded-full transition-colors duration-150 ${active ? "bg-forest-900" : "bg-transparent"}`} />
       {label}
-    </button>
+    </Link>
   );
 }
 
-export function AdminSidebar({tab, onTabChange}: {tab: Tab; onTabChange: (tab: Tab) => void}) {
+export function AdminSidebar() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [ordersAwaiting, setOrdersAwaiting] = useState<number | null>(null);
   const [productsExpanded, setProductsExpanded] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/admin/dashboard-stats", {cache: "no-store"})
+    fetch("/api/admin/dashboard-stats?range=all", {cache: "no-store"})
       .then((response) => (response.ok ? response.json() : null))
       .then((data: {ordersAwaitingTransfer?: number} | null) => {
         if (!cancelled && data) {
@@ -79,12 +88,20 @@ export function AdminSidebar({tab, onTabChange}: {tab: Tab; onTabChange: (tab: T
     };
   }, []);
 
+  const tab = searchParams.get("tab");
+  const onDashboardRoute = pathname === "/mimin";
+  const isDashboardHome = onDashboardRoute && !tab;
+  const isManage = onDashboardRoute && tab === "manage";
+  const isAdd = onDashboardRoute && tab === "add";
+  const isManageHero = onDashboardRoute && tab === "manage-hero-cards";
+  const isAddHero = onDashboardRoute && tab === "add-hero-card";
+
   return (
     <aside className="w-full shrink-0 rounded-[1.75rem] border border-[#d4c5ab] bg-[#fffaf1] p-4 lg:w-64">
       <div className="border-b border-[#d9cfc0] pb-3">
-        <NavRow active={tab === "dashboard"} onClick={() => onTabChange("dashboard")} icon={LayoutDashboard}>
+        <NavLink href="/mimin" active={isDashboardHome} icon={LayoutDashboard}>
           Dashboard
-        </NavRow>
+        </NavLink>
       </div>
 
       <div className="border-b border-[#d9cfc0] py-3">
@@ -96,55 +113,65 @@ export function AdminSidebar({tab, onTabChange}: {tab: Tab; onTabChange: (tab: T
             <div className="min-w-0 flex-1">
               <button
                 type="button"
-                onClick={() => {
-                  onTabChange("manage");
-                  setProductsExpanded(true);
-                }}
-                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-colors duration-150 ${
-                  tab === "manage" ? "bg-forest-900 text-sand-50" : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
+                onClick={() => setProductsExpanded((value) => !value)}
+                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  isManage ? "bg-forest-900 text-sand-50 shadow-[0_4px_14px_rgba(23,32,21,0.22)]" : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
                 }`}
               >
                 <ShoppingBag className="h-4 w-4 shrink-0" />
-                <span className="flex-1">Manage Products</span>
+                <Link href="/mimin?tab=manage" className="flex-1">
+                  Manage Products
+                </Link>
                 <ChevronDown
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setProductsExpanded((value) => !value);
-                  }}
-                  className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${productsExpanded ? "" : "-rotate-90"}`}
+                  className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                    productsExpanded ? "" : "-rotate-90"
+                  }`}
                 />
               </button>
             </div>
-            <AddButton active={tab === "add"} onClick={() => onTabChange("add")} label="Add product" />
+            <AddLink href="/mimin?tab=add" active={isAdd} label="Add product" />
           </div>
 
           {productsExpanded ? (
             <div className="space-y-0.5 pt-0.5">
-              <SubItem label="All Products" active={tab === "manage"} onClick={() => onTabChange("manage")} />
+              <SubItem href="/mimin?tab=manage" label="All Products" active={isManage} />
               {shopProductTypes.map((type: ShopProductType) => (
-                <SubItem key={type} label={productTypeLabels[type].en} active={false} onClick={() => onTabChange("manage")} />
+                <SubItem
+                  key={type}
+                  href={`/mimin?tab=manage&type=${type.toLowerCase()}`}
+                  label={productTypeLabels[type].en}
+                  active={false}
+                />
               ))}
             </div>
           ) : null}
 
+          <NavLink href="/mimin/stock" active={pathname === "/mimin/stock"} icon={Warehouse}>
+            Stock &amp; Inventory
+          </NavLink>
+
           <div className="flex items-center gap-1">
             <div className="min-w-0 flex-1">
-              <NavRow active={tab === "manage-hero-cards"} onClick={() => onTabChange("manage-hero-cards")} icon={GalleryHorizontal}>
+              <NavLink href="/mimin?tab=manage-hero-cards" active={isManageHero} icon={GalleryHorizontal}>
                 Hero Cards
-              </NavRow>
+              </NavLink>
             </div>
-            <AddButton active={tab === "add-hero-card"} onClick={() => onTabChange("add-hero-card")} label="Add hero card" />
+            <AddLink href="/mimin?tab=add-hero-card" active={isAddHero} label="Add hero card" />
           </div>
         </div>
       </div>
 
-      <div className="pt-3">
+      <div className="border-b border-[#d9cfc0] py-3">
         <div className="px-3 pb-2">
-          <SectionLabel>Orders</SectionLabel>
+          <SectionLabel>Sales</SectionLabel>
         </div>
         <Link
           href="/mimin/orders"
-          className="flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-[13.5px] font-medium text-[#3c3c34] transition-colors duration-150 hover:bg-[#eee7d8] hover:text-[#344332]"
+          className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            pathname === "/mimin/orders"
+              ? "bg-forest-900 text-sand-50 shadow-[0_4px_14px_rgba(23,32,21,0.22)]"
+              : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
+          }`}
         >
           <span className="flex items-center gap-2.5">
             <Receipt className="h-4 w-4 shrink-0" />
@@ -157,8 +184,15 @@ export function AdminSidebar({tab, onTabChange}: {tab: Tab; onTabChange: (tab: T
           ) : null}
         </Link>
       </div>
+
+      <div className="pt-3">
+        <div className="px-3 pb-2">
+          <SectionLabel>Customers</SectionLabel>
+        </div>
+        <NavLink href="/mimin/customers" active={pathname === "/mimin/customers"} icon={Users}>
+          Customers
+        </NavLink>
+      </div>
     </aside>
   );
 }
-
-export type {Tab as AdminTab};

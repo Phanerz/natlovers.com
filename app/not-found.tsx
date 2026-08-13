@@ -31,10 +31,7 @@ export default function NotFound() {
     <main className="page-enter flex min-h-[70vh] items-center justify-center px-4 py-20">
       <div className="flex max-w-md flex-col items-center text-center">
         <Sprig />
-        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.3em] text-forest-500">
-          {locale === "en" ? "Dictionary entry / Page not found" : "Entri kamus / Halaman tidak ditemukan"}
-        </p>
-        <h1 className="mt-3 font-display text-[clamp(3.5rem,10vw,5.5rem)] leading-none text-forest-900">404</h1>
+        <h1 className="mt-6 font-display text-[clamp(3.5rem,10vw,5.5rem)] leading-none text-forest-900">404</h1>
         <p className="mt-5 text-base leading-7 text-forest-600">
           {locale === "en"
             ? "This page wandered off the shelf. The piece you're looking for may have been moved, sold, or never existed."

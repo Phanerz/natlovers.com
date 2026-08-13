@@ -1,9 +1,9 @@
 "use client";
 
 import {FormEvent, useEffect, useState} from "react";
+import {useRouter, useSearchParams} from "next/navigation";
 import {signOut} from "next-auth/react";
 import {submitFormData} from "@/lib/xhr-form-submit";
-import {AdminSidebar, AdminTab} from "./admin-sidebar";
 import {DashboardHome} from "./dashboard-home";
 import {AdminHeroCard, HeroCardFormState, buildHeroCardFormData, emptyHeroCardForm} from "./hero-card-types";
 import {HeroCardForm} from "./hero-card-form";
@@ -13,10 +13,23 @@ import {ProductForm} from "./product-form";
 import {Toast, ToastState} from "./toast";
 import {AdminProduct, ProductFormState, buildFormData, emptyForm, formFromProduct} from "./types";
 
-type Tab = AdminTab;
+type Tab = "dashboard" | "add" | "manage" | "add-hero-card" | "manage-hero-cards";
+
+const validTabs: Tab[] = ["dashboard", "add", "manage", "add-hero-card", "manage-hero-cards"];
+
+function tabFromParam(value: string | null): Tab {
+  return validTabs.includes(value as Tab) ? (value as Tab) : "dashboard";
+}
 
 export function AdminDashboard({userEmail}: {userEmail: string}) {
-  const [tab, setTab] = useState<Tab>("dashboard");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tab = tabFromParam(searchParams.get("tab"));
+
+  function setTab(next: Tab) {
+    router.replace(next === "dashboard" ? "/mimin" : `/mimin?tab=${next}`, {scroll: false});
+  }
+
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [toast, setToast] = useState<ToastState>(null);
@@ -300,11 +313,8 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
         </button>
       </div>
 
-      <div className="flex flex-col gap-6 lg:flex-row">
-        <AdminSidebar tab={tab} onTabChange={setTab} />
-
-        <div className="min-w-0 flex-1 space-y-8">
-          {tab === "dashboard" ? <DashboardHome onNavigate={setTab} /> : null}
+      <div className="space-y-8">
+        {tab === "dashboard" ? <DashboardHome onNavigate={setTab} /> : null}
 
           {tab === "add" ? (
             isEditing && editingProduct ? (
@@ -363,7 +373,6 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
               busyId={busyHeroCardId}
             />
           ) : null}
-        </div>
       </div>
 
       <Toast toast={toast} onDismiss={() => setToast(null)} />
