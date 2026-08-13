@@ -10,7 +10,6 @@ import {FilterSidebar} from "./filter-sidebar";
 import {ShopProductCard} from "./shop-product-card";
 import {
   AccessoryCategory,
-  ShopGender,
   ShopHandle,
   ShopMaterial,
   ShopProduct,
@@ -127,7 +126,6 @@ export function CatalogueContent() {
   const [selectedSizes, setSelectedSizes] = useState<ShopSize[]>([]);
   const [selectedShapes, setSelectedShapes] = useState<ShopShape[]>([]);
   const [selectedHandles, setSelectedHandles] = useState<ShopHandle[]>([]);
-  const [selectedGenders, setSelectedGenders] = useState<ShopGender[]>([]);
   const [selectedAccessoryCategories, setSelectedAccessoryCategories] = useState<AccessoryCategory[]>([]);
   const [sort, setSort] = useState<SortOption>("newest");
   const [sortOpen, setSortOpen] = useState(false);
@@ -201,7 +199,6 @@ export function CatalogueContent() {
     setSelectedSizes([]);
     setSelectedShapes([]);
     setSelectedHandles([]);
-    setSelectedGenders([]);
     setSelectedAccessoryCategories([]);
   }
 
@@ -412,12 +409,6 @@ export function CatalogueContent() {
     );
   }
 
-  function toggleGender(value: ShopGender) {
-    setSelectedGenders((current) =>
-      current.includes(value) ? current.filter((item) => item !== value) : [...current, value]
-    );
-  }
-
   function toggleAccessoryCategory(value: AccessoryCategory) {
     setSelectedAccessoryCategories((current) =>
       current.includes(value) ? current.filter((item) => item !== value) : [...current, value]
@@ -431,10 +422,10 @@ export function CatalogueContent() {
 
   const filteredProducts = useMemo(() => {
     const filtered = typeProducts.filter((product) => {
-      // Materials/size apply to Bags and Dolls; shape/handle to Bags only;
-      // gender to Dolls only; category to Accessories only — each guard
-      // only ever runs against the type it belongs to, since the other
-      // types' selection state stays empty (reset on type switch).
+      // Materials apply to Bags only; size to Bags and Dolls; shape/handle
+      // to Bags only; category to Accessories only — each guard only ever
+      // runs against the type it belongs to, since the other types'
+      // selection state stays empty (reset on type switch).
       if (selectedMaterials.length && !product.materials.some((material) => selectedMaterials.includes(material))) {
         return false;
       }
@@ -448,10 +439,6 @@ export function CatalogueContent() {
       }
 
       if (selectedHandles.length && (!product.handle || !selectedHandles.includes(product.handle))) {
-        return false;
-      }
-
-      if (selectedGenders.length && (!product.gender || !selectedGenders.includes(product.gender))) {
         return false;
       }
 
@@ -482,7 +469,6 @@ export function CatalogueContent() {
     selectedSizes,
     selectedShapes,
     selectedHandles,
-    selectedGenders,
     selectedAccessoryCategories,
     sort
   ]);
@@ -544,7 +530,6 @@ export function CatalogueContent() {
     selectedSizes,
     selectedShapes,
     selectedHandles,
-    selectedGenders,
     selectedAccessoryCategories,
     sort,
     capacity
@@ -928,13 +913,11 @@ export function CatalogueContent() {
                 selectedSizes={selectedSizes}
                 selectedShapes={selectedShapes}
                 selectedHandles={selectedHandles}
-                selectedGenders={selectedGenders}
                 selectedAccessoryCategories={selectedAccessoryCategories}
                 onToggleMaterial={toggleMaterial}
                 onToggleSize={toggleSize}
                 onToggleShape={toggleShape}
                 onToggleHandle={toggleHandle}
-                onToggleGender={toggleGender}
                 onToggleAccessoryCategory={toggleAccessoryCategory}
                 onCollapse={() => setSidebarCollapsed(true)}
               />
@@ -966,13 +949,11 @@ export function CatalogueContent() {
                 selectedSizes={selectedSizes}
                 selectedShapes={selectedShapes}
                 selectedHandles={selectedHandles}
-                selectedGenders={selectedGenders}
                 selectedAccessoryCategories={selectedAccessoryCategories}
                 onToggleMaterial={toggleMaterial}
                 onToggleSize={toggleSize}
                 onToggleShape={toggleShape}
                 onToggleHandle={toggleHandle}
-                onToggleGender={toggleGender}
                 onToggleAccessoryCategory={toggleAccessoryCategory}
               />
             </div>

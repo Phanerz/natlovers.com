@@ -5,13 +5,10 @@ import {
   accessoryCategories,
   accessoryCategoryLabels,
   bagMaterials,
-  dollMaterials,
-  genderLabels,
   handleLabels,
   materialLabels,
   productTypeLabels,
   shapeLabels,
-  shopGenders,
   shopHandles,
   shopProductTypes,
   shopShapes,
@@ -39,10 +36,10 @@ function SectionCard({step, title, children}: {step: number; title: string; chil
 const fieldClass =
   "w-full rounded-xl border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-base text-forest-900 outline-none focus:border-forest-400";
 
-// Each Product Type owns its own attribute set — a Doll gets Gender + Size +
-// Materials (from dollMaterials, which includes Mendong), an Accessory gets
-// only Category, Apparel gets nothing beyond Basic Info/Images. No shared
-// generic block that shows fields irrelevant to the selected type.
+// Each Product Type owns its own attribute set — a Doll gets only Size, an
+// Accessory gets only Category, Apparel gets nothing beyond Basic Info/
+// Images. No shared generic block that shows fields irrelevant to the
+// selected type.
 function AttributeFields({form, onChange}: {form: ProductFormState; onChange: (next: ProductFormState) => void}) {
   if (form.productType === "Bags") {
     return (
@@ -83,31 +80,13 @@ function AttributeFields({form, onChange}: {form: ProductFormState; onChange: (n
 
   if (form.productType === "Dolls") {
     return (
-      <>
-        <div className="grid gap-6 sm:grid-cols-2">
-          <PillSingleSelect
-            label="Gender"
-            options={shopGenders}
-            getLabel={(option) => genderLabels[option].en}
-            value={form.gender}
-            onChange={(value) => onChange({...form, gender: value})}
-          />
-          <PillSingleSelect
-            label="Size"
-            options={shopSizes}
-            getLabel={(option) => sizeLabels[option].en}
-            value={form.size}
-            onChange={(value) => onChange({...form, size: value})}
-          />
-        </div>
-        <PillMultiSelect
-          label="Materials"
-          options={dollMaterials}
-          getLabel={(option) => materialLabels[option].en}
-          value={form.materials}
-          onChange={(value) => onChange({...form, materials: value})}
-        />
-      </>
+      <PillSingleSelect
+        label="Size"
+        options={shopSizes}
+        getLabel={(option) => sizeLabels[option].en}
+        value={form.size}
+        onChange={(value) => onChange({...form, size: value})}
+      />
     );
   }
 

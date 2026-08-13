@@ -1,6 +1,6 @@
 import {Locale} from "@/lib/site";
 
-export type ShopMaterial = "Agel" | "Water Hyacinth" | "Gajih" | "Woven Fabric" | "Patchwork" | "Mendong";
+export type ShopMaterial = "Agel" | "Water Hyacinth" | "Gajih" | "Woven Fabric" | "Patchwork";
 
 export type ShopSize = "Small" | "Medium" | "Large";
 
@@ -8,16 +8,14 @@ export type ShopShape = "Rectangle" | "Round" | "House Shaped";
 
 export type ShopHandle = "Handbag" | "Shoulder Bag" | "Sling Bag" | "Clutch";
 
-export type ShopGender = "Male" | "Female";
-
 export type AccessoryCategory = "Bracelet" | "Charm" | "Necklace";
 
 export type ShopProductType = "Bags" | "Dolls" | "Accessories" | "Apparels";
 
-// Each product type owns its own attribute set — a Doll has no shape/handle,
-// an Accessory has none of Bags'/Dolls' fields at all, Apparel has none of
-// these. Every per-type field is nullable rather than the product carrying
-// irrelevant fields from a different type.
+// Each product type owns its own attribute set — a Doll has only size, an
+// Accessory has only category, Apparel has none of these. Every per-type
+// field is nullable rather than the product carrying irrelevant fields from
+// a different type.
 export type ShopProduct = {
   slug: string;
   name: string;
@@ -28,22 +26,19 @@ export type ShopProduct = {
   shape: ShopShape | null;
   handle: ShopHandle | null;
   materials: ShopMaterial[];
-  gender: ShopGender | null;
   accessoryCategory: AccessoryCategory | null;
   soldOut?: boolean;
 };
 
 type BilingualLabel = {en: string; id: string};
 
-// Fixed, literal display order per group — Size/Gender stay in their given
-// logical order, everything else listed here is already alphabetical (by
-// English label) and stays fixed regardless of locale.
+// Fixed, literal display order per group — Size stays in its given logical
+// order, everything else listed here is already alphabetical (by English
+// label) and stays fixed regardless of locale.
 export const bagMaterials: ShopMaterial[] = ["Agel", "Gajih", "Patchwork", "Water Hyacinth", "Woven Fabric"];
-export const dollMaterials: ShopMaterial[] = ["Agel", "Gajih", "Mendong", "Patchwork", "Water Hyacinth", "Woven Fabric"];
 export const shopSizes: ShopSize[] = ["Small", "Medium", "Large"];
 export const shopShapes: ShopShape[] = ["House Shaped", "Rectangle", "Round"];
 export const shopHandles: ShopHandle[] = ["Clutch", "Handbag", "Shoulder Bag", "Sling Bag"];
-export const shopGenders: ShopGender[] = ["Male", "Female"];
 export const accessoryCategories: AccessoryCategory[] = ["Bracelet", "Charm", "Necklace"];
 
 export const materialLabels: Record<ShopMaterial, BilingualLabel> = {
@@ -51,8 +46,7 @@ export const materialLabels: Record<ShopMaterial, BilingualLabel> = {
   "Water Hyacinth": {en: "Water Hyacinth", id: "Enceng Gondok"},
   Gajih: {en: "Gajih", id: "Gajih"},
   "Woven Fabric": {en: "Woven Fabric", id: "Kain Tenun"},
-  Patchwork: {en: "Patchwork", id: "Patchwork"},
-  Mendong: {en: "Mendong", id: "Mendong"}
+  Patchwork: {en: "Patchwork", id: "Patchwork"}
 };
 
 export const sizeLabels: Record<ShopSize, BilingualLabel> = {
@@ -72,11 +66,6 @@ export const handleLabels: Record<ShopHandle, BilingualLabel> = {
   "Shoulder Bag": {en: "Shoulder Bag", id: "Bahu"},
   "Sling Bag": {en: "Sling Bag", id: "Slempang"},
   Clutch: {en: "Clutch", id: "Clutch"}
-};
-
-export const genderLabels: Record<ShopGender, BilingualLabel> = {
-  Male: {en: "Male", id: "Laki-laki"},
-  Female: {en: "Female", id: "Perempuan"}
 };
 
 export const accessoryCategoryLabels: Record<AccessoryCategory, BilingualLabel> = {
@@ -105,8 +94,7 @@ export const materialImageStyle: Record<ShopMaterial, {bg: string; border: strin
   "Water Hyacinth": {bg: "#E1EADD", border: "#B9CBB4"},
   Gajih: {bg: "#F3E2D6", border: "#DEBBA3"},
   "Woven Fabric": {bg: "#E7DEEC", border: "#C9B9DA"},
-  Patchwork: {bg: "#F0DEE0", border: "#DEBBBF"},
-  Mendong: {bg: "#EAE6D2", border: "#CFC7A3"}
+  Patchwork: {bg: "#F0DEE0", border: "#DEBBBF"}
 };
 
 export const DEFAULT_IMAGE_STYLE = {bg: "#eee7d8", border: "#d9cfc0"};

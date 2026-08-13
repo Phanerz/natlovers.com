@@ -17,8 +17,6 @@ export const products = pgTable("products", {
   // Bags-only.
   shape: text("shape"),
   handleType: text("handle_type"),
-  // Dolls-only.
-  gender: text("gender"),
   // Accessories-only.
   accessoryCategory: text("accessory_category"),
   productType: text("product_type").notNull(),

@@ -4,7 +4,6 @@ import {uploadFile} from "@/lib/blob";
 import {db, products} from "@/lib/db";
 import {
   AccessoryCategory,
-  ShopGender,
   ShopHandle,
   ShopMaterial,
   ShopProduct,
@@ -13,8 +12,6 @@ import {
   ShopSize,
   accessoryCategories,
   bagMaterials,
-  dollMaterials,
-  shopGenders,
   shopHandles,
   shopProductTypes,
   shopShapes,
@@ -42,7 +39,6 @@ const shopProductInputSchema = z.object({
   size: (z.enum(shopSizes as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopSize>).optional(),
   shape: (z.enum(shopShapes as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopShape>).optional(),
   handle: (z.enum(shopHandles as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopHandle>).optional(),
-  gender: (z.enum(shopGenders as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopGender>).optional(),
   accessoryCategory: (
     z.enum(accessoryCategories as unknown as [string, ...string[]]) as unknown as z.ZodType<AccessoryCategory>
   ).optional(),
@@ -90,7 +86,6 @@ function toAdminProduct(row: typeof products.$inferSelect): AdminProduct {
     size: (row.size as ShopSize) ?? null,
     shape: (row.shape as ShopShape) ?? null,
     handle: (row.handleType as ShopHandle) ?? null,
-    gender: (row.gender as ShopGender) ?? null,
     accessoryCategory: (row.accessoryCategory as AccessoryCategory) ?? null,
     tags: row.tags,
     soldOut: row.soldOut,
@@ -115,15 +110,14 @@ function collectImageFiles(formData: FormData): File[] {
 }
 
 // Each product type owns its own required-field set and its own valid
-// materials list — a Doll can only carry dollMaterials (which includes
-// Mendong), a Bag only bagMaterials, Accessories/Apparel carry none.
+// materials list — a Bag can only carry bagMaterials, Dolls/Accessories/
+// Apparel carry none.
 function attributesForType(
   productType: ShopProductType,
   parsed: {
     size?: ShopSize;
     shape?: ShopShape;
     handle?: ShopHandle;
-    gender?: ShopGender;
     accessoryCategory?: AccessoryCategory;
     materials?: string[];
   }
@@ -131,7 +125,6 @@ function attributesForType(
   size: ShopSize | null;
   shape: ShopShape | null;
   handleType: ShopHandle | null;
-  gender: ShopGender | null;
   accessoryCategory: AccessoryCategory | null;
   materials: ShopMaterial[];
 } {
@@ -145,31 +138,25 @@ function attributesForType(
     if (!materials.length) {
       throw new Error("Pick at least one material.");
     }
-    return {size: parsed.size, shape: parsed.shape, handleType: parsed.handle, gender: null, accessoryCategory: null, materials};
+    return {size: parsed.size, shape: parsed.shape, handleType: parsed.handle, accessoryCategory: null, materials};
   }
 
   if (productType === "Dolls") {
-    if (!parsed.size || !parsed.gender) {
-      throw new Error("Size and gender are required for dolls.");
+    if (!parsed.size) {
+      throw new Error("Size is required for dolls.");
     }
-    const materials = (parsed.materials ?? []).filter((value): value is ShopMaterial =>
-      dollMaterials.includes(value as ShopMaterial)
-    );
-    if (!materials.length) {
-      throw new Error("Pick at least one material.");
-    }
-    return {size: parsed.size, shape: null, handleType: null, gender: parsed.gender, accessoryCategory: null, materials};
+    return {size: parsed.size, shape: null, handleType: null, accessoryCategory: null, materials: []};
   }
 
   if (productType === "Accessories") {
     if (!parsed.accessoryCategory) {
       throw new Error("Category is required for accessories.");
     }
-    return {size: null, shape: null, handleType: null, gender: null, accessoryCategory: parsed.accessoryCategory, materials: []};
+    return {size: null, shape: null, handleType: null, accessoryCategory: parsed.accessoryCategory, materials: []};
   }
 
   // Apparel: no per-type attributes at all.
-  return {size: null, shape: null, handleType: null, gender: null, accessoryCategory: null, materials: []};
+  return {size: null, shape: null, handleType: null, accessoryCategory: null, materials: []};
 }
 
 export async function getAllProducts(): Promise<AdminProduct[]> {
@@ -193,7 +180,6 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     size: formData.get("size") || undefined,
     shape: formData.get("shape") || undefined,
     handle: formData.get("handle") || undefined,
-    gender: formData.get("gender") || undefined,
     accessoryCategory: formData.get("accessoryCategory") || undefined,
     materials: formData.getAll("materials").map(String),
     tags: formData.getAll("tags").map(String)
@@ -222,7 +208,6 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       size: attributes.size,
       shape: attributes.shape,
       handleType: attributes.handleType,
-      gender: attributes.gender,
       accessoryCategory: attributes.accessoryCategory,
       tags: parsed.tags ?? []
     })
@@ -245,7 +230,6 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
   if (formData.has("size")) raw.size = formData.get("size") || undefined;
   if (formData.has("shape")) raw.shape = formData.get("shape") || undefined;
   if (formData.has("handle")) raw.handle = formData.get("handle") || undefined;
-  if (formData.has("gender")) raw.gender = formData.get("gender") || undefined;
   if (formData.has("accessoryCategory")) raw.accessoryCategory = formData.get("accessoryCategory") || undefined;
   if (formData.getAll("materials").length) raw.materials = formData.getAll("materials").map(String);
   if (formData.getAll("tags").length) raw.tags = formData.getAll("tags").map(String);
@@ -262,7 +246,6 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
     size: (parsed.size as ShopSize | undefined) ?? (existing.size as ShopSize | undefined) ?? undefined,
     shape: (parsed.shape as ShopShape | undefined) ?? (existing.shape as ShopShape | undefined) ?? undefined,
     handle: (parsed.handle as ShopHandle | undefined) ?? (existing.handleType as ShopHandle | undefined) ?? undefined,
-    gender: (parsed.gender as ShopGender | undefined) ?? (existing.gender as ShopGender | undefined) ?? undefined,
     accessoryCategory:
       (parsed.accessoryCategory as AccessoryCategory | undefined) ??
       (existing.accessoryCategory as AccessoryCategory | undefined) ??
@@ -283,7 +266,6 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       size: attributes.size,
       shape: attributes.shape,
       handleType: attributes.handleType,
-      gender: attributes.gender,
       accessoryCategory: attributes.accessoryCategory,
       materials: attributes.materials,
       ...(parsed.tags !== undefined ? {tags: parsed.tags} : {}),

@@ -5,7 +5,6 @@ import {ChevronUp, PanelLeftClose} from "lucide-react";
 import {Locale} from "@/lib/site";
 import {
   AccessoryCategory,
-  ShopGender,
   ShopHandle,
   ShopMaterial,
   ShopProduct,
@@ -15,13 +14,10 @@ import {
   accessoryCategories,
   accessoryCategoryLabels,
   bagMaterials,
-  dollMaterials,
-  genderLabels,
   handleLabels,
   materialLabels,
   productTypeLabels,
   shapeLabels,
-  shopGenders,
   shopHandles,
   shopShapes,
   shopSizes,
@@ -36,13 +32,11 @@ type FilterSidebarProps = {
   selectedSizes: ShopSize[];
   selectedShapes: ShopShape[];
   selectedHandles: ShopHandle[];
-  selectedGenders: ShopGender[];
   selectedAccessoryCategories: AccessoryCategory[];
   onToggleMaterial: (value: ShopMaterial) => void;
   onToggleSize: (value: ShopSize) => void;
   onToggleShape: (value: ShopShape) => void;
   onToggleHandle: (value: ShopHandle) => void;
-  onToggleGender: (value: ShopGender) => void;
   onToggleAccessoryCategory: (value: AccessoryCategory) => void;
   onCollapse?: () => void;
 };
@@ -53,7 +47,6 @@ const copy = {
     size: "Size",
     shape: "Shape",
     handle: "Handle",
-    gender: "Gender",
     category: "Category",
     apparelComingSoon: "Our apparel collection is being handwoven right now. New pieces are coming soon."
   },
@@ -62,7 +55,6 @@ const copy = {
     size: "Ukuran",
     shape: "Bentuk",
     handle: "Pegangan",
-    gender: "Jenis Kelamin",
     category: "Kategori",
     apparelComingSoon: "Koleksi pakaian kami sedang ditenun. Karya baru akan segera hadir."
   }
@@ -173,41 +165,6 @@ function FilterRow({active, label, count, onClick}: {active: boolean; label: str
   );
 }
 
-// Symbol-only per spec — no visible text label next to ♂/♀, so the
-// aria-label is the only thing that names the option for anyone not
-// reading it visually.
-function GenderToggle({
-  value,
-  active,
-  onClick
-}: {
-  value: ShopGender;
-  active: boolean;
-  onClick: () => void;
-}) {
-  const isMale = value === "Male";
-  const symbol = isMale ? "♂" : "♀";
-  const colorClasses = isMale
-    ? active
-      ? "border-[#3a6ea5] bg-[#3a6ea5] text-white"
-      : "border-[#bcd2e6] bg-[#eaf1f8] text-[#3a6ea5]"
-    : active
-      ? "border-[#c9598f] bg-[#c9598f] text-white"
-      : "border-[#f0c9dc] bg-[#fbeef4] text-[#c9598f]";
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      aria-label={isMale ? "Male" : "Female"}
-      className={`flex h-11 w-11 items-center justify-center rounded-full border text-xl font-semibold transition-all duration-150 active:scale-95 ${colorClasses}`}
-    >
-      {symbol}
-    </button>
-  );
-}
-
 export function FilterSidebar({
   locale,
   productType,
@@ -216,13 +173,11 @@ export function FilterSidebar({
   selectedSizes,
   selectedShapes,
   selectedHandles,
-  selectedGenders,
   selectedAccessoryCategories,
   onToggleMaterial,
   onToggleSize,
   onToggleShape,
   onToggleHandle,
-  onToggleGender,
   onToggleAccessoryCategory,
   onCollapse
 }: FilterSidebarProps) {
@@ -288,25 +243,10 @@ export function FilterSidebar({
 
   if (productType === "Dolls") {
     const sizeCounts = countBy(products, shopSizes, (product) => product.size);
-    const materialCounts = countBy(products, dollMaterials, (product) => product.materials);
     return (
       <aside className="relative w-full min-w-0 overflow-hidden">
         {header}
         <div className="mt-4 space-y-3">
-          <div className="border-b border-[#d9cfc0] pb-3">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#2e2e28]">{t.gender}</span>
-            <div className="mt-2 flex gap-2">
-              {shopGenders.map((gender) => (
-                <GenderToggle
-                  key={gender}
-                  value={gender}
-                  active={selectedGenders.includes(gender)}
-                  onClick={() => onToggleGender(gender)}
-                />
-              ))}
-            </div>
-          </div>
-
           <FilterSection title={t.size}>
             <div className="flex flex-col">
               {shopSizes.map((size) => (
@@ -316,20 +256,6 @@ export function FilterSidebar({
                   label={sizeLabels[size][locale]}
                   count={sizeCounts[size] ?? 0}
                   onClick={() => onToggleSize(size)}
-                />
-              ))}
-            </div>
-          </FilterSection>
-
-          <FilterSection title={t.material}>
-            <div className="flex flex-col">
-              {dollMaterials.map((material) => (
-                <FilterRow
-                  key={material}
-                  active={selectedMaterials.includes(material)}
-                  label={materialLabels[material][locale]}
-                  count={materialCounts[material] ?? 0}
-                  onClick={() => onToggleMaterial(material)}
                 />
               ))}
             </div>

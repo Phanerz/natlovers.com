@@ -1,13 +1,11 @@
 import {
   AccessoryCategory,
-  ShopGender,
   ShopHandle,
   ShopMaterial,
   ShopProductType,
   ShopShape,
   ShopSize,
   accessoryCategories,
-  shopGenders,
   shopHandles,
   shopProductTypes,
   shopShapes,
@@ -26,7 +24,6 @@ export type AdminProduct = {
   size: ShopSize | null;
   shape: ShopShape | null;
   handle: ShopHandle | null;
-  gender: ShopGender | null;
   accessoryCategory: AccessoryCategory | null;
   tags: string[];
   soldOut?: boolean;
@@ -46,7 +43,6 @@ export type ProductFormState = {
   size: ShopSize;
   shape: ShopShape;
   handle: ShopHandle;
-  gender: ShopGender;
   accessoryCategory: AccessoryCategory;
   materials: ShopMaterial[];
   tags: string;
@@ -62,7 +58,6 @@ export function emptyForm(): ProductFormState {
     size: shopSizes[0],
     shape: shopShapes[0],
     handle: shopHandles[0],
-    gender: shopGenders[0],
     accessoryCategory: accessoryCategories[0],
     materials: [],
     tags: "",
@@ -79,7 +74,6 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     size: product.size ?? shopSizes[0],
     shape: product.shape ?? shopShapes[0],
     handle: product.handle ?? shopHandles[0],
-    gender: product.gender ?? shopGenders[0],
     accessoryCategory: product.accessoryCategory ?? accessoryCategories[0],
     materials: product.materials,
     tags: product.tags.join(", "),
@@ -106,8 +100,6 @@ export function buildFormData(form: ProductFormState) {
     form.materials.forEach((material) => formData.append("materials", material));
   } else if (form.productType === "Dolls") {
     formData.set("size", form.size);
-    formData.set("gender", form.gender);
-    form.materials.forEach((material) => formData.append("materials", material));
   } else if (form.productType === "Accessories") {
     formData.set("accessoryCategory", form.accessoryCategory);
   }
