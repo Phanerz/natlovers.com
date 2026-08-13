@@ -124,7 +124,10 @@ export const orders = pgTable("orders", {
   // payment, this needs to keep answering "who marked it paid and when"
   // regardless of what happens to the admin's account afterward.
   confirmedByEmail: text("confirmed_by_email"),
-  confirmedAt: timestamp("confirmed_at")
+  confirmedAt: timestamp("confirmed_at"),
+  // Shipment tracking, set once an admin fulfills a paid order.
+  trackingCourier: text("tracking_courier"),
+  trackingNumber: text("tracking_number")
 });
 
 // Snapshots product name/price at order time — deliberately not a foreign

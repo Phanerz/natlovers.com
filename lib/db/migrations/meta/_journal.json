@@ -50,6 +50,13 @@
       "when": 1786640525466,
       "tag": "0006_workable_thena",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786641980118,
+      "tag": "0007_curved_pretty_boy",
+      "breakpoints": true
     }
   ]
 }

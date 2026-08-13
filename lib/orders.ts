@@ -141,6 +141,8 @@ export type AdminOrderView = OrderView & {
   customerEmail: string | null;
   confirmedByEmail: string | null;
   confirmedAt: string | null;
+  trackingCourier: string | null;
+  trackingNumber: string | null;
 };
 
 async function attachItemsForAdmin(
@@ -155,6 +157,8 @@ async function attachItemsForAdmin(
     createdAt: Date;
     confirmedByEmail: string | null;
     confirmedAt: Date | null;
+    trackingCourier: string | null;
+    trackingNumber: string | null;
     customerName: string | null;
     customerEmail: string | null;
   }[]
@@ -191,6 +195,8 @@ async function attachItemsForAdmin(
     createdAt: order.createdAt.toISOString(),
     confirmedByEmail: order.confirmedByEmail,
     confirmedAt: order.confirmedAt ? order.confirmedAt.toISOString() : null,
+    trackingCourier: order.trackingCourier,
+    trackingNumber: order.trackingNumber,
     customerName: order.customerName,
     customerEmail: order.customerEmail,
     items: itemsByOrder.get(order.id) ?? []
@@ -208,6 +214,8 @@ const adminOrderColumns = {
   createdAt: orders.createdAt,
   confirmedByEmail: orders.confirmedByEmail,
   confirmedAt: orders.confirmedAt,
+  trackingCourier: orders.trackingCourier,
+  trackingNumber: orders.trackingNumber,
   customerName: users.name,
   customerEmail: users.email
 } as const;
@@ -266,4 +274,46 @@ export async function markOrderPaid(orderId: string, adminEmail: string): Promis
     return {ok: true, alreadyPaid: true, order: existing};
   }
   return {ok: false, error: "invalid_status"};
+}
+
+export type SetTrackingResult =
+  | {ok: true; order: AdminOrderView}
+  | {ok: false; error: "not_found" | "invalid_status" | "missing_fields"};
+
+// Fulfilling (attaching a courier + tracking number) only makes sense once
+// payment is confirmed — a still-awaiting-transfer order has nothing to
+// ship yet. Re-saving tracking info on an already-fulfilled order (fixing a
+// typo'd tracking number) is allowed and just overwrites the fields.
+export async function setOrderTracking(
+  orderId: string,
+  courier: string,
+  trackingNumber: string
+): Promise<SetTrackingResult> {
+  const courierTrimmed = courier.trim();
+  const trackingTrimmed = trackingNumber.trim();
+  if (!courierTrimmed || !trackingTrimmed) {
+    return {ok: false, error: "missing_fields"};
+  }
+
+  const [updated] = await db
+    .update(orders)
+    .set({status: "fulfilled", trackingCourier: courierTrimmed, trackingNumber: trackingTrimmed})
+    .where(and(eq(orders.id, orderId), inArray(orders.status, ["paid", "fulfilled"])))
+    .returning({id: orders.id});
+
+  if (!updated) {
+    const existing = await getAdminOrderById(orderId);
+    return {ok: false, error: existing ? "invalid_status" : "not_found"};
+  }
+
+  const order = await getAdminOrderById(orderId);
+  return {ok: true, order: order!};
+}
+
+// Permanently removes an order and its line items (order_items cascades on
+// delete) — for clearing out test/junk orders, not something a storefront
+// flow ever calls.
+export async function deleteOrder(orderId: string): Promise<boolean> {
+  const [deleted] = await db.delete(orders).where(eq(orders.id, orderId)).returning({id: orders.id});
+  return Boolean(deleted);
 }

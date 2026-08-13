@@ -1,10 +1,10 @@
 "use client";
 
 import {FormEvent, useEffect, useState} from "react";
-import Link from "next/link";
 import {signOut} from "next-auth/react";
-import {GalleryHorizontal, LayoutList, MessageSquareQuote, PlusCircle, Quote, Receipt} from "lucide-react";
 import {submitFormData} from "@/lib/xhr-form-submit";
+import {AdminSidebar, AdminTab} from "./admin-sidebar";
+import {DashboardHome} from "./dashboard-home";
 import {AdminHeroCard, HeroCardFormState, buildHeroCardFormData, emptyHeroCardForm} from "./hero-card-types";
 import {HeroCardForm} from "./hero-card-form";
 import {ManageHeroCardsPanel} from "./manage-hero-cards-panel";
@@ -23,10 +23,10 @@ import {
 import {Toast, ToastState} from "./toast";
 import {AdminProduct, ProductFormState, buildFormData, emptyForm, formFromProduct} from "./types";
 
-type Tab = "add" | "manage" | "add-testimonial" | "manage-testimonials" | "add-hero-card" | "manage-hero-cards";
+type Tab = AdminTab;
 
 export function AdminDashboard({userEmail}: {userEmail: string}) {
-  const [tab, setTab] = useState<Tab>("add");
+  const [tab, setTab] = useState<Tab>("dashboard");
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [toast, setToast] = useState<ToastState>(null);
@@ -478,12 +478,22 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
   const isEditing = Boolean(editingProduct);
   const isEditingTestimonial = Boolean(editingTestimonialGroup);
 
+  const pageTitles: Record<Tab, string> = {
+    dashboard: "Dashboard",
+    add: isEditing ? "Edit Product" : "Add Product",
+    manage: "Manage Products",
+    "add-testimonial": isEditingTestimonial ? "Edit Testimonial" : "Add Testimonial",
+    "manage-testimonials": "Manage Testimonials",
+    "add-hero-card": "Add Hero Card",
+    "manage-hero-cards": "Manage Hero Cards"
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="muted">Admin, {userEmail}</p>
-          <h1 className="mt-2 font-display text-3xl text-forest-900">Product catalogue</h1>
+          <h1 className="mt-2 font-display text-3xl text-forest-900">{pageTitles[tab]}</h1>
         </div>
         <button
           type="button"
@@ -494,75 +504,11 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
         </button>
       </div>
 
-      <div className="inline-flex flex-wrap gap-1 rounded-full border border-[#d4c5ab] bg-[#fffaf1] p-1">
-        <Link
-          href="/mimin/orders"
-          className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-forest-700 transition-colors duration-150 hover:bg-[#f0e7d4]"
-        >
-          <Receipt className="h-4 w-4" />
-          Orders
-        </Link>
-        <button
-          type="button"
-          onClick={() => setTab("add")}
-          className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors duration-150 ${
-            tab === "add" ? "bg-forest-900 text-sand-50" : "text-forest-700 hover:bg-[#f0e7d4]"
-          }`}
-        >
-          <PlusCircle className="h-4 w-4" />
-          {isEditing ? "Edit Product" : "Add Product"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("manage")}
-          className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors duration-150 ${
-            tab === "manage" ? "bg-forest-900 text-sand-50" : "text-forest-700 hover:bg-[#f0e7d4]"
-          }`}
-        >
-          <LayoutList className="h-4 w-4" />
-          Manage Products
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("add-testimonial")}
-          className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors duration-150 ${
-            tab === "add-testimonial" ? "bg-forest-900 text-sand-50" : "text-forest-700 hover:bg-[#f0e7d4]"
-          }`}
-        >
-          <Quote className="h-4 w-4" />
-          {isEditingTestimonial ? "Edit Testimonial" : "Add Testimonial"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("manage-testimonials")}
-          className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors duration-150 ${
-            tab === "manage-testimonials" ? "bg-forest-900 text-sand-50" : "text-forest-700 hover:bg-[#f0e7d4]"
-          }`}
-        >
-          <MessageSquareQuote className="h-4 w-4" />
-          Manage Testimonials
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("add-hero-card")}
-          className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors duration-150 ${
-            tab === "add-hero-card" ? "bg-forest-900 text-sand-50" : "text-forest-700 hover:bg-[#f0e7d4]"
-          }`}
-        >
-          <PlusCircle className="h-4 w-4" />
-          Add Hero Card
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("manage-hero-cards")}
-          className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors duration-150 ${
-            tab === "manage-hero-cards" ? "bg-forest-900 text-sand-50" : "text-forest-700 hover:bg-[#f0e7d4]"
-          }`}
-        >
-          <GalleryHorizontal className="h-4 w-4" />
-          Manage Hero Cards
-        </button>
-      </div>
+      <div className="flex flex-col gap-6 lg:flex-row">
+        <AdminSidebar tab={tab} onTabChange={setTab} />
+
+        <div className="min-w-0 flex-1 space-y-8">
+      {tab === "dashboard" ? <DashboardHome onNavigate={setTab} /> : null}
 
       {tab === "add" ? (
         isEditing && editingProduct ? (
@@ -661,6 +607,8 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
           busyId={busyHeroCardId}
         />
       ) : null}
+        </div>
+      </div>
 
       <Toast toast={toast} onDismiss={() => setToast(null)} />
     </div>

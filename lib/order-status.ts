@@ -4,5 +4,6 @@
 // pulls in the DB client) so client components can import just this.
 export const orderStatusLabels: Record<string, string> = {
   pending_transfer: "Awaiting transfer",
-  paid: "Paid"
+  paid: "Paid",
+  fulfilled: "Shipped"
 };
