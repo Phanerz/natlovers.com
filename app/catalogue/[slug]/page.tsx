@@ -244,21 +244,23 @@ export default function ProductPage() {
 
       <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-[34px] xl:gap-[55px]">
         <div className="flex flex-col gap-4 lg:flex-row">
-          <div className="order-2 flex gap-3 overflow-x-auto pb-1 lg:order-1 lg:w-20 lg:shrink-0 lg:flex-col lg:overflow-visible lg:pb-0">
-            {images.map((url, index) => (
-              <button
-                key={`${url}-${index}`}
-                type="button"
-                aria-label={`${product!.name} ${locale === "en" ? "image" : "gambar"} ${index + 1}`}
-                onClick={() => selectImage(index)}
-                className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700 lg:h-20 lg:w-20 ${
-                  index === activeImage ? "ring-2 ring-forest-900" : "opacity-70 hover:opacity-100"
-                }`}
-              >
-                <Image src={url} alt={`${product!.name} ${index + 1}`} fill sizes="80px" className="object-cover" />
-              </button>
-            ))}
-          </div>
+          {images.length > 1 ? (
+            <div className="order-2 flex gap-3 overflow-x-auto pb-1 lg:order-1 lg:w-20 lg:shrink-0 lg:flex-col lg:overflow-visible lg:pb-0">
+              {images.map((url, index) => (
+                <button
+                  key={`${url}-${index}`}
+                  type="button"
+                  aria-label={`${product!.name} ${locale === "en" ? "image" : "gambar"} ${index + 1}`}
+                  onClick={() => selectImage(index)}
+                  className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700 lg:h-20 lg:w-20 ${
+                    index === activeImage ? "ring-2 ring-forest-900" : "opacity-70 hover:opacity-100"
+                  }`}
+                >
+                  <Image src={url} alt={`${product!.name} ${index + 1}`} fill sizes="80px" className="object-cover" />
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           <div
             className="relative order-1 aspect-[4/5] w-full overflow-hidden rounded-[1.4rem] shadow-[0_24px_60px_rgba(20,33,22,0.18)] lg:order-2"
@@ -272,7 +274,7 @@ export default function ProductPage() {
                   fill
                   priority
                   sizes="(max-width: 1024px) 100vw, 55vw"
-                  className="object-contain p-6"
+                  className="object-cover"
                 />
               </div>
             ) : null}
@@ -350,7 +352,7 @@ export default function ProductPage() {
             )}
             <Link
               href="/custom"
-              className="liquid-glass-on-light button-lift w-full rounded-full px-6 py-3.5 text-center text-sm font-semibold text-forest-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
+              className="button-lift w-full rounded-full border-2 border-forest-300 bg-white/80 px-6 py-3.5 text-center text-sm font-semibold text-forest-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
             >
               {locale === "en" ? "Request a Different Color" : "Minta Warna Berbeda"}
             </Link>

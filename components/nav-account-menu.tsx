@@ -1,5 +1,6 @@
 "use client";
 
+import {useEffect, useRef, useState} from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {CircleHelp, CreditCard, Heart, LogOut, Package, Settings, User} from "lucide-react";
@@ -19,21 +20,81 @@ const menuItems: MenuItem[] = [
   {href: {pathname: "/account", query: {tab: "help"}}, label: "Help & support", icon: CircleHelp}
 ];
 
+// Stagger step between menu item rows on entrance, capped at the 5th item
+// so a longer list doesn't drag the reveal out.
+const STAGGER_STEP_MS = 20;
+const STAGGER_CAP_INDEX = 4;
+const EXIT_MS = 130;
+
 export function NavAccountMenu({
+  open,
   name,
   email,
   image,
   onNavigate,
   onSignOut
 }: {
+  open: boolean;
   name: string;
   email: string;
   image?: string | null;
   onNavigate: () => void;
   onSignOut: () => void;
 }) {
+  const [mounted, setMounted] = useState(open);
+  const [entered, setEntered] = useState(false);
+  const closeTimerRef = useRef<number | null>(null);
+
+  // Same delayed-unmount pattern as NavPreferencesModal: stay mounted
+  // through the exit transition instead of vanishing the instant `open`
+  // flips false, and flip `entered` a frame after mount so the enter
+  // transition has an initial state to animate from.
+  useEffect(() => {
+    if (open) {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+      setMounted(true);
+      const raf = requestAnimationFrame(() => setEntered(true));
+      return () => cancelAnimationFrame(raf);
+    }
+
+    setEntered(false);
+    closeTimerRef.current = window.setTimeout(() => {
+      setMounted(false);
+      closeTimerRef.current = null;
+    }, EXIT_MS);
+    return () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+    };
+  }, [open]);
+
+  useEffect(
+    () => () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    },
+    []
+  );
+
+  if (!mounted) {
+    return null;
+  }
+
   return (
-    <div className="menu-surface absolute right-0 top-14 z-50 w-72 overflow-hidden rounded-[1.5rem] border border-[#e4d9c1] bg-[rgba(250,246,236,0.98)] p-2 shadow-[0_24px_60px_rgba(28,25,18,0.2)]">
+    <div
+      style={{transformOrigin: "top right"}}
+      className={`menu-surface absolute right-0 top-14 z-50 w-72 overflow-hidden rounded-[1.5rem] border border-[#e4d9c1] bg-[rgba(250,246,236,0.98)] p-2 shadow-[0_24px_60px_rgba(28,25,18,0.2)] transition-all ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        entered
+          ? "scale-100 opacity-100 duration-[180ms]"
+          : `scale-[0.94] opacity-0 ${open ? "duration-[180ms]" : "duration-[130ms]"}`
+      }`}
+    >
       <div className="flex items-center gap-3 px-3 py-3">
         <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-forest-900">
           {image ? (
@@ -53,14 +114,18 @@ export function NavAccountMenu({
       <div className="my-1 h-px bg-[#e4d9c1]" />
 
       <div className="py-1">
-        {menuItems.map((item) => {
+        {menuItems.map((item, index) => {
           const Icon = item.icon;
+          const delayMs = open ? Math.min(index, STAGGER_CAP_INDEX) * STAGGER_STEP_MS : 0;
           return (
             <Link
               key={item.label}
               href={item.href}
               onClick={onNavigate}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-forest-700 transition-colors duration-150 hover:bg-white/70 hover:text-forest-900"
+              style={{transitionDelay: `${delayMs}ms`}}
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-forest-700 transition-all duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/70 hover:text-forest-900 ${
+                entered ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
+              }`}
             >
               <Icon className="h-4 w-4 text-forest-500" />
               {item.label}

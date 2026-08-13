@@ -496,21 +496,20 @@ export function Header() {
                 <span>{locale.toUpperCase()} / {currency}</span>
                 <ChevronDown className="h-4 w-4" />
               </button>
-              {selectorOpen ? (
-                <NavPreferencesModal
-                  locale={locale}
-                  currency={currency}
-                  onSelectLocale={(value) => {
-                    setLocale(value);
-                    setSelectorOpen(false);
-                  }}
-                  onSelectCurrency={(value) => {
-                    setCurrency(value);
-                    setSelectorOpen(false);
-                  }}
-                  onClose={() => setSelectorOpen(false)}
-                />
-              ) : null}
+              <NavPreferencesModal
+                open={selectorOpen}
+                locale={locale}
+                currency={currency}
+                onSelectLocale={(value) => {
+                  setLocale(value);
+                  setSelectorOpen(false);
+                }}
+                onSelectCurrency={(value) => {
+                  setCurrency(value);
+                  setSelectorOpen(false);
+                }}
+                onClose={() => setSelectorOpen(false)}
+              />
             </div>
 
             <button
@@ -552,18 +551,17 @@ export function Header() {
                       </span>
                     )}
                   </button>
-                  {accountOpen ? (
-                    <NavAccountMenu
-                      name={session.user.name ?? "Natlovers collector"}
-                      email={session.user.email ?? ""}
-                      image={session.user.image}
-                      onNavigate={() => setAccountOpen(false)}
-                      onSignOut={() => {
-                        setAccountOpen(false);
-                        signOut({callbackUrl: "/signed-out"});
-                      }}
-                    />
-                  ) : null}
+                  <NavAccountMenu
+                    open={accountOpen}
+                    name={session.user.name ?? "Natlovers collector"}
+                    email={session.user.email ?? ""}
+                    image={session.user.image}
+                    onNavigate={() => setAccountOpen(false)}
+                    onSignOut={() => {
+                      setAccountOpen(false);
+                      signOut({callbackUrl: "/signed-out"});
+                    }}
+                  />
                 </>
               ) : (
                 <Link
