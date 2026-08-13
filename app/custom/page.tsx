@@ -1,8 +1,9 @@
-import {redirect} from "next/navigation";
+import {CustomContent} from "@/components/custom-content";
 
-// Custom now lives as a section on the home page, not a standalone route —
-// this exists only so old links/bookmarks to /custom still land somewhere
-// sensible.
 export default function CustomPage() {
-  redirect("/");
+  return (
+    <main className="page-enter">
+      <CustomContent />
+    </main>
+  );
 }

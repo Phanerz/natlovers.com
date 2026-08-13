@@ -168,13 +168,15 @@ export function Header() {
     }
   }, [activeHref]);
 
-  // Every section now lives on "/" — from there, a nav item is just an
-  // in-page jump to wherever its data-nav-href marker sits, not a real
-  // route change. Only when landing from somewhere else (a product detail
-  // page) does this still need an actual navigation.
+  // On "/", every section is already on the page, so a nav item is an
+  // in-page jump to wherever its data-nav-href marker sits, not a route
+  // change. Catalogue/Custom/Outlets/About also each have their own real
+  // standalone route now — from anywhere off "/" (including one of those
+  // routes itself), a nav click is a normal navigation straight to the
+  // target href.
   function goToNavHref(href: Route) {
     if (pathname !== "/") {
-      router.push(href === "/catalogue" || href === "/custom" || href === "/outlets" || href === "/about" ? "/" : href);
+      router.push(href);
       return;
     }
 

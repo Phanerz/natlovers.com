@@ -1,8 +1,9 @@
-import {redirect} from "next/navigation";
+import {CatalogueContent} from "@/app/catalogue/CatalogueClient";
 
-// The catalogue now lives as a section on the home page, not a standalone
-// route — this exists only so old links/bookmarks to /catalogue still land
-// somewhere sensible.
-export default function Page() {
-  redirect("/");
+export default function CataloguePage() {
+  return (
+    <main className="page-enter">
+      <CatalogueContent />
+    </main>
+  );
 }
