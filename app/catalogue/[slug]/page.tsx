@@ -11,6 +11,8 @@ import {useStorefront} from "@/components/storefront-provider";
 import {useWishlist} from "@/components/use-wishlist";
 import {formatCurrency} from "@/lib/format";
 import {
+  accessoryCategoryLabels,
+  categoryPillStyle,
   handleLabels,
   handlePillStyle,
   materialImageStyle,
@@ -316,18 +318,30 @@ export default function ProductPage() {
                 </span>
               );
             })}
-            <span
-              className="rounded-full border px-3 py-1 text-xs font-medium"
-              style={{backgroundColor: sizePillStyle.bg, borderColor: sizePillStyle.border, color: sizePillStyle.text}}
-            >
-              {sizeLabels[product.size][locale]}
-            </span>
-            <span
-              className="rounded-full border px-3 py-1 text-xs font-medium"
-              style={{backgroundColor: handlePillStyle.bg, borderColor: handlePillStyle.border, color: handlePillStyle.text}}
-            >
-              {handleLabels[product.handle][locale]}
-            </span>
+            {product.size ? (
+              <span
+                className="rounded-full border px-3 py-1 text-xs font-medium"
+                style={{backgroundColor: sizePillStyle.bg, borderColor: sizePillStyle.border, color: sizePillStyle.text}}
+              >
+                {sizeLabels[product.size][locale]}
+              </span>
+            ) : null}
+            {product.handle ? (
+              <span
+                className="rounded-full border px-3 py-1 text-xs font-medium"
+                style={{backgroundColor: handlePillStyle.bg, borderColor: handlePillStyle.border, color: handlePillStyle.text}}
+              >
+                {handleLabels[product.handle][locale]}
+              </span>
+            ) : null}
+            {product.accessoryCategory ? (
+              <span
+                className="rounded-full border px-3 py-1 text-xs font-medium"
+                style={{backgroundColor: categoryPillStyle.bg, borderColor: categoryPillStyle.border, color: categoryPillStyle.text}}
+              >
+                {accessoryCategoryLabels[product.accessoryCategory][locale]}
+              </span>
+            ) : null}
           </div>
 
           <hr className="mt-6 border-forest-100" />

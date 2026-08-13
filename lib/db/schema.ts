@@ -11,10 +11,16 @@ export const products = pgTable("products", {
   priceIdr: integer("price_idr").notNull(),
   description: text("description"),
   images: text("images").array().notNull().default([]),
-  size: text("size").notNull(),
+  // Bags/Dolls-only.
+  size: text("size"),
   materials: text("materials").array().notNull().default([]),
-  shape: text("shape").notNull(),
-  handleType: text("handle_type").notNull(),
+  // Bags-only.
+  shape: text("shape"),
+  handleType: text("handle_type"),
+  // Dolls-only.
+  gender: text("gender"),
+  // Accessories-only.
+  accessoryCategory: text("accessory_category"),
   productType: text("product_type").notNull(),
   tags: text("tags").array().notNull().default([]),
   soldOut: boolean("sold_out").notNull().default(false),

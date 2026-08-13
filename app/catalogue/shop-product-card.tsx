@@ -7,7 +7,17 @@ import {useStorefront} from "@/components/storefront-provider";
 import {useWishlist} from "@/components/use-wishlist";
 import {formatCurrency} from "@/lib/format";
 import {CurrencyCode, Locale} from "@/lib/site";
-import {ShopProduct, handleLabels, handlePillStyle, materialImageStyle, sizeLabels, sizePillStyle} from "./shop-data";
+import {
+  DEFAULT_IMAGE_STYLE,
+  ShopProduct,
+  accessoryCategoryLabels,
+  categoryPillStyle,
+  handleLabels,
+  handlePillStyle,
+  materialImageStyle,
+  sizeLabels,
+  sizePillStyle
+} from "./shop-data";
 
 export function ShopProductCard({
   product,
@@ -18,7 +28,7 @@ export function ShopProductCard({
   currency: CurrencyCode;
   locale: Locale;
 }) {
-  const imageStyle = materialImageStyle[product.materials[0]];
+  const imageStyle = product.materials[0] ? materialImageStyle[product.materials[0]] : DEFAULT_IMAGE_STYLE;
   const {isWishlisted, toggle} = useWishlist();
   const favorited = isWishlisted(product.slug);
   const {addToCart} = useStorefront();
@@ -141,22 +151,38 @@ export function ShopProductCard({
           {formatCurrency(product.priceIdr, currency)}
         </p>
         <div className="scrollbar-hide pointer-events-auto mt-2 flex flex-nowrap gap-1.5 overflow-x-auto">
-          <span
-            className="shrink-0 rounded-full border px-2.5 py-1 text-[13px] leading-none sm:px-3 sm:text-[14px]"
-            style={{backgroundColor: sizePillStyle.bg, borderColor: sizePillStyle.border, color: sizePillStyle.text}}
-          >
-            {sizeLabels[product.size][locale]}
-          </span>
-          <span
-            className="shrink-0 rounded-full border px-2.5 py-1 text-[13px] leading-none sm:px-3 sm:text-[14px]"
-            style={{
-              backgroundColor: handlePillStyle.bg,
-              borderColor: handlePillStyle.border,
-              color: handlePillStyle.text
-            }}
-          >
-            {handleLabels[product.handle][locale]}
-          </span>
+          {product.size ? (
+            <span
+              className="shrink-0 rounded-full border px-2.5 py-1 text-[13px] leading-none sm:px-3 sm:text-[14px]"
+              style={{backgroundColor: sizePillStyle.bg, borderColor: sizePillStyle.border, color: sizePillStyle.text}}
+            >
+              {sizeLabels[product.size][locale]}
+            </span>
+          ) : null}
+          {product.handle ? (
+            <span
+              className="shrink-0 rounded-full border px-2.5 py-1 text-[13px] leading-none sm:px-3 sm:text-[14px]"
+              style={{
+                backgroundColor: handlePillStyle.bg,
+                borderColor: handlePillStyle.border,
+                color: handlePillStyle.text
+              }}
+            >
+              {handleLabels[product.handle][locale]}
+            </span>
+          ) : null}
+          {product.accessoryCategory ? (
+            <span
+              className="shrink-0 rounded-full border px-2.5 py-1 text-[13px] leading-none sm:px-3 sm:text-[14px]"
+              style={{
+                backgroundColor: categoryPillStyle.bg,
+                borderColor: categoryPillStyle.border,
+                color: categoryPillStyle.text
+              }}
+            >
+              {accessoryCategoryLabels[product.accessoryCategory][locale]}
+            </span>
+          ) : null}
         </div>
       </div>
     </article>

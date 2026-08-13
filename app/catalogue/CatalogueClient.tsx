@@ -9,6 +9,8 @@ import {useDelayedMount} from "@/components/use-delayed-mount";
 import {FilterSidebar} from "./filter-sidebar";
 import {ShopProductCard} from "./shop-product-card";
 import {
+  AccessoryCategory,
+  ShopGender,
   ShopHandle,
   ShopMaterial,
   ShopProduct,
@@ -125,6 +127,8 @@ export function CatalogueContent() {
   const [selectedSizes, setSelectedSizes] = useState<ShopSize[]>([]);
   const [selectedShapes, setSelectedShapes] = useState<ShopShape[]>([]);
   const [selectedHandles, setSelectedHandles] = useState<ShopHandle[]>([]);
+  const [selectedGenders, setSelectedGenders] = useState<ShopGender[]>([]);
+  const [selectedAccessoryCategories, setSelectedAccessoryCategories] = useState<AccessoryCategory[]>([]);
   const [sort, setSort] = useState<SortOption>("newest");
   const [sortOpen, setSortOpen] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
@@ -148,6 +152,15 @@ export function CatalogueContent() {
   const [tabDragLeft, setTabDragLeft] = useState<number | null>(null);
   const [tabDragWidth, setTabDragWidth] = useState<number | null>(null);
   const [dragOverType, setDragOverType] = useState<ShopProductType | null>(null);
+  // Set on drop when the pill is handed off toward a different tab: keeps it
+  // pinned at the destination tab's exact position/width while
+  // selectProductType's state update (and the tabIndicator layout effect
+  // that follows it) resolves, instead of snapping back to the origin tab
+  // first. Cleared once selectedProductType actually catches up to match
+  // (or, failing that, by the backstop timeout below) — same handoff
+  // pattern as the navbar's drag indicator in header.tsx.
+  const pendingTabTypeRef = useRef<ShopProductType | null>(null);
+  const pendingTabTimeoutRef = useRef<number | null>(null);
 
   const progressTrackRef = useRef<HTMLDivElement | null>(null);
   const draggingProgressRef = useRef(false);
@@ -188,6 +201,8 @@ export function CatalogueContent() {
     setSelectedSizes([]);
     setSelectedShapes([]);
     setSelectedHandles([]);
+    setSelectedGenders([]);
+    setSelectedAccessoryCategories([]);
   }
 
   useLayoutEffect(() => {
@@ -208,6 +223,24 @@ export function CatalogueContent() {
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, [selectedProductType, locale]);
+
+  // Once a drop hands off to a different tab, the pill is pinned at the
+  // destination's exact position (see handleTabIndicatorPointerUp) while
+  // selectProductType's state update resolves. The instant selectedProductType
+  // actually catches up to match, that pin is released — by then tabIndicator
+  // already measures to the same value, so nothing visibly jumps.
+  useEffect(() => {
+    if (pendingTabTypeRef.current && selectedProductType === pendingTabTypeRef.current) {
+      pendingTabTypeRef.current = null;
+      if (pendingTabTimeoutRef.current !== null) {
+        window.clearTimeout(pendingTabTimeoutRef.current);
+        pendingTabTimeoutRef.current = null;
+      }
+      setTabDragLeft(null);
+      setTabDragWidth(null);
+      setDragOverType(null);
+    }
+  }, [selectedProductType]);
 
   function updateTabDragPosition(clientX: number) {
     const containerBox = tabsRef.current?.getBoundingClientRect();
@@ -284,20 +317,31 @@ export function CatalogueContent() {
 
     draggingTabRef.current = false;
     setIsTabDragging(false);
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    // releasePointerCapture throws NotFoundError if this pointer isn't
+    // actually captured by this element — which can happen (capture can be
+    // lost mid-gesture, e.g. if the browser silently declined to grant it,
+    // or another element stole it). Uncaught, that exception aborted the
+    // rest of this handler before the tabDragLeft/tabDragWidth resets below
+    // ever ran, leaving the pill's render permanently pinned to its last
+    // dragged position (nothing ever nulled those out again) — reading as
+    // the pill freezing mid-drag and never letting go.
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
 
     const containerBox = tabsRef.current?.getBoundingClientRect();
     const dropLeft = tabDragLeft;
-    setTabDragLeft(null);
-    setTabDragWidth(null);
-    setDragOverType(null);
 
     if (!containerBox || dropLeft === null || !tabIndicator) {
+      setTabDragLeft(null);
+      setTabDragWidth(null);
+      setDragOverType(null);
       return;
     }
 
     const dropCenter = dropLeft + tabIndicator.width / 2;
     let closestType: ShopProductType | null = null;
+    let closestTab: HTMLButtonElement | null = null;
     let closestDistance = Infinity;
 
     shopProductTypes.forEach((type) => {
@@ -313,11 +357,34 @@ export function CatalogueContent() {
       if (distance < closestDistance) {
         closestDistance = distance;
         closestType = type;
+        closestTab = tab;
       }
     });
 
-    if (closestType) {
+    if (closestType && closestTab && closestType !== selectedProductType) {
+      // Glide the rest of the way to the destination tab's exact spot
+      // instead of snapping back to the origin first — release should read
+      // as "landing on the tab you dropped on," not a bounce-back.
+      const targetBox = (closestTab as HTMLButtonElement).getBoundingClientRect();
+      setTabDragLeft(targetBox.left - containerBox.left);
+      setTabDragWidth(targetBox.width);
+      setDragOverType(closestType);
+      pendingTabTypeRef.current = closestType;
+      if (pendingTabTimeoutRef.current !== null) {
+        window.clearTimeout(pendingTabTimeoutRef.current);
+      }
+      pendingTabTimeoutRef.current = window.setTimeout(() => {
+        pendingTabTypeRef.current = null;
+        pendingTabTimeoutRef.current = null;
+        setTabDragLeft(null);
+        setTabDragWidth(null);
+        setDragOverType(null);
+      }, 2000);
       selectProductType(closestType);
+    } else {
+      setTabDragLeft(null);
+      setTabDragWidth(null);
+      setDragOverType(null);
     }
   }
 
@@ -345,11 +412,16 @@ export function CatalogueContent() {
     );
   }
 
-  function clearAll() {
-    setSelectedMaterials([]);
-    setSelectedSizes([]);
-    setSelectedShapes([]);
-    setSelectedHandles([]);
+  function toggleGender(value: ShopGender) {
+    setSelectedGenders((current) =>
+      current.includes(value) ? current.filter((item) => item !== value) : [...current, value]
+    );
+  }
+
+  function toggleAccessoryCategory(value: AccessoryCategory) {
+    setSelectedAccessoryCategories((current) =>
+      current.includes(value) ? current.filter((item) => item !== value) : [...current, value]
+    );
   }
 
   const typeProducts = useMemo(
@@ -359,19 +431,34 @@ export function CatalogueContent() {
 
   const filteredProducts = useMemo(() => {
     const filtered = typeProducts.filter((product) => {
+      // Materials/size apply to Bags and Dolls; shape/handle to Bags only;
+      // gender to Dolls only; category to Accessories only — each guard
+      // only ever runs against the type it belongs to, since the other
+      // types' selection state stays empty (reset on type switch).
       if (selectedMaterials.length && !product.materials.some((material) => selectedMaterials.includes(material))) {
         return false;
       }
 
-      if (selectedSizes.length && !selectedSizes.includes(product.size)) {
+      if (selectedSizes.length && (!product.size || !selectedSizes.includes(product.size))) {
         return false;
       }
 
-      if (selectedShapes.length && !selectedShapes.includes(product.shape)) {
+      if (selectedShapes.length && (!product.shape || !selectedShapes.includes(product.shape))) {
         return false;
       }
 
-      if (selectedHandles.length && !selectedHandles.includes(product.handle)) {
+      if (selectedHandles.length && (!product.handle || !selectedHandles.includes(product.handle))) {
+        return false;
+      }
+
+      if (selectedGenders.length && (!product.gender || !selectedGenders.includes(product.gender))) {
+        return false;
+      }
+
+      if (
+        selectedAccessoryCategories.length &&
+        (!product.accessoryCategory || !selectedAccessoryCategories.includes(product.accessoryCategory))
+      ) {
         return false;
       }
 
@@ -389,7 +476,16 @@ export function CatalogueContent() {
     }
 
     return sorted;
-  }, [typeProducts, selectedMaterials, selectedSizes, selectedShapes, selectedHandles, sort]);
+  }, [
+    typeProducts,
+    selectedMaterials,
+    selectedSizes,
+    selectedShapes,
+    selectedHandles,
+    selectedGenders,
+    selectedAccessoryCategories,
+    sort
+  ]);
 
   const pageCount = Math.max(1, Math.ceil(filteredProducts.length / capacity));
   const maxPageIndex = pageCount - 1;
@@ -448,6 +544,8 @@ export function CatalogueContent() {
     selectedSizes,
     selectedShapes,
     selectedHandles,
+    selectedGenders,
+    selectedAccessoryCategories,
     sort,
     capacity
   ]);
@@ -621,7 +719,13 @@ export function CatalogueContent() {
 
     draggingProgressRef.current = false;
     setIsProgressDragging(false);
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    // See handleTabIndicatorPointerUp above: releasePointerCapture throws
+    // if this pointer isn't actually captured, which would abort the rest
+    // of this handler (including the snap-to-page logic below) and leave
+    // the drag stuck.
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
 
     const target = Math.min(maxPageIndexRef.current, Math.max(0, Math.round(offsetPagesRef.current)));
     offsetPagesRef.current = target;
@@ -684,6 +788,18 @@ export function CatalogueContent() {
               // opaque pill always stays readable in real time rather than
               // only updating once the drag is dropped.
               const active = isTabDragging ? type === dragOverType : type === selectedProductType;
+              // Distinct from `active`: this is the one tab whose button
+              // actually received the pointerdown and holds pointer capture
+              // for the whole gesture. Attaching the move/up handlers based
+              // on `active` instead used to detach them mid-drag the moment
+              // the pill was dragged onto a *different* tab (since `active`
+              // follows dragOverType while dragging) — the browser kept
+              // delivering the captured pointer events to this button, but
+              // React no longer had a handler wired up to receive them, so
+              // the drag would silently stop updating, reading as the pill
+              // "freezing" or getting stuck. Handler attachment has to stay
+              // pinned to the drag's origin tab for the gesture's duration.
+              const isDragOrigin = type === selectedProductType;
               return (
                 <button
                   key={type}
@@ -703,14 +819,14 @@ export function CatalogueContent() {
                   // button, not the indicator span underneath — so the drag
                   // has to be initiated from here too when this is the tab
                   // currently holding the pill.
-                  onPointerDown={active ? handleTabIndicatorPointerDown : undefined}
-                  onPointerMove={active ? handleTabIndicatorPointerMove : undefined}
-                  onPointerUp={active ? handleTabIndicatorPointerUp : undefined}
-                  onPointerCancel={active ? handleTabIndicatorPointerUp : undefined}
+                  onPointerDown={isDragOrigin ? handleTabIndicatorPointerDown : undefined}
+                  onPointerMove={isDragOrigin ? handleTabIndicatorPointerMove : undefined}
+                  onPointerUp={isDragOrigin ? handleTabIndicatorPointerUp : undefined}
+                  onPointerCancel={isDragOrigin ? handleTabIndicatorPointerUp : undefined}
                   className={`liquid-glass-link relative z-10 flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium text-[#4a4a3f] transition-colors duration-200 active:scale-95 ${
-                    active ? (isTabDragging ? "cursor-grabbing" : "cursor-grab") : ""
+                    isDragOrigin ? (isTabDragging ? "cursor-grabbing" : "cursor-grab") : ""
                   }`}
-                  style={active ? {touchAction: "none"} : undefined}
+                  style={isDragOrigin ? {touchAction: "none"} : undefined}
                 >
                   <Icon className={`h-3.5 w-3.5 transition-colors duration-200 ${active ? "text-[#20241b]" : ""}`} />
                   <span className={`liquid-glass-label transition-colors duration-200 ${active ? "text-[#20241b]" : ""}`}>
@@ -812,11 +928,14 @@ export function CatalogueContent() {
                 selectedSizes={selectedSizes}
                 selectedShapes={selectedShapes}
                 selectedHandles={selectedHandles}
+                selectedGenders={selectedGenders}
+                selectedAccessoryCategories={selectedAccessoryCategories}
                 onToggleMaterial={toggleMaterial}
                 onToggleSize={toggleSize}
                 onToggleShape={toggleShape}
                 onToggleHandle={toggleHandle}
-                onClearAll={clearAll}
+                onToggleGender={toggleGender}
+                onToggleAccessoryCategory={toggleAccessoryCategory}
                 onCollapse={() => setSidebarCollapsed(true)}
               />
             </div>
@@ -847,11 +966,14 @@ export function CatalogueContent() {
                 selectedSizes={selectedSizes}
                 selectedShapes={selectedShapes}
                 selectedHandles={selectedHandles}
+                selectedGenders={selectedGenders}
+                selectedAccessoryCategories={selectedAccessoryCategories}
                 onToggleMaterial={toggleMaterial}
                 onToggleSize={toggleSize}
                 onToggleShape={toggleShape}
                 onToggleHandle={toggleHandle}
-                onClearAll={clearAll}
+                onToggleGender={toggleGender}
+                onToggleAccessoryCategory={toggleAccessoryCategory}
               />
             </div>
           ) : null}

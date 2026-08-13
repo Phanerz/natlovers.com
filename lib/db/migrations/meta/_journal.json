@@ -71,6 +71,13 @@
       "when": 1786653764323,
       "tag": "0009_careless_strong_guy",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786655498213,
+      "tag": "0010_flat_boomer",
+      "breakpoints": true
     }
   ]
 }

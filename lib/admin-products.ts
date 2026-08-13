@@ -3,14 +3,19 @@ import {z} from "zod";
 import {uploadFile} from "@/lib/blob";
 import {db, products} from "@/lib/db";
 import {
+  AccessoryCategory,
+  ShopGender,
   ShopHandle,
   ShopMaterial,
   ShopProduct,
   ShopProductType,
   ShopShape,
   ShopSize,
+  accessoryCategories,
+  bagMaterials,
+  dollMaterials,
+  shopGenders,
   shopHandles,
-  shopMaterials,
   shopProductTypes,
   shopShapes,
   shopSizes
@@ -23,19 +28,25 @@ export type AdminProduct = ShopProduct & {
   description: string | null;
   tags: string[];
   isActive: boolean;
+  updatedAt: string;
 };
 
+// Every per-type attribute is optional at the schema level — which fields
+// are actually required is enforced per productType below, not here, since
+// a Doll requiring "shape" (a Bags-only field) would be nonsensical.
 const shopProductInputSchema = z.object({
   name: z.string().trim().min(2, "Name is required."),
   priceIdr: z.coerce.number().int().positive("Price must be a positive number."),
   description: z.string().trim().optional(),
   productType: z.enum(shopProductTypes as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopProductType>,
-  size: z.enum(shopSizes as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopSize>,
-  shape: z.enum(shopShapes as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopShape>,
-  handle: z.enum(shopHandles as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopHandle>,
-  materials: z
-    .array(z.enum(shopMaterials as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopMaterial>)
-    .min(1, "Pick at least one material."),
+  size: (z.enum(shopSizes as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopSize>).optional(),
+  shape: (z.enum(shopShapes as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopShape>).optional(),
+  handle: (z.enum(shopHandles as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopHandle>).optional(),
+  gender: (z.enum(shopGenders as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopGender>).optional(),
+  accessoryCategory: (
+    z.enum(accessoryCategories as unknown as [string, ...string[]]) as unknown as z.ZodType<AccessoryCategory>
+  ).optional(),
+  materials: z.array(z.string()).optional(),
   tags: z.array(z.string().trim().min(1)).optional()
 });
 
@@ -76,12 +87,15 @@ function toAdminProduct(row: typeof products.$inferSelect): AdminProduct {
     description: row.description,
     productType: row.productType as ShopProductType,
     materials: row.materials as ShopMaterial[],
-    size: row.size as ShopSize,
-    shape: row.shape as ShopShape,
-    handle: row.handleType as ShopHandle,
+    size: (row.size as ShopSize) ?? null,
+    shape: (row.shape as ShopShape) ?? null,
+    handle: (row.handleType as ShopHandle) ?? null,
+    gender: (row.gender as ShopGender) ?? null,
+    accessoryCategory: (row.accessoryCategory as AccessoryCategory) ?? null,
     tags: row.tags,
     soldOut: row.soldOut,
-    isActive: row.isActive
+    isActive: row.isActive,
+    updatedAt: row.updatedAt.toISOString()
   };
 }
 
@@ -98,6 +112,64 @@ function collectImageFiles(formData: FormData): File[] {
   return formData
     .getAll("images")
     .filter((entry): entry is File => entry instanceof File && entry.size > 0);
+}
+
+// Each product type owns its own required-field set and its own valid
+// materials list — a Doll can only carry dollMaterials (which includes
+// Mendong), a Bag only bagMaterials, Accessories/Apparel carry none.
+function attributesForType(
+  productType: ShopProductType,
+  parsed: {
+    size?: ShopSize;
+    shape?: ShopShape;
+    handle?: ShopHandle;
+    gender?: ShopGender;
+    accessoryCategory?: AccessoryCategory;
+    materials?: string[];
+  }
+): {
+  size: ShopSize | null;
+  shape: ShopShape | null;
+  handleType: ShopHandle | null;
+  gender: ShopGender | null;
+  accessoryCategory: AccessoryCategory | null;
+  materials: ShopMaterial[];
+} {
+  if (productType === "Bags") {
+    if (!parsed.size || !parsed.shape || !parsed.handle) {
+      throw new Error("Size, shape, and handle are required for bags.");
+    }
+    const materials = (parsed.materials ?? []).filter((value): value is ShopMaterial =>
+      bagMaterials.includes(value as ShopMaterial)
+    );
+    if (!materials.length) {
+      throw new Error("Pick at least one material.");
+    }
+    return {size: parsed.size, shape: parsed.shape, handleType: parsed.handle, gender: null, accessoryCategory: null, materials};
+  }
+
+  if (productType === "Dolls") {
+    if (!parsed.size || !parsed.gender) {
+      throw new Error("Size and gender are required for dolls.");
+    }
+    const materials = (parsed.materials ?? []).filter((value): value is ShopMaterial =>
+      dollMaterials.includes(value as ShopMaterial)
+    );
+    if (!materials.length) {
+      throw new Error("Pick at least one material.");
+    }
+    return {size: parsed.size, shape: null, handleType: null, gender: parsed.gender, accessoryCategory: null, materials};
+  }
+
+  if (productType === "Accessories") {
+    if (!parsed.accessoryCategory) {
+      throw new Error("Category is required for accessories.");
+    }
+    return {size: null, shape: null, handleType: null, gender: null, accessoryCategory: parsed.accessoryCategory, materials: []};
+  }
+
+  // Apparel: no per-type attributes at all.
+  return {size: null, shape: null, handleType: null, gender: null, accessoryCategory: null, materials: []};
 }
 
 export async function getAllProducts(): Promise<AdminProduct[]> {
@@ -118,12 +190,16 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     priceIdr: formData.get("priceIdr"),
     description: formData.get("description") ?? undefined,
     productType: formData.get("productType"),
-    size: formData.get("size"),
-    shape: formData.get("shape"),
-    handle: formData.get("handle"),
+    size: formData.get("size") || undefined,
+    shape: formData.get("shape") || undefined,
+    handle: formData.get("handle") || undefined,
+    gender: formData.get("gender") || undefined,
+    accessoryCategory: formData.get("accessoryCategory") || undefined,
     materials: formData.getAll("materials").map(String),
     tags: formData.getAll("tags").map(String)
   });
+
+  const attributes = attributesForType(parsed.productType, parsed);
 
   const imageFiles = collectImageFiles(formData);
   if (!imageFiles.length) {
@@ -142,10 +218,12 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       description: parsed.description ?? null,
       images,
       productType: parsed.productType,
-      materials: parsed.materials,
-      size: parsed.size,
-      shape: parsed.shape,
-      handleType: parsed.handle,
+      materials: attributes.materials,
+      size: attributes.size,
+      shape: attributes.shape,
+      handleType: attributes.handleType,
+      gender: attributes.gender,
+      accessoryCategory: attributes.accessoryCategory,
       tags: parsed.tags ?? []
     })
     .returning();
@@ -164,13 +242,33 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
   if (formData.has("priceIdr")) raw.priceIdr = formData.get("priceIdr");
   if (formData.has("description")) raw.description = formData.get("description");
   if (formData.has("productType")) raw.productType = formData.get("productType");
-  if (formData.has("size")) raw.size = formData.get("size");
-  if (formData.has("shape")) raw.shape = formData.get("shape");
-  if (formData.has("handle")) raw.handle = formData.get("handle");
+  if (formData.has("size")) raw.size = formData.get("size") || undefined;
+  if (formData.has("shape")) raw.shape = formData.get("shape") || undefined;
+  if (formData.has("handle")) raw.handle = formData.get("handle") || undefined;
+  if (formData.has("gender")) raw.gender = formData.get("gender") || undefined;
+  if (formData.has("accessoryCategory")) raw.accessoryCategory = formData.get("accessoryCategory") || undefined;
   if (formData.getAll("materials").length) raw.materials = formData.getAll("materials").map(String);
   if (formData.getAll("tags").length) raw.tags = formData.getAll("tags").map(String);
 
   const parsed = shopProductUpdateSchema.parse(raw);
+
+  // productType may not be changing on this edit — attribute validation
+  // always runs against whichever type the product actually is (the
+  // incoming type if it's being changed, otherwise the existing one), using
+  // a merge of new + existing values so an edit that only touches, say,
+  // price doesn't spuriously fail attribute validation.
+  const effectiveType = parsed.productType ?? (existing.productType as ShopProductType);
+  const attributes = attributesForType(effectiveType, {
+    size: (parsed.size as ShopSize | undefined) ?? (existing.size as ShopSize | undefined) ?? undefined,
+    shape: (parsed.shape as ShopShape | undefined) ?? (existing.shape as ShopShape | undefined) ?? undefined,
+    handle: (parsed.handle as ShopHandle | undefined) ?? (existing.handleType as ShopHandle | undefined) ?? undefined,
+    gender: (parsed.gender as ShopGender | undefined) ?? (existing.gender as ShopGender | undefined) ?? undefined,
+    accessoryCategory:
+      (parsed.accessoryCategory as AccessoryCategory | undefined) ??
+      (existing.accessoryCategory as AccessoryCategory | undefined) ??
+      undefined,
+    materials: parsed.materials ?? existing.materials
+  });
 
   const imageFiles = collectImageFiles(formData);
   const images = imageFiles.length ? await uploadImages(slug, imageFiles) : undefined;
@@ -182,10 +280,12 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       ...(parsed.priceIdr !== undefined ? {priceIdr: parsed.priceIdr} : {}),
       ...(parsed.description !== undefined ? {description: parsed.description} : {}),
       ...(parsed.productType !== undefined ? {productType: parsed.productType} : {}),
-      ...(parsed.size !== undefined ? {size: parsed.size} : {}),
-      ...(parsed.shape !== undefined ? {shape: parsed.shape} : {}),
-      ...(parsed.handle !== undefined ? {handleType: parsed.handle} : {}),
-      ...(parsed.materials !== undefined ? {materials: parsed.materials} : {}),
+      size: attributes.size,
+      shape: attributes.shape,
+      handleType: attributes.handleType,
+      gender: attributes.gender,
+      accessoryCategory: attributes.accessoryCategory,
+      materials: attributes.materials,
       ...(parsed.tags !== undefined ? {tags: parsed.tags} : {}),
       ...(images ? {images} : {}),
       updatedAt: new Date()
