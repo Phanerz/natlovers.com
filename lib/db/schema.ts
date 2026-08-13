@@ -117,7 +117,14 @@ export const orders = pgTable("orders", {
   bankName: text("bank_name").notNull(),
   accountName: text("account_name").notNull(),
   accountNumber: text("account_number").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow()
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  // Payment-confirmation audit trail. Stored as a plain email snapshot
+  // rather than a userId FK so the record survives even if that admin
+  // account is later renamed or removed — if a customer disputes a
+  // payment, this needs to keep answering "who marked it paid and when"
+  // regardless of what happens to the admin's account afterward.
+  confirmedByEmail: text("confirmed_by_email"),
+  confirmedAt: timestamp("confirmed_at")
 });
 
 // Snapshots product name/price at order time — deliberately not a foreign

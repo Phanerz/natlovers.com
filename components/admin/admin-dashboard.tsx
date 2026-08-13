@@ -1,8 +1,9 @@
 "use client";
 
 import {FormEvent, useEffect, useState} from "react";
+import Link from "next/link";
 import {signOut} from "next-auth/react";
-import {GalleryHorizontal, LayoutList, MessageSquareQuote, PlusCircle, Quote} from "lucide-react";
+import {GalleryHorizontal, LayoutList, MessageSquareQuote, PlusCircle, Quote, Receipt} from "lucide-react";
 import {submitFormData} from "@/lib/xhr-form-submit";
 import {AdminHeroCard, HeroCardFormState, buildHeroCardFormData, emptyHeroCardForm} from "./hero-card-types";
 import {HeroCardForm} from "./hero-card-form";
@@ -494,6 +495,13 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
       </div>
 
       <div className="inline-flex flex-wrap gap-1 rounded-full border border-[#d4c5ab] bg-[#fffaf1] p-1">
+        <Link
+          href="/mimin/orders"
+          className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-forest-700 transition-colors duration-150 hover:bg-[#f0e7d4]"
+        >
+          <Receipt className="h-4 w-4" />
+          Orders
+        </Link>
         <button
           type="button"
           onClick={() => setTab("add")}

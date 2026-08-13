@@ -1,6 +1,8 @@
-import {desc, eq, inArray} from "drizzle-orm";
+import {and, desc, eq, inArray} from "drizzle-orm";
 import {clearCart} from "@/lib/cart";
-import {db, orderItems, orders, products} from "@/lib/db";
+import {db, orderItems, orders, products, users} from "@/lib/db";
+
+export {orderStatusLabels} from "@/lib/order-status";
 
 export type OrderItemView = {slug: string; name: string; priceIdr: number; quantity: number};
 
@@ -132,4 +134,136 @@ export async function getOrdersForUser(userId: string): Promise<OrderView[]> {
     createdAt: order.createdAt.toISOString(),
     items: itemsByOrder.get(order.id) ?? []
   }));
+}
+
+export type AdminOrderView = OrderView & {
+  customerName: string | null;
+  customerEmail: string | null;
+  confirmedByEmail: string | null;
+  confirmedAt: string | null;
+};
+
+async function attachItemsForAdmin(
+  orderRows: {
+    id: string;
+    orderRef: string;
+    status: string;
+    totalIdr: number;
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
+    createdAt: Date;
+    confirmedByEmail: string | null;
+    confirmedAt: Date | null;
+    customerName: string | null;
+    customerEmail: string | null;
+  }[]
+): Promise<AdminOrderView[]> {
+  if (!orderRows.length) {
+    return [];
+  }
+
+  const itemRows = await db
+    .select()
+    .from(orderItems)
+    .where(
+      inArray(
+        orderItems.orderId,
+        orderRows.map((order) => order.id)
+      )
+    );
+
+  const itemsByOrder = new Map<string, OrderItemView[]>();
+  for (const row of itemRows) {
+    const list = itemsByOrder.get(row.orderId) ?? [];
+    list.push({slug: row.productSlug, name: row.productName, priceIdr: row.priceIdr, quantity: row.quantity});
+    itemsByOrder.set(row.orderId, list);
+  }
+
+  return orderRows.map((order) => ({
+    id: order.id,
+    orderRef: order.orderRef,
+    status: order.status,
+    totalIdr: order.totalIdr,
+    bankName: order.bankName,
+    accountName: order.accountName,
+    accountNumber: order.accountNumber,
+    createdAt: order.createdAt.toISOString(),
+    confirmedByEmail: order.confirmedByEmail,
+    confirmedAt: order.confirmedAt ? order.confirmedAt.toISOString() : null,
+    customerName: order.customerName,
+    customerEmail: order.customerEmail,
+    items: itemsByOrder.get(order.id) ?? []
+  }));
+}
+
+const adminOrderColumns = {
+  id: orders.id,
+  orderRef: orders.orderRef,
+  status: orders.status,
+  totalIdr: orders.totalIdr,
+  bankName: orders.bankName,
+  accountName: orders.accountName,
+  accountNumber: orders.accountNumber,
+  createdAt: orders.createdAt,
+  confirmedByEmail: orders.confirmedByEmail,
+  confirmedAt: orders.confirmedAt,
+  customerName: users.name,
+  customerEmail: users.email
+} as const;
+
+export async function getAllOrdersAdmin(): Promise<AdminOrderView[]> {
+  const orderRows = await db
+    .select(adminOrderColumns)
+    .from(orders)
+    .leftJoin(users, eq(orders.userId, users.id))
+    .orderBy(desc(orders.createdAt));
+
+  return attachItemsForAdmin(orderRows);
+}
+
+async function getAdminOrderById(orderId: string): Promise<AdminOrderView | null> {
+  const orderRows = await db
+    .select(adminOrderColumns)
+    .from(orders)
+    .leftJoin(users, eq(orders.userId, users.id))
+    .where(eq(orders.id, orderId));
+
+  const [view] = await attachItemsForAdmin(orderRows);
+  return view ?? null;
+}
+
+export type MarkOrderPaidResult =
+  | {ok: true; alreadyPaid: boolean; order: AdminOrderView}
+  | {ok: false; error: "not_found" | "invalid_status"};
+
+// The status check and the write happen in a single conditional UPDATE
+// (WHERE id = ? AND status = 'pending_transfer') rather than a separate
+// SELECT-then-UPDATE, so two concurrent "Mark as Paid" clicks on the same
+// order can't both pass the check and both write a confirmation — only one
+// UPDATE can ever match the row, the other affects zero rows and falls
+// through to the idempotent "already paid" path below.
+export async function markOrderPaid(orderId: string, adminEmail: string): Promise<MarkOrderPaidResult> {
+  const [updated] = await db
+    .update(orders)
+    .set({status: "paid", confirmedByEmail: adminEmail, confirmedAt: new Date()})
+    .where(and(eq(orders.id, orderId), eq(orders.status, "pending_transfer")))
+    .returning({id: orders.id});
+
+  if (updated) {
+    const order = await getAdminOrderById(orderId);
+    return {ok: true, alreadyPaid: false, order: order!};
+  }
+
+  // The conditional update matched nothing — either the order doesn't
+  // exist, or it does but wasn't pending_transfer (already paid, or some
+  // other status). Figure out which so the caller gets the right response.
+  const existing = await getAdminOrderById(orderId);
+  if (!existing) {
+    return {ok: false, error: "not_found"};
+  }
+  if (existing.status === "paid") {
+    return {ok: true, alreadyPaid: true, order: existing};
+  }
+  return {ok: false, error: "invalid_status"};
 }

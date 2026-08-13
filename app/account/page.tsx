@@ -8,6 +8,7 @@ import {signOut, useSession} from "next-auth/react";
 import {CircleHelp, CreditCard, Heart, LogOut, Mail, MessageCircle, Package, Settings, User} from "lucide-react";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {formatCurrency} from "@/lib/format";
+import {orderStatusLabels} from "@/lib/order-status";
 import {CurrencyCode, Locale, currencies, currencySymbols, locales} from "@/lib/site";
 import type {AdminProduct} from "@/lib/admin-products";
 import type {OrderView} from "@/lib/orders";
@@ -297,7 +298,7 @@ function AccountContent() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="font-display text-lg text-forest-900">{order.orderRef}</p>
                       <span className="rounded-full border border-[#e4d9c1] bg-[#eee4cd] px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-forest-700">
-                        {order.status === "pending_transfer" ? "Awaiting transfer" : order.status}
+                        {orderStatusLabels[order.status] ?? order.status}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-forest-500">
