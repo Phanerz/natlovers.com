@@ -29,6 +29,13 @@
       "when": 1786559079260,
       "tag": "0003_noisy_paper_doll",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786560690407,
+      "tag": "0004_spotty_firebird",
+      "breakpoints": true
     }
   ]
 }

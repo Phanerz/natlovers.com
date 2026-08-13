@@ -245,7 +245,7 @@ function AccountContent() {
           {tab === "payment" ? (
             <EmptyState
               title="Payment methods"
-              body="Natlovers doesn't store payment details — every order is confirmed by bank transfer directly with the studio."
+              body="Natlovers doesn't store payment details. Every order is confirmed by bank transfer directly with the studio."
             />
           ) : null}
 
@@ -253,7 +253,7 @@ function AccountContent() {
             <div>
               <h2 className="font-display text-2xl text-forest-900">Account settings</h2>
               <p className="mt-3 max-w-lg text-sm leading-6 text-forest-600">
-                Sign-in is passwordless — a one-time link is emailed to you, so there&rsquo;s no password to manage.
+                Sign-in is passwordless. A one-time link is emailed to you, so there&rsquo;s no password to manage.
                 Set your preferred language and currency below; they apply across the whole site.
               </p>
               <div className="mt-5 grid gap-4 sm:max-w-md sm:grid-cols-2">
@@ -280,7 +280,7 @@ function AccountContent() {
                   >
                     {currencies.map((option) => (
                       <option key={option} value={option}>
-                        {option} — {currencySymbols[option].trim()}
+                        {option} ({currencySymbols[option].trim()})
                       </option>
                     ))}
                   </select>

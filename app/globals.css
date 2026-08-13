@@ -476,6 +476,21 @@ button {
     0 6px 18px rgba(52, 67, 50, 0.08);
 }
 
+/* Static (non-absolute) dark glass pill for real buttons — same tint/blur/
+   specular language as .liquid-glass-active-on-light, which is
+   position:absolute because it's a sliding nav indicator, not a button. */
+.liquid-glass-dark {
+  position: relative;
+  background: linear-gradient(180deg, rgba(52, 67, 50, 0.94), rgba(41, 54, 40, 0.86));
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.32),
+    inset 0 -6px 10px rgba(0, 0, 0, 0.2),
+    0 6px 16px rgba(52, 67, 50, 0.22);
+}
+
 .liquid-glass-active-on-light {
   position: absolute;
   border-radius: 9999px;

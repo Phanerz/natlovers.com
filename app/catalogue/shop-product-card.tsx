@@ -1,9 +1,10 @@
 "use client";
 
-import {useState} from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {Heart, Plus} from "lucide-react";
+import {useStorefront} from "@/components/storefront-provider";
+import {useWishlist} from "@/components/use-wishlist";
 import {formatCurrency} from "@/lib/format";
 import {CurrencyCode, Locale} from "@/lib/site";
 import {ShopProduct, handleLabels, handlePillStyle, materialImageStyle, sizeLabels, sizePillStyle} from "./shop-data";
@@ -18,7 +19,9 @@ export function ShopProductCard({
   locale: Locale;
 }) {
   const imageStyle = materialImageStyle[product.materials[0]];
-  const [favorited, setFavorited] = useState(false);
+  const {isWishlisted, toggle} = useWishlist();
+  const favorited = isWishlisted(product.slug);
+  const {addToCart} = useStorefront();
 
   return (
     // className="contents" makes this <a> layout-invisible (display:
@@ -86,8 +89,9 @@ export function ShopProductCard({
         type="button"
         aria-label={favorited ? "Remove from wishlist" : "Add to wishlist"}
         onClick={(event) => {
+          event.preventDefault();
           event.stopPropagation();
-          setFavorited((value) => !value);
+          toggle(product.slug);
         }}
         className="absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/85 shadow-[0_2px_8px_rgba(0,0,0,0.12)] backdrop-blur transition-all duration-200 hover:bg-white active:scale-90 sm:right-3 sm:top-3"
       >
@@ -107,11 +111,15 @@ export function ShopProductCard({
       */}
       <button
         type="button"
-        disabled
-        aria-disabled="true"
-        title={locale === "en" ? "Coming soon" : "Segera hadir"}
-        aria-label={locale === "en" ? "Coming soon" : "Segera hadir"}
-        className="pointer-events-auto absolute bottom-20 right-2.5 z-10 flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-full border border-[#344332]/20 bg-white/95 text-[#344332] shadow-[0_3px_10px_rgba(0,0,0,0.18)] backdrop-blur transition-transform duration-200 hover:scale-105 disabled:opacity-90 sm:bottom-24 sm:right-3 sm:h-9 sm:w-9"
+        disabled={product.soldOut}
+        title={product.soldOut ? (locale === "en" ? "Sold out" : "Habis terjual") : (locale === "en" ? "Add to bag" : "Tambah ke tas")}
+        aria-label={product.soldOut ? (locale === "en" ? "Sold out" : "Habis terjual") : (locale === "en" ? "Add to bag" : "Tambah ke tas")}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          addToCart(product.slug);
+        }}
+        className="pointer-events-auto absolute bottom-20 right-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-[#344332]/20 bg-white/95 text-[#344332] shadow-[0_3px_10px_rgba(0,0,0,0.18)] backdrop-blur transition-transform duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 sm:bottom-24 sm:right-3 sm:h-9 sm:w-9"
       >
         <Plus className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
       </button>

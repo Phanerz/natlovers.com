@@ -74,6 +74,20 @@ export const users = pgTable("user", {
   bio: text("bio")
 });
 
+export const wishlistItems = pgTable(
+  "wishlist_items",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, {onDelete: "cascade"}),
+    productSlug: text("product_slug").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow()
+  },
+  (table) => ({
+    compositePk: primaryKey({columns: [table.userId, table.productSlug]})
+  })
+);
+
 export const accounts = pgTable(
   "account",
   {

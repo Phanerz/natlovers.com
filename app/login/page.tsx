@@ -53,10 +53,10 @@ export default function LoginPage() {
           <div>
             <p className="muted text-forest-800">Welcome back</p>
             <h1 className="mt-3 font-display text-2xl uppercase tracking-wide text-forest-900 sm:text-3xl">
-              Sign in to your account
+              Sign In
             </h1>
             <p className="mt-4 text-base leading-7 text-forest-700">
-              Enter your email and we&rsquo;ll send you a one-time link — no password needed.
+              Enter your email and we&rsquo;ll send you a one-time link, no password needed.
             </p>
           </div>
 
