@@ -723,13 +723,13 @@ export function Header() {
                   closeCabinet();
                   closeAllCabinetViews();
                 }}
-                className="icon-button rounded-full border border-[#d7cab2] bg-[#fffdf8] p-3 text-forest-900 shadow-[0_8px_22px_rgba(59,43,22,0.12)]"
+                className="glass-icon-btn rounded-full p-3 text-forest-900"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="mt-4 rounded-[1.4rem] border border-[#d2c3a8] bg-[#fffaf1] px-4 py-4 text-sm text-forest-700 shadow-[0_12px_30px_rgba(79,58,28,0.08)]">
+            <div className="card mt-4 px-4 py-4 text-sm text-forest-700">
               <span>Bag, preview, and bank-transfer checkout are live now.</span>
             </div>
 
@@ -948,17 +948,17 @@ export function Header() {
                           <button
                             type="button"
                             onClick={() => removeFromCart(item.slug)}
-                            className="icon-button shrink-0 rounded-full border border-[#d7cab2] bg-[#fffdf8] p-2 text-forest-700 shadow-[0_8px_18px_rgba(59,43,22,0.1)]"
+                            className="glass-icon-btn is-danger shrink-0 rounded-full p-2 text-forest-700"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                         <div className="mt-3 flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2 rounded-full border border-[#d5c8b1] bg-[#fffdf8] px-2 py-2 shadow-[0_6px_16px_rgba(79,58,28,0.06)]">
+                          <div className="glass-stepper flex items-center gap-2 rounded-full px-2 py-2">
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.slug, item.quantity - 1)}
-                              className="icon-button rounded-full p-1 text-forest-900"
+                              className="glass-stepper-btn rounded-full p-1 text-forest-900"
                             >
                               <Minus className="h-4 w-4" />
                             </button>
@@ -968,7 +968,7 @@ export function Header() {
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.slug, item.quantity + 1)}
-                              className="icon-button rounded-full p-1 text-forest-900"
+                              className="glass-stepper-btn rounded-full p-1 text-forest-900"
                             >
                               <Plus className="h-4 w-4" />
                             </button>
@@ -1003,14 +1003,14 @@ export function Header() {
                   type="button"
                   onClick={startBankTransferForCart}
                   disabled={!cartProducts.length}
-                  className="button-lift rounded-full bg-forest-900 px-5 py-3 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="glass-btn-primary rounded-full px-5 py-3 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Checkout with bank transfer
                 </button>
                 <Link
                   href="/catalogue"
                   onClick={closeCabinet}
-                  className="button-lift rounded-full border border-[#cdbfa6] bg-[#fffaf1] px-5 py-3 text-center text-sm text-forest-700 shadow-[0_8px_18px_rgba(59,43,22,0.08)]"
+                  className="glass-btn-secondary rounded-full px-5 py-3 text-center text-sm text-forest-700"
                 >
                   Continue shopping
                 </Link>
