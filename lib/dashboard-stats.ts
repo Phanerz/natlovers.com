@@ -1,6 +1,7 @@
 import {and, count, desc, eq, gte, inArray, isNotNull, lt, sql} from "drizzle-orm";
 import {db, heroCards, orderItems, orders, products, users} from "@/lib/db";
 import {getCustomerCount} from "@/lib/customers";
+import {countOpenCustomRequests} from "@/lib/custom-requests";
 
 // A product only counts toward stock KPIs once it's opted into tracking
 // (stock IS NOT NULL) — most of the catalogue hasn't yet, so these stay
@@ -109,12 +110,23 @@ export type DashboardStats = {
   customerCount: number;
   lowStockCount: number | null;
   outOfStockCount: number | null;
+  openCustomRequests: number;
 };
 
 export async function getDashboardStats(range: DateRangeKey): Promise<DashboardStats> {
   const resolved = resolveDateRange(range);
 
-  const [current, previous, [totalRow], [activeRow], [heroRow], [awaitingRow], customerCount, [stockRow]] = await Promise.all([
+  const [
+    current,
+    previous,
+    [totalRow],
+    [activeRow],
+    [heroRow],
+    [awaitingRow],
+    customerCount,
+    [stockRow],
+    openCustomRequests
+  ] = await Promise.all([
     getPeriodMetrics(resolved.start, resolved.end),
     resolved.previousStart
       ? getPeriodMetrics(resolved.previousStart, resolved.previousEnd!)
@@ -131,7 +143,8 @@ export async function getDashboardStats(range: DateRangeKey): Promise<DashboardS
         lowStock: sql<number>`count(*) filter (where ${products.stock} > 0 and ${products.stock} <= ${LOW_STOCK_THRESHOLD})::int`
       })
       .from(products)
-      .where(isNotNull(products.stock))
+      .where(isNotNull(products.stock)),
+    countOpenCustomRequests()
   ]);
 
   const totalProducts = totalRow.value;
@@ -153,7 +166,8 @@ export async function getDashboardStats(range: DateRangeKey): Promise<DashboardS
     ordersAwaitingTransfer: awaitingRow.value,
     customerCount,
     lowStockCount: stockRow.tracked > 0 ? stockRow.lowStock : null,
-    outOfStockCount: stockRow.tracked > 0 ? stockRow.outOfStock : null
+    outOfStockCount: stockRow.tracked > 0 ? stockRow.outOfStock : null,
+    openCustomRequests
   };
 }
 

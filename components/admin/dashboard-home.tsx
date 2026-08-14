@@ -12,6 +12,7 @@ import {
   Eye,
   PackageCheck,
   PackageX,
+  Palette,
   ReceiptText,
   ShoppingBag,
   Tag,
@@ -51,6 +52,7 @@ type Stats = {
   customerCount: number;
   lowStockCount: number | null;
   outOfStockCount: number | null;
+  openCustomRequests: number;
   salesSeries: SalesSeriesPoint[];
   recentOrders: RecentOrder[];
   bestSellingProducts: BestSellingProduct[] | null;
@@ -323,6 +325,15 @@ function NeedsAttentionCard({stats}: {stats: Stats}) {
       label: "orders awaiting transfer",
       count: stats.ordersAwaitingTransfer,
       href: "/mimin/orders"
+    });
+  }
+  if (stats.openCustomRequests) {
+    items.push({
+      key: "custom",
+      icon: Palette,
+      label: "custom requests waiting on the studio",
+      count: stats.openCustomRequests,
+      href: "/mimin/custom-requests"
     });
   }
   if (stats.hiddenProducts) {

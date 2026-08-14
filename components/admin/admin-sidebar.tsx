@@ -4,7 +4,7 @@ import Link from "next/link";
 import type {Route} from "next";
 import {usePathname, useSearchParams} from "next/navigation";
 import {useEffect, useState} from "react";
-import {ChevronUp, GalleryHorizontal, LayoutDashboard, PlusCircle, Receipt, ShoppingBag, Users, Warehouse} from "lucide-react";
+import {ChevronUp, GalleryHorizontal, LayoutDashboard, Palette, PlusCircle, Receipt, ShoppingBag, Users, Warehouse} from "lucide-react";
 import {ShopProductType, productTypeLabels, shopProductTypes} from "@/app/catalogue/shop-data";
 
 // Typography/spacing/interaction lifted directly from app/catalogue/
@@ -79,15 +79,17 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [ordersAwaiting, setOrdersAwaiting] = useState<number | null>(null);
+  const [customRequestsOpen, setCustomRequestsOpen] = useState<number | null>(null);
   const [productsExpanded, setProductsExpanded] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/admin/dashboard-stats?range=all", {cache: "no-store"})
       .then((response) => (response.ok ? response.json() : null))
-      .then((data: {ordersAwaitingTransfer?: number} | null) => {
+      .then((data: {ordersAwaitingTransfer?: number; openCustomRequests?: number} | null) => {
         if (!cancelled && data) {
           setOrdersAwaiting(data.ordersAwaitingTransfer ?? null);
+          setCustomRequestsOpen(data.openCustomRequests ?? null);
         }
       })
       .catch(() => undefined);
@@ -195,6 +197,24 @@ export function AdminSidebar() {
           {ordersAwaiting ? (
             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#a4402b] px-1.5 text-[11px] font-semibold text-white">
               {ordersAwaiting}
+            </span>
+          ) : null}
+        </Link>
+        <Link
+          href="/mimin/custom-requests"
+          className={`button-lift mt-1 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            pathname?.startsWith("/mimin/custom-requests")
+              ? "liquid-glass-dark text-sand-50"
+              : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
+          }`}
+        >
+          <span className="flex items-center gap-2.5">
+            <Palette className="h-4 w-4 shrink-0" />
+            Custom Studio
+          </span>
+          {customRequestsOpen ? (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#a4402b] px-1.5 text-[11px] font-semibold text-white">
+              {customRequestsOpen}
             </span>
           ) : null}
         </Link>
