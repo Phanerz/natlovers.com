@@ -1,5 +1,5 @@
 import {sql} from "drizzle-orm";
-import {boolean, integer, pgPolicy, pgTable, primaryKey, text, timestamp} from "drizzle-orm/pg-core";
+import {boolean, index, integer, jsonb, pgPolicy, pgTable, primaryKey, text, timestamp, uniqueIndex} from "drizzle-orm/pg-core";
 
 type ProviderType = "oauth" | "email" | "credentials";
 
@@ -264,3 +264,107 @@ export const verificationTokens = pgTable(
     compositePk: primaryKey({columns: [verificationToken.identifier, verificationToken.token]})
   })
 ).enableRLS();
+
+// Custom Studio intake. A request is the customer's *configuration* plus
+// their inspiration photos — not an order. It carries an estimated price
+// the studio can revise (finalPriceIdr) once someone has actually looked at
+// what was asked for, which is why the two are separate columns rather than
+// one price that gets overwritten: the quote and what the customer was
+// originally shown both need to stay legible side by side.
+//
+// `configuration` is jsonb because each product type has a genuinely
+// different shape (a bag has shape/handle/colour, a doll has subject and
+// size) and modelling three divergent option sets as nullable columns would
+// mean a table where most columns are null on most rows. The authoritative
+// shapes live in lib/custom-studio.ts as zod schemas and are validated on
+// write, so the looseness is at the storage layer only.
+export const customRequests = pgTable(
+  "custom_requests",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    // Human-quotable reference shown to the customer on the success screen
+    // and used by the studio when they get back in touch. Null while the
+    // row is still a draft — a draft has nothing to quote yet — and
+    // assigned once at submit time.
+    requestRef: text("request_ref").unique(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, {onDelete: "cascade"}),
+    // One of shopProductTypes (Bags/Dolls/Apparels), matching the catalogue
+    // vocabulary rather than inventing a second set of type names.
+    productType: text("product_type").notNull(),
+    configuration: jsonb("configuration").notNull().default({}),
+    // Prices are stored in IDR like orders.totalIdr — IDR is the currency
+    // the business actually operates in, and every display currency in the
+    // app is a formatted conversion of it (see lib/format.ts). `currency`
+    // records which one the customer was *looking at* when they submitted,
+    // so a follow-up conversation can be held in the same units they saw.
+    estimatedPriceIdr: integer("estimated_price_idr").notNull().default(0),
+    finalPriceIdr: integer("final_price_idr"),
+    currency: text("currency").notNull().default("IDR"),
+    notes: text("notes"),
+    status: text("status").notNull().default("draft"),
+    // Studio-only. Never returned by any customer-facing query.
+    adminNotes: text("admin_notes"),
+    submittedAt: timestamp("submitted_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow()
+  },
+  (table) => ({
+    // A customer has at most one open draft at a time, so returning to
+    // /custom resumes rather than accumulating abandoned rows. Enforced in
+    // the database rather than by a read-then-write in the route, because
+    // two tabs saving at once would otherwise both find "no draft" and both
+    // insert. Partial, so it constrains only drafts and never submitted
+    // requests — a customer may of course submit as many as they like.
+    oneDraftPerUser: uniqueIndex("custom_requests_one_draft_per_user")
+      .on(table.userId)
+      .where(sql`status = 'draft'`),
+    statusIdx: index("custom_requests_status_idx").on(table.status),
+    userIdx: index("custom_requests_user_idx").on(table.userId)
+  })
+).enableRLS();
+
+// Inspiration photos uploaded alongside a request. storageKey is the Vercel
+// Blob pathname, kept separately from the public url so the blob can still
+// be deleted after the fact — url alone is enough to display an image but
+// not to manage it.
+export const customRequestImages = pgTable(
+  "custom_request_images",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    customRequestId: text("custom_request_id")
+      .notNull()
+      .references(() => customRequests.id, {onDelete: "cascade"}),
+    url: text("url").notNull(),
+    storageKey: text("storage_key").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow()
+  },
+  (table) => ({
+    requestIdx: index("custom_request_images_request_idx").on(table.customRequestId)
+  })
+).enableRLS();
+
+// Single-row store-wide settings. Exists for the Custom Studio intake
+// pause — the studio is one small team in Yogyakarta, and the honest
+// failure mode of a public custom-order form is accepting more work than
+// there are hands to make it. The pause is the capacity guardrail: it
+// closes new submissions without taking the page down or losing drafts.
+//
+// Keyed by a fixed id rather than being a schemaless key/value store so
+// each setting stays a real typed column.
+export const storeSettings = pgTable("store_settings", {
+  id: text("id").primaryKey().default("default"),
+  customIntakePaused: boolean("custom_intake_paused").notNull().default(false),
+  // Optional override for the message shown in place of the studio form.
+  // Null falls back to the default copy in lib/custom-studio.ts.
+  customIntakePausedMessage: text("custom_intake_paused_message"),
+  updatedByEmail: text("updated_by_email"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}).enableRLS();
