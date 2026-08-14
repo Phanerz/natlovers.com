@@ -373,11 +373,13 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="muted">Admin, {userEmail}</p>
-          <h1 className="mt-2 font-display text-3xl text-forest-900">{pageTitles[tab]}</h1>
-        </div>
+      <div className={`flex flex-wrap items-center gap-4 ${tab === "dashboard" ? "justify-end" : "justify-between"}`}>
+        {tab !== "dashboard" ? (
+          <div>
+            <p className="muted">Admin, {userEmail}</p>
+            <h1 className="mt-2 font-display text-3xl text-forest-900">{pageTitles[tab]}</h1>
+          </div>
+        ) : null}
         <button
           type="button"
           onClick={handleLogout}
