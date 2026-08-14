@@ -1,10 +1,9 @@
-import {getServerSession} from "next-auth/next";
 import {NextRequest, NextResponse} from "next/server";
 import {getCartItems, setCartItemQuantity} from "@/lib/cart";
-import {authOptions} from "@/lib/auth";
+import {getSession} from "@/lib/auth";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const userId = session?.user?.id;
   if (!userId) {
     return NextResponse.json({items: []});
@@ -17,7 +16,7 @@ export async function GET() {
 // Upsert: quantity <= 0 removes the line. This is a "set" not an
 // "increment" — the caller sends the final quantity it wants.
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const userId = session?.user?.id;
   if (!userId) {
     return NextResponse.json({error: "Unauthorized."}, {status: 401});

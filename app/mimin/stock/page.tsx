@@ -1,6 +1,5 @@
-import {getServerSession} from "next-auth/next";
 import {Warehouse} from "lucide-react";
-import {authOptions} from "@/lib/auth";
+import {getSession} from "@/lib/auth";
 
 // Auth is already gated by app/mimin/layout.tsx.
 //
@@ -10,7 +9,7 @@ import {authOptions} from "@/lib/auth";
 // this becomes the real Stock Overview: retail vs. consignment quantities,
 // reorder thresholds, low/out-of-stock lists.
 export default async function StockPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const email = session?.user?.email ?? "";
 
   return (

@@ -1,10 +1,9 @@
-import {getServerSession} from "next-auth/next";
 import {NextResponse} from "next/server";
 import {deleteOrder, markOrderPaid, setOrderTracking} from "@/lib/orders";
-import {authOptions, isAdminEmail} from "@/lib/auth";
+import {getSession, isAdminEmail} from "@/lib/auth";
 
 async function requireAdminEmail(): Promise<string | null> {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const email = session?.user?.email;
   return isAdminEmail(email) && email ? email : null;
 }

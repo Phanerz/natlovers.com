@@ -1,7 +1,6 @@
-import {getServerSession} from "next-auth/next";
 import {AdminSidebar} from "@/components/admin/admin-sidebar";
 import {AdminSignIn} from "@/components/admin/admin-sign-in";
-import {authOptions, isAdminEmail} from "@/lib/auth";
+import {getSession, isAdminEmail} from "@/lib/auth";
 
 export const metadata = {
   robots: {index: false, follow: false}
@@ -13,7 +12,7 @@ export const metadata = {
 // admin page below this layout can assume it's already authenticated and
 // just render its own content.
 export default async function MiminLayout({children}: {children: React.ReactNode}) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const email = session?.user?.email;
 
   if (!isAdminEmail(email) || !email) {

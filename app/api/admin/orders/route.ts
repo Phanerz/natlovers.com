@@ -1,10 +1,9 @@
-import {getServerSession} from "next-auth/next";
 import {NextResponse} from "next/server";
 import {getAllOrdersAdmin} from "@/lib/orders";
-import {authOptions, isAdminEmail} from "@/lib/auth";
+import {getSession, isAdminEmail} from "@/lib/auth";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!isAdminEmail(session?.user?.email)) {
     return NextResponse.json({error: "Unauthorized."}, {status: 401});
   }

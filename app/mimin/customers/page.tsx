@@ -1,13 +1,12 @@
-import {getServerSession} from "next-auth/next";
 import {CustomerTelemetryRow} from "@/components/admin/customer-telemetry-row";
 import {CustomersByCountryCard} from "@/components/admin/customers-by-country-card";
 import {CustomersDirectory} from "@/components/admin/customers-directory";
-import {authOptions} from "@/lib/auth";
+import {getSession} from "@/lib/auth";
 import {getCustomerListView, getCustomerTelemetry, getCustomersByCountry} from "@/lib/customers";
 
 // Auth is already gated by app/mimin/layout.tsx.
 export default async function CustomersPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const email = session?.user?.email ?? "";
   const [telemetry, customers, byCountry] = await Promise.all([
     getCustomerTelemetry(),

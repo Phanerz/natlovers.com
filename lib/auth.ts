@@ -1,4 +1,6 @@
+import {cache} from "react";
 import type {NextAuthOptions} from "next-auth";
+import {getServerSession} from "next-auth/next";
 import GoogleProvider from "next-auth/providers/google";
 import EmailProvider from "next-auth/providers/email";
 import {DrizzleAdapter} from "@auth/drizzle-adapter";
@@ -145,3 +147,12 @@ export const authOptions: NextAuthOptions = {
     }
   }
 };
+
+// Every /mimin/* page calls this once in the shared layout (the auth gate)
+// and again in the page itself (to read the email/name for display) — two
+// separate, uncached getServerSession calls each do their own session+user
+// DB round trip. cache() memoizes it per request (React's request-scoped
+// cache, not a persistent one), so both calls within the same page render
+// share one query instead of two, halving the auth-related load this
+// connection pool sees on every single admin page view.
+export const getSession = cache(() => getServerSession(authOptions));

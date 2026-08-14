@@ -1,11 +1,10 @@
-import {getServerSession} from "next-auth/next";
 import {NextRequest, NextResponse} from "next/server";
 import {getAccountProfile, updateAccountProfile} from "@/lib/account";
-import {authOptions, isAdminEmail} from "@/lib/auth";
+import {getSession, isAdminEmail} from "@/lib/auth";
 import {getCustomerTelemetry} from "@/lib/customers";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const userId = session?.user?.id;
   if (!userId) {
     return NextResponse.json({error: "Unauthorized."}, {status: 401});
@@ -28,7 +27,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const userId = session?.user?.id;
   if (!userId) {
     return NextResponse.json({error: "Unauthorized."}, {status: 401});

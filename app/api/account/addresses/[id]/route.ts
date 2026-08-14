@@ -1,10 +1,9 @@
-import {getServerSession} from "next-auth/next";
 import {NextRequest, NextResponse} from "next/server";
 import {addressInputSchema, deleteAddress, setDefaultAddress, updateAddress} from "@/lib/addresses";
-import {authOptions} from "@/lib/auth";
+import {getSession} from "@/lib/auth";
 
 export async function PATCH(request: NextRequest, {params}: {params: Promise<{id: string}>}) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const userId = session?.user?.id;
   if (!userId) {
     return NextResponse.json({error: "Unauthorized."}, {status: 401});
@@ -37,7 +36,7 @@ export async function PATCH(request: NextRequest, {params}: {params: Promise<{id
 }
 
 export async function DELETE(_request: NextRequest, {params}: {params: Promise<{id: string}>}) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const userId = session?.user?.id;
   if (!userId) {
     return NextResponse.json({error: "Unauthorized."}, {status: 401});

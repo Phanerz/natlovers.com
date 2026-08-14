@@ -1,7 +1,6 @@
-import {getServerSession} from "next-auth/next";
 import {NextRequest, NextResponse} from "next/server";
 import {DateRangeKey, getBestSellingProducts, getDashboardStats, getRecentOrders, getSalesSeries} from "@/lib/dashboard-stats";
-import {authOptions, isAdminEmail} from "@/lib/auth";
+import {getSession, isAdminEmail} from "@/lib/auth";
 
 const validRanges: DateRangeKey[] = ["today", "7d", "month", "year", "all"];
 
@@ -10,7 +9,7 @@ function parseRange(value: string | null): DateRangeKey {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!isAdminEmail(session?.user?.email)) {
     return NextResponse.json({error: "Unauthorized."}, {status: 401});
   }
