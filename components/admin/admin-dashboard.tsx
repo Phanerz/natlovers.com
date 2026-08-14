@@ -3,7 +3,6 @@
 import {FormEvent, useEffect, useState} from "react";
 import {useRouter, useSearchParams} from "next/navigation";
 import {signOut} from "next-auth/react";
-import {ShopProductType, shopProductTypes} from "@/app/catalogue/shop-data";
 import {submitFormData} from "@/lib/xhr-form-submit";
 import {DashboardHome} from "./dashboard-home";
 import {AdminHeroCard, HeroCardFormState, buildHeroCardFormData, emptyHeroCardForm} from "./hero-card-types";
@@ -22,23 +21,10 @@ function tabFromParam(value: string | null): Tab {
   return validTabs.includes(value as Tab) ? (value as Tab) : "dashboard";
 }
 
-type TypeFilter = "all" | ShopProductType;
-
-// Mirrors the lowercase `type=` values the sidebar's category links use
-// (admin-sidebar.tsx) — falls back to "all" for anything unrecognized so a
-// stale/hand-edited URL never crashes the filter.
-function typeFilterFromParam(value: string | null): TypeFilter {
-  if (!value) {
-    return "all";
-  }
-  return shopProductTypes.find((type) => type.toLowerCase() === value.toLowerCase()) ?? "all";
-}
-
 export function AdminDashboard({userEmail}: {userEmail: string}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = tabFromParam(searchParams.get("tab"));
-  const filterType = typeFilterFromParam(searchParams.get("type"));
 
   function setTab(next: Tab) {
     router.replace(next === "dashboard" ? "/mimin" : `/mimin?tab=${next}`, {scroll: false});
@@ -442,7 +428,6 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
             onDeactivate={handleDeactivate}
             onActivate={handleActivate}
             busySlug={busySlug}
-            filterType={filterType}
             onBulkDeactivate={handleBulkDeactivate}
             onBulkActivate={handleBulkActivate}
             onBulkDelete={handleBulkDelete}

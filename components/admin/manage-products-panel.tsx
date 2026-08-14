@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import type {Route} from "next";
+import {usePathname, useRouter, useSearchParams} from "next/navigation";
 import {useEffect, useMemo, useState} from "react";
 import {Eye, Filter, Pencil, RotateCcw, Search, Trash2} from "lucide-react";
 import {ShopProductType, productTypeLabels, shopProductTypes} from "@/app/catalogue/shop-data";
@@ -36,7 +38,6 @@ export function ManageProductsPanel({
   onDeactivate,
   onActivate,
   busySlug,
-  filterType,
   onBulkDeactivate,
   onBulkActivate,
   onBulkDelete
@@ -47,25 +48,34 @@ export function ManageProductsPanel({
   onDeactivate: (product: AdminProduct) => void;
   onActivate: (product: AdminProduct) => void;
   busySlug: string | null;
-  filterType: TypeFilter;
   onBulkDeactivate: (slugs: string[]) => Promise<void>;
   onBulkActivate: (slugs: string[]) => Promise<void>;
   onBulkDelete: (slugs: string[]) => Promise<void>;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // The URL's `type` param is the single source of truth for which category
+  // is selected — both the sidebar's category links (admin-sidebar.tsx) and
+  // this panel's own pill row read and write the same param, so clicking
+  // either one keeps the other in sync. Previously the pills only wrote to
+  // local state, so clicking "Accessories" here never moved the sidebar's
+  // active dot.
+  const typeParam = searchParams.get("type");
+  const typeFilter: TypeFilter = typeParam
+    ? (shopProductTypes.find((type) => type.toLowerCase() === typeParam.toLowerCase()) ?? "all")
+    : "all";
+
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  // Driven by the sidebar's category links (see admin-sidebar.tsx), which
-  // encode the category straight into the URL — a real navigation, so this
-  // always wins over whatever the panel's own pills last set.
   useEffect(() => {
-    setTypeFilter(filterType);
     setPage(1);
-  }, [filterType]);
+  }, [typeFilter]);
 
   const typeCounts = useMemo(() => {
     const counts = {} as Record<ShopProductType, number>;
@@ -107,8 +117,13 @@ export function ManageProductsPanel({
   }
 
   function updateTypeFilter(value: TypeFilter) {
-    setTypeFilter(value);
-    setPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === "all") {
+      params.delete("type");
+    } else {
+      params.set("type", value.toLowerCase());
+    }
+    router.replace(`${pathname}?${params.toString()}` as Route, {scroll: false});
   }
 
   function toggleSelected(slug: string) {

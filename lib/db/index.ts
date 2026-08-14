@@ -19,7 +19,15 @@ declare global {
   var __natloversPgClient: ReturnType<typeof postgres> | undefined;
 }
 
-const client = globalThis.__natloversPgClient ?? postgres(process.env.DB_POSTGRES_URL!, {prepare: false});
+// max/idle_timeout kept modest — this pool sits behind Supabase's own
+// transaction-mode pooler, which has a shared, plan-level connection
+// ceiling. A smaller local pool that releases idle connections quickly is a
+// better citizen of that shared capacity than the client library's default
+// (max: 10, idle connections held indefinitely) — if page loads are still
+// intermittently slow after this, that's a sign the ceiling itself is being
+// hit from outside this process (another concurrent dev server, deployed
+// traffic), not something fixable from in here.
+const client = globalThis.__natloversPgClient ?? postgres(process.env.DB_POSTGRES_URL!, {prepare: false, max: 5, idle_timeout: 20});
 
 if (process.env.NODE_ENV !== "production") {
   globalThis.__natloversPgClient = client;
