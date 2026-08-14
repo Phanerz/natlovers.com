@@ -4,17 +4,25 @@ import Link from "next/link";
 import type {Route} from "next";
 import {usePathname, useSearchParams} from "next/navigation";
 import {useEffect, useState} from "react";
-import {ChevronDown, GalleryHorizontal, LayoutDashboard, PlusCircle, Receipt, ShoppingBag, Users, Warehouse} from "lucide-react";
+import {ChevronUp, GalleryHorizontal, LayoutDashboard, PlusCircle, Receipt, ShoppingBag, Users, Warehouse} from "lucide-react";
 import {ShopProductType, productTypeLabels, shopProductTypes} from "@/app/catalogue/shop-data";
 
-// Typography/spacing lifted directly from app/catalogue/filter-sidebar.tsx's
-// FilterSection — same uppercase tracked label, same border-b rhythm
-// between groups — so the admin shell reads as the same design system as
-// the public catalogue's own sidebar, not a separate admin template.
+// Typography/spacing/interaction lifted directly from app/catalogue/
+// filter-sidebar.tsx's FilterSection — same uppercase tracked label, same
+// border-b rhythm between groups, same ChevronUp-flips-to-180-when-closed
+// accordion — so the admin shell reads as the same design system as the
+// public catalogue's own sidebar, not a separate admin template. Unlike the
+// catalogue sidebar, this one has no whole-panel collapse/rail mode: admin
+// nav needs to stay reachable at all times, so only the "Manage Products"
+// sub-list gets the accordion treatment, never the sidebar itself.
 function SectionLabel({children}: {children: React.ReactNode}) {
   return <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#2e2e28]">{children}</span>;
 }
 
+// Active state uses the same frosted "liquid glass" dark pill as the rest of
+// the site's primary buttons (e.g. the catalogue product page's Add to Cart
+// button) instead of a flat solid fill, so the admin panel's chrome matches
+// the Apple-glass language used everywhere else in the app.
 function NavLink({
   href,
   active,
@@ -29,8 +37,8 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-        active ? "bg-forest-900 text-sand-50 shadow-[0_4px_14px_rgba(23,32,21,0.22)]" : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
+      className={`button-lift flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        active ? "liquid-glass-dark text-sand-50" : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
       }`}
     >
       <Icon className="h-4 w-4 shrink-0" />
@@ -44,8 +52,8 @@ function AddLink({href, active, label}: {href: Route; active: boolean; label: st
     <Link
       href={href}
       aria-label={label}
-      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-105 active:scale-95 ${
-        active ? "bg-forest-900 text-sand-50" : "text-[#a39d8d] hover:bg-[#eee7d8] hover:text-[#344332]"
+      className={`icon-button button-lift flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-transform duration-200 active:scale-90 ${
+        active ? "liquid-glass-dark text-sand-50" : "liquid-glass-on-light text-[#5c5c50] hover:text-[#344332]"
       }`}
     >
       <PlusCircle className="h-4 w-4" />
@@ -114,17 +122,17 @@ export function AdminSidebar() {
               <button
                 type="button"
                 onClick={() => setProductsExpanded((value) => !value)}
-                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                  isManage ? "bg-forest-900 text-sand-50 shadow-[0_4px_14px_rgba(23,32,21,0.22)]" : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
+                className={`button-lift flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] ${
+                  isManage ? "liquid-glass-dark text-sand-50" : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
                 }`}
               >
                 <ShoppingBag className="h-4 w-4 shrink-0" />
                 <Link href="/mimin?tab=manage" className="flex-1">
                   Manage Products
                 </Link>
-                <ChevronDown
-                  className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                    productsExpanded ? "" : "-rotate-90"
+                <ChevronUp
+                  className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ease-out ${
+                    productsExpanded ? "" : "rotate-180"
                   }`}
                 />
               </button>
@@ -132,8 +140,12 @@ export function AdminSidebar() {
             <AddLink href="/mimin?tab=add" active={isAdd} label="Add product" />
           </div>
 
-          {productsExpanded ? (
-            <div className="space-y-0.5 pt-0.5">
+          <div
+            className={`grid transition-all duration-300 ease-out ${
+              productsExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+            }`}
+          >
+            <div className="space-y-0.5 overflow-hidden pt-0.5">
               <SubItem href="/mimin?tab=manage" label="All Products" active={isManage} />
               {shopProductTypes.map((type: ShopProductType) => (
                 <SubItem
@@ -144,7 +156,7 @@ export function AdminSidebar() {
                 />
               ))}
             </div>
-          ) : null}
+          </div>
 
           <NavLink href="/mimin/stock" active={pathname === "/mimin/stock"} icon={Warehouse}>
             Stock &amp; Inventory
@@ -167,10 +179,8 @@ export function AdminSidebar() {
         </div>
         <Link
           href="/mimin/orders"
-          className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-            pathname === "/mimin/orders"
-              ? "bg-forest-900 text-sand-50 shadow-[0_4px_14px_rgba(23,32,21,0.22)]"
-              : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
+          className={`button-lift flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            pathname === "/mimin/orders" ? "liquid-glass-dark text-sand-50" : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
           }`}
         >
           <span className="flex items-center gap-2.5">
