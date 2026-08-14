@@ -146,9 +146,11 @@ function HandleGlyph({handle}: {handle: string}) {
 }
 
 function PersonalTouch({
+  index,
   config,
   onChange
 }: {
+  index: number;
   config: CustomConfig;
   onChange: (next: CustomConfig) => void;
 }) {
@@ -161,7 +163,7 @@ function PersonalTouch({
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between">
-        <StepLabel index={4}>Personal touch</StepLabel>
+        <StepLabel index={index}>Personal touch</StepLabel>
         <span className="text-[10px] uppercase tracking-[0.18em] text-forest-400">Optional</span>
       </div>
 
@@ -395,7 +397,7 @@ export function ConfigPanel({
           onSelect={(size) => onChange({...config, size: size as typeof config.size})}
         />
 
-        <PersonalTouch config={config} onChange={onChange} />
+        <PersonalTouch index={5} config={config} onChange={onChange} />
       </div>
     );
   }
@@ -441,7 +443,7 @@ export function ConfigPanel({
           <p className="text-right text-[10px] text-forest-400">{(config.clothingPreference ?? "").length} / 200</p>
         </div>
 
-        <PersonalTouch config={config} onChange={onChange} />
+        <PersonalTouch index={4} config={config} onChange={onChange} />
 
         {/* Stated plainly rather than implied by the absence of controls. */}
         <p className="rounded-2xl border border-[#e4dcc9] bg-[#faf6ec] px-3 py-2.5 text-[11px] leading-relaxed text-forest-600">
@@ -498,7 +500,7 @@ export function ConfigPanel({
         </div>
       </div>
 
-      <PersonalTouch config={config} onChange={onChange} />
+      <PersonalTouch index={5} config={config} onChange={onChange} />
     </div>
   );
 }
