@@ -24,8 +24,14 @@ export default async function MiminLayout({children}: {children: React.ReactNode
     );
   }
 
+  // Wider than the storefront's shared .shell (max-w-7xl) — the admin panel
+  // benefits from using more of a wide monitor, unlike storefront copy/imagery
+  // which reads worse stretched out. Scoped to this layout (not .shell itself)
+  // so every /mimin/* page gets it consistently without touching the public
+  // site. Still capped, not unbounded, so a 4K/ultrawide display doesn't
+  // stretch the grid absurdly thin.
   return (
-    <main className="shell py-10 sm:py-16">
+    <main className="mx-auto w-full max-w-[1800px] px-4 py-10 sm:px-6 sm:py-16 lg:px-8">
       <div className="flex flex-col gap-6 lg:flex-row">
         <AdminSidebar />
         <div className="min-w-0 flex-1">{children}</div>
