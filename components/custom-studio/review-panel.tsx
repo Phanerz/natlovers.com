@@ -332,7 +332,7 @@ export function SuccessState({
 
           <div className="mt-8 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
             <Link
-              href="/account"
+              href="/account?tab=custom"
               className="button-lift flex items-center justify-center gap-2 rounded-full bg-forest-900 px-6 py-3 text-sm font-semibold text-sand-50"
             >
               View my requests

@@ -15,6 +15,7 @@ import {
   MapPin,
   MessageCircle,
   Package,
+  Palette,
   Repeat,
   Settings,
   Trash2,
@@ -24,6 +25,8 @@ import {
   Users
 } from "lucide-react";
 import {AddressesManager} from "@/components/addresses-manager";
+import {toWhatsAppLink} from "@/lib/contact";
+import {CustomRequestsHistory} from "@/components/custom-requests-history";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {formatCurrency} from "@/lib/format";
 import type {CustomerTelemetry} from "@/lib/customers";
@@ -32,11 +35,12 @@ import {CurrencyCode, Locale, currencies, currencySymbols, locales} from "@/lib/
 import type {AdminProduct} from "@/lib/admin-products";
 import type {OrderView} from "@/lib/orders";
 
-type TabKey = "profile" | "orders" | "addresses" | "wishlist" | "payment" | "settings" | "help";
+type TabKey = "profile" | "orders" | "custom" | "addresses" | "wishlist" | "payment" | "settings" | "help";
 
 const tabs: {key: TabKey; label: string; icon: typeof User}[] = [
   {key: "profile", label: "Profile information", icon: User},
   {key: "orders", label: "Orders & purchases", icon: Package},
+  {key: "custom", label: "Custom requests", icon: Palette},
   {key: "addresses", label: "Addresses", icon: MapPin},
   {key: "wishlist", label: "Wishlist", icon: Heart},
   {key: "payment", label: "Payment methods", icon: CreditCard},
@@ -59,12 +63,8 @@ function EmptyState({title, body}: {title: string; body: string}) {
   );
 }
 
-function toWhatsAppLink(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  const withoutLeadingZero = digits.startsWith("0") ? digits.slice(1) : digits;
-  const withCountryCode = withoutLeadingZero.startsWith("62") ? withoutLeadingZero : `62${withoutLeadingZero}`;
-  return `https://wa.me/${withCountryCode}`;
-}
+// toWhatsAppLink lives in lib/contact.ts so this page and the Custom
+// Studio admin views normalise a saved phone number the same way.
 
 // Same real query the Customers CRM page uses (lib/customers.ts) — this is
 // only ever rendered when the API has already confirmed the viewer is an
@@ -490,6 +490,8 @@ function AccountContent() {
               </div>
             )
           ) : null}
+
+          {tab === "custom" ? <CustomRequestsHistory currency={currency} /> : null}
 
           {tab === "addresses" ? <AddressesManager /> : null}
 
