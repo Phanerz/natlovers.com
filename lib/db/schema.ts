@@ -1,53 +1,97 @@
-import {boolean, integer, pgTable, primaryKey, text, timestamp} from "drizzle-orm/pg-core";
+import {sql} from "drizzle-orm";
+import {boolean, integer, pgPolicy, pgTable, primaryKey, text, timestamp} from "drizzle-orm/pg-core";
 
 type ProviderType = "oauth" | "email" | "credentials";
 
-export const products = pgTable("products", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  slug: text("slug").notNull().unique(),
-  name: text("name").notNull(),
-  priceIdr: integer("price_idr").notNull(),
-  description: text("description"),
-  images: text("images").array().notNull().default([]),
-  // Bags/Dolls-only.
-  size: text("size"),
-  materials: text("materials").array().notNull().default([]),
-  // Bags-only.
-  shape: text("shape"),
-  handleType: text("handle_type"),
-  // Accessories-only.
-  accessoryCategory: text("accessory_category"),
-  productType: text("product_type").notNull(),
-  tags: text("tags").array().notNull().default([]),
-  soldOut: boolean("sold_out").notNull().default(false),
-  isActive: boolean("is_active").notNull().default(true),
-  // Optional — most products don't track a count yet. When set, it's
-  // decremented on payment confirmation (see markOrderPaid in lib/orders.ts)
-  // and floored at 0 rather than going negative.
-  stock: integer("stock"),
-  // Includes the "NAT-" prefix (e.g. "NAT-BAG007"), stored whole rather than
-  // split, so every read site (table, form, order emails) shows the same
-  // string without reassembling it. Optional — older products have none.
-  productCode: text("product_code").unique(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
-});
+// RLS note (applies to every table below): the app's own Postgres role
+// (see DB_POSTGRES_URL — connects as the Supabase-managed `postgres` role)
+// has BYPASSRLS, confirmed via `select rolbypassrls from pg_roles`, so none
+// of this affects the Next.js server's own queries. What it does affect is
+// Supabase's auto-generated PostgREST/GraphQL API, which is reachable by
+// anyone holding the project's anon key regardless of whether this app
+// happens to use it — RLS is what stands between that API and this data.
+//
+// This app authenticates entirely through NextAuth (its own session table,
+// checked server-side), not Supabase Auth — no Supabase JWT is ever issued
+// for a signed-in user, so `auth.uid()` is always null for every request
+// PostgREST receives here. A policy written as `auth.uid() = user_id`
+// would look like a real "read your own row" rule but would never actually
+// match anyone, since there's no session for it to match against — writing
+// one would be misleading, not protective. So every PII-bearing table below
+// gets RLS enabled with *no* policies for `anon`/`authenticated`, which
+// means default-deny for the public API while the app itself is unaffected.
+// Only genuinely public storefront data (products, hero cards) gets a real
+// anon-readable policy, since that data is meant to be public regardless of
+// which door it's read through.
+export const products = pgTable(
+  "products",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    slug: text("slug").notNull().unique(),
+    name: text("name").notNull(),
+    priceIdr: integer("price_idr").notNull(),
+    description: text("description"),
+    images: text("images").array().notNull().default([]),
+    // Bags/Dolls-only.
+    size: text("size"),
+    materials: text("materials").array().notNull().default([]),
+    // Bags-only.
+    shape: text("shape"),
+    handleType: text("handle_type"),
+    // Accessories-only.
+    accessoryCategory: text("accessory_category"),
+    productType: text("product_type").notNull(),
+    tags: text("tags").array().notNull().default([]),
+    soldOut: boolean("sold_out").notNull().default(false),
+    isActive: boolean("is_active").notNull().default(true),
+    // Optional — most products don't track a count yet. When set, it's
+    // decremented on payment confirmation (see markOrderPaid in lib/orders.ts)
+    // and floored at 0 rather than going negative.
+    stock: integer("stock"),
+    // Includes the "NAT-" prefix (e.g. "NAT-BAG007"), stored whole rather than
+    // split, so every read site (table, form, order emails) shows the same
+    // string without reassembling it. Optional — older products have none.
+    productCode: text("product_code").unique(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow()
+  },
+  (table) => [
+    // Only active/visible products — a hidden or deactivated product must
+    // stay invisible to the public API the same way it's invisible on the
+    // storefront. Writes are never granted here: creating/editing products
+    // stays server-only via the bypassing app role.
+    pgPolicy("Public can view active products", {
+      as: "permissive",
+      for: "select",
+      to: "anon",
+      using: sql`${table.isActive} = true`
+    })
+  ]
+).enableRLS();
 
 // Hero card stack (Tinder-style swipeable deck on the homepage hero). Rows
 // are shown in displayOrder; card_type picks which field the card renders
 // from ('color' -> colorValue, 'image' -> imageUrl).
-export const heroCards = pgTable("hero_cards", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  displayOrder: integer("display_order").notNull().default(0),
-  cardType: text("card_type").notNull().default("color"),
-  colorValue: text("color_value"),
-  imageUrl: text("image_url"),
-  createdAt: timestamp("created_at").notNull().defaultNow()
-});
+export const heroCards = pgTable(
+  "hero_cards",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    displayOrder: integer("display_order").notNull().default(0),
+    cardType: text("card_type").notNull().default("color"),
+    colorValue: text("color_value"),
+    imageUrl: text("image_url"),
+    createdAt: timestamp("created_at").notNull().defaultNow()
+  },
+  () => [
+    // Every row here is meant to be shown on the public homepage — there's
+    // no hidden/draft state, so no filter is needed on top of "public".
+    pgPolicy("Public can view hero cards", {as: "permissive", for: "select", to: "anon", using: sql`true`})
+  ]
+).enableRLS();
 
 // NextAuth @auth/drizzle-adapter Postgres schema, matched field-for-field to
 // the adapter's own table definitions (packages/adapter-drizzle/src/lib/pg.ts)
@@ -65,7 +109,7 @@ export const users = pgTable("user", {
   // safely ignored by it and only touched by our own /api/account route.
   phone: text("phone"),
   bio: text("bio")
-});
+}).enableRLS();
 
 // A customer's reusable, editable shipping address — kept separate from any
 // order so it can be added/edited/reused across checkouts. What actually
@@ -94,7 +138,7 @@ export const addresses = pgTable("addresses", {
   isDefault: boolean("is_default").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
-});
+}).enableRLS();
 
 export const wishlistItems = pgTable(
   "wishlist_items",
@@ -108,7 +152,7 @@ export const wishlistItems = pgTable(
   (table) => ({
     compositePk: primaryKey({columns: [table.userId, table.productSlug]})
   })
-);
+).enableRLS();
 
 export const cartItems = pgTable(
   "cart_items",
@@ -124,7 +168,7 @@ export const cartItems = pgTable(
   (table) => ({
     compositePk: primaryKey({columns: [table.userId, table.productSlug]})
   })
-);
+).enableRLS();
 
 export const orders = pgTable("orders", {
   id: text("id")
@@ -161,7 +205,7 @@ export const orders = pgTable("orders", {
   shippingProvince: text("shipping_province"),
   shippingPostalCode: text("shipping_postal_code").notNull(),
   shippingCountry: text("shipping_country").notNull()
-});
+}).enableRLS();
 
 // Snapshots product name/price at order time — deliberately not a foreign
 // key to `products`, so an order stays accurate even if the product is
@@ -177,7 +221,7 @@ export const orderItems = pgTable("order_items", {
   productName: text("product_name").notNull(),
   priceIdr: integer("price_idr").notNull(),
   quantity: integer("quantity").notNull()
-});
+}).enableRLS();
 
 export const accounts = pgTable(
   "account",
@@ -199,7 +243,7 @@ export const accounts = pgTable(
   (account) => ({
     compositePk: primaryKey({columns: [account.provider, account.providerAccountId]})
   })
-);
+).enableRLS();
 
 export const sessions = pgTable("session", {
   sessionToken: text("sessionToken").primaryKey(),
@@ -207,7 +251,7 @@ export const sessions = pgTable("session", {
     .notNull()
     .references(() => users.id, {onDelete: "cascade"}),
   expires: timestamp("expires", {mode: "date"}).notNull()
-});
+}).enableRLS();
 
 export const verificationTokens = pgTable(
   "verificationToken",
@@ -219,4 +263,4 @@ export const verificationTokens = pgTable(
   (verificationToken) => ({
     compositePk: primaryKey({columns: [verificationToken.identifier, verificationToken.token]})
   })
-);
+).enableRLS();

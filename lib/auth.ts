@@ -60,12 +60,18 @@ function magicLinkEmailHtml(url: string) {
 }
 
 export const authOptions: NextAuthOptions = {
+  // @auth/drizzle-adapter's own types expect these tables in their
+  // pre-`.enableRLS()` shape (its type still requires `enableRLS` to be a
+  // callable method it never actually calls) — a type-only mismatch from
+  // enabling RLS on the NextAuth tables in schema.ts, not a runtime one;
+  // the adapter works from the table's columns/name, which are unchanged.
   adapter: DrizzleAdapter(db, {
     usersTable: users,
     accountsTable: accounts,
     sessionsTable: sessions,
     verificationTokensTable: verificationTokens
-  }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any),
   providers: [
     GoogleProvider({
       id: "google-admin",
