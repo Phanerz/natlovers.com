@@ -25,8 +25,12 @@ export type AdminProduct = ShopProduct & {
   description: string | null;
   tags: string[];
   isActive: boolean;
+  stock: number | null;
+  productCode: string | null;
   updatedAt: string;
 };
+
+export const PRODUCT_CODE_PREFIX = "NAT-";
 
 // Every per-type attribute is optional at the schema level — which fields
 // are actually required is enforced per productType below, not here, since
@@ -73,6 +77,33 @@ async function uniqueSlug(base: string) {
   return `${safeBase}-${suffix}`;
 }
 
+// Both fields are optional and "cleared" (empty input) means null, not 0 or
+// "" — handled outside the zod object above since that clear-to-null
+// behavior doesn't fit the shared create/.partial() update schema cleanly.
+function parseStockField(formData: FormData): number | null {
+  const raw = formData.get("stock");
+  if (raw === null || raw.toString().trim() === "") {
+    return null;
+  }
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error("Stock must be a whole number of 0 or more.");
+  }
+  return value;
+}
+
+function parseProductCodeField(formData: FormData): string | null {
+  const raw = formData.get("productCode");
+  if (raw === null || raw.toString().trim() === "") {
+    return null;
+  }
+  const code = raw.toString().trim();
+  if (!code.startsWith(PRODUCT_CODE_PREFIX) || code.length === PRODUCT_CODE_PREFIX.length) {
+    throw new Error(`Product code must start with "${PRODUCT_CODE_PREFIX}" and include a code after it.`);
+  }
+  return code;
+}
+
 function toAdminProduct(row: typeof products.$inferSelect): AdminProduct {
   return {
     slug: row.slug,
@@ -90,8 +121,17 @@ function toAdminProduct(row: typeof products.$inferSelect): AdminProduct {
     tags: row.tags,
     soldOut: row.soldOut,
     isActive: row.isActive,
+    stock: row.stock,
+    productCode: row.productCode,
     updatedAt: row.updatedAt.toISOString()
   };
+}
+
+async function assertProductCodeAvailable(code: string, excludeSlug?: string) {
+  const [existing] = await db.select({slug: products.slug}).from(products).where(eq(products.productCode, code));
+  if (existing && existing.slug !== excludeSlug) {
+    throw new Error(`Product code "${code}" is already in use.`);
+  }
 }
 
 async function uploadImages(slug: string, files: File[]): Promise<string[]> {
@@ -192,6 +232,12 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     throw new Error("At least one image is required.");
   }
 
+  const stock = parseStockField(formData);
+  const productCode = parseProductCodeField(formData);
+  if (productCode) {
+    await assertProductCodeAvailable(productCode);
+  }
+
   const slug = await uniqueSlug(slugify(parsed.name));
   const images = await uploadImages(slug, imageFiles);
 
@@ -209,7 +255,9 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       shape: attributes.shape,
       handleType: attributes.handleType,
       accessoryCategory: attributes.accessoryCategory,
-      tags: parsed.tags ?? []
+      tags: parsed.tags ?? [],
+      stock,
+      productCode
     })
     .returning();
 
@@ -235,6 +283,12 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
   if (formData.getAll("tags").length) raw.tags = formData.getAll("tags").map(String);
 
   const parsed = shopProductUpdateSchema.parse(raw);
+
+  const stock = formData.has("stock") ? parseStockField(formData) : existing.stock;
+  const productCode = formData.has("productCode") ? parseProductCodeField(formData) : existing.productCode;
+  if (productCode && productCode !== existing.productCode) {
+    await assertProductCodeAvailable(productCode, slug);
+  }
 
   // productType may not be changing on this edit — attribute validation
   // always runs against whichever type the product actually is (the
@@ -270,6 +324,8 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       materials: attributes.materials,
       ...(parsed.tags !== undefined ? {tags: parsed.tags} : {}),
       ...(images ? {images} : {}),
+      stock,
+      productCode,
       updatedAt: new Date()
     })
     .where(eq(products.slug, slug))
@@ -278,11 +334,13 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
   return toAdminProduct(row);
 }
 
-export async function deactivateProduct(slug: string) {
-  await db
-    .update(products)
-    .set({isActive: false, updatedAt: new Date()})
-    .where(eq(products.slug, slug));
+// order_items snapshot productName/priceIdr at order time with no foreign
+// key back to `products` — so a hard delete here can never orphan or
+// corrupt existing order history, even for a product that's been ordered
+// before. Safe to call unconditionally.
+export async function deleteProductPermanently(slug: string): Promise<boolean> {
+  const [deleted] = await db.delete(products).where(eq(products.slug, slug)).returning({slug: products.slug});
+  return Boolean(deleted);
 }
 
 export async function setProductActive(slug: string, isActive: boolean): Promise<AdminProduct> {

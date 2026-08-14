@@ -2,6 +2,7 @@
 
 import {FormEvent, useEffect, useState} from "react";
 import {signOut} from "next-auth/react";
+import {ShopProductType} from "@/app/catalogue/shop-data";
 import {submitFormData} from "@/lib/xhr-form-submit";
 import {AdminSidebar, AdminTab} from "./admin-sidebar";
 import {DashboardHome} from "./dashboard-home";
@@ -15,8 +16,16 @@ import {AdminProduct, ProductFormState, buildFormData, emptyForm, formFromProduc
 
 type Tab = AdminTab;
 
+type TypeFilter = "all" | ShopProductType;
+
 export function AdminDashboard({userEmail}: {userEmail: string}) {
   const [tab, setTab] = useState<Tab>("dashboard");
+  // `nonce` increments on every sidebar category click, even re-clicking the
+  // same category — that's what lets ManageProductsPanel's effect re-apply
+  // the filter every time, instead of only when the type value itself
+  // changes (which wouldn't fire if the panel's own pills had since
+  // diverged from the sidebar's last selection).
+  const [categorySelection, setCategorySelection] = useState<{type: TypeFilter; nonce: number}>({type: "all", nonce: 0});
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [toast, setToast] = useState<ToastState>(null);
@@ -200,6 +209,81 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
     }
   }
 
+  // Batches the same per-slug PATCH/DELETE calls the single-row actions
+  // already use, just with one confirm/toast/refresh for the whole
+  // selection instead of one per row.
+  async function handleBulkDeactivate(slugs: string[]) {
+    if (!slugs.length) return;
+    if (!window.confirm(`Hide ${slugs.length} product${slugs.length === 1 ? "" : "s"}? They'll be hidden from the storefront until unhidden.`)) {
+      return;
+    }
+    setBusySlug("bulk");
+    try {
+      await Promise.all(
+        slugs.map((slug) => fetch(`/api/admin/products?slug=${encodeURIComponent(slug)}&action=deactivate`, {method: "PATCH"}))
+      );
+      setToast({type: "success", message: `${slugs.length} product${slugs.length === 1 ? "" : "s"} hidden.`});
+      await loadProducts();
+    } finally {
+      setBusySlug(null);
+    }
+  }
+
+  async function handleBulkActivate(slugs: string[]) {
+    if (!slugs.length) return;
+    setBusySlug("bulk");
+    try {
+      await Promise.all(
+        slugs.map((slug) => fetch(`/api/admin/products?slug=${encodeURIComponent(slug)}&action=activate`, {method: "PATCH"}))
+      );
+      setToast({type: "success", message: `${slugs.length} product${slugs.length === 1 ? "" : "s"} unhidden.`});
+      await loadProducts();
+    } finally {
+      setBusySlug(null);
+    }
+  }
+
+  async function handleBulkDelete(slugs: string[]) {
+    if (!slugs.length) return;
+    if (
+      !window.confirm(
+        `Permanently delete ${slugs.length} product${slugs.length === 1 ? "" : "s"}? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setBusySlug("bulk");
+    try {
+      await Promise.all(slugs.map((slug) => fetch(`/api/admin/products?slug=${encodeURIComponent(slug)}`, {method: "DELETE"})));
+      setToast({type: "success", message: `${slugs.length} product${slugs.length === 1 ? "" : "s"} deleted.`});
+      await loadProducts();
+    } finally {
+      setBusySlug(null);
+    }
+  }
+
+  async function handleDeleteProduct(product: AdminProduct) {
+    if (!window.confirm(`Permanently delete "${product.name}"? This cannot be undone.`)) {
+      return;
+    }
+    setBusySlug(product.slug);
+    try {
+      const response = await fetch(`/api/admin/products?slug=${encodeURIComponent(product.slug)}`, {method: "DELETE"});
+      if (!response.ok) {
+        setToast({type: "error", message: "Could not delete the product."});
+        return;
+      }
+      setToast({type: "success", message: `"${product.name}" was deleted.`});
+      if (editingProduct?.slug === product.slug) {
+        setEditingProduct(null);
+        setTab("manage");
+      }
+      await loadProducts();
+    } finally {
+      setBusySlug(null);
+    }
+  }
+
   async function handleCreateHeroCard(event: FormEvent) {
     event.preventDefault();
     setCreateHeroCardError(null);
@@ -252,22 +336,27 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
     }
   }
 
-  async function handleReorderHeroCard(card: AdminHeroCard, direction: "up" | "down") {
-    setBusyHeroCardId(card.id);
+  async function handleReorderHeroCards(orderedIds: string[]) {
     try {
-      const response = await fetch(`/api/admin/hero-cards?id=${encodeURIComponent(card.id)}`, {
+      const response = await fetch("/api/admin/hero-cards", {
         method: "PATCH",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({direction})
+        body: JSON.stringify({order: orderedIds})
       });
       if (!response.ok) {
-        setToast({type: "error", message: "Could not reorder the hero card."});
+        setToast({type: "error", message: "Could not save the new order."});
+        await loadHeroCards();
         return;
       }
       await loadHeroCards();
-    } finally {
-      setBusyHeroCardId(null);
+    } catch {
+      setToast({type: "error", message: "Could not reach the server. Please check your connection and try again."});
+      await loadHeroCards();
     }
+  }
+
+  function selectCategory(type: TypeFilter) {
+    setCategorySelection((previous) => ({type, nonce: previous.nonce + 1}));
   }
 
   async function handleLogout() {
@@ -301,7 +390,7 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
       </div>
 
       <div className="flex flex-col gap-6 lg:flex-row">
-        <AdminSidebar tab={tab} onTabChange={setTab} />
+        <AdminSidebar tab={tab} onTabChange={setTab} selectedType={categorySelection.type} onSelectType={selectCategory} />
 
         <div className="min-w-0 flex-1 space-y-8">
           {tab === "dashboard" ? <DashboardHome onNavigate={setTab} /> : null}
@@ -318,6 +407,10 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
                 errorMessage={editError}
                 existingImages={editingProduct.images}
                 onCancel={cancelEdit}
+                product={editingProduct}
+                onDeactivate={() => handleDeactivate(editingProduct)}
+                onActivate={() => handleActivate(editingProduct)}
+                onDelete={() => handleDeleteProduct(editingProduct)}
               />
             ) : (
               <ProductForm
@@ -340,6 +433,11 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
               onDeactivate={handleDeactivate}
               onActivate={handleActivate}
               busySlug={busySlug}
+              filterType={categorySelection.type}
+              filterNonce={categorySelection.nonce}
+              onBulkDeactivate={handleBulkDeactivate}
+              onBulkActivate={handleBulkActivate}
+              onBulkDelete={handleBulkDelete}
             />
           ) : null}
 
@@ -359,7 +457,7 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
               cards={heroCards}
               loading={loadingHeroCards}
               onDelete={handleDeleteHeroCard}
-              onReorder={handleReorderHeroCard}
+              onReorder={handleReorderHeroCards}
               busyId={busyHeroCardId}
             />
           ) : null}

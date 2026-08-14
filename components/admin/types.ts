@@ -28,8 +28,12 @@ export type AdminProduct = {
   tags: string[];
   soldOut?: boolean;
   isActive: boolean;
+  stock: number | null;
+  productCode: string | null;
   updatedAt: string;
 };
+
+export const PRODUCT_CODE_PREFIX = "NAT-";
 
 // Every per-type field is kept populated with a sensible default at all
 // times (not left undefined) so switching Product Type in the form never
@@ -47,6 +51,13 @@ export type ProductFormState = {
   materials: ShopMaterial[];
   tags: string;
   images: File[];
+  // Empty string means "not tracked" — kept as strings (not number | null)
+  // since these are plain controlled inputs; buildFormData below is what
+  // decides what null/empty actually means when it builds the request.
+  stock: string;
+  // Just the part after the fixed "NAT-" prefix — the prefix itself is
+  // rendered read-only in the form and re-joined in buildFormData.
+  productCodeSuffix: string;
 };
 
 export function emptyForm(): ProductFormState {
@@ -61,7 +72,9 @@ export function emptyForm(): ProductFormState {
     accessoryCategory: accessoryCategories[0],
     materials: [],
     tags: "",
-    images: []
+    images: [],
+    stock: "",
+    productCodeSuffix: ""
   };
 }
 
@@ -77,7 +90,9 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     accessoryCategory: product.accessoryCategory ?? accessoryCategories[0],
     materials: product.materials,
     tags: product.tags.join(", "),
-    images: []
+    images: [],
+    stock: product.stock !== null ? String(product.stock) : "",
+    productCodeSuffix: product.productCode ? product.productCode.slice(PRODUCT_CODE_PREFIX.length) : ""
   };
 }
 
@@ -111,5 +126,9 @@ export function buildFormData(form: ProductFormState) {
     .filter(Boolean)
     .forEach((tag) => formData.append("tags", tag));
   form.images.forEach((file) => formData.append("images", file));
+
+  formData.set("stock", form.stock.trim());
+  formData.set("productCode", form.productCodeSuffix.trim() ? `${PRODUCT_CODE_PREFIX}${form.productCodeSuffix.trim()}` : "");
+
   return formData;
 }

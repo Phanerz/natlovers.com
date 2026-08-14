@@ -241,6 +241,25 @@ async function getAdminOrderById(orderId: string): Promise<AdminOrderView | null
   return view ?? null;
 }
 
+// Only touches products that opted into stock tracking (stock IS NOT NULL)
+// — matched by the productSlug snapshotted on the order_item, since that's
+// the only link back to the catalogue an order keeps. A product renamed,
+// deleted, or with an untracked slug (stock still null) is silently
+// skipped, floored at 0 rather than going negative for oversold items.
+async function decrementStockForOrder(orderId: string): Promise<void> {
+  const items = await db
+    .select({productSlug: orderItems.productSlug, quantity: orderItems.quantity})
+    .from(orderItems)
+    .where(eq(orderItems.orderId, orderId));
+
+  for (const item of items) {
+    await db
+      .update(products)
+      .set({stock: sql`greatest(${products.stock} - ${item.quantity}, 0)`})
+      .where(and(eq(products.slug, item.productSlug), sql`${products.stock} is not null`));
+  }
+}
+
 export type MarkOrderPaidResult =
   | {ok: true; alreadyPaid: boolean; order: AdminOrderView}
   | {ok: false; error: "not_found" | "invalid_status"};
@@ -259,6 +278,7 @@ export async function markOrderPaid(orderId: string, adminEmail: string): Promis
     .returning({id: orders.id});
 
   if (updated) {
+    await decrementStockForOrder(orderId);
     const order = await getAdminOrderById(orderId);
     return {ok: true, alreadyPaid: false, order: order!};
   }

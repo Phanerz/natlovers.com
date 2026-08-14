@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import {ArrowDown, ArrowUp, Trash2} from "lucide-react";
+import {Reorder, useDragControls} from "framer-motion";
+import {useEffect, useRef, useState} from "react";
+import {GripVertical, Trash2} from "lucide-react";
 import {AdminHeroCard} from "./hero-card-types";
 
 function CardPreview({card}: {card: AdminHeroCard}) {
@@ -20,6 +22,57 @@ function CardPreview({card}: {card: AdminHeroCard}) {
   );
 }
 
+function HeroCardRow({
+  card,
+  busy,
+  onDelete,
+  onDragEnd
+}: {
+  card: AdminHeroCard;
+  busy: boolean;
+  onDelete: (card: AdminHeroCard) => void;
+  onDragEnd: () => void;
+}) {
+  const dragControls = useDragControls();
+
+  return (
+    <Reorder.Item
+      value={card}
+      dragListener={false}
+      dragControls={dragControls}
+      onDragEnd={onDragEnd}
+      className="flex flex-wrap items-center gap-4 rounded-2xl border border-[#e7ddc6] bg-[#fffdf9] p-4"
+      whileDrag={{boxShadow: "0 14px 32px rgba(23,32,21,0.18)", scale: 1.01}}
+    >
+      <button
+        type="button"
+        aria-label="Drag to reorder"
+        onPointerDown={(event) => dragControls.start(event)}
+        className="icon-button flex h-9 w-9 shrink-0 cursor-grab items-center justify-center rounded-full border border-[#d4c5ab] text-forest-500 active:cursor-grabbing"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <CardPreview card={card} />
+
+      <div className="min-w-[12rem] flex-1">
+        <p className="font-display text-base capitalize text-forest-900">{card.cardType}</p>
+        <p className="line-clamp-2 text-sm text-forest-600">{card.cardType === "color" ? card.colorValue : "Image card"}</p>
+      </div>
+
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => onDelete(card)}
+        aria-label="Delete hero card"
+        className="icon-button flex h-9 w-9 items-center justify-center rounded-full border border-[#d4c5ab] text-red-600 disabled:opacity-50"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </Reorder.Item>
+  );
+}
+
 export function ManageHeroCardsPanel({
   cards,
   loading,
@@ -30,69 +83,44 @@ export function ManageHeroCardsPanel({
   cards: AdminHeroCard[];
   loading: boolean;
   onDelete: (card: AdminHeroCard) => void;
-  onReorder: (card: AdminHeroCard, direction: "up" | "down") => void;
+  onReorder: (orderedIds: string[]) => void;
   busyId: string | null;
 }) {
-  const ordered = [...cards].sort((a, b) => a.displayOrder - b.displayOrder);
+  const [order, setOrder] = useState<AdminHeroCard[]>(() => [...cards].sort((a, b) => a.displayOrder - b.displayOrder));
+
+  // Reorder.Item's onDragEnd fires once per drag gesture — reading `order`
+  // straight from the closure risks catching a render from just before the
+  // final onReorder update, so the drag-end handler reads this ref instead,
+  // which is always current.
+  const orderRef = useRef(order);
+  orderRef.current = order;
+
+  // Re-sync from the server-confirmed list whenever it changes (initial
+  // load, after a delete, after a reorder round-trips) — but not on every
+  // parent re-render, so a drag in progress doesn't get yanked out from
+  // under the pointer.
+  useEffect(() => {
+    setOrder([...cards].sort((a, b) => a.displayOrder - b.displayOrder));
+  }, [cards]);
 
   return (
     <div className="card space-y-5 p-6 sm:p-8">
-      <h2 className="font-display text-2xl text-forest-900">Manage Hero Cards ({ordered.length})</h2>
+      <h2 className="font-display text-2xl text-forest-900">Manage Hero Cards ({order.length})</h2>
 
       {loading ? (
         <p className="py-10 text-center text-sm text-forest-600">Loading hero cards...</p>
-      ) : ordered.length ? (
-        <div className="space-y-3">
-          {ordered.map((card, index) => {
-            const busy = busyId === card.id;
-
-            return (
-              <div
-                key={card.id}
-                className="flex flex-wrap items-center gap-4 rounded-2xl border border-[#e7ddc6] bg-[#fffdf9] p-4"
-              >
-                <CardPreview card={card} />
-
-                <div className="min-w-[12rem] flex-1">
-                  <p className="font-display text-base capitalize text-forest-900">{card.cardType}</p>
-                  <p className="line-clamp-2 text-sm text-forest-600">
-                    {card.cardType === "color" ? card.colorValue : "Image card"}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={busy || index === 0}
-                    onClick={() => onReorder(card, "up")}
-                    aria-label="Move up"
-                    className="icon-button flex h-9 w-9 items-center justify-center rounded-full border border-[#d4c5ab] text-forest-700 disabled:opacity-30"
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy || index === ordered.length - 1}
-                    onClick={() => onReorder(card, "down")}
-                    aria-label="Move down"
-                    className="icon-button flex h-9 w-9 items-center justify-center rounded-full border border-[#d4c5ab] text-forest-700 disabled:opacity-30"
-                  >
-                    <ArrowDown className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => onDelete(card)}
-                    aria-label="Delete hero card"
-                    className="icon-button flex h-9 w-9 items-center justify-center rounded-full border border-[#d4c5ab] text-red-600 disabled:opacity-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      ) : order.length ? (
+        <Reorder.Group axis="y" values={order} onReorder={setOrder} className="space-y-3">
+          {order.map((card) => (
+            <HeroCardRow
+              key={card.id}
+              card={card}
+              busy={busyId === card.id}
+              onDelete={onDelete}
+              onDragEnd={() => onReorder(orderRef.current.map((item) => item.id))}
+            />
+          ))}
+        </Reorder.Group>
       ) : (
         <p className="py-10 text-center text-sm text-forest-600">No hero cards yet.</p>
       )}

@@ -60,7 +60,19 @@ function SubItem({label, active, onClick}: {label: string; active: boolean; onCl
   );
 }
 
-export function AdminSidebar({tab, onTabChange}: {tab: Tab; onTabChange: (tab: Tab) => void}) {
+type TypeFilter = "all" | ShopProductType;
+
+export function AdminSidebar({
+  tab,
+  onTabChange,
+  selectedType,
+  onSelectType
+}: {
+  tab: Tab;
+  onTabChange: (tab: Tab) => void;
+  selectedType: TypeFilter;
+  onSelectType: (type: TypeFilter) => void;
+}) {
   const [ordersAwaiting, setOrdersAwaiting] = useState<number | null>(null);
   const [productsExpanded, setProductsExpanded] = useState(true);
 
@@ -98,6 +110,7 @@ export function AdminSidebar({tab, onTabChange}: {tab: Tab; onTabChange: (tab: T
                 type="button"
                 onClick={() => {
                   onTabChange("manage");
+                  onSelectType("all");
                   setProductsExpanded(true);
                 }}
                 className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-colors duration-150 ${
@@ -120,9 +133,24 @@ export function AdminSidebar({tab, onTabChange}: {tab: Tab; onTabChange: (tab: T
 
           {productsExpanded ? (
             <div className="space-y-0.5 pt-0.5">
-              <SubItem label="All Products" active={tab === "manage"} onClick={() => onTabChange("manage")} />
+              <SubItem
+                label="All Products"
+                active={tab === "manage" && selectedType === "all"}
+                onClick={() => {
+                  onTabChange("manage");
+                  onSelectType("all");
+                }}
+              />
               {shopProductTypes.map((type: ShopProductType) => (
-                <SubItem key={type} label={productTypeLabels[type].en} active={false} onClick={() => onTabChange("manage")} />
+                <SubItem
+                  key={type}
+                  label={productTypeLabels[type].en}
+                  active={tab === "manage" && selectedType === type}
+                  onClick={() => {
+                    onTabChange("manage");
+                    onSelectType(type);
+                  }}
+                />
               ))}
             </div>
           ) : null}
