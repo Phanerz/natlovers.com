@@ -193,12 +193,25 @@ export default async function AdminCustomerDetailPage({params}: {params: Promise
 
           <div className="space-y-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-forest-500">Address</p>
-            {/* No shipping-address schema exists yet — an honest empty
-                state rather than a fabricated placeholder. */}
-            <div className="flex items-start gap-2 text-sm text-forest-400">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>No shipping address on file.</span>
-            </div>
+            {customer.address ? (
+              <div className="flex items-start gap-2 text-sm text-forest-700">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-forest-500" />
+                <div className="space-y-0.5">
+                  <p className="font-medium text-forest-900">{customer.address.recipientName}</p>
+                  <p>{customer.address.street}</p>
+                  <p>
+                    {customer.address.city}
+                    {customer.address.province ? `, ${customer.address.province}` : ""} {customer.address.postalCode}
+                  </p>
+                  <p>{customer.address.country}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 text-sm text-forest-400">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>No shipping address on file.</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

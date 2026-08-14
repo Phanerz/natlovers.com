@@ -121,9 +121,9 @@ export function CustomersDirectory({customers}: {customers: CustomerListRow[]}) 
                   <td className="py-3 pr-3 whitespace-nowrap text-forest-700">
                     {customer.orderCount} order{customer.orderCount === 1 ? "" : "s"}
                   </td>
-                  {/* No shipping-address data exists anywhere in the schema
-                      yet, so this is always an honest "—", never a guess. */}
-                  <td className="py-3 pr-3 text-forest-400">—</td>
+                  <td className="py-3 pr-3 text-forest-700">
+                    {customer.city ?? <span className="text-forest-400">—</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -1,4 +1,5 @@
 import {and, desc, eq, gte, inArray, lte, sql} from "drizzle-orm";
+import {AddressInput, createAddress, getDefaultAddress, updateAddress} from "@/lib/addresses";
 import {clearCart} from "@/lib/cart";
 import {db, orderItems, orders, products, users} from "@/lib/db";
 
@@ -26,10 +27,14 @@ function generateOrderRef(): string {
 // than trusted from the client request, so a tampered request can't submit
 // an arbitrary total — and the result is a snapshot into order_items, so
 // the order stays accurate even if the product is edited or removed later.
+// The shipping address gets the same snapshot treatment: what's stored on
+// the order is a frozen copy, independent of the reusable `addresses` row
+// it's also saved to below (for next time's checkout to prefill from).
 export async function createOrder(
   userId: string,
   requestedItems: {slug: string; quantity: number}[],
-  bank: {bankName: string; accountName: string; accountNumber: string}
+  bank: {bankName: string; accountName: string; accountNumber: string},
+  address: AddressInput
 ): Promise<OrderView> {
   const slugs = requestedItems.map((item) => item.slug);
   if (!slugs.length) {
@@ -72,11 +77,29 @@ export async function createOrder(
       totalIdr,
       bankName: bank.bankName,
       accountName: bank.accountName,
-      accountNumber: bank.accountNumber
+      accountNumber: bank.accountNumber,
+      shippingRecipientName: address.recipientName,
+      shippingPhone: address.phone,
+      shippingStreet: address.street,
+      shippingCity: address.city,
+      shippingProvince: address.province || null,
+      shippingPostalCode: address.postalCode,
+      shippingCountry: address.country
     })
     .returning();
 
   await db.insert(orderItems).values(lineItems.map((item) => ({...item, orderId: order.id})));
+
+  // Checking out also keeps the customer's saved address current — updates
+  // their existing default in place, or saves this as their first one — so
+  // the next checkout (and the admin's view of this customer) reflects
+  // where they actually just had something shipped.
+  const existingDefault = await getDefaultAddress(userId);
+  if (existingDefault) {
+    await updateAddress(userId, existingDefault.id, address, true);
+  } else {
+    await createAddress(userId, address, true);
+  }
 
   // The order is now the record of these items — clear them out of the
   // active cart so the drawer doesn't show already-ordered pieces.

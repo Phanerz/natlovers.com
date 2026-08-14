@@ -1,5 +1,6 @@
 import {count, desc, eq, inArray, min, sql} from "drizzle-orm";
-import {db, orderItems, orders, users} from "@/lib/db";
+import {AddressView, getDefaultAddress} from "@/lib/addresses";
+import {addresses, db, orderItems, orders, users} from "@/lib/db";
 
 // Orders in these statuses represent money actually received — same
 // convention as lib/dashboard-stats.ts's revenue math, so "Total Spent"
@@ -32,6 +33,7 @@ export type CustomerListRow = {
   image: string | null;
   firstOrderAt: string | null;
   orderCount: number;
+  city: string | null;
 };
 
 export type CustomerOrderRow = {
@@ -54,6 +56,7 @@ export type CustomerDetail = {
   firstOrderAt: string | null;
   lastOrderAt: string | null;
   orders: CustomerOrderRow[];
+  address: AddressView | null;
 };
 
 // Per-user order aggregates (first order date + order count), shared by the
@@ -106,17 +109,20 @@ export async function getCustomerTelemetry(): Promise<CustomerTelemetry> {
 }
 
 export async function getCustomerListView(): Promise<CustomerListRow[]> {
-  const [customerRows, aggregates] = await Promise.all([
+  const [customerRows, aggregates, defaultAddressRows] = await Promise.all([
     db.select({id: users.id, name: users.name, email: users.email, phone: users.phone, image: users.image}).from(users),
-    getOrderAggregatesByUser()
+    getOrderAggregatesByUser(),
+    db.select({userId: addresses.userId, city: addresses.city}).from(addresses).where(eq(addresses.isDefault, true))
   ]);
+  const cityByUser = new Map(defaultAddressRows.map((row) => [row.userId, row.city]));
 
   return customerRows.map((customer) => {
     const agg = aggregates.get(customer.id);
     return {
       ...customer,
       firstOrderAt: agg ? agg.firstOrderAt.toISOString() : null,
-      orderCount: agg ? agg.orderCount : 0
+      orderCount: agg ? agg.orderCount : 0,
+      city: cityByUser.get(customer.id) ?? null
     };
   });
 }
@@ -137,8 +143,10 @@ export async function getCustomerDetail(userId: string): Promise<CustomerDetail 
     .where(eq(orders.userId, userId))
     .orderBy(desc(orders.createdAt));
 
+  const address = await getDefaultAddress(userId);
+
   if (!orderRows.length) {
-    return {...customer, totalOrders: 0, totalSpentIdr: 0, firstOrderAt: null, lastOrderAt: null, orders: []};
+    return {...customer, totalOrders: 0, totalSpentIdr: 0, firstOrderAt: null, lastOrderAt: null, orders: [], address};
   }
 
   const itemCountRows = await db
@@ -170,6 +178,7 @@ export async function getCustomerDetail(userId: string): Promise<CustomerDetail 
       totalIdr: order.totalIdr,
       itemCount: itemCountByOrder.get(order.id) ?? 0,
       createdAt: order.createdAt.toISOString()
-    }))
+    })),
+    address
   };
 }

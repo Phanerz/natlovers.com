@@ -67,6 +67,35 @@ export const users = pgTable("user", {
   bio: text("bio")
 });
 
+// A customer's reusable, editable shipping address — kept separate from any
+// order so it can be added/edited/reused across checkouts. What actually
+// ships with a given order is a frozen copy on that order row (see the
+// shipping* columns below), not a live reference to a row here, so editing
+// or deleting a saved address here never rewrites history for an order
+// that already shipped.
+export const addresses = pgTable("addresses", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, {onDelete: "cascade"}),
+  label: text("label").notNull().default("Home"),
+  recipientName: text("recipient_name").notNull(),
+  phone: text("phone").notNull(),
+  street: text("street").notNull(),
+  city: text("city").notNull(),
+  // Not every country uses a province/state — Singapore and Hong Kong
+  // addresses, for instance, genuinely don't have one, so this stays
+  // optional rather than forcing a fake value in to satisfy a NOT NULL.
+  province: text("province"),
+  postalCode: text("postal_code").notNull(),
+  country: text("country").notNull().default("Indonesia"),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
 export const wishlistItems = pgTable(
   "wishlist_items",
   {
@@ -120,7 +149,18 @@ export const orders = pgTable("orders", {
   confirmedAt: timestamp("confirmed_at"),
   // Shipment tracking, set once an admin fulfills a paid order.
   trackingCourier: text("tracking_courier"),
-  trackingNumber: text("tracking_number")
+  trackingNumber: text("tracking_number"),
+  // Shipping address, frozen at checkout time — same snapshot philosophy as
+  // order_items' productName/priceIdr: this is what actually shipped, so it
+  // must stay accurate even if the customer later edits or deletes the
+  // saved address it was copied from.
+  shippingRecipientName: text("shipping_recipient_name").notNull(),
+  shippingPhone: text("shipping_phone").notNull(),
+  shippingStreet: text("shipping_street").notNull(),
+  shippingCity: text("shipping_city").notNull(),
+  shippingProvince: text("shipping_province"),
+  shippingPostalCode: text("shipping_postal_code").notNull(),
+  shippingCountry: text("shipping_country").notNull()
 });
 
 // Snapshots product name/price at order time — deliberately not a foreign

@@ -98,6 +98,64 @@ export function Header() {
   }>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
+  const [addressForm, setAddressForm] = useState({
+    recipientName: "",
+    phone: "",
+    street: "",
+    city: "",
+    province: "",
+    postalCode: "",
+    country: "Indonesia"
+  });
+  const [addressLoaded, setAddressLoaded] = useState(false);
+  const [addressError, setAddressError] = useState<string | null>(null);
+
+  // Prefills from the customer's saved default address (see /api/account/
+  // addresses) the first time the checkout panel opens, so a returning
+  // customer isn't retyping their address on every order — falls back to
+  // their account name for the recipient field when there's no saved
+  // address yet.
+  useEffect(() => {
+    if (!checkoutDraft || addressLoaded) {
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/account/addresses", {cache: "no-store"})
+      .then((response) => (response.ok ? response.json() : []))
+      .then((list: Array<typeof addressForm & {isDefault: boolean}>) => {
+        if (cancelled) return;
+        const defaultAddress = Array.isArray(list) ? list.find((item) => item.isDefault) ?? list[0] : null;
+        if (defaultAddress) {
+          setAddressForm({
+            recipientName: defaultAddress.recipientName,
+            phone: defaultAddress.phone,
+            street: defaultAddress.street,
+            city: defaultAddress.city,
+            province: defaultAddress.province ?? "",
+            postalCode: defaultAddress.postalCode,
+            country: defaultAddress.country
+          });
+        } else if (session?.user?.name) {
+          setAddressForm((current) => ({...current, recipientName: session.user!.name ?? ""}));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setAddressLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [checkoutDraft, addressLoaded, session]);
+
+  const addressComplete = Boolean(
+    addressForm.recipientName.trim() &&
+      addressForm.phone.trim() &&
+      addressForm.street.trim() &&
+      addressForm.city.trim() &&
+      addressForm.postalCode.trim() &&
+      addressForm.country.trim()
+  );
+
   const {mounted: searchMounted, entered: searchEntered} = useDelayedMount(searchOpen);
   const {mounted: cabinetMounted, entered: cabinetEntered} = useDelayedMount(cabinetOpen);
   const {mounted: mobileMounted, entered: mobileEntered} = useDelayedMount(mobileOpen);
@@ -364,11 +422,12 @@ export function Header() {
   );
 
   async function confirmBankTransfer() {
-    if (!checkoutProducts.length) {
+    if (!checkoutProducts.length || !addressComplete) {
       return;
     }
 
     setCheckoutLoading(true);
+    setAddressError(null);
 
     try {
       const response = await fetch("/api/checkout", {
@@ -377,11 +436,16 @@ export function Header() {
         body: JSON.stringify({
           method: "bank_transfer",
           items: checkoutProducts.map((item) => ({slug: item.slug, quantity: item.quantity})),
-          total: checkoutTotalIdr
+          total: checkoutTotalIdr,
+          address: addressForm
         })
       });
 
       const payload = await response.json();
+      if (!response.ok) {
+        setAddressError(payload?.error ?? "Could not place the order.");
+        return;
+      }
       setCheckoutState(payload);
       // The server always clears the full cart on a successful order (even
       // for a "direct buy" of one item), so the client cart needs to mirror
@@ -712,6 +776,7 @@ export function Header() {
                     onClick={() => {
                       clearCheckoutDraft();
                       setCheckoutState(null);
+                      setAddressError(null);
                     }}
                     className="text-sm font-medium text-sand-100/85 hover:text-sand-50"
                   >
@@ -743,16 +808,73 @@ export function Header() {
                   <span>Total</span>
                   <span>{formatCurrency(checkoutTotalIdr, currency)}</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={confirmBankTransfer}
-                  disabled={checkoutLoading}
-                  className="button-lift mt-4 w-full rounded-full bg-sand-100 px-5 py-3 text-sm font-semibold text-forest-900 disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {checkoutLoading
-                    ? "Preparing transfer details..."
-                    : "Generate bank transfer instructions"}
-                </button>
+
+                {!checkoutState ? (
+                  <div className="mt-4 space-y-3 border-t border-white/15 pt-4">
+                    <p className="text-[11px] uppercase tracking-[0.28em] text-sand-200/80">Shipping address</p>
+                    <div className="grid gap-2.5 sm:grid-cols-2">
+                      <input
+                        value={addressForm.recipientName}
+                        onChange={(event) => setAddressForm((current) => ({...current, recipientName: event.target.value}))}
+                        placeholder="Recipient name"
+                        className="rounded-xl border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                      />
+                      <input
+                        value={addressForm.phone}
+                        onChange={(event) => setAddressForm((current) => ({...current, phone: event.target.value}))}
+                        placeholder="Phone (for WhatsApp)"
+                        className="rounded-xl border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                      />
+                      <input
+                        value={addressForm.street}
+                        onChange={(event) => setAddressForm((current) => ({...current, street: event.target.value}))}
+                        placeholder="Street address"
+                        className="rounded-xl border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60 sm:col-span-2"
+                      />
+                      <input
+                        value={addressForm.city}
+                        onChange={(event) => setAddressForm((current) => ({...current, city: event.target.value}))}
+                        placeholder="City"
+                        className="rounded-xl border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                      />
+                      <input
+                        value={addressForm.province}
+                        onChange={(event) => setAddressForm((current) => ({...current, province: event.target.value}))}
+                        placeholder="Province / state (optional)"
+                        className="rounded-xl border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                      />
+                      <input
+                        value={addressForm.postalCode}
+                        onChange={(event) => setAddressForm((current) => ({...current, postalCode: event.target.value}))}
+                        placeholder="Postal code"
+                        className="rounded-xl border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                      />
+                      <input
+                        value={addressForm.country}
+                        onChange={(event) => setAddressForm((current) => ({...current, country: event.target.value}))}
+                        placeholder="Country"
+                        className="rounded-xl border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                      />
+                    </div>
+                  </div>
+                ) : null}
+
+                {addressError ? <p className="mt-3 text-sm text-[#f3b4a0]">{addressError}</p> : null}
+
+                {!checkoutState ? (
+                  <button
+                    type="button"
+                    onClick={confirmBankTransfer}
+                    disabled={checkoutLoading || !addressComplete}
+                    className="button-lift mt-4 w-full rounded-full bg-sand-100 px-5 py-3 text-sm font-semibold text-forest-900 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {checkoutLoading
+                      ? "Preparing transfer details..."
+                      : addressComplete
+                        ? "Generate bank transfer instructions"
+                        : "Fill in your shipping address to continue"}
+                  </button>
+                ) : null}
                 {checkoutState ? (
                   <div className="mt-4 rounded-[1.2rem] border border-white/16 bg-white/10 p-4 text-sm leading-7 text-sand-50/94">
                     <p className="font-medium">Order ref: {checkoutState.orderRef}</p>

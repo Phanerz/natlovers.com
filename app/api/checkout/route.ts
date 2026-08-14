@@ -1,5 +1,6 @@
 import {getServerSession} from "next-auth/next";
 import {NextRequest, NextResponse} from "next/server";
+import {addressInputSchema} from "@/lib/addresses";
 import {createOrder} from "@/lib/orders";
 import {authOptions} from "@/lib/auth";
 
@@ -24,12 +25,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({error: "No items to order."}, {status: 400});
   }
 
+  // A shipping address is required to place an order, not an optional
+  // extra — this is the fix for the operational gap where addresses were
+  // only ever gathered manually over WhatsApp/email with nothing stored.
+  const addressResult = addressInputSchema.safeParse(body?.address);
+  if (!addressResult.success) {
+    return NextResponse.json({error: addressResult.error.issues[0]?.message ?? "A shipping address is required."}, {status: 400});
+  }
+
   try {
-    const order = await createOrder(userId, items, {
-      bankName: process.env.BANK_TRANSFER_BANK_NAME ?? "Bank Central Asia",
-      accountName: process.env.BANK_TRANSFER_ACCOUNT_NAME ?? "Natlovers",
-      accountNumber: process.env.BANK_TRANSFER_ACCOUNT_NUMBER ?? "0000000000"
-    });
+    const order = await createOrder(
+      userId,
+      items,
+      {
+        bankName: process.env.BANK_TRANSFER_BANK_NAME ?? "Bank Central Asia",
+        accountName: process.env.BANK_TRANSFER_ACCOUNT_NAME ?? "Natlovers",
+        accountNumber: process.env.BANK_TRANSFER_ACCOUNT_NUMBER ?? "0000000000"
+      },
+      addressResult.data
+    );
 
     return NextResponse.json({
       ok: true,

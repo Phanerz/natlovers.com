@@ -5,7 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import {useRouter, useSearchParams} from "next/navigation";
 import {signOut, useSession} from "next-auth/react";
-import {CircleHelp, CreditCard, Heart, LogOut, Mail, MessageCircle, Package, Settings, User} from "lucide-react";
+import {CircleHelp, CreditCard, Heart, LogOut, Mail, MapPin, MessageCircle, Package, Settings, User} from "lucide-react";
+import {AddressesManager} from "@/components/addresses-manager";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {formatCurrency} from "@/lib/format";
 import {orderStatusLabels} from "@/lib/order-status";
@@ -13,11 +14,12 @@ import {CurrencyCode, Locale, currencies, currencySymbols, locales} from "@/lib/
 import type {AdminProduct} from "@/lib/admin-products";
 import type {OrderView} from "@/lib/orders";
 
-type TabKey = "profile" | "orders" | "wishlist" | "payment" | "settings" | "help";
+type TabKey = "profile" | "orders" | "addresses" | "wishlist" | "payment" | "settings" | "help";
 
 const tabs: {key: TabKey; label: string; icon: typeof User}[] = [
   {key: "profile", label: "Profile information", icon: User},
   {key: "orders", label: "Orders & purchases", icon: Package},
+  {key: "addresses", label: "Addresses", icon: MapPin},
   {key: "wishlist", label: "Wishlist", icon: Heart},
   {key: "payment", label: "Payment methods", icon: CreditCard},
   {key: "settings", label: "Account settings", icon: Settings},
@@ -323,6 +325,8 @@ function AccountContent() {
               </div>
             )
           ) : null}
+
+          {tab === "addresses" ? <AddressesManager /> : null}
 
           {tab === "wishlist" ? (
             wishlistProducts === null ? (
