@@ -327,7 +327,15 @@ export function Header() {
 
     draggingRef.current = false;
     setIsDragging(false);
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    // releasePointerCapture throws NotFoundError if this pointer isn't
+    // actually captured by this element (capture can be lost mid-gesture).
+    // Uncaught, that exception would abort this handler before any of the
+    // drag-state resets below ran, leaving the pill's render permanently
+    // pinned to wherever it was last dragged — reading as the pill
+    // freezing and never letting go.
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
 
     const navBox = navRef.current?.getBoundingClientRect();
     const dropLeft = dragLeft;
