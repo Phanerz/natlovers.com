@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {useMemo, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import {Eye, Filter, Pencil, RotateCcw, Search, Trash2} from "lucide-react";
 import {ShopProductType, productTypeLabels, shopProductTypes} from "@/app/catalogue/shop-data";
 import {AdminProduct} from "./types";
@@ -35,7 +35,11 @@ export function ManageProductsPanel({
   onEdit,
   onDeactivate,
   onActivate,
-  busySlug
+  busySlug,
+  filterType,
+  onBulkDeactivate,
+  onBulkActivate,
+  onBulkDelete
 }: {
   products: AdminProduct[];
   loading: boolean;
@@ -43,12 +47,25 @@ export function ManageProductsPanel({
   onDeactivate: (product: AdminProduct) => void;
   onActivate: (product: AdminProduct) => void;
   busySlug: string | null;
+  filterType: TypeFilter;
+  onBulkDeactivate: (slugs: string[]) => Promise<void>;
+  onBulkActivate: (slugs: string[]) => Promise<void>;
+  onBulkDelete: (slugs: string[]) => Promise<void>;
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  // Driven by the sidebar's category links (see admin-sidebar.tsx), which
+  // encode the category straight into the URL — a real navigation, so this
+  // always wins over whatever the panel's own pills last set.
+  useEffect(() => {
+    setTypeFilter(filterType);
+    setPage(1);
+  }, [filterType]);
 
   const typeCounts = useMemo(() => {
     const counts = {} as Record<ShopProductType, number>;
@@ -71,6 +88,13 @@ export function ManageProductsPanel({
   const currentPage = Math.min(page, totalPages);
   const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  // Selection is scoped to what's visible on the current page — switching
+  // page or filters starts fresh rather than silently carrying a selection
+  // the admin can no longer see.
+  useEffect(() => {
+    setSelected(new Set());
+  }, [currentPage, query, statusFilter, typeFilter]);
+
   function updateQuery(value: string) {
     setQuery(value);
     setPage(1);
@@ -86,6 +110,29 @@ export function ManageProductsPanel({
     setTypeFilter(value);
     setPage(1);
   }
+
+  function toggleSelected(slug: string) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(slug)) {
+        next.delete(slug);
+      } else {
+        next.add(slug);
+      }
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelected((current) => (current.size === pageItems.length ? new Set() : new Set(pageItems.map((product) => product.slug))));
+  }
+
+  async function runBulk(handler: (slugs: string[]) => Promise<void>) {
+    await handler([...selected]);
+    setSelected(new Set());
+  }
+
+  const allOnPageSelected = pageItems.length > 0 && selected.size === pageItems.length;
 
   return (
     <div className="card space-y-5 p-6 sm:p-8">
@@ -160,20 +207,61 @@ export function ManageProductsPanel({
         </div>
       </div>
 
+      {selected.size > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-forest-700 bg-forest-900 px-5 py-3 text-sand-50">
+          <span className="text-sm font-medium">
+            {selected.size} product{selected.size === 1 ? "" : "s"} selected
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => runBulk(onBulkDeactivate)}
+              className="button-lift rounded-full border border-sand-200/40 px-4 py-1.5 text-sm font-medium text-sand-50 hover:bg-white/10"
+            >
+              Hide Selected
+            </button>
+            <button
+              type="button"
+              onClick={() => runBulk(onBulkActivate)}
+              className="button-lift rounded-full border border-sand-200/40 px-4 py-1.5 text-sm font-medium text-sand-50 hover:bg-white/10"
+            >
+              Unhide Selected
+            </button>
+            <button
+              type="button"
+              onClick={() => runBulk(onBulkDelete)}
+              className="button-lift rounded-full border border-red-400/60 bg-red-500/20 px-4 py-1.5 text-sm font-medium text-red-100 hover:bg-red-500/30"
+            >
+              Delete Selected
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {loading ? (
         <p className="py-10 text-center text-sm text-forest-600">Loading products...</p>
       ) : pageItems.length ? (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[880px] border-collapse text-sm">
+            <table className="w-full min-w-[960px] border-collapse text-sm">
               <thead>
                 <tr className="text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-500">
+                  <th className="w-8 pb-3 pr-3">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all products on this page"
+                      checked={allOnPageSelected}
+                      onChange={toggleSelectAll}
+                      className="h-4 w-4 cursor-pointer rounded border border-[#c9bfa8] accent-forest-900"
+                    />
+                  </th>
                   <th className="pb-3 pr-3">Product</th>
                   <th className="pb-3 pr-3">Type</th>
                   <th className="pb-3 pr-3">Price (IDR)</th>
                   <th className="pb-3 pr-3">Status</th>
                   <th className="pb-3 pr-3">Visibility</th>
                   <th className="pb-3 pr-3">Stock</th>
+                  <th className="pb-3 pr-3">Code</th>
                   <th className="pb-3 pr-3">Updated</th>
                   <th className="pb-3 text-right">Actions</th>
                 </tr>
@@ -181,6 +269,15 @@ export function ManageProductsPanel({
               <tbody>
                 {pageItems.map((product) => (
                   <tr key={product.slug} className="border-t border-[#e7ddc6]">
+                    <td className="py-3 pr-3">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${product.name}`}
+                        checked={selected.has(product.slug)}
+                        onChange={() => toggleSelected(product.slug)}
+                        className="h-4 w-4 cursor-pointer rounded border border-[#c9bfa8] accent-forest-900"
+                      />
+                    </td>
                     <td className="py-3 pr-3">
                       <div className="flex items-center gap-3">
                         <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-[#d9ccb3] bg-[#f2ecdc]">
@@ -208,10 +305,8 @@ export function ManageProductsPanel({
                         {product.isActive ? "Visible" : "Hidden"}
                       </span>
                     </td>
-                    {/* No stock/inventory schema exists yet — an honest
-                        placeholder, not a fabricated number, reserving the
-                        column for when that data is real. */}
-                    <td className="py-3 pr-3 text-forest-400">—</td>
+                    <td className="py-3 pr-3 text-forest-700">{product.stock ?? <span className="text-forest-400">—</span>}</td>
+                    <td className="py-3 pr-3 text-forest-700">{product.productCode ?? <span className="text-forest-400">—</span>}</td>
                     <td className="py-3 pr-3 whitespace-nowrap text-forest-600">{timeAgo(product.updatedAt)}</td>
                     <td className="py-3 text-right">
                       <div className="flex justify-end gap-2">

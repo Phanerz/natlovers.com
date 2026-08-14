@@ -5,7 +5,7 @@ import {
   deleteHeroCard,
   getActiveHeroCards,
   getAllHeroCardsForAdmin,
-  reorderHeroCard
+  reorderAllHeroCards
 } from "@/lib/admin-hero-cards";
 import {authOptions, isAdminEmail} from "@/lib/auth";
 
@@ -51,26 +51,22 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Body carries the full ordered id list, as dropped in the admin panel's
+// drag-and-drop list — there's no single-id "move" anymore.
 export async function PATCH(request: NextRequest) {
   if (!(await requireAdmin())) {
     return NextResponse.json({error: "Unauthorized."}, {status: 401});
   }
 
-  const url = new URL(request.url);
-  const id = url.searchParams.get("id");
-  if (!id) {
-    return NextResponse.json({error: "Missing id."}, {status: 400});
-  }
-
   try {
-    const body = (await request.json()) as {direction?: "up" | "down"};
-    if (body.direction !== "up" && body.direction !== "down") {
-      return NextResponse.json({error: "Invalid direction."}, {status: 400});
+    const body = (await request.json()) as {order?: unknown};
+    if (!Array.isArray(body.order) || body.order.some((value) => typeof value !== "string")) {
+      return NextResponse.json({error: "Invalid order."}, {status: 400});
     }
-    await reorderHeroCard(id, body.direction);
+    await reorderAllHeroCards(body.order as string[]);
     return NextResponse.json({ok: true});
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Could not reorder the hero card.";
+    const message = error instanceof Error ? error.message : "Could not reorder hero cards.";
     return NextResponse.json({error: message}, {status: 400});
   }
 }

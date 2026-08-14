@@ -1,4 +1,4 @@
-import {asc, desc, eq, gt, lt, max} from "drizzle-orm";
+import {asc, eq, inArray, max} from "drizzle-orm";
 import {z} from "zod";
 import {uploadFile} from "@/lib/blob";
 import {db, heroCards} from "@/lib/db";
@@ -90,33 +90,17 @@ export async function deleteHeroCard(id: string): Promise<void> {
   await db.delete(heroCards).where(eq(heroCards.id, id));
 }
 
-export async function reorderHeroCard(id: string, direction: "up" | "down"): Promise<void> {
+// Takes the full ordered list of ids (as dropped) and writes each one's
+// index straight to displayOrder — replaces the old up/down swap-with-
+// neighbor approach now that the panel does free drag-and-drop reordering
+// instead of single-step moves.
+export async function reorderAllHeroCards(orderedIds: string[]): Promise<void> {
+  const existing = await db.select({id: heroCards.id}).from(heroCards).where(inArray(heroCards.id, orderedIds));
+  if (existing.length !== orderedIds.length) {
+    throw new Error("Hero card list is out of date — refresh and try again.");
+  }
+
   await db.transaction(async (tx) => {
-    const [current] = await tx.select().from(heroCards).where(eq(heroCards.id, id)).limit(1);
-    if (!current) {
-      throw new Error("Hero card not found.");
-    }
-
-    const [neighbor] =
-      direction === "up"
-        ? await tx
-            .select()
-            .from(heroCards)
-            .where(lt(heroCards.displayOrder, current.displayOrder))
-            .orderBy(desc(heroCards.displayOrder))
-            .limit(1)
-        : await tx
-            .select()
-            .from(heroCards)
-            .where(gt(heroCards.displayOrder, current.displayOrder))
-            .orderBy(asc(heroCards.displayOrder))
-            .limit(1);
-
-    if (!neighbor || neighbor.id === id) {
-      return; // Already at the boundary — nothing to swap with.
-    }
-
-    await tx.update(heroCards).set({displayOrder: neighbor.displayOrder}).where(eq(heroCards.id, id));
-    await tx.update(heroCards).set({displayOrder: current.displayOrder}).where(eq(heroCards.id, neighbor.id));
+    await Promise.all(orderedIds.map((id, index) => tx.update(heroCards).set({displayOrder: index}).where(eq(heroCards.id, id))));
   });
 }

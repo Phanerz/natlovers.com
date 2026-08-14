@@ -1,6 +1,7 @@
 "use client";
 
 import {FormEvent, ReactNode} from "react";
+import {Eye, RotateCcw, Trash2} from "lucide-react";
 import {
   accessoryCategories,
   accessoryCategoryLabels,
@@ -17,7 +18,7 @@ import {
 } from "@/app/catalogue/shop-data";
 import {ImageDropzone} from "./image-dropzone";
 import {PillMultiSelect, PillSingleSelect} from "./pill-select";
-import {ProductFormState} from "./types";
+import {AdminProduct, PRODUCT_CODE_PREFIX, ProductFormState} from "./types";
 
 function SectionCard({step, title, children}: {step: number; title: string; children: ReactNode}) {
   return (
@@ -114,7 +115,11 @@ export function ProductForm({
   uploadProgress,
   errorMessage,
   existingImages = [],
-  onCancel
+  onCancel,
+  product,
+  onDeactivate,
+  onActivate,
+  onDelete
 }: {
   mode: "create" | "edit";
   form: ProductFormState;
@@ -125,6 +130,12 @@ export function ProductForm({
   errorMessage: string | null;
   existingImages?: string[];
   onCancel?: () => void;
+  // Edit-mode only — lets the form itself hide/unhide/delete the product
+  // being edited, the same actions available from the list row.
+  product?: AdminProduct;
+  onDeactivate?: () => void;
+  onActivate?: () => void;
+  onDelete?: () => void;
 }) {
   return (
     <form onSubmit={onSubmit} className="space-y-6">
@@ -152,6 +163,31 @@ export function ProductForm({
               placeholder="Enter price"
               className={fieldClass}
             />
+          </label>
+
+          <label className="space-y-2 text-sm text-forest-700">
+            <span className="muted">Stock (optional)</span>
+            <input
+              type="number"
+              min={0}
+              value={form.stock}
+              onChange={(event) => onChange({...form, stock: event.target.value})}
+              placeholder="Leave blank if not tracked"
+              className={fieldClass}
+            />
+          </label>
+
+          <label className="space-y-2 text-sm text-forest-700">
+            <span className="muted">Product Code (optional)</span>
+            <div className="flex items-center overflow-hidden rounded-xl border border-[#d4c5ab] bg-[#fffdf9] focus-within:border-forest-400">
+              <span className="pl-4 text-base text-forest-500">{PRODUCT_CODE_PREFIX}</span>
+              <input
+                value={form.productCodeSuffix}
+                onChange={(event) => onChange({...form, productCodeSuffix: event.target.value})}
+                placeholder="BAG007"
+                className="w-full bg-transparent py-3 pl-1 pr-4 text-base text-forest-900 outline-none"
+              />
+            </div>
           </label>
 
           <label className="space-y-2 text-sm text-forest-700 sm:col-span-2">
@@ -218,6 +254,43 @@ export function ProductForm({
           </button>
         ) : null}
       </div>
+
+      {mode === "edit" && product ? (
+        <SectionCard step={4} title="Danger Zone">
+          <p className="text-sm text-forest-600">
+            Same actions as the list view — hiding keeps the product's data and history, deleting removes it for good.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {product.isActive ? (
+              <button
+                type="button"
+                onClick={onDeactivate}
+                className="button-lift flex items-center gap-2 rounded-full border border-[#d4c5ab] px-5 py-3 text-sm font-medium text-forest-700"
+              >
+                <Eye className="h-4 w-4" />
+                Hide from storefront
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onActivate}
+                className="button-lift flex items-center gap-2 rounded-full border border-[#d4c5ab] px-5 py-3 text-sm font-medium text-forest-700"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Unhide
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onDelete}
+              className="button-lift flex items-center gap-2 rounded-full border border-red-300 bg-red-50 px-5 py-3 text-sm font-medium text-red-600"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete permanently
+            </button>
+          </div>
+        </SectionCard>
+      ) : null}
     </form>
   );
 }

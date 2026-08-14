@@ -1,6 +1,6 @@
 import {getServerSession} from "next-auth/next";
 import {NextRequest, NextResponse} from "next/server";
-import {createProduct, deactivateProduct, getAllProducts, getAllProductsForAdmin, setProductActive, updateProduct} from "@/lib/admin-products";
+import {createProduct, deleteProductPermanently, getAllProducts, getAllProductsForAdmin, setProductActive, updateProduct} from "@/lib/admin-products";
 import {authOptions, isAdminEmail} from "@/lib/auth";
 
 // Serves live product/price data to the storefront — must never be served
@@ -72,8 +72,11 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// Soft-delete: flips is_active to false instead of removing the row, so
-// deactivated products drop out of GET's feed but stay in Postgres.
+// Hard delete — permanently removes the row. Safe even for a product with
+// order history, since order_items snapshots name/price rather than
+// referencing products by foreign key (see the comment on
+// deleteProductPermanently). Hiding a product without deleting it is the
+// deactivate/activate pair above (PATCH ?action=deactivate|activate).
 export async function DELETE(request: NextRequest) {
   if (!(await requireAdmin())) {
     return NextResponse.json({error: "Unauthorized."}, {status: 401});
@@ -84,6 +87,9 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({error: "Missing slug."}, {status: 400});
   }
 
-  await deactivateProduct(slug);
+  const deleted = await deleteProductPermanently(slug);
+  if (!deleted) {
+    return NextResponse.json({error: "Product not found."}, {status: 404});
+  }
   return NextResponse.json({ok: true});
 }

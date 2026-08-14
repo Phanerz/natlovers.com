@@ -23,6 +23,14 @@ export const products = pgTable("products", {
   tags: text("tags").array().notNull().default([]),
   soldOut: boolean("sold_out").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
+  // Optional — most products don't track a count yet. When set, it's
+  // decremented on payment confirmation (see markOrderPaid in lib/orders.ts)
+  // and floored at 0 rather than going negative.
+  stock: integer("stock"),
+  // Includes the "NAT-" prefix (e.g. "NAT-BAG007"), stored whole rather than
+  // split, so every read site (table, form, order emails) shows the same
+  // string without reassembling it. Optional — older products have none.
+  productCode: text("product_code").unique(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });

@@ -97,6 +97,11 @@ export function AdminSidebar() {
   }, []);
 
   const tab = searchParams.get("tab");
+  // Bags/Dolls/Accessories/Apparels sub-links carry their type lowercased
+  // (see the href below) — comparing against that same lowercased form here
+  // is what makes the active dot actually track the selected category
+  // instead of always sitting on "All Products".
+  const selectedType = searchParams.get("type");
   const onDashboardRoute = pathname === "/mimin";
   const isDashboardHome = onDashboardRoute && !tab;
   const isManage = onDashboardRoute && tab === "manage";
@@ -146,13 +151,13 @@ export function AdminSidebar() {
             }`}
           >
             <div className="space-y-0.5 overflow-hidden pt-0.5">
-              <SubItem href="/mimin?tab=manage" label="All Products" active={isManage} />
+              <SubItem href="/mimin?tab=manage" label="All Products" active={isManage && !selectedType} />
               {shopProductTypes.map((type: ShopProductType) => (
                 <SubItem
                   key={type}
                   href={`/mimin?tab=manage&type=${type.toLowerCase()}`}
                   label={productTypeLabels[type].en}
-                  active={false}
+                  active={isManage && selectedType === type.toLowerCase()}
                 />
               ))}
             </div>

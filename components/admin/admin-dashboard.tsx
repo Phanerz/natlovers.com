@@ -3,6 +3,7 @@
 import {FormEvent, useEffect, useState} from "react";
 import {useRouter, useSearchParams} from "next/navigation";
 import {signOut} from "next-auth/react";
+import {ShopProductType, shopProductTypes} from "@/app/catalogue/shop-data";
 import {submitFormData} from "@/lib/xhr-form-submit";
 import {DashboardHome} from "./dashboard-home";
 import {AdminHeroCard, HeroCardFormState, buildHeroCardFormData, emptyHeroCardForm} from "./hero-card-types";
@@ -21,10 +22,23 @@ function tabFromParam(value: string | null): Tab {
   return validTabs.includes(value as Tab) ? (value as Tab) : "dashboard";
 }
 
+type TypeFilter = "all" | ShopProductType;
+
+// Mirrors the lowercase `type=` values the sidebar's category links use
+// (admin-sidebar.tsx) — falls back to "all" for anything unrecognized so a
+// stale/hand-edited URL never crashes the filter.
+function typeFilterFromParam(value: string | null): TypeFilter {
+  if (!value) {
+    return "all";
+  }
+  return shopProductTypes.find((type) => type.toLowerCase() === value.toLowerCase()) ?? "all";
+}
+
 export function AdminDashboard({userEmail}: {userEmail: string}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = tabFromParam(searchParams.get("tab"));
+  const filterType = typeFilterFromParam(searchParams.get("type"));
 
   function setTab(next: Tab) {
     router.replace(next === "dashboard" ? "/mimin" : `/mimin?tab=${next}`, {scroll: false});
@@ -213,6 +227,79 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
     }
   }
 
+  // Batches the same per-slug PATCH/DELETE calls the single-row actions
+  // already use, just with one confirm/toast/refresh for the whole
+  // selection instead of one per row.
+  async function handleBulkDeactivate(slugs: string[]) {
+    if (!slugs.length) return;
+    if (
+      !window.confirm(`Hide ${slugs.length} product${slugs.length === 1 ? "" : "s"}? They'll be hidden from the storefront until unhidden.`)
+    ) {
+      return;
+    }
+    setBusySlug("bulk");
+    try {
+      await Promise.all(
+        slugs.map((slug) => fetch(`/api/admin/products?slug=${encodeURIComponent(slug)}&action=deactivate`, {method: "PATCH"}))
+      );
+      setToast({type: "success", message: `${slugs.length} product${slugs.length === 1 ? "" : "s"} hidden.`});
+      await loadProducts();
+    } finally {
+      setBusySlug(null);
+    }
+  }
+
+  async function handleBulkActivate(slugs: string[]) {
+    if (!slugs.length) return;
+    setBusySlug("bulk");
+    try {
+      await Promise.all(
+        slugs.map((slug) => fetch(`/api/admin/products?slug=${encodeURIComponent(slug)}&action=activate`, {method: "PATCH"}))
+      );
+      setToast({type: "success", message: `${slugs.length} product${slugs.length === 1 ? "" : "s"} unhidden.`});
+      await loadProducts();
+    } finally {
+      setBusySlug(null);
+    }
+  }
+
+  async function handleBulkDelete(slugs: string[]) {
+    if (!slugs.length) return;
+    if (!window.confirm(`Permanently delete ${slugs.length} product${slugs.length === 1 ? "" : "s"}? This cannot be undone.`)) {
+      return;
+    }
+    setBusySlug("bulk");
+    try {
+      await Promise.all(slugs.map((slug) => fetch(`/api/admin/products?slug=${encodeURIComponent(slug)}`, {method: "DELETE"})));
+      setToast({type: "success", message: `${slugs.length} product${slugs.length === 1 ? "" : "s"} deleted.`});
+      await loadProducts();
+    } finally {
+      setBusySlug(null);
+    }
+  }
+
+  async function handleDeleteProduct(product: AdminProduct) {
+    if (!window.confirm(`Permanently delete "${product.name}"? This cannot be undone.`)) {
+      return;
+    }
+    setBusySlug(product.slug);
+    try {
+      const response = await fetch(`/api/admin/products?slug=${encodeURIComponent(product.slug)}`, {method: "DELETE"});
+      if (!response.ok) {
+        setToast({type: "error", message: "Could not delete the product."});
+        return;
+      }
+      setToast({type: "success", message: `"${product.name}" was deleted.`});
+      if (editingProduct?.slug === product.slug) {
+        setEditingProduct(null);
+        setTab("manage");
+      }
+      await loadProducts();
+    } finally {
+      setBusySlug(null);
+    }
+  }
+
   async function handleCreateHeroCard(event: FormEvent) {
     event.preventDefault();
     setCreateHeroCardError(null);
@@ -265,21 +352,22 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
     }
   }
 
-  async function handleReorderHeroCard(card: AdminHeroCard, direction: "up" | "down") {
-    setBusyHeroCardId(card.id);
+  async function handleReorderHeroCards(orderedIds: string[]) {
     try {
-      const response = await fetch(`/api/admin/hero-cards?id=${encodeURIComponent(card.id)}`, {
+      const response = await fetch("/api/admin/hero-cards", {
         method: "PATCH",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({direction})
+        body: JSON.stringify({order: orderedIds})
       });
       if (!response.ok) {
-        setToast({type: "error", message: "Could not reorder the hero card."});
+        setToast({type: "error", message: "Could not save the new order."});
+        await loadHeroCards();
         return;
       }
       await loadHeroCards();
-    } finally {
-      setBusyHeroCardId(null);
+    } catch {
+      setToast({type: "error", message: "Could not reach the server. Please check your connection and try again."});
+      await loadHeroCards();
     }
   }
 
@@ -316,63 +404,71 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
       <div className="space-y-8">
         {tab === "dashboard" ? <DashboardHome onNavigate={setTab} /> : null}
 
-          {tab === "add" ? (
-            isEditing && editingProduct ? (
-              <ProductForm
-                mode="edit"
-                form={editForm}
-                onChange={setEditForm}
-                onSubmit={handleEditSubmit}
-                submitting={editSubmitting}
-                uploadProgress={editProgress}
-                errorMessage={editError}
-                existingImages={editingProduct.images}
-                onCancel={cancelEdit}
-              />
-            ) : (
-              <ProductForm
-                mode="create"
-                form={createForm}
-                onChange={setCreateForm}
-                onSubmit={handleCreate}
-                submitting={creating}
-                uploadProgress={createProgress}
-                errorMessage={createError}
-              />
-            )
-          ) : null}
-
-          {tab === "manage" ? (
-            <ManageProductsPanel
-              products={products}
-              loading={loadingList}
-              onEdit={startEdit}
-              onDeactivate={handleDeactivate}
-              onActivate={handleActivate}
-              busySlug={busySlug}
+        {tab === "add" ? (
+          isEditing && editingProduct ? (
+            <ProductForm
+              mode="edit"
+              form={editForm}
+              onChange={setEditForm}
+              onSubmit={handleEditSubmit}
+              submitting={editSubmitting}
+              uploadProgress={editProgress}
+              errorMessage={editError}
+              existingImages={editingProduct.images}
+              onCancel={cancelEdit}
+              product={editingProduct}
+              onDeactivate={() => handleDeactivate(editingProduct)}
+              onActivate={() => handleActivate(editingProduct)}
+              onDelete={() => handleDeleteProduct(editingProduct)}
             />
-          ) : null}
-
-          {tab === "add-hero-card" ? (
-            <HeroCardForm
-              form={createHeroCardForm}
-              onChange={setCreateHeroCardForm}
-              onSubmit={handleCreateHeroCard}
-              submitting={creatingHeroCard}
-              uploadProgress={createHeroCardProgress}
-              errorMessage={createHeroCardError}
+          ) : (
+            <ProductForm
+              mode="create"
+              form={createForm}
+              onChange={setCreateForm}
+              onSubmit={handleCreate}
+              submitting={creating}
+              uploadProgress={createProgress}
+              errorMessage={createError}
             />
-          ) : null}
+          )
+        ) : null}
 
-          {tab === "manage-hero-cards" ? (
-            <ManageHeroCardsPanel
-              cards={heroCards}
-              loading={loadingHeroCards}
-              onDelete={handleDeleteHeroCard}
-              onReorder={handleReorderHeroCard}
-              busyId={busyHeroCardId}
-            />
-          ) : null}
+        {tab === "manage" ? (
+          <ManageProductsPanel
+            products={products}
+            loading={loadingList}
+            onEdit={startEdit}
+            onDeactivate={handleDeactivate}
+            onActivate={handleActivate}
+            busySlug={busySlug}
+            filterType={filterType}
+            onBulkDeactivate={handleBulkDeactivate}
+            onBulkActivate={handleBulkActivate}
+            onBulkDelete={handleBulkDelete}
+          />
+        ) : null}
+
+        {tab === "add-hero-card" ? (
+          <HeroCardForm
+            form={createHeroCardForm}
+            onChange={setCreateHeroCardForm}
+            onSubmit={handleCreateHeroCard}
+            submitting={creatingHeroCard}
+            uploadProgress={createHeroCardProgress}
+            errorMessage={createHeroCardError}
+          />
+        ) : null}
+
+        {tab === "manage-hero-cards" ? (
+          <ManageHeroCardsPanel
+            cards={heroCards}
+            loading={loadingHeroCards}
+            onDelete={handleDeleteHeroCard}
+            onReorder={handleReorderHeroCards}
+            busyId={busyHeroCardId}
+          />
+        ) : null}
       </div>
 
       <Toast toast={toast} onDismiss={() => setToast(null)} />
