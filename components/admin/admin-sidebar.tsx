@@ -204,7 +204,7 @@ export function AdminSidebar() {
         <div className="px-3 pb-2">
           <SectionLabel>Customers</SectionLabel>
         </div>
-        <NavLink href="/mimin/customers" active={pathname === "/mimin/customers"} icon={Users}>
+        <NavLink href="/mimin/customers" active={pathname?.startsWith("/mimin/customers") ?? false} icon={Users}>
           Customers
         </NavLink>
       </div>
