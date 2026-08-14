@@ -116,17 +116,7 @@ export type DashboardStats = {
 export async function getDashboardStats(range: DateRangeKey): Promise<DashboardStats> {
   const resolved = resolveDateRange(range);
 
-  const [
-    current,
-    previous,
-    [totalRow],
-    [activeRow],
-    [heroRow],
-    [awaitingRow],
-    customerCount,
-    [stockRow],
-    openCustomRequests
-  ] = await Promise.all([
+  const [current, previous, [totalRow], [activeRow], [heroRow], [awaitingRow], customerCount, [stockRow]] = await Promise.all([
     getPeriodMetrics(resolved.start, resolved.end),
     resolved.previousStart
       ? getPeriodMetrics(resolved.previousStart, resolved.previousEnd!)
@@ -143,9 +133,19 @@ export async function getDashboardStats(range: DateRangeKey): Promise<DashboardS
         lowStock: sql<number>`count(*) filter (where ${products.stock} > 0 and ${products.stock} <= ${LOW_STOCK_THRESHOLD})::int`
       })
       .from(products)
-      .where(isNotNull(products.stock)),
-    countOpenCustomRequests()
+      .where(isNotNull(products.stock))
   ]);
+
+  // Deliberately sequential, not folded into the Promise.all above. That
+  // batch already fans out close to the connection pool ceiling (see the
+  // max: 10 rationale in lib/db/index.ts — getPeriodMetrics and
+  // getCustomerCount each run several queries of their own), and adding a
+  // ninth parallel branch pushed a single dashboard load past it. Waiting
+  // for a pool slot has no timeout, so the overflow did not surface as an
+  // error: the endpoint simply took over 100 seconds while the sidebar and
+  // every KPI tile sat on a placeholder. One extra round trip for a cheap
+  // indexed count is the cheaper trade by a wide margin.
+  const openCustomRequests = await countOpenCustomRequests();
 
   const totalProducts = totalRow.value;
   const activeProducts = activeRow.value;
