@@ -8,18 +8,32 @@ import {
   ArrowDown,
   ArrowUp,
   Calendar,
-  CheckCircle2,
   ChevronDown,
+  Eye,
   PackageCheck,
   PackageX,
   ReceiptText,
   ShoppingBag,
   Tag,
+  Trophy,
   Users,
   Wallet
 } from "lucide-react";
+import {Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis} from "recharts";
 import {DateRangeKey} from "@/lib/dashboard-stats";
-import {OrdersChart} from "./orders-chart";
+import {orderStatusLabels} from "@/lib/order-status";
+
+type SalesSeriesPoint = {date: string; revenue: number; orders: number; itemsSold: number};
+type RecentOrder = {
+  id: string;
+  orderRef: string;
+  customerName: string | null;
+  customerEmail: string | null;
+  totalIdr: number;
+  status: string;
+  createdAt: string;
+};
+type BestSellingProduct = {slug: string; name: string; unitsSold: number; revenue: number};
 
 type Stats = {
   range: DateRangeKey;
@@ -33,9 +47,13 @@ type Stats = {
   totalProducts: number;
   activeProducts: number;
   hiddenProducts: number;
-  heroCardCount: number;
   ordersAwaitingTransfer: number;
   customerCount: number;
+  lowStockCount: number | null;
+  outOfStockCount: number | null;
+  salesSeries: SalesSeriesPoint[];
+  recentOrders: RecentOrder[];
+  bestSellingProducts: BestSellingProduct[] | null;
 };
 
 const rangeLabels: Record<DateRangeKey, string> = {
@@ -51,16 +69,20 @@ function formatIdr(value: number) {
   return `Rp${value.toLocaleString("id-ID")}`;
 }
 
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", {day: "numeric", month: "short", year: "numeric"});
+}
+
 // A delta is only ever shown as a real comparison when both sides have
 // something to compare — "all time" has no previous period, and a previous
 // value of 0 makes a percentage change undefined, not "infinite growth."
-function percentDelta(current: number, previous: number | null): {text: string; tone: "up" | "down" | "flat" | "none"} {
+function percentDelta(current: number, previous: number | null): {text: string; tone: "up" | "down" | "flat" | "none"} | null {
   if (previous === null || previous === 0) {
-    return {text: "no data yet", tone: "none"};
+    return null;
   }
   const change = ((current - previous) / previous) * 100;
   if (change === 0) {
-    return {text: "no change", tone: "flat"};
+    return {text: "no change vs previous period", tone: "flat"};
   }
   return {
     text: `${change > 0 ? "+" : ""}${change.toFixed(1)}% vs previous period`,
@@ -68,9 +90,9 @@ function percentDelta(current: number, previous: number | null): {text: string; 
   };
 }
 
-function countDelta(current: number, previous: number | null): {text: string; tone: "up" | "down" | "flat" | "none"} {
+function countDelta(current: number, previous: number | null): {text: string; tone: "up" | "down" | "flat" | "none"} | null {
   if (previous === null) {
-    return {text: "no data yet", tone: "none"};
+    return null;
   }
   const change = current - previous;
   if (change === 0) {
@@ -79,9 +101,9 @@ function countDelta(current: number, previous: number | null): {text: string; to
   return {text: `${change > 0 ? "+" : ""}${change} vs previous period`, tone: change > 0 ? "up" : "down"};
 }
 
-function DeltaLine({delta, loading}: {delta: {text: string; tone: "up" | "down" | "flat" | "none"}; loading: boolean}) {
-  if (loading) {
-    return <p className="mt-1.5 text-xs text-forest-400">—</p>;
+function DeltaLine({delta, loading}: {delta: {text: string; tone: "up" | "down" | "flat" | "none"} | null; loading: boolean}) {
+  if (loading || !delta) {
+    return null;
   }
   const toneClass =
     delta.tone === "up"
@@ -115,7 +137,7 @@ function KpiCard({
   label: string;
   value: string;
   subtext?: string;
-  delta?: {text: string; tone: "up" | "down" | "flat" | "none"};
+  delta?: {text: string; tone: "up" | "down" | "flat" | "none"} | null;
   loading: boolean;
   href?: Route;
 }) {
@@ -134,7 +156,7 @@ function KpiCard({
       <p className="mt-3 text-[11px] font-semibold uppercase leading-tight tracking-[0.16em] text-forest-500">{label}</p>
       <p className="mt-1 font-display text-2xl text-forest-900 sm:text-[1.7rem]">{loading ? "—" : value}</p>
       {subtext ? <p className="mt-1 text-xs text-forest-500">{loading ? "" : subtext}</p> : null}
-      {delta ? <DeltaLine delta={delta} loading={loading} /> : null}
+      {delta !== undefined ? <DeltaLine delta={delta ?? null} loading={loading} /> : null}
     </>
   );
 
@@ -201,10 +223,236 @@ function RangePicker({range, onChange}: {range: DateRangeKey; onChange: (range: 
   );
 }
 
-export function DashboardHome({onNavigate}: {onNavigate: (tab: "manage" | "manage-hero-cards") => void}) {
+// Computed after mount (not during the server render) so a deployed
+// server's clock/timezone can never disagree with the visitor's own and
+// cause a hydration mismatch — starts with a neutral fallback that's
+// replaced within a frame.
+function useGreeting(): string {
+  const [greeting, setGreeting] = useState("Hello");
+  useEffect(() => {
+    const hour = new Date().getHours();
+    setGreeting(hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening");
+  }, []);
+  return greeting;
+}
+
+const metricLabels: Record<"revenue" | "orders" | "itemsSold", string> = {
+  revenue: "Revenue",
+  orders: "Orders",
+  itemsSold: "Items Sold"
+};
+
+function SalesOverviewChart({series}: {series: SalesSeriesPoint[]}) {
+  const [metric, setMetric] = useState<"revenue" | "orders" | "itemsSold">("revenue");
+  const hasData = series.some((point) => point.revenue > 0 || point.orders > 0 || point.itemsSold > 0);
+
+  return (
+    <div className="card space-y-5 p-6 sm:p-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-xl text-forest-900">Sales Overview</h2>
+        <div className="flex gap-1 rounded-full border border-[#d4c5ab] bg-[#fffdf9] p-1">
+          {(Object.keys(metricLabels) as Array<"revenue" | "orders" | "itemsSold">).map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setMetric(key)}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 ${
+                metric === key ? "bg-forest-900 text-sand-50" : "text-forest-600 hover:bg-[#f0e7d4]"
+              }`}
+            >
+              {metricLabels[key]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {!hasData ? (
+        <div className="flex h-64 flex-col items-center justify-center gap-2 text-center">
+          <p className="text-sm text-forest-500">No sales recorded in this period yet.</p>
+        </div>
+      ) : (
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={series} margin={{top: 8, right: 8, left: 0, bottom: 0}}>
+              <defs>
+                <linearGradient id="salesFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#344332" stopOpacity={0.28} />
+                  <stop offset="100%" stopColor="#344332" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e7ddc6" vertical={false} />
+              <XAxis dataKey="date" tick={{fontSize: 11, fill: "#7a7360"}} tickLine={false} axisLine={{stroke: "#d4c5ab"}} />
+              <YAxis
+                tick={{fontSize: 11, fill: "#7a7360"}}
+                tickLine={false}
+                axisLine={false}
+                width={metric === "revenue" ? 64 : 36}
+                tickFormatter={(value: number) => (metric === "revenue" ? `${Math.round(value / 1000)}k` : String(value))}
+              />
+              <Tooltip
+                formatter={(value) => (metric === "revenue" ? formatIdr(Number(value)) : Number(value))}
+                contentStyle={{
+                  borderRadius: 12,
+                  border: "1px solid #d4c5ab",
+                  backgroundColor: "#fffaf1",
+                  fontSize: 12
+                }}
+              />
+              <Area type="monotone" dataKey={metric} stroke="#344332" strokeWidth={2} fill="url(#salesFill)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NeedsAttentionCard({stats}: {stats: Stats}) {
+  const items: {key: string; icon: typeof AlertTriangle; label: string; count: number; href: Route}[] = [];
+
+  if (stats.outOfStockCount) {
+    items.push({key: "oos", icon: PackageX, label: "products out of stock", count: stats.outOfStockCount, href: "/mimin/stock"});
+  }
+  if (stats.lowStockCount) {
+    items.push({key: "low", icon: AlertTriangle, label: "products running low", count: stats.lowStockCount, href: "/mimin/stock"});
+  }
+  if (stats.ordersAwaitingTransfer) {
+    items.push({
+      key: "pending",
+      icon: ReceiptText,
+      label: "orders awaiting transfer",
+      count: stats.ordersAwaitingTransfer,
+      href: "/mimin/orders"
+    });
+  }
+  if (stats.hiddenProducts) {
+    items.push({
+      key: "hidden",
+      icon: Eye,
+      label: "products hidden from catalogue",
+      count: stats.hiddenProducts,
+      href: "/mimin?tab=manage" as Route
+    });
+  }
+
+  return (
+    <div className="card space-y-4 p-6 sm:p-8">
+      <h2 className="font-display text-xl text-forest-900">Needs Attention</h2>
+      {items.length ? (
+        <div className="space-y-2">
+          {items.map((item) => (
+            <Link
+              key={item.key}
+              href={item.href}
+              className="flex items-center justify-between gap-3 rounded-2xl border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3 transition-colors duration-150 hover:bg-[#f6efdd]"
+            >
+              <span className="flex items-center gap-3">
+                <item.icon className="h-4 w-4 text-[#a4402b]" />
+                <span className="text-sm text-forest-800">
+                  <span className="font-semibold text-forest-900">{item.count}</span> {item.label}
+                </span>
+              </span>
+              <ArrowUp className="h-3.5 w-3.5 rotate-45 text-forest-400" />
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-forest-500">Nothing needs attention right now.</p>
+      )}
+    </div>
+  );
+}
+
+const statusBadgeStyles: Record<string, string> = {
+  pending_transfer: "bg-[#f6ddc9] text-[#8a4a1f]",
+  paid: "bg-[#dcead0] text-[#2f5b2b]",
+  fulfilled: "bg-[#dbe6f2] text-[#2a4a70]"
+};
+
+function RecentOrdersCard({orders}: {orders: RecentOrder[]}) {
+  return (
+    <div className="card space-y-4 p-6 sm:p-8">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-display text-xl text-forest-900">Recent Orders</h2>
+        <Link href="/mimin/orders" className="text-sm font-medium text-forest-700 hover:text-forest-900">
+          View all
+        </Link>
+      </div>
+      {orders.length ? (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[520px] border-collapse text-sm">
+            <thead>
+              <tr className="text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-500">
+                <th className="pb-3 pr-3">Order</th>
+                <th className="pb-3 pr-3">Customer</th>
+                <th className="pb-3 pr-3">Total</th>
+                <th className="pb-3 pr-3">Status</th>
+                <th className="pb-3">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => (
+                <tr key={order.id} className="border-t border-[#e7ddc6]">
+                  <td className="py-3 pr-3">
+                    <Link href="/mimin/orders" className="font-display text-base text-forest-900 hover:underline">
+                      {order.orderRef}
+                    </Link>
+                  </td>
+                  <td className="py-3 pr-3 text-forest-700">{order.customerName ?? order.customerEmail ?? "—"}</td>
+                  <td className="py-3 pr-3 whitespace-nowrap text-forest-700">{formatIdr(order.totalIdr)}</td>
+                  <td className="py-3 pr-3">
+                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${statusBadgeStyles[order.status] ?? "bg-[#eee4cd] text-forest-700"}`}>
+                      {orderStatusLabels[order.status] ?? order.status}
+                    </span>
+                  </td>
+                  <td className="py-3 whitespace-nowrap text-forest-600">{formatDate(order.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="py-6 text-center text-sm text-forest-500">No orders yet.</p>
+      )}
+    </div>
+  );
+}
+
+function BestSellingProductsCard({products}: {products: BestSellingProduct[] | null}) {
+  return (
+    <div className="card space-y-4 p-6 sm:p-8">
+      <h2 className="font-display text-xl text-forest-900">Best Selling Products</h2>
+      {products === null ? (
+        <div className="flex flex-col items-center gap-2 py-8 text-center">
+          <Trophy className="h-5 w-5 text-forest-400" />
+          <p className="text-sm text-forest-500">Not enough order data yet to rank products.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {products.map((product, index) => (
+            <div key={product.slug} className="flex items-center justify-between gap-3 rounded-2xl border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3">
+              <span className="flex items-center gap-3 text-sm text-forest-800">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#eee4cd] text-xs font-semibold text-forest-700">
+                  {index + 1}
+                </span>
+                {product.name}
+              </span>
+              <span className="shrink-0 text-right text-xs text-forest-600">
+                <span className="font-semibold text-forest-900">{product.unitsSold}</span> sold · {formatIdr(product.revenue)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function DashboardHome({userName, onNavigate}: {userName?: string | null; onNavigate: (tab: "manage" | "manage-hero-cards") => void}) {
   const [range, setRange] = useState<DateRangeKey>("all");
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const greeting = useGreeting();
 
   useEffect(() => {
     let cancelled = false;
@@ -226,37 +474,18 @@ export function DashboardHome({onNavigate}: {onNavigate: (tab: "manage" | "manag
     };
   }, [range]);
 
-  const awaiting = stats?.ordersAwaitingTransfer ?? 0;
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl text-forest-900">Overview</h2>
+          <p className="text-sm text-forest-600">
+            {greeting}, {userName?.split(" ")[0] ?? "Admin"} 👋
+          </p>
+          <h1 className="mt-1 font-display text-3xl text-forest-900">Dashboard</h1>
+          <p className="mt-1 text-sm text-forest-500">A live overview of your store&rsquo;s sales, orders, and inventory.</p>
         </div>
         <RangePicker range={range} onChange={setRange} />
       </div>
-
-      {/* Needs-attention card sits above the neutral cards and gets a
-          distinct accent treatment only when there's actually something to
-          act on — an empty queue shouldn't compete visually with real
-          overview numbers below it. */}
-      {!loading && awaiting > 0 ? (
-        <Link
-          href="/mimin/orders"
-          className="group flex items-center gap-4 rounded-[1.4rem] border border-[#a4402b]/40 bg-[#f7e9e2] p-5 transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(164,64,43,0.14)]"
-        >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#a4402b] text-white">
-            <AlertTriangle className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a4402b]">Needs attention</p>
-            <p className="mt-1 font-display text-2xl text-[#7a2f1e]">
-              {awaiting} order{awaiting === 1 ? "" : "s"} awaiting transfer
-            </p>
-          </div>
-        </Link>
-      ) : null}
 
       <div>
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-forest-500">Sales</p>
@@ -266,14 +495,14 @@ export function DashboardHome({onNavigate}: {onNavigate: (tab: "manage" | "manag
             iconTone="green"
             label="Total Revenue"
             value={formatIdr(stats?.totalRevenue ?? 0)}
-            delta={percentDelta(stats?.totalRevenue ?? 0, stats?.totalRevenuePrevious ?? null)}
+            delta={stats ? percentDelta(stats.totalRevenue, stats.totalRevenuePrevious) : null}
             loading={loading}
           />
           <KpiCard
             icon={ShoppingBag}
             label="Total Orders"
             value={String(stats?.totalOrders ?? 0)}
-            delta={countDelta(stats?.totalOrders ?? 0, stats?.totalOrdersPrevious ?? null)}
+            delta={stats ? countDelta(stats.totalOrders, stats.totalOrdersPrevious) : null}
             loading={loading}
             href="/mimin/orders"
           />
@@ -282,7 +511,7 @@ export function DashboardHome({onNavigate}: {onNavigate: (tab: "manage" | "manag
             icon={ReceiptText}
             label="Average Order Value"
             value={formatIdr(stats?.averageOrderValue ?? 0)}
-            delta={percentDelta(stats?.averageOrderValue ?? 0, stats?.averageOrderValuePrevious ?? null)}
+            delta={stats ? percentDelta(stats.averageOrderValue, stats.averageOrderValuePrevious) : null}
             loading={loading}
           />
         </div>
@@ -299,23 +528,45 @@ export function DashboardHome({onNavigate}: {onNavigate: (tab: "manage" | "manag
             loading={loading}
             href={"/mimin?tab=manage" as Route}
           />
-          <KpiCard icon={PackageX} iconTone="amber" label="Low Stock" value="Not tracked" loading={loading} href="/mimin/stock" />
-          <KpiCard icon={AlertTriangle} iconTone="red" label="Out of Stock" value="Not tracked" loading={loading} href="/mimin/stock" />
-          <KpiCard icon={Users} label="Customers" value={String(stats?.customerCount ?? 0)} loading={loading} href="/mimin/customers" />
+          <KpiCard
+            icon={AlertTriangle}
+            iconTone="amber"
+            label="Low Stock"
+            value={stats?.lowStockCount === null || stats?.lowStockCount === undefined ? "Not tracked" : String(stats.lowStockCount)}
+            loading={loading}
+            href="/mimin/stock"
+          />
+          <KpiCard
+            icon={PackageX}
+            iconTone="red"
+            label="Out of Stock"
+            value={stats?.outOfStockCount === null || stats?.outOfStockCount === undefined ? "Not tracked" : String(stats.outOfStockCount)}
+            loading={loading}
+            href="/mimin/stock"
+          />
+          <KpiCard icon={Users} label="Customers (CRM)" value={String(stats?.customerCount ?? 0)} loading={loading} href="/mimin/customers" />
         </div>
       </div>
 
-      <OrdersChart />
+      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
+        <SalesOverviewChart series={stats?.salesSeries ?? []} />
+        {stats ? <NeedsAttentionCard stats={stats} /> : null}
+      </div>
 
-      {stats && !loading ? (
-        <p className="flex items-center gap-1.5 text-xs text-forest-400">
-          <CheckCircle2 className="h-3.5 w-3.5" />
-          {stats.heroCardCount} hero card{stats.heroCardCount === 1 ? "" : "s"} live ·{" "}
-          <button type="button" onClick={() => onNavigate("manage-hero-cards")} className="underline decoration-dotted underline-offset-2 hover:text-forest-600">
-            manage hero cards
-          </button>
-        </p>
-      ) : null}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <RecentOrdersCard orders={stats?.recentOrders ?? []} />
+        <BestSellingProductsCard products={stats?.bestSellingProducts ?? null} />
+      </div>
+
+      <div className="text-right">
+        <button
+          type="button"
+          onClick={() => onNavigate("manage-hero-cards")}
+          className="text-xs text-forest-400 underline decoration-dotted underline-offset-2 hover:text-forest-600"
+        >
+          Manage hero cards
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,14 +1,19 @@
 import {getServerSession} from "next-auth/next";
 import {CustomerTelemetryRow} from "@/components/admin/customer-telemetry-row";
+import {CustomersByCountryCard} from "@/components/admin/customers-by-country-card";
 import {CustomersDirectory} from "@/components/admin/customers-directory";
 import {authOptions} from "@/lib/auth";
-import {getCustomerListView, getCustomerTelemetry} from "@/lib/customers";
+import {getCustomerListView, getCustomerTelemetry, getCustomersByCountry} from "@/lib/customers";
 
 // Auth is already gated by app/mimin/layout.tsx.
 export default async function CustomersPage() {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email ?? "";
-  const [telemetry, customers] = await Promise.all([getCustomerTelemetry(), getCustomerListView()]);
+  const [telemetry, customers, byCountry] = await Promise.all([
+    getCustomerTelemetry(),
+    getCustomerListView(),
+    getCustomersByCountry()
+  ]);
 
   return (
     <div className="space-y-6">
@@ -19,6 +24,7 @@ export default async function CustomersPage() {
 
       <CustomerTelemetryRow telemetry={telemetry} />
       <CustomersDirectory customers={customers} />
+      <CustomersByCountryCard rows={byCountry} />
     </div>
   );
 }

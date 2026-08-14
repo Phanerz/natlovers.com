@@ -18,6 +18,38 @@ export async function getCustomerCount(): Promise<number> {
   return row.value;
 }
 
+export type CustomersByCountryRow = {country: string | null; count: number; percentage: number};
+
+// Grouped by each customer's default saved address (a real signal now that
+// checkout captures a shipping country) — customers with no saved address
+// at all land in an "Unassigned" bucket (country: null), which always
+// sorts last regardless of its count, per how this card is meant to read:
+// real coverage first, the gap called out honestly at the bottom.
+export async function getCustomersByCountry(): Promise<CustomersByCountryRow[]> {
+  const [totalRow, countryRows] = await Promise.all([
+    db.select({value: count()}).from(users),
+    db
+      .select({country: addresses.country, value: count()})
+      .from(addresses)
+      .where(eq(addresses.isDefault, true))
+      .groupBy(addresses.country)
+  ]);
+
+  const totalCustomers = totalRow[0].value;
+  const assigned = countryRows.reduce((sum, row) => sum + row.value, 0);
+  const unassigned = totalCustomers - assigned;
+
+  const rows: CustomersByCountryRow[] = countryRows
+    .map((row) => ({country: row.country, count: row.value, percentage: totalCustomers > 0 ? Math.round((row.value / totalCustomers) * 1000) / 10 : 0}))
+    .sort((a, b) => b.count - a.count);
+
+  if (unassigned > 0) {
+    rows.push({country: null, count: unassigned, percentage: totalCustomers > 0 ? Math.round((unassigned / totalCustomers) * 1000) / 10 : 0});
+  }
+
+  return rows;
+}
+
 export type CustomerTelemetry = {
   totalCustomers: number;
   newThisMonth: number;

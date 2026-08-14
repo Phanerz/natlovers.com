@@ -9,10 +9,11 @@ import {authOptions} from "@/lib/auth";
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email ?? "";
+  const name = session?.user?.name ?? null;
 
   return (
     <Suspense fallback={<p className="muted">Loading...</p>}>
-      <AdminDashboard userEmail={email} />
+      <AdminDashboard userEmail={email} userName={name} />
     </Suspense>
   );
 }

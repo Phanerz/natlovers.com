@@ -5,10 +5,28 @@ import Image from "next/image";
 import Link from "next/link";
 import {useRouter, useSearchParams} from "next/navigation";
 import {signOut, useSession} from "next-auth/react";
-import {CircleHelp, CreditCard, Heart, LogOut, Mail, MapPin, MessageCircle, Package, Settings, User} from "lucide-react";
+import {
+  CircleHelp,
+  CreditCard,
+  Download,
+  Heart,
+  LogOut,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Package,
+  Repeat,
+  Settings,
+  Trash2,
+  User,
+  UserCheck,
+  UserPlus,
+  Users
+} from "lucide-react";
 import {AddressesManager} from "@/components/addresses-manager";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {formatCurrency} from "@/lib/format";
+import type {CustomerTelemetry} from "@/lib/customers";
 import {orderStatusLabels} from "@/lib/order-status";
 import {CurrencyCode, Locale, currencies, currencySymbols, locales} from "@/lib/site";
 import type {AdminProduct} from "@/lib/admin-products";
@@ -41,6 +59,44 @@ function EmptyState({title, body}: {title: string; body: string}) {
   );
 }
 
+function toWhatsAppLink(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  const withoutLeadingZero = digits.startsWith("0") ? digits.slice(1) : digits;
+  const withCountryCode = withoutLeadingZero.startsWith("62") ? withoutLeadingZero : `62${withoutLeadingZero}`;
+  return `https://wa.me/${withCountryCode}`;
+}
+
+// Same real query the Customers CRM page uses (lib/customers.ts) — this is
+// only ever rendered when the API has already confirmed the viewer is an
+// admin (see the isAdmin check in app/api/account/route.ts), so a regular
+// customer's own profile never requests or sees business-wide numbers.
+function AdminTelemetryRow({telemetry}: {telemetry: CustomerTelemetry}) {
+  const cards: {icon: typeof Users; label: string; value: string; subtext: string}[] = [
+    {icon: Users, label: "Total Customers", value: String(telemetry.totalCustomers), subtext: `+${telemetry.newThisMonth} this month`},
+    {icon: UserPlus, label: "New Customers", value: String(telemetry.newThisMonth), subtext: "This calendar month"},
+    {icon: UserCheck, label: "Returning Customers", value: String(telemetry.returningCustomers), subtext: "Ordered 2+ times"},
+    {icon: Repeat, label: "Repeat Purchase Rate", value: `${telemetry.repeatPurchaseRate}%`, subtext: "Customers who returned"}
+  ];
+
+  return (
+    <div>
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-forest-500">Admin overview</p>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {cards.map((card) => (
+          <div key={card.label} className="rounded-[1.4rem] border border-[#e4d9c1] bg-white/70 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eee4cd] text-forest-700">
+              <card.icon className="h-5 w-5" />
+            </div>
+            <p className="mt-3 text-[11px] font-semibold uppercase leading-tight tracking-[0.16em] text-forest-500">{card.label}</p>
+            <p className="mt-1 font-display text-2xl text-forest-900">{card.value}</p>
+            <p className="mt-1 text-xs text-forest-500">{card.subtext}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function AccountContent() {
   const {data: session, status} = useSession();
   const router = useRouter();
@@ -54,6 +110,8 @@ function AccountContent() {
   const [saved, setSaved] = useState(false);
   const [orders, setOrders] = useState<OrderView[] | null>(null);
   const [wishlistProducts, setWishlistProducts] = useState<AdminProduct[] | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminTelemetry, setAdminTelemetry] = useState<CustomerTelemetry | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -68,11 +126,23 @@ function AccountContent() {
     let cancelled = false;
     fetch("/api/account", {cache: "no-store"})
       .then((response) => (response.ok ? response.json() : null))
-      .then((data: {name: string | null; phone: string | null; bio: string | null} | null) => {
-        if (!cancelled && data) {
-          setForm({name: data.name ?? "", phone: data.phone ?? "", bio: data.bio ?? ""});
+      .then(
+        (
+          data: {
+            name: string | null;
+            phone: string | null;
+            bio: string | null;
+            isAdmin?: boolean;
+            adminTelemetry?: CustomerTelemetry | null;
+          } | null
+        ) => {
+          if (!cancelled && data) {
+            setForm({name: data.name ?? "", phone: data.phone ?? "", bio: data.bio ?? ""});
+            setIsAdmin(Boolean(data.isAdmin));
+            setAdminTelemetry(data.adminTelemetry ?? null);
+          }
         }
-      })
+      )
       .finally(() => {
         if (!cancelled) {
           setProfileLoaded(true);
@@ -84,7 +154,7 @@ function AccountContent() {
   }, [status]);
 
   useEffect(() => {
-    if (status !== "authenticated" || tab !== "orders" || orders !== null) {
+    if (status !== "authenticated" || (tab !== "orders" && tab !== "profile") || orders !== null) {
       return;
     }
     let cancelled = false;
@@ -229,59 +299,154 @@ function AccountContent() {
 
         <div className="rounded-[1.75rem] border border-[#e4d9c1] bg-white/60 p-6 backdrop-blur-xl sm:p-8">
           {tab === "profile" ? (
-            <form onSubmit={handleSave} className="space-y-8">
-              <div>
-                <h2 className="font-display text-2xl text-forest-900">Profile information</h2>
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  <label className="space-y-1.5 text-sm text-forest-700">
-                    <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Full name</span>
-                    <input
-                      value={form.name}
-                      onChange={(event) => setForm((current) => ({...current, name: event.target.value}))}
-                      className="w-full rounded-xl border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
-                    />
-                  </label>
-                  <label className="space-y-1.5 text-sm text-forest-700">
-                    <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Email address</span>
-                    <input
-                      value={user.email ?? ""}
-                      disabled
-                      className="w-full cursor-not-allowed rounded-xl border border-[#e4d9c1] bg-[#f3ede0] px-4 py-3 text-forest-500"
-                    />
-                  </label>
-                  <label className="space-y-1.5 text-sm text-forest-700">
-                    <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Phone number</span>
-                    <input
-                      value={form.phone}
-                      onChange={(event) => setForm((current) => ({...current, phone: event.target.value}))}
-                      placeholder="+62"
-                      className="w-full rounded-xl border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
-                    />
-                  </label>
-                </div>
-                <label className="mt-4 block space-y-1.5 text-sm text-forest-700">
-                  <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Bio (optional)</span>
-                  <textarea
-                    value={form.bio}
-                    onChange={(event) => setForm((current) => ({...current, bio: event.target.value}))}
-                    rows={3}
-                    placeholder="Lover of natural craft, sustainable living, and meaningful stories."
-                    className="w-full rounded-xl border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
-                  />
-                </label>
+            <div className="space-y-8">
+              {isAdmin && adminTelemetry ? <AdminTelemetryRow telemetry={adminTelemetry} /> : null}
 
-                <div className="mt-4 flex items-center gap-3">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="button-lift rounded-full bg-forest-900 px-6 py-3 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {saving ? "Saving..." : "Save changes"}
-                  </button>
-                  {saved ? <span className="text-sm text-forest-600">Saved.</span> : null}
+              <div className="grid gap-8 lg:grid-cols-2">
+                <form onSubmit={handleSave} className="space-y-5">
+                  <h2 className="font-display text-2xl text-forest-900">Profile information</h2>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="space-y-1.5 text-sm text-forest-700">
+                      <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Full name</span>
+                      <input
+                        value={form.name}
+                        onChange={(event) => setForm((current) => ({...current, name: event.target.value}))}
+                        className="w-full rounded-xl border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
+                      />
+                    </label>
+                    <label className="space-y-1.5 text-sm text-forest-700">
+                      <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Email address</span>
+                      <input
+                        value={user.email ?? ""}
+                        disabled
+                        className="w-full cursor-not-allowed rounded-xl border border-[#e4d9c1] bg-[#f3ede0] px-4 py-3 text-forest-500"
+                      />
+                    </label>
+                    <label className="space-y-1.5 text-sm text-forest-700 sm:col-span-2">
+                      <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Phone number</span>
+                      <input
+                        value={form.phone}
+                        onChange={(event) => setForm((current) => ({...current, phone: event.target.value}))}
+                        placeholder="+62"
+                        className="w-full rounded-xl border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
+                      />
+                      {form.phone.trim() ? (
+                        <a
+                          href={toWhatsAppLink(form.phone)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1.5 text-xs font-medium text-[#2f5b2b] hover:underline"
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          Click to chat via WhatsApp
+                        </a>
+                      ) : null}
+                    </label>
+                    <label className="space-y-1.5 text-sm text-forest-700 sm:col-span-2">
+                      <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Preferred language</span>
+                      <select
+                        value={locale}
+                        onChange={(event) => setLocale(event.target.value as Locale)}
+                        className="w-full rounded-xl border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
+                      >
+                        {locales.map((option) => (
+                          <option key={option} value={option}>
+                            {option === "en" ? "English" : "Bahasa"}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <label className="block space-y-1.5 text-sm text-forest-700">
+                    <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Bio (optional)</span>
+                    <textarea
+                      value={form.bio}
+                      onChange={(event) => setForm((current) => ({...current, bio: event.target.value}))}
+                      rows={3}
+                      placeholder="Lover of natural craft, sustainable living, and meaningful stories."
+                      className="w-full rounded-xl border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
+                    />
+                  </label>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="button-lift rounded-full bg-forest-900 px-6 py-3 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {saving ? "Saving..." : "Save changes"}
+                    </button>
+                    {saved ? <span className="text-sm text-forest-600">Saved.</span> : null}
+                  </div>
+                </form>
+
+                <div className="space-y-8">
+                  <AddressesManager />
+
+                  <div>
+                    <h2 className="font-display text-2xl text-forest-900">Account</h2>
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#e4d9c1] bg-white/70 p-4">
+                        <span className="flex items-center gap-3 text-sm text-forest-700">
+                          <Download className="h-4 w-4 text-forest-500" />
+                          Export my data
+                        </span>
+                        <Link href="/account?tab=help" className="text-xs font-medium text-forest-700 underline decoration-dotted underline-offset-2 hover:text-forest-900">
+                          Request via support
+                        </Link>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#f3d9d0] bg-[#faf1ed] p-4">
+                        <span className="flex items-center gap-3 text-sm text-[#a4402b]">
+                          <Trash2 className="h-4 w-4" />
+                          Delete account
+                        </span>
+                        <Link href="/account?tab=help" className="text-xs font-medium text-[#a4402b] underline decoration-dotted underline-offset-2 hover:text-[#7a2f1e]">
+                          Request via support
+                        </Link>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-forest-500">
+                      Self-service data export and account deletion aren&rsquo;t built yet — reach out and we&rsquo;ll handle it directly.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </form>
+
+              <div>
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="font-display text-2xl text-forest-900">Recent orders</h2>
+                  <button
+                    type="button"
+                    onClick={() => selectTab("orders")}
+                    className="text-sm font-medium text-forest-700 hover:text-forest-900"
+                  >
+                    View all orders
+                  </button>
+                </div>
+                {orders === null ? (
+                  <p className="py-8 text-center text-sm text-forest-500">Loading...</p>
+                ) : orders.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-forest-500">No orders yet.</p>
+                ) : (
+                  <div className="mt-4 space-y-2">
+                    {orders.slice(0, 5).map((order) => (
+                      <div key={order.id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#e4d9c1] bg-white/70 px-4 py-3">
+                        <div>
+                          <p className="font-display text-base text-forest-900">{order.orderRef}</p>
+                          <p className="text-xs text-forest-500">{new Date(order.createdAt).toLocaleDateString(undefined, {dateStyle: "medium"})}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-forest-700">{formatCurrency(order.totalIdr, currency)}</span>
+                          <span className="rounded-full border border-[#e4d9c1] bg-[#eee4cd] px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-forest-700">
+                            {orderStatusLabels[order.status] ?? order.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           ) : null}
 
           {tab === "orders" ? (

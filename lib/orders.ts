@@ -1,4 +1,4 @@
-import {and, desc, eq, gte, inArray, lte, sql} from "drizzle-orm";
+import {and, desc, eq, inArray, sql} from "drizzle-orm";
 import {AddressInput, createAddress, getDefaultAddress, updateAddress} from "@/lib/addresses";
 import {clearCart} from "@/lib/cart";
 import {db, orderItems, orders, products, users} from "@/lib/db";
@@ -361,23 +361,3 @@ export async function deleteOrder(orderId: string): Promise<boolean> {
   return Boolean(deleted);
 }
 
-export type OrdersPerDay = {date: string; count: number; totalIdr: number};
-
-// Groups real orders by calendar day within [start, end] (inclusive) — days
-// with zero orders simply don't appear in the result, so the caller can
-// tell "no data yet" apart from "zero orders that day" only by what's
-// missing, never a fabricated zero-filled row.
-export async function getOrdersPerDay(start: Date, end: Date): Promise<OrdersPerDay[]> {
-  const rows = await db
-    .select({
-      date: sql<string>`to_char(${orders.createdAt}, 'YYYY-MM-DD')`,
-      count: sql<number>`count(*)::int`,
-      totalIdr: sql<number>`coalesce(sum(${orders.totalIdr}), 0)::int`
-    })
-    .from(orders)
-    .where(and(gte(orders.createdAt, start), lte(orders.createdAt, end)))
-    .groupBy(sql`to_char(${orders.createdAt}, 'YYYY-MM-DD')`)
-    .orderBy(sql`to_char(${orders.createdAt}, 'YYYY-MM-DD')`);
-
-  return rows;
-}

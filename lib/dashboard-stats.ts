@@ -1,6 +1,12 @@
-import {and, count, eq, gte, inArray, lt, sql} from "drizzle-orm";
-import {db, heroCards, orderItems, orders, products} from "@/lib/db";
+import {and, count, desc, eq, gte, inArray, isNotNull, lt, sql} from "drizzle-orm";
+import {db, heroCards, orderItems, orders, products, users} from "@/lib/db";
 import {getCustomerCount} from "@/lib/customers";
+
+// A product only counts toward stock KPIs once it's opted into tracking
+// (stock IS NOT NULL) — most of the catalogue hasn't yet, so these stay
+// null (rendered as "Not tracked") until at least one product has a real
+// count, rather than showing a hollow zero that reads as "fully stocked."
+const LOW_STOCK_THRESHOLD = 5;
 
 export type DateRangeKey = "today" | "7d" | "month" | "year" | "all";
 
@@ -101,12 +107,14 @@ export type DashboardStats = {
   heroCardCount: number;
   ordersAwaitingTransfer: number;
   customerCount: number;
+  lowStockCount: number | null;
+  outOfStockCount: number | null;
 };
 
 export async function getDashboardStats(range: DateRangeKey): Promise<DashboardStats> {
   const resolved = resolveDateRange(range);
 
-  const [current, previous, [totalRow], [activeRow], [heroRow], [awaitingRow], customerCount] = await Promise.all([
+  const [current, previous, [totalRow], [activeRow], [heroRow], [awaitingRow], customerCount, [stockRow]] = await Promise.all([
     getPeriodMetrics(resolved.start, resolved.end),
     resolved.previousStart
       ? getPeriodMetrics(resolved.previousStart, resolved.previousEnd!)
@@ -115,7 +123,15 @@ export async function getDashboardStats(range: DateRangeKey): Promise<DashboardS
     db.select({value: count()}).from(products).where(eq(products.isActive, true)),
     db.select({value: count()}).from(heroCards),
     db.select({value: count()}).from(orders).where(eq(orders.status, "pending_transfer")),
-    getCustomerCount()
+    getCustomerCount(),
+    db
+      .select({
+        tracked: count(),
+        outOfStock: sql<number>`count(*) filter (where ${products.stock} = 0)::int`,
+        lowStock: sql<number>`count(*) filter (where ${products.stock} > 0 and ${products.stock} <= ${LOW_STOCK_THRESHOLD})::int`
+      })
+      .from(products)
+      .where(isNotNull(products.stock))
   ]);
 
   const totalProducts = totalRow.value;
@@ -135,6 +151,107 @@ export async function getDashboardStats(range: DateRangeKey): Promise<DashboardS
     hiddenProducts: totalProducts - activeProducts,
     heroCardCount: heroRow.value,
     ordersAwaitingTransfer: awaitingRow.value,
-    customerCount
+    customerCount,
+    lowStockCount: stockRow.tracked > 0 ? stockRow.lowStock : null,
+    outOfStockCount: stockRow.tracked > 0 ? stockRow.outOfStock : null
   };
+}
+
+export type SalesSeriesPoint = {date: string; revenue: number; orders: number; itemsSold: number};
+
+// Granularity follows the range: short windows (today/7d/month) are grouped
+// by day, longer ones (year/all) by month — a year of daily points would be
+// an unreadable comb of bars, and a week of monthly points would be a
+// single dot.
+function granularityFor(range: DateRangeKey): "day" | "month" {
+  return range === "year" || range === "all" ? "month" : "day";
+}
+
+export async function getSalesSeries(range: DateRangeKey): Promise<SalesSeriesPoint[]> {
+  const resolved = resolveDateRange(range);
+  const granularity = granularityFor(range);
+  const bucket = granularity === "day" ? sql`to_char(${orders.createdAt}, 'YYYY-MM-DD')` : sql`to_char(${orders.createdAt}, 'YYYY-MM')`;
+
+  const dateFilter = resolved.start ? gte(orders.createdAt, resolved.start) : undefined;
+  const endFilter = lt(orders.createdAt, resolved.end);
+  const rangeFilter = dateFilter ? and(dateFilter, endFilter) : endFilter;
+
+  const rows = await db
+    .select({
+      date: sql<string>`${bucket}`,
+      revenue: sql<number>`coalesce(sum(${orders.totalIdr}), 0)::int`,
+      orders: sql<number>`count(distinct ${orders.id})::int`,
+      itemsSold: sql<number>`coalesce(sum(${orderItems.quantity}), 0)::int`
+    })
+    .from(orders)
+    .leftJoin(orderItems, eq(orderItems.orderId, orders.id))
+    .where(and(rangeFilter, inArray(orders.status, PAID_STATUSES)))
+    .groupBy(sql`${bucket}`)
+    .orderBy(sql`${bucket}`);
+
+  return rows;
+}
+
+export type RecentOrder = {
+  id: string;
+  orderRef: string;
+  customerName: string | null;
+  customerEmail: string | null;
+  totalIdr: number;
+  status: string;
+  createdAt: string;
+};
+
+export async function getRecentOrders(limit = 5): Promise<RecentOrder[]> {
+  const rows = await db
+    .select({
+      id: orders.id,
+      orderRef: orders.orderRef,
+      customerName: users.name,
+      customerEmail: users.email,
+      totalIdr: orders.totalIdr,
+      status: orders.status,
+      createdAt: orders.createdAt
+    })
+    .from(orders)
+    .leftJoin(users, eq(orders.userId, users.id))
+    .orderBy(desc(orders.createdAt))
+    .limit(limit);
+
+  return rows.map((row) => ({...row, createdAt: row.createdAt.toISOString()}));
+}
+
+export type BestSellingProduct = {slug: string; name: string; unitsSold: number; revenue: number};
+
+// Deliberately all-time (not scoped to the dashboard's selected date range)
+// and gated behind a minimum sample size — "best selling" out of 1-2 real
+// orders isn't a ranking, it's noise dressed up as signal. Returns null
+// below that floor so the UI shows an honest "not enough data" state
+// instead of a fake leaderboard.
+const MIN_PAID_ORDERS_FOR_BEST_SELLERS = 3;
+
+export async function getBestSellingProducts(limit = 5): Promise<BestSellingProduct[] | null> {
+  const [[paidOrderCountRow]] = await Promise.all([
+    db.select({value: count()}).from(orders).where(inArray(orders.status, PAID_STATUSES))
+  ]);
+
+  if (paidOrderCountRow.value < MIN_PAID_ORDERS_FOR_BEST_SELLERS) {
+    return null;
+  }
+
+  const rows = await db
+    .select({
+      slug: orderItems.productSlug,
+      name: orderItems.productName,
+      unitsSold: sql<number>`coalesce(sum(${orderItems.quantity}), 0)::int`,
+      revenue: sql<number>`coalesce(sum(${orderItems.quantity} * ${orderItems.priceIdr}), 0)::int`
+    })
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .where(inArray(orders.status, PAID_STATUSES))
+    .groupBy(orderItems.productSlug, orderItems.productName)
+    .orderBy(desc(sql`sum(${orderItems.quantity})`))
+    .limit(limit);
+
+  return rows;
 }

@@ -21,7 +21,7 @@ function tabFromParam(value: string | null): Tab {
   return validTabs.includes(value as Tab) ? (value as Tab) : "dashboard";
 }
 
-export function AdminDashboard({userEmail}: {userEmail: string}) {
+export function AdminDashboard({userEmail, userName}: {userEmail: string; userName?: string | null}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = tabFromParam(searchParams.get("tab"));
@@ -388,7 +388,7 @@ export function AdminDashboard({userEmail}: {userEmail: string}) {
       </div>
 
       <div className="space-y-8">
-        {tab === "dashboard" ? <DashboardHome onNavigate={setTab} /> : null}
+        {tab === "dashboard" ? <DashboardHome userName={userName} onNavigate={setTab} /> : null}
 
         {tab === "add" ? (
           isEditing && editingProduct ? (
