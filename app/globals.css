@@ -350,41 +350,29 @@ button {
 
 /* ============================================================
    Elevated glass button/icon-button/stepper chrome — the same bevel +
-   specular-sheen + iridescent-edge language as .liquid-glass/
-   .auth-glass-card above, generalized into reusable primitives for every
-   solid, outline, and icon button site-wide (starting with the cart
-   drawer). Deliberately NOT a generic iOS blue/gray reskin — same forest/
-   sand palette this brand already uses, just given real material depth:
-   a convex bevel at rest (light hitting a physical surface), a one-shot
-   specular sweep on hover (looping would read as a UI defect on a static
-   button, so it fires once per hover, not on a timer), and a genuine
-   spring compress on :active so a tap feels like pressing an object
-   instead of just a color swap.
+   iridescent-edge language as .liquid-glass/.auth-glass-card above,
+   generalized into reusable primitives for every solid, outline, and icon
+   button site-wide (starting with the cart drawer). Deliberately NOT a
+   generic iOS blue/gray reskin — same forest/sand palette this brand
+   already uses, just given real material depth.
+
+   Motion is intentionally restrained: no spring/overshoot easing on
+   hover (that read as bouncy/gamified) and no moving highlight sweep
+   (a shine literally sliding across a button is a very recognizable
+   "cheap SaaS" cliché). Hover is a slow, smooth ease-out lift with a
+   static glow that fades in in place — nothing travels across the
+   surface. :active stays quick/snappy on purpose, since immediate
+   feedback on an actual press is correct, expected tactility, not the
+   "cartoony" quality the slower hover states were.
    ============================================================ */
-
-@keyframes glassSheen {
-  0% {
-    transform: translateX(-160%) skewX(-12deg);
-    opacity: 0;
-  }
-
-  14% {
-    opacity: 1;
-  }
-
-  100% {
-    transform: translateX(160%) skewX(-12deg);
-    opacity: 0;
-  }
-}
 
 .glass-btn-primary,
 .glass-btn-secondary {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  transition: transform 480ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 420ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 300ms ease, background 300ms ease;
+  transition: transform 650ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 650ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 450ms ease, background 450ms ease;
 }
 
 .glass-btn-primary::before,
@@ -392,15 +380,15 @@ button {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.55) 42%, transparent 60%);
-  transform: translateX(-160%) skewX(-12deg);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 60%);
   opacity: 0;
+  transition: opacity 700ms cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
 }
 
 .glass-btn-primary:hover::before,
 .glass-btn-secondary:hover::before {
-  animation: glassSheen 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 1;
 }
 
 .glass-btn-primary {
@@ -411,14 +399,14 @@ button {
 }
 
 .glass-btn-primary:hover {
-  transform: translateY(-3px);
-  border-color: rgba(255, 255, 255, 0.26);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3), inset 0 -10px 16px rgba(0, 0, 0, 0.24),
-    0 22px 44px rgba(12, 22, 13, 0.42), 0 4px 10px rgba(12, 22, 13, 0.24);
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.28), inset 0 -10px 16px rgba(0, 0, 0, 0.24),
+    0 18px 36px rgba(12, 22, 13, 0.36), 0 3px 8px rgba(12, 22, 13, 0.22);
 }
 
 .glass-btn-primary:active {
-  transform: translateY(-1px) scale(0.965);
+  transform: translateY(0) scale(0.98);
   transition-duration: 140ms;
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.18), inset 0 -6px 10px rgba(0, 0, 0, 0.3),
     0 6px 14px rgba(12, 22, 13, 0.3);
@@ -437,22 +425,21 @@ button {
 }
 
 .glass-btn-secondary:hover {
-  transform: translateY(-3px);
-  border-color: rgba(23, 32, 21, 0.22);
+  transform: translateY(-2px);
+  border-color: rgba(23, 32, 21, 0.2);
   background: linear-gradient(165deg, #ffffff, rgba(253, 247, 235, 0.95));
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9), inset 0 -6px 12px rgba(180, 158, 116, 0.1),
-    0 18px 36px rgba(79, 58, 28, 0.14);
+    0 14px 28px rgba(79, 58, 28, 0.12);
 }
 
 .glass-btn-secondary:active {
-  transform: translateY(-1px) scale(0.965);
+  transform: translateY(0) scale(0.98);
   transition-duration: 140ms;
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 6px 14px rgba(79, 58, 28, 0.12);
 }
 
-/* Circular icon buttons (close, remove, stepper) — same bevel/press
-   language, but a scale-in on hover instead of the linear sheen sweep,
-   since a moving light streak reads as noisy on something this small. */
+/* Circular icon buttons (close, remove, stepper) — same restrained
+   language: slow smooth lift on hover, no sweep, quick press feedback. */
 .glass-icon-btn {
   position: relative;
   isolation: isolate;
@@ -460,19 +447,19 @@ button {
   border: 1px solid rgba(215, 202, 178, 0.75);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.85), inset 0 -3px 6px rgba(180, 158, 116, 0.08),
     0 8px 18px rgba(79, 58, 28, 0.12);
-  transition: transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 380ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 260ms ease, color 260ms ease;
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 600ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 400ms ease, color 400ms ease;
 }
 
 .glass-icon-btn:hover {
-  transform: translateY(-2px) scale(1.08);
-  border-color: rgba(23, 32, 21, 0.22);
+  transform: translateY(-1px) scale(1.04);
+  border-color: rgba(23, 32, 21, 0.2);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.95), inset 0 -3px 6px rgba(180, 158, 116, 0.1),
-    0 14px 26px rgba(79, 58, 28, 0.18);
+    0 10px 20px rgba(79, 58, 28, 0.16);
 }
 
 .glass-icon-btn:active {
-  transform: translateY(0) scale(0.88);
+  transform: translateY(0) scale(0.92);
   transition-duration: 120ms;
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), inset 0 2px 5px rgba(79, 58, 28, 0.14);
 }
@@ -484,13 +471,12 @@ button {
   border-color: rgba(196, 82, 62, 0.4);
   color: #b3402c;
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.95), inset 0 -3px 6px rgba(196, 82, 62, 0.1),
-    0 14px 26px rgba(196, 82, 62, 0.22);
+    0 10px 20px rgba(196, 82, 62, 0.18);
 }
 
 /* Quantity stepper — a glass pill housing two .glass-stepper-btn taps. The
-   buttons pop (scale up) on hover and genuinely compress on press, rather
-   than the container itself moving, so pressing "-" doesn't jostle the "+"
-   sitting right next to it. */
+   buttons brighten and lift very slightly on hover and compress on press,
+   rather than the container itself moving. */
 .glass-stepper {
   position: relative;
   background: linear-gradient(165deg, rgba(255, 253, 248, 0.95), rgba(250, 243, 229, 0.85));
@@ -500,16 +486,16 @@ button {
 }
 
 .glass-stepper-btn {
-  transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 240ms ease;
+  transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1), background-color 350ms ease;
 }
 
 .glass-stepper-btn:hover {
-  transform: scale(1.18);
-  background: rgba(23, 32, 21, 0.07);
+  transform: scale(1.08);
+  background: rgba(23, 32, 21, 0.06);
 }
 
 .glass-stepper-btn:active {
-  transform: scale(0.82);
+  transform: scale(0.88);
   transition-duration: 120ms;
 }
 
@@ -903,7 +889,8 @@ button {
 
   .glass-btn-primary::before,
   .glass-btn-secondary::before {
-    animation: none !important;
+    transition: none !important;
+    opacity: 0 !important;
   }
 }
 
