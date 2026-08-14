@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import {usePathname} from "next/navigation";
 import {useEffect, useState} from "react";
-import {ChevronDown, GalleryHorizontal, LayoutDashboard, PlusCircle, Receipt, ShoppingBag} from "lucide-react";
+import {ChevronDown, GalleryHorizontal, LayoutDashboard, PlusCircle, Receipt, ShoppingBag, Users} from "lucide-react";
 import {ShopProductType, productTypeLabels, shopProductTypes} from "@/app/catalogue/shop-data";
 
 type Tab = "dashboard" | "add" | "manage" | "add-hero-card" | "manage-hero-cards";
@@ -61,6 +62,7 @@ function SubItem({label, active, onClick}: {label: string; active: boolean; onCl
 }
 
 export function AdminSidebar({tab, onTabChange}: {tab: Tab; onTabChange: (tab: Tab) => void}) {
+  const pathname = usePathname();
   const [ordersAwaiting, setOrdersAwaiting] = useState<number | null>(null);
   const [productsExpanded, setProductsExpanded] = useState(true);
 
@@ -138,7 +140,7 @@ export function AdminSidebar({tab, onTabChange}: {tab: Tab; onTabChange: (tab: T
         </div>
       </div>
 
-      <div className="pt-3">
+      <div className="border-b border-[#d9cfc0] py-3">
         <div className="px-3 pb-2">
           <SectionLabel>Orders</SectionLabel>
         </div>
@@ -155,6 +157,21 @@ export function AdminSidebar({tab, onTabChange}: {tab: Tab; onTabChange: (tab: T
               {ordersAwaiting}
             </span>
           ) : null}
+        </Link>
+      </div>
+
+      <div className="pt-3">
+        <div className="px-3 pb-2">
+          <SectionLabel>Customers</SectionLabel>
+        </div>
+        <Link
+          href="/mimin/customers"
+          className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors duration-150 ${
+            pathname?.startsWith("/mimin/customers") ? "bg-forest-900 text-sand-50" : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
+          }`}
+        >
+          <Users className="h-4 w-4 shrink-0" />
+          Customers
         </Link>
       </div>
     </aside>
