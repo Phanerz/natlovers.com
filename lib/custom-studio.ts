@@ -1,0 +1,355 @@
+import {z} from "zod";
+import type {ShopHandle, ShopMaterial, ShopProductType, ShopShape, ShopSize} from "@/app/catalogue/shop-data";
+
+// Client-safe Custom Studio vocabulary: option catalogues, per-type
+// configuration schemas, and the request status lifecycle. Deliberately
+// imports no DB client (same split as lib/order-status.ts) so the studio's
+// client components and the API routes can share one definition of what a
+// valid configuration is, instead of the browser and the server each
+// carrying their own drifting copy.
+
+// ---------------------------------------------------------------------------
+// Product types
+// ---------------------------------------------------------------------------
+
+// A subset of the catalogue's shopProductTypes. Accessories are made to
+// fixed designs and are not offered as commissions, so the studio covers
+// three of the four. These are the catalogue's own type names rather than a
+// second custom-only vocabulary, which is what lets a request be matched
+// against real products for preview imagery and pricing.
+export const customProductTypes = ["Bags", "Dolls", "Apparels"] as const;
+
+export type CustomProductType = (typeof customProductTypes)[number];
+
+export function isCustomProductType(value: unknown): value is CustomProductType {
+  return typeof value === "string" && (customProductTypes as readonly string[]).includes(value);
+}
+
+// Satisfies the compiler that every custom type is also a catalogue type —
+// if someone later adds a type here the catalogue does not know about, this
+// fails to compile rather than silently breaking preview lookups.
+const typesAreCatalogueTypes: readonly ShopProductType[] = customProductTypes;
+void typesAreCatalogueTypes;
+
+// Drives the studio's dynamic heading ("Create your one-of-a-kind bag").
+export const customTypeNoun: Record<CustomProductType, string> = {
+  Bags: "bag",
+  Dolls: "doll",
+  Apparels: "piece"
+};
+
+export const customTypeTabLabel: Record<CustomProductType, string> = {
+  Bags: "Bag",
+  Dolls: "Doll",
+  Apparels: "Apparel"
+};
+
+// ---------------------------------------------------------------------------
+// Bag options
+// ---------------------------------------------------------------------------
+
+// Shapes and handles are the catalogue's own attribute values (see
+// app/catalogue/shop-data.ts and the shape/handle_type columns on products),
+// not a parallel set invented for the studio. That is what makes the live
+// preview able to find a genuine photograph of the combination being
+// configured instead of an approximation.
+export const customBagShapes: ShopShape[] = ["Rectangle", "Round", "House Shaped"];
+
+export const customBagHandles: ShopHandle[] = ["Handbag", "Shoulder Bag", "Sling Bag", "Clutch"];
+
+export const customBagSizes: ShopSize[] = ["Small", "Medium", "Large"];
+
+// The "base colour" row. Natlovers bags are undyed natural fibre, so the
+// colour is the material — these are the five fibres the workshop actually
+// weaves (bagMaterials in shop-data.ts), with swatch hexes taken from the
+// catalogue's existing materialImageStyle palette rather than picked fresh.
+// `active` retires a fibre from new commissions without deleting it, so
+// historical requests still render their swatch.
+export type CustomColourOption = {
+  id: ShopMaterial;
+  label: string;
+  hex: string;
+  active: boolean;
+};
+
+export const customBagColours: CustomColourOption[] = [
+  {id: "Agel", label: "Agel", hex: "#EFE3CE", active: true},
+  {id: "Water Hyacinth", label: "Water Hyacinth", hex: "#E1EADD", active: true},
+  {id: "Gajih", label: "Gajih", hex: "#F3E2D6", active: true},
+  {id: "Woven Fabric", label: "Woven Fabric", hex: "#E7DEEC", active: true},
+  {id: "Patchwork", label: "Patchwork", hex: "#F0DEE0", active: true}
+];
+
+export const activeBagColours = () => customBagColours.filter((colour) => colour.active);
+
+export const colourLabel = (id: string) => customBagColours.find((colour) => colour.id === id)?.label ?? id;
+
+export const colourHex = (id: string) => customBagColours.find((colour) => colour.id === id)?.hex ?? "#EFE3CE";
+
+// ---------------------------------------------------------------------------
+// Personalisation
+// ---------------------------------------------------------------------------
+
+export const MAX_PERSONALISATION_TEXT = 16;
+
+export const MAX_NOTES = 400;
+
+// A small curated set, deliberately bounded: a motif has to be
+// hand-embroidered by someone, so the list is limited by what the workshop
+// can actually stitch rather than by how many icons exist. Each id maps to a
+// lucide icon in the picker, so nothing here depends on bespoke artwork.
+export const customMotifs = [
+  {id: "leaf", label: "Leaf"},
+  {id: "flower", label: "Flower"},
+  {id: "bird", label: "Bird"},
+  {id: "wave", label: "Wave"},
+  {id: "sun", label: "Sun"},
+  {id: "mountain", label: "Mountain"},
+  {id: "heart", label: "Heart"},
+  {id: "star", label: "Star"}
+] as const;
+
+export type CustomMotifId = (typeof customMotifs)[number]["id"];
+
+const motifIds = customMotifs.map((motif) => motif.id) as [CustomMotifId, ...CustomMotifId[]];
+
+export const motifLabel = (id: string) => customMotifs.find((motif) => motif.id === id)?.label ?? id;
+
+// Three mutually exclusive states rather than two independent optional
+// fields: a piece carries either stitched lettering or a stitched motif,
+// never both, and a union makes that unrepresentable instead of merely
+// discouraged.
+export const personalisationSchema = z.discriminatedUnion("kind", [
+  z.object({kind: z.literal("none")}),
+  z.object({
+    kind: z.literal("text"),
+    text: z
+      .string()
+      .trim()
+      .min(1, "Add the text to stitch, or choose no personal touch.")
+      .max(MAX_PERSONALISATION_TEXT)
+  }),
+  z.object({kind: z.literal("motif"), motifId: z.enum(motifIds)})
+]);
+
+export type Personalisation = z.infer<typeof personalisationSchema>;
+
+export const emptyPersonalisation: Personalisation = {kind: "none"};
+
+export function describePersonalisation(personalisation: Personalisation): string {
+  if (personalisation.kind === "text") {
+    return `Stitched text: "${personalisation.text}"`;
+  }
+  if (personalisation.kind === "motif") {
+    return `Motif: ${motifLabel(personalisation.motifId)}`;
+  }
+  return "None";
+}
+
+// ---------------------------------------------------------------------------
+// Per-type configuration schemas
+// ---------------------------------------------------------------------------
+
+const shapeEnum = z.enum(["Rectangle", "Round", "House Shaped"]);
+const handleEnum = z.enum(["Handbag", "Shoulder Bag", "Sling Bag", "Clutch"]);
+const sizeEnum = z.enum(["Small", "Medium", "Large"]);
+const colourEnum = z.enum(["Agel", "Water Hyacinth", "Gajih", "Woven Fabric", "Patchwork"]);
+
+export const bagConfigSchema = z.object({
+  productType: z.literal("Bags"),
+  shape: shapeEnum,
+  colour: colourEnum,
+  handle: handleEnum,
+  size: sizeEnum,
+  personalisation: personalisationSchema
+});
+
+// Deliberately minimal: a doll is sculpted from a photograph, so granular
+// attribute controls would imply a precision the process does not have.
+// What the studio genuinely needs is who it is of, roughly how big, and
+// anything the customer wants said about clothing.
+export const dollConfigSchema = z.object({
+  productType: z.literal("Dolls"),
+  subject: z.enum(["person", "pet"]),
+  size: sizeEnum,
+  clothingPreference: z.string().trim().max(200).default(""),
+  personalisation: personalisationSchema
+});
+
+export const apparelConfigSchema = z.object({
+  productType: z.literal("Apparels"),
+  garment: z.enum(["Tote Apron", "Shirt", "Scarf", "Wrap"]),
+  size: z.enum(["XS", "S", "M", "L", "XL"]),
+  colour: colourEnum,
+  placement: z.enum(["Chest", "Back", "Sleeve", "Hem"]),
+  personalisation: personalisationSchema
+});
+
+export const customConfigSchema = z.discriminatedUnion("productType", [
+  bagConfigSchema,
+  dollConfigSchema,
+  apparelConfigSchema
+]);
+
+export type BagConfig = z.infer<typeof bagConfigSchema>;
+export type DollConfig = z.infer<typeof dollConfigSchema>;
+export type ApparelConfig = z.infer<typeof apparelConfigSchema>;
+export type CustomConfig = z.infer<typeof customConfigSchema>;
+
+export const customApparelGarments: ApparelConfig["garment"][] = ["Tote Apron", "Shirt", "Scarf", "Wrap"];
+export const customApparelSizes: ApparelConfig["size"][] = ["XS", "S", "M", "L", "XL"];
+export const customApparelPlacements: ApparelConfig["placement"][] = ["Chest", "Back", "Sleeve", "Hem"];
+export const customDollSubjects: DollConfig["subject"][] = ["person", "pet"];
+
+export const dollSubjectLabels: Record<DollConfig["subject"], string> = {
+  person: "A person",
+  pet: "A pet"
+};
+
+export function defaultConfigFor(productType: CustomProductType): CustomConfig {
+  if (productType === "Dolls") {
+    return {
+      productType: "Dolls",
+      subject: "person",
+      size: "Medium",
+      clothingPreference: "",
+      personalisation: emptyPersonalisation
+    };
+  }
+  if (productType === "Apparels") {
+    return {
+      productType: "Apparels",
+      garment: "Tote Apron",
+      size: "M",
+      colour: "Agel",
+      placement: "Chest",
+      personalisation: emptyPersonalisation
+    };
+  }
+  return {
+    productType: "Bags",
+    shape: "Rectangle",
+    colour: "Agel",
+    handle: "Handbag",
+    size: "Medium",
+    personalisation: emptyPersonalisation
+  };
+}
+
+// Flattens any configuration into ordered label/value rows for the review
+// panel, the admin detail view, and the notification email — one function so
+// all three describe a request identically.
+export function summariseConfig(config: CustomConfig): Array<{label: string; value: string}> {
+  if (config.productType === "Bags") {
+    return [
+      {label: "Shape", value: config.shape},
+      {label: "Base colour", value: colourLabel(config.colour)},
+      {label: "Handle", value: config.handle},
+      {label: "Size", value: config.size},
+      {label: "Personal touch", value: describePersonalisation(config.personalisation)}
+    ];
+  }
+  if (config.productType === "Dolls") {
+    return [
+      {label: "Subject", value: dollSubjectLabels[config.subject]},
+      {label: "Approximate size", value: config.size},
+      {label: "Clothing preference", value: config.clothingPreference?.trim() || "No preference given"},
+      {label: "Personal touch", value: describePersonalisation(config.personalisation)}
+    ];
+  }
+  return [
+    {label: "Garment", value: config.garment},
+    {label: "Size", value: config.size},
+    {label: "Base colour", value: colourLabel(config.colour)},
+    {label: "Placement", value: config.placement},
+    {label: "Personal touch", value: describePersonalisation(config.personalisation)}
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// Status lifecycle
+// ---------------------------------------------------------------------------
+
+// The real lifecycle a commission goes through, built in full now even
+// though the customer-facing view collapses several of these into plainer
+// language — retrofitting intermediate states onto rows that were only ever
+// stored as "open" or "closed" would mean guessing, later, which of them a
+// historical request had actually reached.
+export const customRequestStatuses = [
+  "draft",
+  "submitted",
+  "under_review",
+  "needs_customer_input",
+  "quoted",
+  "approved",
+  "in_production",
+  "completed",
+  "cancelled"
+] as const;
+
+export type CustomRequestStatus = (typeof customRequestStatuses)[number];
+
+export const customRequestStatusSchema = z.enum(customRequestStatuses);
+
+// Statuses an admin may set from the request detail view. `draft` is
+// excluded because a draft belongs to the customer — it exists only until
+// they submit, and nothing in the studio should be able to push a request
+// back into a state the customer owns.
+export const adminSettableStatuses = customRequestStatuses.filter(
+  (status): status is Exclude<CustomRequestStatus, "draft"> => status !== "draft"
+);
+
+export const customRequestStatusLabels: Record<CustomRequestStatus, string> = {
+  draft: "Draft",
+  submitted: "Submitted",
+  under_review: "Under review",
+  needs_customer_input: "Needs customer input",
+  quoted: "Quoted",
+  approved: "Approved",
+  in_production: "In production",
+  completed: "Completed",
+  cancelled: "Cancelled"
+};
+
+// What the customer sees in their own request history. Several internal
+// states read as one thing from the outside — "under review" and "needs
+// customer input" are both, to the customer, the studio still looking at it.
+export const customerFacingStatusLabels: Record<CustomRequestStatus, string> = {
+  draft: "Draft",
+  submitted: "With the studio",
+  under_review: "With the studio",
+  needs_customer_input: "Waiting on you",
+  quoted: "Quote ready",
+  approved: "Confirmed",
+  in_production: "Being made",
+  completed: "Completed",
+  cancelled: "Cancelled"
+};
+
+// Muted, palette-native badge colours matching the admin tables' existing
+// tag styling rather than a traffic-light scheme.
+export const customRequestStatusStyle: Record<CustomRequestStatus, {bg: string; border: string; text: string}> = {
+  draft: {bg: "#EFEDE6", border: "#D6D2C6", text: "#4B4A42"},
+  submitted: {bg: "#DCE6EA", border: "#B8CDD4", text: "#2A3D42"},
+  under_review: {bg: "#DCE6EA", border: "#B8CDD4", text: "#2A3D42"},
+  needs_customer_input: {bg: "#F7E7CF", border: "#E3C79A", text: "#6B4C1B"},
+  quoted: {bg: "#EDE3EF", border: "#D2BCD8", text: "#4A2E52"},
+  approved: {bg: "#DDE8DA", border: "#B6CCB1", text: "#2F4A2C"},
+  in_production: {bg: "#F3E2D6", border: "#DEBBA3", text: "#5A3A22"},
+  completed: {bg: "#DDE8DA", border: "#B6CCB1", text: "#2F4A2C"},
+  cancelled: {bg: "#F0DEE0", border: "#DEBBBF", text: "#5C2E33"}
+};
+
+// Statuses that still want someone at the studio to do something. Drives the
+// dashboard's Needs Attention count.
+export const openCustomRequestStatuses: CustomRequestStatus[] = [
+  "submitted",
+  "under_review",
+  "needs_customer_input"
+];
+
+// ---------------------------------------------------------------------------
+// Intake pause
+// ---------------------------------------------------------------------------
+
+export const DEFAULT_INTAKE_PAUSED_MESSAGE = "Custom Studio is temporarily paused, check back soon.";
