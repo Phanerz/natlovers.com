@@ -283,6 +283,16 @@ button {
   box-shadow: 0 18px 36px rgba(17, 35, 25, 0.16);
 }
 
+/* Same principle as .glass-btn-primary's :active — an actual press should
+   compress, not just re-color, or it never reads as touching something
+   real. Quick/snappy on purpose (matches every other press state site-
+   wide); it's hover motion that needs to be slow, not this. */
+.button-lift:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 120ms;
+  box-shadow: 0 8px 18px rgba(17, 35, 25, 0.14);
+}
+
 .nav-link {
   position: relative;
   overflow: hidden;
@@ -339,6 +349,17 @@ button {
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
 }
 
+/* transform + brightness only, deliberately no background/box-shadow
+   override here — .icon-button pairs with several different background
+   treatments (.liquid-glass's own inset highlights on the dark header,
+   plain cream elsewhere), and replacing either on press would fight
+   whichever is actually in play instead of just darkening it in place. */
+.icon-button:active {
+  transform: translateY(0) scale(0.92);
+  transition-duration: 120ms;
+  filter: brightness(0.94);
+}
+
 .control-pill {
   transition: transform 260ms ease, background-color 260ms ease, box-shadow 260ms ease, border-color 260ms ease, color 260ms ease;
 }
@@ -346,6 +367,15 @@ button {
 .control-pill:hover {
   transform: translateY(-2px);
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+}
+
+/* No box-shadow override here either — same reasoning as .icon-button:active
+   above, since .control-pill is also paired with .liquid-glass's own bevel
+   highlights (the locale/currency switcher in the header). */
+.control-pill:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 120ms;
+  filter: brightness(0.94);
 }
 
 /* ============================================================
