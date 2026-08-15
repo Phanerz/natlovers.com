@@ -12,8 +12,18 @@ import type {CustomRequestView} from "@/lib/custom-requests";
 // customer conversation is its own project, and the studio already reaches
 // people by email and WhatsApp.
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const fromAddress = process.env.RESEND_FROM_EMAIL ?? "Natlovers <onboarding@resend.dev>";
+
+// Lazy, same reasoning as lib/auth.ts's getResendClient — this module is
+// imported at build/page-data-collection time, before the functions below
+// (and their own RESEND_API_KEY guards) ever run.
+let resendClient: Resend | null = null;
+function getResendClient(): Resend {
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
 
 function shell(heading: string, bodyHtml: string) {
   return `
@@ -101,7 +111,7 @@ export async function sendCustomRequestReceivedEmail(userId: string, request: Cu
     </p>
   `;
 
-  const {error} = await resend.emails.send({
+  const {error} = await getResendClient().emails.send({
     from: fromAddress,
     to: customer.email,
     subject: `Custom request received — ${request.requestRef}`,
@@ -139,7 +149,7 @@ export async function sendCustomRequestMessage(input: {
     <p style="margin:24px 0 0; font-size:12px; color:#94aa90;">Regarding custom request ${escapeHtml(input.requestRef)}</p>
   `;
 
-  const {error} = await resend.emails.send({
+  const {error} = await getResendClient().emails.send({
     from: fromAddress,
     to: input.toEmail,
     subject: input.subject,

@@ -22,8 +22,21 @@ export function isAdminEmail(email?: string | null) {
   return getAdminEmails().includes(email.toLowerCase());
 }
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const magicLinkFrom = process.env.RESEND_FROM_EMAIL ?? "Natlovers <onboarding@resend.dev>";
+
+// Lazy + guarded: Resend throws synchronously if constructed without a key,
+// which previously crashed every route importing this file (build-time page
+// data collection included) whenever RESEND_API_KEY was unset.
+let resendClient: Resend | null = null;
+function getResendClient(): Resend | null {
+  if (!process.env.RESEND_API_KEY) {
+    return null;
+  }
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
 
 function magicLinkEmailHtml(url: string) {
   return `
@@ -96,6 +109,10 @@ export const authOptions: NextAuthOptions = {
     EmailProvider({
       from: magicLinkFrom,
       async sendVerificationRequest({identifier, url}) {
+        const resend = getResendClient();
+        if (!resend) {
+          throw new Error("RESEND_API_KEY is not configured — cannot send the magic-link email.");
+        }
         const {error} = await resend.emails.send({
           from: magicLinkFrom,
           to: identifier,
