@@ -24,7 +24,7 @@ export function Toast({toast, onDismiss}: {toast: ToastState; onDismiss: () => v
         type="button"
         onClick={onDismiss}
         aria-label="Dismiss notification"
-        className="shrink-0 text-white/70 hover:text-white"
+        className="icon-button shrink-0 rounded-full p-1 text-white/70 hover:text-white"
       >
         <X className="h-4 w-4" />
       </button>

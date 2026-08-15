@@ -1039,7 +1039,7 @@ export function Header() {
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="icon-button rounded-full border border-[#d7cab2] bg-[#fffdf8] p-2 text-forest-900 shadow-[0_8px_18px_rgba(59,43,22,0.12)]"
+                className="glass-icon-btn rounded-full p-2 text-forest-900"
               >
                 <X className="h-4 w-4" />
               </button>
