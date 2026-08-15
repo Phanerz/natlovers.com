@@ -221,7 +221,7 @@ export function AddressesManager() {
             <button
               type="button"
               onClick={() => setFormOpen(false)}
-              className="rounded-full border border-[#e4d9c1] px-5 py-2.5 text-sm font-medium text-forest-700"
+              className="glass-btn-secondary rounded-full px-5 py-2.5 text-sm font-medium text-forest-700"
             >
               Cancel
             </button>

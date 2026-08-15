@@ -383,7 +383,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
         <button
           type="button"
           onClick={handleLogout}
-          className="button-lift rounded-full border border-[#cdbfa6] bg-[#fffaf1] px-5 py-2 text-sm text-forest-700"
+          className="glass-btn-secondary rounded-full px-5 py-2 text-sm text-forest-700"
         >
           Sign out
         </button>

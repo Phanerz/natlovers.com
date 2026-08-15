@@ -468,6 +468,11 @@ button {
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 6px 14px rgba(79, 58, 28, 0.12);
 }
 
+.glass-btn-secondary:disabled {
+  transform: none;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 6px 14px rgba(79, 58, 28, 0.06);
+}
+
 /* Circular icon buttons (close, remove, stepper) — same restrained
    language: slow smooth lift on hover, no sweep, quick press feedback. */
 .glass-icon-btn {

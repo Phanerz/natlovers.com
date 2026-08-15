@@ -38,13 +38,13 @@ export default function SignedOutPage() {
           <div className="flex w-full flex-col gap-3">
             <Link
               href="/login"
-              className="button-lift w-full rounded-full bg-forest-900 px-6 py-3.5 text-base font-semibold text-sand-50"
+              className="glass-btn-primary w-full rounded-full px-6 py-3.5 text-base font-semibold text-sand-50"
             >
               Sign in again
             </Link>
             <Link
               href="/"
-              className="button-lift w-full rounded-full border border-[#d4c5ab] bg-white/70 px-6 py-3.5 text-base font-semibold text-forest-800"
+              className="glass-btn-secondary w-full rounded-full px-6 py-3.5 text-base font-semibold text-forest-800"
             >
               Back to home
             </Link>

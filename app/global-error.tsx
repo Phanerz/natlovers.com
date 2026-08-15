@@ -50,13 +50,13 @@ export default function GlobalError({error, reset}: {error: Error & {digest?: st
               <button
                 type="button"
                 onClick={() => reset()}
-                className="button-lift rounded-full bg-forest-900 px-6 py-3 text-sm font-semibold text-sand-50"
+                className="glass-btn-primary rounded-full px-6 py-3 text-sm font-semibold text-sand-50"
               >
                 Try Again
               </button>
               <a
                 href="/"
-                className="button-lift rounded-full border border-forest-300 px-6 py-3 text-sm font-semibold text-forest-700"
+                className="glass-btn-secondary rounded-full px-6 py-3 text-sm font-semibold text-forest-700"
               >
                 Back to Home
               </a>

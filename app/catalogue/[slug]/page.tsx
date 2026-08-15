@@ -366,7 +366,7 @@ export default function ProductPage() {
             )}
             <Link
               href="/custom"
-              className="button-lift w-full rounded-full border-2 border-forest-300 bg-white/80 px-6 py-3.5 text-center text-sm font-semibold text-forest-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
+              className="glass-btn-secondary w-full rounded-full px-6 py-3.5 text-center text-sm font-semibold text-forest-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
             >
               {locale === "en" ? "Request a Different Color" : "Minta Warna Berbeda"}
             </Link>
