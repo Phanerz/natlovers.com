@@ -82,7 +82,7 @@ export function HeroCardForm({
       <button
         type="submit"
         disabled={submitting}
-        className="button-lift w-full rounded-full bg-forest-900 px-6 py-4 text-base font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+        className="glass-btn-primary w-full rounded-full px-6 py-4 text-base font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {submitting ? "Saving..." : "Add card"}
       </button>

@@ -240,7 +240,7 @@ export function ProductForm({
         <button
           type="submit"
           disabled={submitting}
-          className="button-lift flex-1 rounded-full bg-forest-900 px-6 py-4 text-base font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="glass-btn-primary flex-1 rounded-full px-6 py-4 text-base font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Saving..." : mode === "create" ? "Save Product" : "Save changes"}
         </button>
@@ -265,7 +265,7 @@ export function ProductForm({
               <button
                 type="button"
                 onClick={onDeactivate}
-                className="button-lift flex items-center gap-2 rounded-full border border-[#d4c5ab] px-5 py-3 text-sm font-medium text-forest-700"
+                className="glass-btn-secondary flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium text-forest-700"
               >
                 <Eye className="h-4 w-4" />
                 Hide from storefront
@@ -274,7 +274,7 @@ export function ProductForm({
               <button
                 type="button"
                 onClick={onActivate}
-                className="button-lift flex items-center gap-2 rounded-full border border-[#d4c5ab] px-5 py-3 text-sm font-medium text-forest-700"
+                className="glass-btn-secondary flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium text-forest-700"
               >
                 <RotateCcw className="h-4 w-4" />
                 Unhide

@@ -59,7 +59,7 @@ export function AdminSignIn() {
         <button
           type="button"
           onClick={() => signIn("google-admin", {callbackUrl: "/mimin"})}
-          className="button-lift flex w-full items-center justify-center gap-3 rounded-full border border-[#d4c5ab] bg-white px-6 py-3.5 text-base font-semibold text-forest-900"
+          className="glass-btn-secondary flex w-full items-center justify-center gap-3 rounded-full px-6 py-3.5 text-base font-semibold text-forest-900"
         >
           <GoogleIcon />
           Continue with Google

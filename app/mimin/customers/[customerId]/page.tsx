@@ -81,7 +81,7 @@ export default async function AdminCustomerDetailPage({params}: {params: Promise
               href={toWhatsAppLink(customer.phone)}
               target="_blank"
               rel="noreferrer"
-              className="button-lift flex items-center gap-2 rounded-full border border-[#d4c5ab] bg-[#fffaf1] px-4 py-2.5 text-sm font-medium text-forest-700"
+              className="glass-btn-secondary flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-forest-700"
             >
               <MessageCircle className="h-4 w-4" />
               WhatsApp
@@ -90,7 +90,7 @@ export default async function AdminCustomerDetailPage({params}: {params: Promise
           {customer.email ? (
             <a
               href={`mailto:${customer.email}`}
-              className="button-lift flex items-center gap-2 rounded-full border border-[#d4c5ab] bg-[#fffaf1] px-4 py-2.5 text-sm font-medium text-forest-700"
+              className="glass-btn-secondary flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-forest-700"
             >
               <Mail className="h-4 w-4" />
               Email

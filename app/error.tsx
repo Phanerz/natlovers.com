@@ -48,11 +48,11 @@ export default function ErrorBoundary({error, reset}: {error: Error & {digest?: 
           <button
             type="button"
             onClick={() => reset()}
-            className="button-lift rounded-full bg-forest-900 px-6 py-3 text-sm font-semibold text-sand-50"
+            className="glass-btn-primary rounded-full px-6 py-3 text-sm font-semibold text-sand-50"
           >
             {locale === "en" ? "Try Again" : "Coba Lagi"}
           </button>
-          <Link href="/" className="button-lift rounded-full border border-forest-300 px-6 py-3 text-sm font-semibold text-forest-700">
+          <Link href="/" className="glass-btn-secondary rounded-full px-6 py-3 text-sm font-semibold text-forest-700">
             {locale === "en" ? "Back to Home" : "Kembali ke Beranda"}
           </Link>
         </div>

@@ -147,7 +147,7 @@ export function NavSearchModal({
           <Link
             href="/catalogue"
             onClick={onClose}
-            className="button-lift flex shrink-0 items-center gap-2 rounded-full bg-forest-900 px-5 py-2.5 text-xs font-semibold text-sand-50"
+            className="glass-btn-primary flex shrink-0 items-center gap-2 rounded-full px-5 py-2.5 text-xs font-semibold text-sand-50"
           >
             Browse Catalogue <ArrowRight className="h-3.5 w-3.5" />
           </Link>

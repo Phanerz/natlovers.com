@@ -874,7 +874,7 @@ export function Header() {
                     type="button"
                     onClick={confirmBankTransfer}
                     disabled={checkoutLoading || !addressComplete}
-                    className="button-lift mt-4 w-full rounded-full bg-sand-100 px-5 py-3 text-sm font-semibold text-forest-900 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="glass-btn-secondary mt-4 w-full rounded-full px-5 py-3 text-sm font-semibold text-forest-900 disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {checkoutLoading
                       ? "Preparing transfer details..."

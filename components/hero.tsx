@@ -112,7 +112,7 @@ const cardTransform = useMemo(() => {
                 <div className="mt-[21px] flex flex-wrap gap-[13px]">
                   <Link
                     href="/catalogue"
-                    className="button-lift inline-flex items-center gap-2 rounded-full bg-sand-100 px-6 py-3 text-sm font-semibold text-forest-900 shadow-[0_16px_34px_rgba(22,22,15,0.22)]"
+                    className="glass-btn-secondary inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-forest-900"
                   >
                     EXPLORE CATALOGUE <ArrowRight className="h-4 w-4" />
                   </Link>

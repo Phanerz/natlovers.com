@@ -372,7 +372,7 @@ function AccountContent() {
                     <button
                       type="submit"
                       disabled={saving}
-                      className="button-lift rounded-full bg-forest-900 px-6 py-3 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="glass-btn-primary rounded-full px-6 py-3 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {saving ? "Saving..." : "Save changes"}
                     </button>

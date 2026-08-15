@@ -38,12 +38,12 @@ export default function NotFound() {
             : "Halaman ini tidak ditemukan di rak. Karya yang Anda cari mungkin telah dipindahkan, terjual, atau tidak pernah ada."}
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/" className="button-lift rounded-full bg-forest-900 px-6 py-3 text-sm font-semibold text-sand-50">
+          <Link href="/" className="glass-btn-primary rounded-full px-6 py-3 text-sm font-semibold text-sand-50">
             {locale === "en" ? "Back to Home" : "Kembali ke Beranda"}
           </Link>
           <Link
             href="/catalogue"
-            className="button-lift rounded-full border border-forest-300 px-6 py-3 text-sm font-semibold text-forest-700"
+            className="glass-btn-secondary rounded-full px-6 py-3 text-sm font-semibold text-forest-700"
           >
             {locale === "en" ? "Browse the Catalogue" : "Jelajahi Katalog"}
           </Link>

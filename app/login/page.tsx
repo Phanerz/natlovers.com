@@ -93,7 +93,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => signIn("google-customer", {callbackUrl: "/"})}
-                className="button-lift flex w-full items-center justify-center gap-3 rounded-full border border-[#d4c5ab] bg-white px-6 py-3.5 text-base font-semibold text-forest-900"
+                className="glass-btn-secondary flex w-full items-center justify-center gap-3 rounded-full px-6 py-3.5 text-base font-semibold text-forest-900"
               >
                 <GoogleIcon />
                 Continue with Google
@@ -121,7 +121,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={status === "submitting"}
-                  className="button-lift w-full rounded-full bg-forest-900 px-6 py-3.5 text-base font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="glass-btn-primary w-full rounded-full px-6 py-3.5 text-base font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {status === "submitting" ? "Sending link..." : "Send sign-in link"}
                 </button>
