@@ -78,7 +78,7 @@ function TrackingForm({order, onSave, saving}: {order: AdminOrder; onSave: (cour
         type="button"
         disabled={saving || !courier.trim() || !trackingNumber.trim()}
         onClick={() => onSave(courier, trackingNumber)}
-        className="button-lift rounded-full bg-forest-900 px-3 py-1.5 text-xs font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+        className="glass-btn-primary rounded-full px-3 py-1.5 text-xs font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {saving ? "Saving..." : order.status === "fulfilled" ? "Update" : "Mark Shipped"}
       </button>
@@ -251,7 +251,7 @@ export function ManageOrdersPanel() {
                           type="button"
                           disabled={busyId === order.id}
                           onClick={() => markPaid(order)}
-                          className="button-lift rounded-full bg-forest-900 px-4 py-2 text-xs font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="glass-btn-primary rounded-full px-4 py-2 text-xs font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {busyId === order.id ? "Marking..." : "Mark as Paid"}
                         </button>

@@ -25,7 +25,7 @@ function SelectedWidgetRow({widgetKey, onRemove}: {widgetKey: WidgetKey; onRemov
         type="button"
         aria-label="Drag to reorder"
         onPointerDown={(event) => dragControls.start(event)}
-        className="icon-button flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-full border border-[#e4d9c1] text-forest-500 active:cursor-grabbing"
+        className="glass-icon-btn flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-full text-forest-500 active:cursor-grabbing"
       >
         <GripVertical className="h-4 w-4" />
       </button>
@@ -35,7 +35,7 @@ function SelectedWidgetRow({widgetKey, onRemove}: {widgetKey: WidgetKey; onRemov
         type="button"
         onClick={onRemove}
         aria-label={`Remove ${meta.label}`}
-        className="icon-button flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#e4d9c1] text-red-600"
+        className="glass-icon-btn is-danger flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-red-600"
       >
         <X className="h-4 w-4" />
       </button>

@@ -197,8 +197,8 @@ export function ManageProductsPanel({
             type="button"
             onClick={() => setFilterOpen((open) => !open)}
             aria-label="Filter by status"
-            className={`icon-button flex h-11 w-11 items-center justify-center rounded-full border ${
-              statusFilter !== "all" ? "border-forest-700 bg-forest-900 text-sand-50" : "border-[#d4c5ab] bg-[#fffdf9] text-forest-700"
+            className={`flex h-11 w-11 items-center justify-center rounded-full ${
+              statusFilter !== "all" ? "glass-btn-primary text-sand-50" : "glass-icon-btn text-forest-700"
             }`}
           >
             <Filter className="h-4 w-4" />
@@ -329,7 +329,7 @@ export function ManageProductsPanel({
                           href={`/catalogue/${product.slug}`}
                           target="_blank"
                           aria-label={`Preview ${product.name}`}
-                          className="icon-button flex h-9 w-9 items-center justify-center rounded-full border border-[#d4c5ab] text-forest-700"
+                          className="glass-icon-btn flex h-9 w-9 items-center justify-center rounded-full text-forest-700"
                         >
                           <Eye className="h-4 w-4" />
                         </Link>
@@ -337,7 +337,7 @@ export function ManageProductsPanel({
                           type="button"
                           onClick={() => onEdit(product)}
                           aria-label={`Edit ${product.name}`}
-                          className="icon-button flex h-9 w-9 items-center justify-center rounded-full border border-[#d4c5ab] text-forest-700"
+                          className="glass-icon-btn flex h-9 w-9 items-center justify-center rounded-full text-forest-700"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
@@ -347,7 +347,7 @@ export function ManageProductsPanel({
                             disabled={busySlug === product.slug}
                             onClick={() => onDeactivate(product)}
                             aria-label={`Deactivate ${product.name}`}
-                            className="icon-button flex h-9 w-9 items-center justify-center rounded-full border border-[#d4c5ab] text-red-600 disabled:opacity-50"
+                            className="glass-icon-btn is-danger flex h-9 w-9 items-center justify-center rounded-full text-red-600 disabled:opacity-50"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -357,7 +357,7 @@ export function ManageProductsPanel({
                             disabled={busySlug === product.slug}
                             onClick={() => onActivate(product)}
                             aria-label={`Reactivate ${product.name}`}
-                            className="icon-button flex h-9 w-9 items-center justify-center rounded-full border border-[#d4c5ab] text-forest-700 disabled:opacity-50"
+                            className="glass-icon-btn flex h-9 w-9 items-center justify-center rounded-full text-forest-700 disabled:opacity-50"
                           >
                             <RotateCcw className="h-4 w-4" />
                           </button>

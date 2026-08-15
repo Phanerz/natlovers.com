@@ -6,9 +6,7 @@ function PillOption({label, active, onClick}: {label: string; active: boolean; o
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`button-lift rounded-full border px-4 py-2 text-sm font-medium ${
-        active ? "border-[#183124] bg-[#12281b] text-[#fff8eb]" : "border-[#d9ccb3] bg-[#fffdf8] text-forest-700"
-      }`}
+      className={`rounded-full px-4 py-2 text-sm font-medium ${active ? "glass-btn-primary text-[#fff8eb]" : "glass-btn-secondary text-forest-700"}`}
     >
       {label}
     </button>
