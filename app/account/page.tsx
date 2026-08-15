@@ -59,13 +59,6 @@ function EmptyState({title, body}: {title: string; body: string}) {
   );
 }
 
-function toWhatsAppLink(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  const withoutLeadingZero = digits.startsWith("0") ? digits.slice(1) : digits;
-  const withCountryCode = withoutLeadingZero.startsWith("62") ? withoutLeadingZero : `62${withoutLeadingZero}`;
-  return `https://wa.me/${withCountryCode}`;
-}
-
 // Same real query the Customers CRM page uses (lib/customers.ts) — this is
 // only ever rendered when the API has already confirmed the viewer is an
 // admin (see the isAdmin check in app/api/account/route.ts), so a regular
@@ -330,31 +323,6 @@ function AccountContent() {
                         placeholder="+62"
                         className="w-full rounded-xl border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
                       />
-                      {form.phone.trim() ? (
-                        <a
-                          href={toWhatsAppLink(form.phone)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-1.5 text-xs font-medium text-[#2f5b2b] hover:underline"
-                        >
-                          <MessageCircle className="h-3.5 w-3.5" />
-                          Click to chat via WhatsApp
-                        </a>
-                      ) : null}
-                    </label>
-                    <label className="space-y-1.5 text-sm text-forest-700 sm:col-span-2">
-                      <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Preferred language</span>
-                      <select
-                        value={locale}
-                        onChange={(event) => setLocale(event.target.value as Locale)}
-                        className="w-full rounded-xl border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
-                      >
-                        {locales.map((option) => (
-                          <option key={option} value={option}>
-                            {option === "en" ? "English" : "Bahasa"}
-                          </option>
-                        ))}
-                      </select>
                     </label>
                   </div>
                   <label className="block space-y-1.5 text-sm text-forest-700">

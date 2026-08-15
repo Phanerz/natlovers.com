@@ -1,7 +1,7 @@
 "use client";
 
 import {FormEvent, useEffect, useState} from "react";
-import {MapPin, Pencil, Plus, Trash2} from "lucide-react";
+import {Check, MapPin, Pencil, Plus, Trash2} from "lucide-react";
 import type {AddressView} from "@/lib/addresses";
 
 type AddressFormState = {
@@ -241,9 +241,10 @@ export function AddressesManager() {
           addresses.map((address) => (
             <div key={address.id} className="rounded-2xl border border-[#e4d9c1] bg-white/70 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   {address.isDefault ? (
-                    <span className="rounded-full bg-[#dcead0] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#2f5b2b]">
+                    <span className="flex items-center gap-1 rounded-full bg-forest-900 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-sand-50 shadow-[0_4px_12px_rgba(23,32,21,0.22)]">
+                      <Check className="h-3 w-3" strokeWidth={3} />
                       Default
                     </span>
                   ) : null}
