@@ -6,10 +6,12 @@ import Link from "next/link";
 import {useRouter, useSearchParams} from "next/navigation";
 import {signOut, useSession} from "next-auth/react";
 import {
+  BadgeCheck,
   CircleHelp,
   CreditCard,
   Download,
   Heart,
+  LayoutDashboard,
   LogOut,
   Mail,
   MapPin,
@@ -24,6 +26,7 @@ import {
   Users
 } from "lucide-react";
 import {AddressesManager} from "@/components/addresses-manager";
+import {KpiCard} from "@/components/admin/kpi-card";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {formatCurrency} from "@/lib/format";
 import type {CustomerTelemetry} from "@/lib/customers";
@@ -63,12 +66,21 @@ function EmptyState({title, body}: {title: string; body: string}) {
 // only ever rendered when the API has already confirmed the viewer is an
 // admin (see the isAdmin check in app/api/account/route.ts), so a regular
 // customer's own profile never requests or sees business-wide numbers.
+// Uses the same KpiCard the main admin dashboard's own KPI row uses (see
+// components/admin/kpi-card.tsx) rather than a bespoke card style, so this
+// reads as the same admin surface, not a fourth visual language for cards.
 function AdminTelemetryRow({telemetry}: {telemetry: CustomerTelemetry}) {
-  const cards: {icon: typeof Users; label: string; value: string; subtext: string}[] = [
-    {icon: Users, label: "Total Customers", value: String(telemetry.totalCustomers), subtext: `+${telemetry.newThisMonth} this month`},
-    {icon: UserPlus, label: "New Customers", value: String(telemetry.newThisMonth), subtext: "This calendar month"},
-    {icon: UserCheck, label: "Returning Customers", value: String(telemetry.returningCustomers), subtext: "Ordered 2+ times"},
-    {icon: Repeat, label: "Repeat Purchase Rate", value: `${telemetry.repeatPurchaseRate}%`, subtext: "Customers who returned"}
+  const cards: {icon: React.ComponentType<{className?: string}>; iconTone: "neutral" | "green"; label: string; value: string; subtext: string}[] = [
+    {
+      icon: Users,
+      iconTone: "neutral",
+      label: "Total Customers",
+      value: String(telemetry.totalCustomers),
+      subtext: `+${telemetry.newThisMonth} this month`
+    },
+    {icon: UserPlus, iconTone: "green", label: "New Customers", value: String(telemetry.newThisMonth), subtext: "This calendar month"},
+    {icon: UserCheck, iconTone: "neutral", label: "Returning Customers", value: String(telemetry.returningCustomers), subtext: "Ordered 2+ times"},
+    {icon: Repeat, iconTone: "green", label: "Repeat Purchase Rate", value: `${telemetry.repeatPurchaseRate}%`, subtext: "Customers who returned"}
   ];
 
   return (
@@ -76,14 +88,7 @@ function AdminTelemetryRow({telemetry}: {telemetry: CustomerTelemetry}) {
       <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-forest-500">Admin overview</p>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {cards.map((card) => (
-          <div key={card.label} className="rounded-[1.4rem] border border-[#e4d9c1] bg-white/70 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eee4cd] text-forest-700">
-              <card.icon className="h-5 w-5" />
-            </div>
-            <p className="mt-3 text-[11px] font-semibold uppercase leading-tight tracking-[0.16em] text-forest-500">{card.label}</p>
-            <p className="mt-1 font-display text-2xl text-forest-900">{card.value}</p>
-            <p className="mt-1 text-xs text-forest-500">{card.subtext}</p>
-          </div>
+          <KpiCard key={card.label} icon={card.icon} iconTone={card.iconTone} label={card.label} value={card.value} subtext={card.subtext} loading={false} />
         ))}
       </div>
     </div>
@@ -233,9 +238,20 @@ function AccountContent() {
 
   return (
     <main className="shell py-10 sm:py-14">
-      <div className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-forest-500">Account</p>
-        <h1 className="mt-2 font-display text-4xl text-forest-900">My Profile</h1>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-forest-500">Account</p>
+          <h1 className="mt-2 font-display text-4xl text-forest-900">My Profile</h1>
+        </div>
+        {isAdmin ? (
+          <Link
+            href="/mimin"
+            className="glass-btn-primary flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-sand-50"
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            Admin Dashboard
+          </Link>
+        ) : null}
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[16rem_1fr]">
@@ -251,7 +267,10 @@ function AccountContent() {
               )}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-forest-900">{user.name ?? "Natlovers collector"}</p>
+              <p className="flex items-center gap-1 truncate text-sm font-semibold text-forest-900">
+                <span className="truncate">{user.name ?? "Natlovers collector"}</span>
+                {isAdmin ? <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[#2f5b2b]" aria-label="Verified admin" /> : null}
+              </p>
               <p className="truncate text-xs text-forest-500">{user.email}</p>
             </div>
           </div>
@@ -296,7 +315,7 @@ function AccountContent() {
               {isAdmin && adminTelemetry ? <AdminTelemetryRow telemetry={adminTelemetry} /> : null}
 
               <div className="grid gap-8 lg:grid-cols-2">
-                <form onSubmit={handleSave} className="space-y-5">
+                <form onSubmit={handleSave} className="space-y-6">
                   <h2 className="font-display text-2xl text-forest-900">Profile information</h2>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <label className="space-y-1.5 text-sm text-forest-700">
@@ -348,7 +367,7 @@ function AccountContent() {
                   </div>
                 </form>
 
-                <div className="space-y-8">
+                <div className="space-y-6">
                   <AddressesManager />
 
                   <div>
