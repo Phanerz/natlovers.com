@@ -910,7 +910,13 @@ export function Header() {
               gracefully instead of being hard-clipped.
             */}
             <div
-              className="mt-6 flex-1 overflow-y-auto py-1 pr-1"
+              // pt-4 (16px), not py-1 — the mask below fades the first 14px
+              // of this container to transparent, so the first card's own
+              // top edge (and anything pinned to its corner, like the
+              // remove button) needs to clear that band or it reads as
+              // clipped rather than gracefully fading, which is only
+              // meant to happen once a card scrolls up near that edge.
+              className="mt-6 flex-1 overflow-y-auto pb-1 pr-1 pt-4"
               style={{
                 maskImage: "linear-gradient(to bottom, transparent, black 14px, black calc(100% - 14px), transparent)",
                 WebkitMaskImage:
