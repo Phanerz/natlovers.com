@@ -17,19 +17,18 @@ import {
   MapPin,
   MessageCircle,
   Package,
-  Repeat,
   Settings,
   Trash2,
-  User,
-  UserCheck,
-  UserPlus,
-  Users
+  User
 } from "lucide-react";
 import {AddressesManager} from "@/components/addresses-manager";
+import {AdminWidgetPicker} from "@/components/admin-widget-picker";
 import {KpiCard} from "@/components/admin/kpi-card";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {formatCurrency} from "@/lib/format";
+import {DEFAULT_WIDGETS, WIDGET_CATALOG, WidgetKey} from "@/lib/admin-widgets";
 import type {CustomerTelemetry} from "@/lib/customers";
+import type {DashboardStats} from "@/lib/dashboard-stats";
 import {orderStatusLabels} from "@/lib/order-status";
 import {CurrencyCode, Locale, currencies, currencySymbols, locales} from "@/lib/site";
 import type {AdminProduct} from "@/lib/admin-products";
@@ -62,34 +61,33 @@ function EmptyState({title, body}: {title: string; body: string}) {
   );
 }
 
-// Same real query the Customers CRM page uses (lib/customers.ts) — this is
-// only ever rendered when the API has already confirmed the viewer is an
-// admin (see the isAdmin check in app/api/account/route.ts), so a regular
-// customer's own profile never requests or sees business-wide numbers.
-// Uses the same KpiCard the main admin dashboard's own KPI row uses (see
-// components/admin/kpi-card.tsx) rather than a bespoke card style, so this
-// reads as the same admin surface, not a fourth visual language for cards.
-function AdminTelemetryRow({telemetry}: {telemetry: CustomerTelemetry}) {
-  const cards: {icon: React.ComponentType<{className?: string}>; iconTone: "neutral" | "green"; label: string; value: string; subtext: string}[] = [
-    {
-      icon: Users,
-      iconTone: "neutral",
-      label: "Total Customers",
-      value: String(telemetry.totalCustomers),
-      subtext: `+${telemetry.newThisMonth} this month`
-    },
-    {icon: UserPlus, iconTone: "green", label: "New Customers", value: String(telemetry.newThisMonth), subtext: "This calendar month"},
-    {icon: UserCheck, iconTone: "neutral", label: "Returning Customers", value: String(telemetry.returningCustomers), subtext: "Ordered 2+ times"},
-    {icon: Repeat, iconTone: "green", label: "Repeat Purchase Rate", value: `${telemetry.repeatPurchaseRate}%`, subtext: "Customers who returned"}
-  ];
-
+// Renders whichever widgets this admin has pinned (see the Pinned overview
+// widgets picker in Account settings) via the shared catalog in
+// lib/admin-widgets.ts — every value is computed from the exact same live
+// telemetry/stats queries the Customers CRM and main Dashboard pages use,
+// nothing fabricated here. Only ever rendered when the API has already
+// confirmed the viewer is an admin (see the isAdmin check in
+// app/api/account/route.ts), so a regular customer's own profile never
+// requests or sees business-wide numbers. Uses the same KpiCard the main
+// admin dashboard's own KPI row uses, not a bespoke card style.
+function AdminTelemetryRow({
+  widgets,
+  telemetry,
+  stats
+}: {
+  widgets: WidgetKey[];
+  telemetry: CustomerTelemetry;
+  stats: DashboardStats;
+}) {
   return (
     <div>
       <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-forest-500">Admin overview</p>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {cards.map((card) => (
-          <KpiCard key={card.label} icon={card.icon} iconTone={card.iconTone} label={card.label} value={card.value} subtext={card.subtext} loading={false} />
-        ))}
+        {widgets.map((key) => {
+          const meta = WIDGET_CATALOG[key];
+          const {value, subtext} = meta.getValue({telemetry, stats});
+          return <KpiCard key={key} icon={meta.icon} iconTone={meta.iconTone} label={meta.label} value={value} subtext={subtext} loading={false} />;
+        })}
       </div>
     </div>
   );
@@ -110,6 +108,8 @@ function AccountContent() {
   const [wishlistProducts, setWishlistProducts] = useState<AdminProduct[] | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminTelemetry, setAdminTelemetry] = useState<CustomerTelemetry | null>(null);
+  const [adminStats, setAdminStats] = useState<DashboardStats | null>(null);
+  const [adminWidgets, setAdminWidgets] = useState<WidgetKey[]>(DEFAULT_WIDGETS);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -132,12 +132,16 @@ function AccountContent() {
             bio: string | null;
             isAdmin?: boolean;
             adminTelemetry?: CustomerTelemetry | null;
+            adminStats?: DashboardStats | null;
+            adminWidgets?: WidgetKey[] | null;
           } | null
         ) => {
           if (!cancelled && data) {
             setForm({name: data.name ?? "", phone: data.phone ?? "", bio: data.bio ?? ""});
             setIsAdmin(Boolean(data.isAdmin));
             setAdminTelemetry(data.adminTelemetry ?? null);
+            setAdminStats(data.adminStats ?? null);
+            setAdminWidgets(data.adminWidgets && data.adminWidgets.length ? data.adminWidgets : DEFAULT_WIDGETS);
           }
         }
       )
@@ -312,7 +316,9 @@ function AccountContent() {
         <div className="rounded-[1.75rem] border border-[#e4d9c1] bg-white/60 p-6 backdrop-blur-xl sm:p-8">
           {tab === "profile" ? (
             <div className="space-y-8">
-              {isAdmin && adminTelemetry ? <AdminTelemetryRow telemetry={adminTelemetry} /> : null}
+              {isAdmin && adminTelemetry && adminStats ? (
+                <AdminTelemetryRow widgets={adminWidgets} telemetry={adminTelemetry} stats={adminStats} />
+              ) : null}
 
               <div className="grid gap-8 lg:grid-cols-2">
                 <form onSubmit={handleSave} className="space-y-6">
@@ -558,6 +564,12 @@ function AccountContent() {
                   </select>
                 </label>
               </div>
+
+              {isAdmin ? (
+                <div className="mt-8 border-t border-[#e4d9c1] pt-8">
+                  <AdminWidgetPicker initialWidgets={adminWidgets} onSaved={setAdminWidgets} />
+                </div>
+              ) : null}
             </div>
           ) : null}
 

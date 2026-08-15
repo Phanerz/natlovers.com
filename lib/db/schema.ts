@@ -108,7 +108,15 @@ export const users = pgTable("user", {
   // adapter only ever reads/writes the four columns above, so these are
   // safely ignored by it and only touched by our own /api/account route.
   phone: text("phone"),
-  bio: text("bio")
+  bio: text("bio"),
+  // Ordered list of up to 4 metric keys (see lib/admin-widgets.ts) an admin
+  // has chosen to pin to their account-page overview — array order is
+  // display order. Null/empty means "hasn't customized yet," which the app
+  // treats as the same default 4-widget set the page always showed before
+  // this was configurable, not an empty section. Non-admin accounts never
+  // write this column at all (the picker UI is admin-gated), so it stays
+  // null for every regular customer.
+  adminWidgets: text("admin_widgets").array()
 }).enableRLS();
 
 // A customer's reusable, editable shipping address — kept separate from any
