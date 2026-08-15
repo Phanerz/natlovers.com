@@ -124,7 +124,7 @@ export function AddressesManager() {
         <button
           type="button"
           onClick={startAdd}
-          className="button-lift flex items-center gap-2 rounded-full bg-forest-900 px-4 py-2.5 text-sm font-semibold text-sand-50"
+          className="glass-btn-primary flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-sand-50"
         >
           <Plus className="h-4 w-4" />
           Add address
@@ -214,7 +214,7 @@ export function AddressesManager() {
             <button
               type="submit"
               disabled={saving}
-              className="button-lift rounded-full bg-forest-900 px-5 py-2.5 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="glass-btn-primary rounded-full px-5 py-2.5 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? "Saving..." : editingId ? "Save changes" : "Add address"}
             </button>
@@ -255,7 +255,7 @@ export function AddressesManager() {
                     type="button"
                     onClick={() => startEdit(address)}
                     aria-label={`Edit ${address.label}`}
-                    className="icon-button flex h-9 w-9 items-center justify-center rounded-full border border-[#e4d9c1] text-forest-700"
+                    className="glass-icon-btn flex h-9 w-9 items-center justify-center rounded-full text-forest-700"
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
@@ -264,7 +264,7 @@ export function AddressesManager() {
                     disabled={busyId === address.id}
                     onClick={() => handleDelete(address)}
                     aria-label={`Delete ${address.label}`}
-                    className="icon-button flex h-9 w-9 items-center justify-center rounded-full border border-[#e4d9c1] text-red-600 disabled:opacity-50"
+                    className="glass-icon-btn is-danger flex h-9 w-9 items-center justify-center rounded-full text-red-600 disabled:opacity-50"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

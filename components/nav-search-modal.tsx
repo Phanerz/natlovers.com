@@ -66,7 +66,7 @@ export function NavSearchModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="icon-button rounded-full border border-[#e4d9c1] bg-white/70 p-2 text-forest-700"
+            className="glass-icon-btn rounded-full p-2 text-forest-700"
           >
             <X className="h-4 w-4" />
           </button>
@@ -147,7 +147,7 @@ export function NavSearchModal({
           <Link
             href="/catalogue"
             onClick={onClose}
-            className="button-lift flex shrink-0 items-center gap-2 rounded-full bg-forest-900 px-5 py-2.5 text-xs font-semibold text-sand-50"
+            className="glass-btn-primary flex shrink-0 items-center gap-2 rounded-full px-5 py-2.5 text-xs font-semibold text-sand-50"
           >
             Browse Catalogue <ArrowRight className="h-3.5 w-3.5" />
           </Link>

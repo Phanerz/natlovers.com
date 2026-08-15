@@ -88,7 +88,7 @@ export function NavPreferencesModal({
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="icon-button rounded-full border border-[#e4d9c1] bg-white/70 p-2 text-forest-700"
+              className="glass-icon-btn rounded-full p-2 text-forest-700"
             >
               <X className="h-4 w-4" />
             </button>
@@ -108,10 +108,8 @@ export function NavPreferencesModal({
                       key={option}
                       type="button"
                       onClick={() => onSelectLocale(option)}
-                      className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors duration-200 ${
-                        active
-                          ? "border-forest-800 bg-forest-900 text-sand-50"
-                          : "border-[#e4d9c1] bg-white/60 text-forest-800 hover:bg-white"
+                      className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left ${
+                        active ? "glass-btn-primary text-sand-50" : "glass-btn-secondary text-forest-800"
                       }`}
                     >
                       <span
@@ -149,10 +147,8 @@ export function NavPreferencesModal({
                       key={option}
                       type="button"
                       onClick={() => onSelectCurrency(option)}
-                      className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors duration-200 ${
-                        active
-                          ? "border-forest-800 bg-forest-900 text-sand-50"
-                          : "border-[#e4d9c1] bg-white/60 text-forest-800 hover:bg-white"
+                      className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left ${
+                        active ? "glass-btn-primary text-sand-50" : "glass-btn-secondary text-forest-800"
                       }`}
                     >
                       <span
