@@ -1,7 +1,7 @@
 "use client";
 
 import {FormEvent, useEffect, useState} from "react";
-import {MapPin, Pencil, Plus, Trash2} from "lucide-react";
+import {Check, MapPin, Pencil, Plus, Trash2} from "lucide-react";
 import type {AddressView} from "@/lib/addresses";
 
 type AddressFormState = {
@@ -241,9 +241,10 @@ export function AddressesManager() {
           addresses.map((address) => (
             <div key={address.id} className="rounded-2xl border border-[#e4d9c1] bg-white/70 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   {address.isDefault ? (
-                    <span className="rounded-full bg-[#dcead0] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#2f5b2b]">
+                    <span className="flex items-center gap-1 rounded-full bg-forest-900 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-sand-50 shadow-[0_4px_12px_rgba(23,32,21,0.22)]">
+                      <Check className="h-3 w-3" strokeWidth={3} />
                       Default
                     </span>
                   ) : null}
@@ -254,7 +255,7 @@ export function AddressesManager() {
                     type="button"
                     onClick={() => startEdit(address)}
                     aria-label={`Edit ${address.label}`}
-                    className="icon-button flex h-9 w-9 items-center justify-center rounded-full border border-[#e4d9c1] text-forest-700"
+                    className="glass-icon-btn flex h-9 w-9 items-center justify-center rounded-full text-forest-700"
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
@@ -263,7 +264,7 @@ export function AddressesManager() {
                     disabled={busyId === address.id}
                     onClick={() => handleDelete(address)}
                     aria-label={`Delete ${address.label}`}
-                    className="icon-button flex h-9 w-9 items-center justify-center rounded-full border border-[#e4d9c1] text-red-600 disabled:opacity-50"
+                    className="glass-icon-btn is-danger flex h-9 w-9 items-center justify-center rounded-full text-red-600 disabled:opacity-50"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

@@ -66,7 +66,7 @@ export function NavSearchModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="icon-button rounded-full border border-[#e4d9c1] bg-white/70 p-2 text-forest-700"
+            className="glass-icon-btn rounded-full p-2 text-forest-700"
           >
             <X className="h-4 w-4" />
           </button>

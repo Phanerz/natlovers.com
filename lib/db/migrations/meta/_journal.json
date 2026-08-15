@@ -113,6 +113,13 @@
       "when": 1786737801138,
       "tag": "0015_talented_shocker",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1786773627710,
+      "tag": "0016_chemical_lady_mastermind",
+      "breakpoints": true
     }
   ]
 }

@@ -48,7 +48,7 @@ function HeroCardRow({
         type="button"
         aria-label="Drag to reorder"
         onPointerDown={(event) => dragControls.start(event)}
-        className="icon-button flex h-9 w-9 shrink-0 cursor-grab items-center justify-center rounded-full border border-[#d4c5ab] text-forest-500 active:cursor-grabbing"
+        className="glass-icon-btn flex h-9 w-9 shrink-0 cursor-grab items-center justify-center rounded-full text-forest-500 active:cursor-grabbing"
       >
         <GripVertical className="h-4 w-4" />
       </button>
@@ -65,7 +65,7 @@ function HeroCardRow({
         disabled={busy}
         onClick={() => onDelete(card)}
         aria-label="Delete hero card"
-        className="icon-button flex h-9 w-9 items-center justify-center rounded-full border border-[#d4c5ab] text-red-600 disabled:opacity-50"
+        className="glass-icon-btn is-danger flex h-9 w-9 items-center justify-center rounded-full text-red-600 disabled:opacity-50"
       >
         <Trash2 className="h-4 w-4" />
       </button>

@@ -6,30 +6,31 @@ import Link from "next/link";
 import {useRouter, useSearchParams} from "next/navigation";
 import {signOut, useSession} from "next-auth/react";
 import {
+  BadgeCheck,
   CircleHelp,
   CreditCard,
   Download,
   Heart,
+  LayoutDashboard,
   LogOut,
   Mail,
   MapPin,
   MessageCircle,
   Package,
   Palette,
-  Repeat,
   Settings,
   Trash2,
-  User,
-  UserCheck,
-  UserPlus,
-  Users
+  User
 } from "lucide-react";
 import {AddressesManager} from "@/components/addresses-manager";
-import {toWhatsAppLink} from "@/lib/contact";
+import {AdminWidgetPicker} from "@/components/admin-widget-picker";
+import {KpiCard} from "@/components/admin/kpi-card";
 import {CustomRequestsHistory} from "@/components/custom-requests-history";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {formatCurrency} from "@/lib/format";
+import {DEFAULT_WIDGETS, WIDGET_CATALOG, WidgetKey} from "@/lib/admin-widgets";
 import type {CustomerTelemetry} from "@/lib/customers";
+import type {DashboardStats} from "@/lib/dashboard-stats";
 import {orderStatusLabels} from "@/lib/order-status";
 import {CurrencyCode, Locale, currencies, currencySymbols, locales} from "@/lib/site";
 import type {AdminProduct} from "@/lib/admin-products";
@@ -63,35 +64,33 @@ function EmptyState({title, body}: {title: string; body: string}) {
   );
 }
 
-// toWhatsAppLink lives in lib/contact.ts so this page and the Custom
-// Studio admin views normalise a saved phone number the same way.
-
-// Same real query the Customers CRM page uses (lib/customers.ts) — this is
-// only ever rendered when the API has already confirmed the viewer is an
-// admin (see the isAdmin check in app/api/account/route.ts), so a regular
-// customer's own profile never requests or sees business-wide numbers.
-function AdminTelemetryRow({telemetry}: {telemetry: CustomerTelemetry}) {
-  const cards: {icon: typeof Users; label: string; value: string; subtext: string}[] = [
-    {icon: Users, label: "Total Customers", value: String(telemetry.totalCustomers), subtext: `+${telemetry.newThisMonth} this month`},
-    {icon: UserPlus, label: "New Customers", value: String(telemetry.newThisMonth), subtext: "This calendar month"},
-    {icon: UserCheck, label: "Returning Customers", value: String(telemetry.returningCustomers), subtext: "Ordered 2+ times"},
-    {icon: Repeat, label: "Repeat Purchase Rate", value: `${telemetry.repeatPurchaseRate}%`, subtext: "Customers who returned"}
-  ];
-
+// Renders whichever widgets this admin has pinned (see the Pinned overview
+// widgets picker in Account settings) via the shared catalog in
+// lib/admin-widgets.ts — every value is computed from the exact same live
+// telemetry/stats queries the Customers CRM and main Dashboard pages use,
+// nothing fabricated here. Only ever rendered when the API has already
+// confirmed the viewer is an admin (see the isAdmin check in
+// app/api/account/route.ts), so a regular customer's own profile never
+// requests or sees business-wide numbers. Uses the same KpiCard the main
+// admin dashboard's own KPI row uses, not a bespoke card style.
+function AdminTelemetryRow({
+  widgets,
+  telemetry,
+  stats
+}: {
+  widgets: WidgetKey[];
+  telemetry: CustomerTelemetry;
+  stats: DashboardStats;
+}) {
   return (
     <div>
       <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-forest-500">Admin overview</p>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {cards.map((card) => (
-          <div key={card.label} className="rounded-[1.4rem] border border-[#e4d9c1] bg-white/70 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eee4cd] text-forest-700">
-              <card.icon className="h-5 w-5" />
-            </div>
-            <p className="mt-3 text-[11px] font-semibold uppercase leading-tight tracking-[0.16em] text-forest-500">{card.label}</p>
-            <p className="mt-1 font-display text-2xl text-forest-900">{card.value}</p>
-            <p className="mt-1 text-xs text-forest-500">{card.subtext}</p>
-          </div>
-        ))}
+        {widgets.map((key) => {
+          const meta = WIDGET_CATALOG[key];
+          const {value, subtext} = meta.getValue({telemetry, stats});
+          return <KpiCard key={key} icon={meta.icon} iconTone={meta.iconTone} label={meta.label} value={value} subtext={subtext} loading={false} />;
+        })}
       </div>
     </div>
   );
@@ -112,6 +111,8 @@ function AccountContent() {
   const [wishlistProducts, setWishlistProducts] = useState<AdminProduct[] | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminTelemetry, setAdminTelemetry] = useState<CustomerTelemetry | null>(null);
+  const [adminStats, setAdminStats] = useState<DashboardStats | null>(null);
+  const [adminWidgets, setAdminWidgets] = useState<WidgetKey[]>(DEFAULT_WIDGETS);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -134,12 +135,16 @@ function AccountContent() {
             bio: string | null;
             isAdmin?: boolean;
             adminTelemetry?: CustomerTelemetry | null;
+            adminStats?: DashboardStats | null;
+            adminWidgets?: WidgetKey[] | null;
           } | null
         ) => {
           if (!cancelled && data) {
             setForm({name: data.name ?? "", phone: data.phone ?? "", bio: data.bio ?? ""});
             setIsAdmin(Boolean(data.isAdmin));
             setAdminTelemetry(data.adminTelemetry ?? null);
+            setAdminStats(data.adminStats ?? null);
+            setAdminWidgets(data.adminWidgets && data.adminWidgets.length ? data.adminWidgets : DEFAULT_WIDGETS);
           }
         }
       )
@@ -240,9 +245,20 @@ function AccountContent() {
 
   return (
     <main className="shell py-10 sm:py-14">
-      <div className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-forest-500">Account</p>
-        <h1 className="mt-2 font-display text-4xl text-forest-900">My Profile</h1>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-forest-500">Account</p>
+          <h1 className="mt-2 font-display text-4xl text-forest-900">My Profile</h1>
+        </div>
+        {isAdmin ? (
+          <Link
+            href="/mimin"
+            className="glass-btn-primary flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-sand-50"
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            Admin Dashboard
+          </Link>
+        ) : null}
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[16rem_1fr]">
@@ -258,7 +274,10 @@ function AccountContent() {
               )}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-forest-900">{user.name ?? "Natlovers collector"}</p>
+              <p className="flex items-center gap-1 truncate text-sm font-semibold text-forest-900">
+                <span className="truncate">{user.name ?? "Natlovers collector"}</span>
+                {isAdmin ? <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[#2f5b2b]" aria-label="Verified admin" /> : null}
+              </p>
               <p className="truncate text-xs text-forest-500">{user.email}</p>
             </div>
           </div>
@@ -300,10 +319,12 @@ function AccountContent() {
         <div className="rounded-[1.75rem] border border-[#e4d9c1] bg-white/60 p-6 backdrop-blur-xl sm:p-8">
           {tab === "profile" ? (
             <div className="space-y-8">
-              {isAdmin && adminTelemetry ? <AdminTelemetryRow telemetry={adminTelemetry} /> : null}
+              {isAdmin && adminTelemetry && adminStats ? (
+                <AdminTelemetryRow widgets={adminWidgets} telemetry={adminTelemetry} stats={adminStats} />
+              ) : null}
 
               <div className="grid gap-8 lg:grid-cols-2">
-                <form onSubmit={handleSave} className="space-y-5">
+                <form onSubmit={handleSave} className="space-y-6">
                   <h2 className="font-display text-2xl text-forest-900">Profile information</h2>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <label className="space-y-1.5 text-sm text-forest-700">
@@ -330,31 +351,6 @@ function AccountContent() {
                         placeholder="+62"
                         className="w-full rounded-xl border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
                       />
-                      {form.phone.trim() ? (
-                        <a
-                          href={toWhatsAppLink(form.phone)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-1.5 text-xs font-medium text-[#2f5b2b] hover:underline"
-                        >
-                          <MessageCircle className="h-3.5 w-3.5" />
-                          Click to chat via WhatsApp
-                        </a>
-                      ) : null}
-                    </label>
-                    <label className="space-y-1.5 text-sm text-forest-700 sm:col-span-2">
-                      <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Preferred language</span>
-                      <select
-                        value={locale}
-                        onChange={(event) => setLocale(event.target.value as Locale)}
-                        className="w-full rounded-xl border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
-                      >
-                        {locales.map((option) => (
-                          <option key={option} value={option}>
-                            {option === "en" ? "English" : "Bahasa"}
-                          </option>
-                        ))}
-                      </select>
                     </label>
                   </div>
                   <label className="block space-y-1.5 text-sm text-forest-700">
@@ -380,7 +376,7 @@ function AccountContent() {
                   </div>
                 </form>
 
-                <div className="space-y-8">
+                <div className="space-y-6">
                   <AddressesManager />
 
                   <div>
@@ -573,6 +569,12 @@ function AccountContent() {
                   </select>
                 </label>
               </div>
+
+              {isAdmin ? (
+                <div className="mt-8 border-t border-[#e4d9c1] pt-8">
+                  <AdminWidgetPicker initialWidgets={adminWidgets} onSaved={setAdminWidgets} />
+                </div>
+              ) : null}
             </div>
           ) : null}
 

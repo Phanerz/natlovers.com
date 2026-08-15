@@ -37,8 +37,10 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={`button-lift flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-        active ? "liquid-glass-dark text-sand-50" : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
+      className={`button-lift flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        active
+          ? "liquid-glass-dark text-sand-50"
+          : "text-[#3c3c34] hover:-translate-y-px hover:bg-[#eee7d8] hover:text-[#344332] hover:shadow-[0_4px_12px_rgba(23,32,21,0.08)]"
       }`}
     >
       <Icon className="h-4 w-4 shrink-0" />
@@ -129,8 +131,10 @@ export function AdminSidebar() {
               <button
                 type="button"
                 onClick={() => setProductsExpanded((value) => !value)}
-                className={`button-lift flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] ${
-                  isManage ? "liquid-glass-dark text-sand-50" : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
+                className={`button-lift flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] ${
+                  isManage
+                    ? "liquid-glass-dark text-sand-50"
+                    : "text-[#3c3c34] hover:-translate-y-px hover:bg-[#eee7d8] hover:text-[#344332] hover:shadow-[0_4px_12px_rgba(23,32,21,0.08)]"
                 }`}
               >
                 <ShoppingBag className="h-4 w-4 shrink-0" />
@@ -186,8 +190,10 @@ export function AdminSidebar() {
         </div>
         <Link
           href="/mimin/orders"
-          className={`button-lift flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-            pathname === "/mimin/orders" ? "liquid-glass-dark text-sand-50" : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
+          className={`button-lift flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            pathname === "/mimin/orders"
+              ? "liquid-glass-dark text-sand-50"
+              : "text-[#3c3c34] hover:-translate-y-px hover:bg-[#eee7d8] hover:text-[#344332] hover:shadow-[0_4px_12px_rgba(23,32,21,0.08)]"
           }`}
         >
           <span className="flex items-center gap-2.5">
