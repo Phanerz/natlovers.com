@@ -86,7 +86,7 @@ export function AdminSidebar() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/admin/dashboard-stats?range=all", {cache: "no-store"})
+    fetch("/api/admin/sidebar-badges", {cache: "no-store"})
       .then((response) => (response.ok ? response.json() : null))
       .then((data: {ordersAwaitingTransfer?: number; openCustomRequests?: number} | null) => {
         if (!cancelled && data) {

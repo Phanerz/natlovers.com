@@ -11,6 +11,24 @@ const LOW_STOCK_THRESHOLD = 5;
 
 export type DateRangeKey = "today" | "7d" | "month" | "year" | "all";
 
+// The sidebar's two nav badges used to be read off a full getDashboardStats(
+// "all") call — that endpoint alone fans out ~7 queries, then the sidebar's
+// concurrent invocation stacked directly on top of dashboard-home's own call
+// to the same heavy endpoint on every /mimin dashboard load (two overlapping
+// callers of the same expensive pipeline is exactly the pool-starvation
+// scenario this file has fought before). The sidebar only ever needed these
+// two indexed counts, so it gets its own 2-query path instead of paying for
+// the other ~9 fields (revenue, sales series, best sellers, etc.) it never
+// reads.
+export async function getSidebarBadgeCounts(): Promise<{ordersAwaitingTransfer: number; openCustomRequests: number}> {
+  const [[awaitingRow], openCustomRequests] = await Promise.all([
+    db.select({value: count()}).from(orders).where(eq(orders.status, "pending_transfer")),
+    countOpenCustomRequests()
+  ]);
+
+  return {ordersAwaitingTransfer: awaitingRow.value, openCustomRequests};
+}
+
 // Orders in either of these statuses represent money actually received —
 // "paid" covers a confirmed transfer, "fulfilled" is the same order after
 // it's also shipped, still just as paid. Revenue/AOV/items-sold all count
