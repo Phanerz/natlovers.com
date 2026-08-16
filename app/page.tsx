@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import {AboutContent} from "@/components/about-content";
+import {CustomStudioSection} from "@/components/custom-studio/studio-section";
 import {Hero} from "@/components/hero";
 import {OutletsContent} from "@/components/outlets-content";
 import {ScrollSection} from "@/components/scroll-section";
@@ -20,10 +21,10 @@ export default function HomePage() {
         <CatalogueContent />
       </ScrollSection>
 
-      {/* Custom has no homepage section: it is the Custom Studio, a full
-          interactive workspace that belongs on its own route rather than
-          inside a snap-scroll page. The nav item routes straight to
-          /custom (see goToNavHref in components/header.tsx). */}
+      <ScrollSection navHref="/custom" className="snap-page">
+        <CustomStudioSection />
+      </ScrollSection>
+
       <ScrollSection navHref="/outlets" className="snap-page">
         <OutletsContent />
       </ScrollSection>
