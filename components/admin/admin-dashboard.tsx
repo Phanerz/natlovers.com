@@ -2,7 +2,6 @@
 
 import {FormEvent, useEffect, useState} from "react";
 import {useRouter, useSearchParams} from "next/navigation";
-import {signOut} from "next-auth/react";
 import {submitFormData} from "@/lib/xhr-form-submit";
 import {DashboardHome} from "./dashboard-home";
 import {AdminHeroCard, HeroCardFormState, buildHeroCardFormData, emptyHeroCardForm} from "./hero-card-types";
@@ -357,10 +356,6 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
     }
   }
 
-  async function handleLogout() {
-    await signOut({callbackUrl: "/mimin"});
-  }
-
   const isEditing = Boolean(editingProduct);
 
   const pageTitles: Record<Tab, string> = {
@@ -373,21 +368,12 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
 
   return (
     <div className="space-y-6">
-      <div className={`flex flex-wrap items-center gap-4 ${tab === "dashboard" ? "justify-end" : "justify-between"}`}>
-        {tab !== "dashboard" ? (
-          <div>
-            <p className="muted">Admin, {userEmail}</p>
-            <h1 className="mt-2 font-display text-3xl text-forest-900">{pageTitles[tab]}</h1>
-          </div>
-        ) : null}
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="glass-btn-secondary rounded-full px-5 py-2 text-sm text-forest-700"
-        >
-          Sign out
-        </button>
-      </div>
+      {tab !== "dashboard" ? (
+        <div>
+          <p className="muted">Admin, {userEmail}</p>
+          <h1 className="mt-2 font-display text-3xl text-forest-900">{pageTitles[tab]}</h1>
+        </div>
+      ) : null}
 
       <div className="space-y-8">
         {tab === "dashboard" ? <DashboardHome userName={userName} onNavigate={setTab} /> : null}

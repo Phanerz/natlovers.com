@@ -2,6 +2,7 @@
 
 import {FormEvent, useEffect, useState} from "react";
 import {Check, MapPin, Pencil, Plus, Trash2} from "lucide-react";
+import {PhoneInput} from "@/components/phone-input";
 import type {AddressView} from "@/lib/addresses";
 
 type AddressFormState = {
@@ -152,14 +153,14 @@ export function AddressesManager() {
                 className={fieldClass}
               />
             </label>
-            <label className="space-y-1.5 text-sm text-forest-700">
+            <label htmlFor="address-phone" className="space-y-1.5 text-sm text-forest-700">
               <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Phone</span>
-              <input
+              <PhoneInput
+                id="address-phone"
                 value={form.phone}
-                onChange={(event) => setForm((current) => ({...current, phone: event.target.value}))}
-                placeholder="+62"
+                onChange={(value) => setForm((current) => ({...current, phone: value}))}
                 required
-                className={fieldClass}
+                compact
               />
             </label>
             <label className="space-y-1.5 text-sm text-forest-700 sm:col-span-2">

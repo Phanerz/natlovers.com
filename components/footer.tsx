@@ -12,7 +12,12 @@ export function Footer() {
   const dict = getDictionary(locale);
   const pathname = usePathname();
 
-  if (pathname === "/catalogue" || pathname === "/mimin" || pathname === "/login") {
+  if (
+    pathname === "/catalogue" ||
+    pathname === "/login" ||
+    pathname?.startsWith("/mimin") ||
+    pathname?.startsWith("/account")
+  ) {
     return null;
   }
 

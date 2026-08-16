@@ -280,7 +280,7 @@ button {
 
 .button-lift:hover {
   transform: translateY(-2px) scale(1.01);
-  box-shadow: 0 18px 36px rgba(17, 35, 25, 0.16);
+  box-shadow: 0 10px 22px rgba(17, 35, 25, 0.1);
 }
 
 /* Same principle as .glass-btn-primary's :active — an actual press should
@@ -290,7 +290,7 @@ button {
 .button-lift:active {
   transform: translateY(0) scale(0.97);
   transition-duration: 120ms;
-  box-shadow: 0 8px 18px rgba(17, 35, 25, 0.14);
+  box-shadow: 0 5px 11px rgba(17, 35, 25, 0.09);
 }
 
 .nav-link {
@@ -346,7 +346,7 @@ button {
   transform: translateY(-2px) scale(1.03);
   background: rgba(255, 252, 246, 0.24);
   border-color: rgba(255, 247, 229, 0.42);
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 8px 17px rgba(0, 0, 0, 0.12);
 }
 
 /* transform + brightness only, deliberately no background/box-shadow
@@ -366,7 +366,7 @@ button {
 
 .control-pill:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 8px 17px rgba(0, 0, 0, 0.12);
 }
 
 /* No box-shadow override here either — same reasoning as .icon-button:active
@@ -425,33 +425,33 @@ button {
   background: linear-gradient(165deg, #24351f 0%, #101c12 78%);
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.22), inset 0 -10px 16px rgba(0, 0, 0, 0.28),
-    0 14px 30px rgba(12, 22, 13, 0.38), 0 2px 6px rgba(12, 22, 13, 0.22);
+    0 8px 18px rgba(12, 22, 13, 0.24), 0 1px 3px rgba(12, 22, 13, 0.14);
 }
 
 .glass-btn-primary:hover {
   transform: translateY(-2px);
   border-color: rgba(255, 255, 255, 0.24);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.28), inset 0 -10px 16px rgba(0, 0, 0, 0.24),
-    0 18px 36px rgba(12, 22, 13, 0.36), 0 3px 8px rgba(12, 22, 13, 0.22);
+    0 10px 22px rgba(12, 22, 13, 0.22), 0 2px 5px rgba(12, 22, 13, 0.14);
 }
 
 .glass-btn-primary:active {
   transform: translateY(0) scale(0.98);
   transition-duration: 140ms;
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.18), inset 0 -6px 10px rgba(0, 0, 0, 0.3),
-    0 6px 14px rgba(12, 22, 13, 0.3);
+    0 4px 9px rgba(12, 22, 13, 0.2);
 }
 
 .glass-btn-primary:disabled {
   transform: none;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 6px 14px rgba(12, 22, 13, 0.18);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 4px 9px rgba(12, 22, 13, 0.12);
 }
 
 .glass-btn-secondary {
   background: linear-gradient(165deg, rgba(255, 253, 248, 0.95), rgba(250, 243, 229, 0.85));
   border: 1px solid rgba(205, 191, 166, 0.7);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), inset 0 -6px 12px rgba(180, 158, 116, 0.08),
-    0 10px 24px rgba(79, 58, 28, 0.1);
+    0 6px 14px rgba(79, 58, 28, 0.07);
 }
 
 .glass-btn-secondary:hover {
@@ -459,18 +459,18 @@ button {
   border-color: rgba(23, 32, 21, 0.2);
   background: linear-gradient(165deg, #ffffff, rgba(253, 247, 235, 0.95));
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9), inset 0 -6px 12px rgba(180, 158, 116, 0.1),
-    0 14px 28px rgba(79, 58, 28, 0.12);
+    0 8px 17px rgba(79, 58, 28, 0.08);
 }
 
 .glass-btn-secondary:active {
   transform: translateY(0) scale(0.98);
   transition-duration: 140ms;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 6px 14px rgba(79, 58, 28, 0.12);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 4px 9px rgba(79, 58, 28, 0.08);
 }
 
 .glass-btn-secondary:disabled {
   transform: none;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 6px 14px rgba(79, 58, 28, 0.06);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 4px 9px rgba(79, 58, 28, 0.04);
 }
 
 /* Circular icon buttons (close, remove, stepper) — same restrained
@@ -481,7 +481,7 @@ button {
   background: linear-gradient(165deg, rgba(255, 253, 248, 0.95), rgba(250, 243, 229, 0.82));
   border: 1px solid rgba(215, 202, 178, 0.75);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.85), inset 0 -3px 6px rgba(180, 158, 116, 0.08),
-    0 8px 18px rgba(79, 58, 28, 0.12);
+    0 5px 11px rgba(79, 58, 28, 0.08);
   transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 600ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 400ms ease, color 400ms ease;
 }
@@ -490,7 +490,7 @@ button {
   transform: translateY(-1px) scale(1.04);
   border-color: rgba(23, 32, 21, 0.2);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.95), inset 0 -3px 6px rgba(180, 158, 116, 0.1),
-    0 10px 20px rgba(79, 58, 28, 0.16);
+    0 6px 12px rgba(79, 58, 28, 0.1);
 }
 
 .glass-icon-btn:active {
@@ -506,7 +506,7 @@ button {
   border-color: rgba(196, 82, 62, 0.4);
   color: #b3402c;
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.95), inset 0 -3px 6px rgba(196, 82, 62, 0.1),
-    0 10px 20px rgba(196, 82, 62, 0.18);
+    0 6px 12px rgba(196, 82, 62, 0.12);
 }
 
 /* Quantity stepper — a glass pill housing two .glass-stepper-btn taps. The
@@ -517,7 +517,7 @@ button {
   background: linear-gradient(165deg, rgba(255, 253, 248, 0.95), rgba(250, 243, 229, 0.85));
   border: 1px solid rgba(215, 202, 178, 0.75);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.85), inset 0 -3px 6px rgba(180, 158, 116, 0.06),
-    0 6px 16px rgba(79, 58, 28, 0.08);
+    0 4px 10px rgba(79, 58, 28, 0.05);
 }
 
 .glass-stepper-btn {
@@ -927,5 +927,67 @@ button {
     transition: none !important;
     opacity: 0 !important;
   }
+}
+
+/* react-phone-number-input's own stylesheet (imported once, in
+   components/phone-input.tsx) gives it working layout/behaviour but a
+   generic system look — this repaints its stable class names to match the
+   site's own text-field shell (same border/radius/focus color as every
+   plain <input> elsewhere) so the flag dropdown reads as one native field,
+   not a third-party widget dropped on the page. */
+.natlovers-phone-input {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid #e4d9c1;
+  background: #ffffff;
+  padding: 0.75rem 1rem;
+  transition: border-color 200ms ease;
+}
+
+.natlovers-phone-input:focus-within {
+  border-color: #6c8667;
+}
+
+.natlovers-phone-input.is-compact {
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+}
+
+.natlovers-phone-input .PhoneInputCountry {
+  flex-shrink: 0;
+  margin-right: 0;
+}
+
+.natlovers-phone-input .PhoneInputCountryIcon {
+  width: 1.5rem;
+  height: 1.125rem;
+  border-radius: 0.25rem;
+  box-shadow: 0 0 0 1px rgba(59, 43, 22, 0.14);
+}
+
+.natlovers-phone-input .PhoneInputCountrySelectArrow {
+  width: 0.35em;
+  height: 0.35em;
+  margin-left: 0.35em;
+  border-color: #4f684a;
+  opacity: 0.65;
+}
+
+.natlovers-phone-input .PhoneInputInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: #172015;
+}
+
+.natlovers-phone-input .PhoneInputInput::placeholder {
+  color: #a89f8a;
 }
 

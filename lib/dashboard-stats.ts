@@ -86,12 +86,22 @@ async function getPeriodMetrics(start: Date | null, end: Date): Promise<PeriodMe
   const endFilter = lt(orders.createdAt, end);
   const rangeFilter = dateFilter ? and(dateFilter, endFilter) : endFilter;
 
-  const [[totalOrdersRow], [paidRow], [itemsRow]] = await Promise.all([
-    db.select({value: count()}).from(orders).where(rangeFilter),
+  // totalOrders and paid-order count/revenue used to be two separate
+  // queries against the same orders/rangeFilter — collapsed into one via
+  // conditional aggregation (same "count(*) filter (where ...)" pattern as
+  // the stock query below) since they're both scans of the same row set,
+  // just narrowed by a status check. See lib/db/index.ts's max:10 pool
+  // comment: every query removed from this fan-out is one less connection
+  // this endpoint competes for against the rest of the site's traffic.
+  const [[orderRow], [itemsRow]] = await Promise.all([
     db
-      .select({value: count(), revenue: sql<number>`coalesce(sum(${orders.totalIdr}), 0)::int`})
+      .select({
+        value: count(),
+        paid: sql<number>`count(*) filter (where ${inArray(orders.status, PAID_STATUSES)})::int`,
+        revenue: sql<number>`coalesce(sum(${orders.totalIdr}) filter (where ${inArray(orders.status, PAID_STATUSES)}), 0)::int`
+      })
       .from(orders)
-      .where(and(rangeFilter, inArray(orders.status, PAID_STATUSES))),
+      .where(rangeFilter),
     db
       .select({value: sql<number>`coalesce(sum(${orderItems.quantity}), 0)::int`})
       .from(orderItems)
@@ -99,11 +109,11 @@ async function getPeriodMetrics(start: Date | null, end: Date): Promise<PeriodMe
       .where(and(rangeFilter, inArray(orders.status, PAID_STATUSES)))
   ]);
 
-  const paidOrdersCount = paidRow.value;
-  const totalRevenue = paidRow.revenue;
+  const paidOrdersCount = orderRow.paid;
+  const totalRevenue = orderRow.revenue;
 
   return {
-    totalOrders: totalOrdersRow.value,
+    totalOrders: orderRow.value,
     paidOrdersCount,
     totalRevenue,
     itemsSold: itemsRow.value,
@@ -134,13 +144,19 @@ export type DashboardStats = {
 export async function getDashboardStats(range: DateRangeKey): Promise<DashboardStats> {
   const resolved = resolveDateRange(range);
 
-  const [current, previous, [totalRow], [activeRow], [heroRow], [awaitingRow], customerCount, [stockRow]] = await Promise.all([
+  const [current, previous, [productsRow], [heroRow], [awaitingRow], customerCount, [stockRow]] = await Promise.all([
     getPeriodMetrics(resolved.start, resolved.end),
     resolved.previousStart
       ? getPeriodMetrics(resolved.previousStart, resolved.previousEnd!)
       : Promise.resolve(null),
-    db.select({value: count()}).from(products),
-    db.select({value: count()}).from(products).where(eq(products.isActive, true)),
+    // total + active used to be two separate full-table counts on the same
+    // products table — same collapsing rationale as getPeriodMetrics above.
+    db
+      .select({
+        total: count(),
+        active: sql<number>`count(*) filter (where ${products.isActive} = true)::int`
+      })
+      .from(products),
     db.select({value: count()}).from(heroCards),
     db.select({value: count()}).from(orders).where(eq(orders.status, "pending_transfer")),
     getCustomerCount(),
@@ -165,8 +181,8 @@ export async function getDashboardStats(range: DateRangeKey): Promise<DashboardS
   // indexed count is the cheaper trade by a wide margin.
   const openCustomRequests = await countOpenCustomRequests();
 
-  const totalProducts = totalRow.value;
-  const activeProducts = activeRow.value;
+  const totalProducts = productsRow.total;
+  const activeProducts = productsRow.active;
 
   return {
     range,

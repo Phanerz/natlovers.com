@@ -4,7 +4,8 @@ import Link from "next/link";
 import type {Route} from "next";
 import {usePathname, useSearchParams} from "next/navigation";
 import {useEffect, useState} from "react";
-import {ChevronUp, GalleryHorizontal, LayoutDashboard, Palette, PlusCircle, Receipt, ShoppingBag, Users, Warehouse} from "lucide-react";
+import {signOut} from "next-auth/react";
+import {ChevronUp, GalleryHorizontal, LayoutDashboard, LogOut, Palette, PlusCircle, Receipt, ShoppingBag, Users, Warehouse} from "lucide-react";
 import {ShopProductType, productTypeLabels, shopProductTypes} from "@/app/catalogue/shop-data";
 
 // Typography/spacing/interaction lifted directly from app/catalogue/
@@ -226,13 +227,24 @@ export function AdminSidebar() {
         </Link>
       </div>
 
-      <div className="pt-3">
+      <div className="border-b border-[#d9cfc0] pt-3 pb-3">
         <div className="px-3 pb-2">
           <SectionLabel>Customers</SectionLabel>
         </div>
         <NavLink href="/mimin/customers" active={pathname?.startsWith("/mimin/customers") ?? false} icon={Users}>
           Customers
         </NavLink>
+      </div>
+
+      <div className="pt-3">
+        <button
+          type="button"
+          onClick={() => signOut({callbackUrl: "/mimin"})}
+          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium text-[#8a4a3a] transition-colors duration-150 hover:bg-[#f7e9e2]"
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          Sign out
+        </button>
       </div>
     </aside>
   );

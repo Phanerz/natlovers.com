@@ -9,7 +9,6 @@ import {
   BadgeCheck,
   CircleHelp,
   CreditCard,
-  Download,
   Heart,
   LayoutDashboard,
   LogOut,
@@ -19,13 +18,13 @@ import {
   Package,
   Palette,
   Settings,
-  Trash2,
   User
 } from "lucide-react";
 import {AddressesManager} from "@/components/addresses-manager";
 import {AdminWidgetPicker} from "@/components/admin-widget-picker";
 import {KpiCard} from "@/components/admin/kpi-card";
 import {CustomRequestsHistory} from "@/components/custom-requests-history";
+import {PhoneInput} from "@/components/phone-input";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {formatCurrency} from "@/lib/format";
 import {DEFAULT_WIDGETS, WIDGET_CATALOG, WidgetKey} from "@/lib/admin-widgets";
@@ -53,7 +52,7 @@ function tabFromParam(value: string | null): TabKey {
   return tabs.some((item) => item.key === value) ? (value as TabKey) : "profile";
 }
 
-type ProfileForm = {name: string; phone: string; bio: string};
+type ProfileForm = {name: string; phone: string};
 
 function EmptyState({title, body}: {title: string; body: string}) {
   return (
@@ -103,7 +102,7 @@ function AccountContent() {
   const {locale, currency, setLocale, setCurrency} = useSitePreferences();
 
   const tab = tabFromParam(searchParams.get("tab"));
-  const [form, setForm] = useState<ProfileForm>({name: "", phone: "", bio: ""});
+  const [form, setForm] = useState<ProfileForm>({name: "", phone: ""});
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -132,7 +131,6 @@ function AccountContent() {
           data: {
             name: string | null;
             phone: string | null;
-            bio: string | null;
             isAdmin?: boolean;
             adminTelemetry?: CustomerTelemetry | null;
             adminStats?: DashboardStats | null;
@@ -140,7 +138,7 @@ function AccountContent() {
           } | null
         ) => {
           if (!cancelled && data) {
-            setForm({name: data.name ?? "", phone: data.phone ?? "", bio: data.bio ?? ""});
+            setForm({name: data.name ?? "", phone: data.phone ?? ""});
             setIsAdmin(Boolean(data.isAdmin));
             setAdminTelemetry(data.adminTelemetry ?? null);
             setAdminStats(data.adminStats ?? null);
@@ -159,7 +157,7 @@ function AccountContent() {
   }, [status]);
 
   useEffect(() => {
-    if (status !== "authenticated" || (tab !== "orders" && tab !== "profile") || orders !== null) {
+    if (status !== "authenticated" || tab !== "orders" || orders !== null) {
       return;
     }
     let cancelled = false;
@@ -343,26 +341,15 @@ function AccountContent() {
                         className="w-full cursor-not-allowed rounded-xl border border-[#e4d9c1] bg-[#f3ede0] px-4 py-3 text-forest-500"
                       />
                     </label>
-                    <label className="space-y-1.5 text-sm text-forest-700 sm:col-span-2">
+                    <label htmlFor="profile-phone" className="space-y-1.5 text-sm text-forest-700 sm:col-span-2">
                       <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Phone number</span>
-                      <input
+                      <PhoneInput
+                        id="profile-phone"
                         value={form.phone}
-                        onChange={(event) => setForm((current) => ({...current, phone: event.target.value}))}
-                        placeholder="+62"
-                        className="w-full rounded-xl border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
+                        onChange={(value) => setForm((current) => ({...current, phone: value}))}
                       />
                     </label>
                   </div>
-                  <label className="block space-y-1.5 text-sm text-forest-700">
-                    <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Bio (optional)</span>
-                    <textarea
-                      value={form.bio}
-                      onChange={(event) => setForm((current) => ({...current, bio: event.target.value}))}
-                      rows={3}
-                      placeholder="Lover of natural craft, sustainable living, and meaningful stories."
-                      className="w-full rounded-xl border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
-                    />
-                  </label>
 
                   <div className="flex items-center gap-3">
                     <button
@@ -376,72 +363,9 @@ function AccountContent() {
                   </div>
                 </form>
 
-                <div className="space-y-6">
-                  <AddressesManager />
-
-                  <div>
-                    <h2 className="font-display text-2xl text-forest-900">Account</h2>
-                    <div className="mt-4 space-y-2">
-                      <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#e4d9c1] bg-white/70 p-4">
-                        <span className="flex items-center gap-3 text-sm text-forest-700">
-                          <Download className="h-4 w-4 text-forest-500" />
-                          Export my data
-                        </span>
-                        <Link href="/account?tab=help" className="text-xs font-medium text-forest-700 underline decoration-dotted underline-offset-2 hover:text-forest-900">
-                          Request via support
-                        </Link>
-                      </div>
-                      <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#f3d9d0] bg-[#faf1ed] p-4">
-                        <span className="flex items-center gap-3 text-sm text-[#a4402b]">
-                          <Trash2 className="h-4 w-4" />
-                          Delete account
-                        </span>
-                        <Link href="/account?tab=help" className="text-xs font-medium text-[#a4402b] underline decoration-dotted underline-offset-2 hover:text-[#7a2f1e]">
-                          Request via support
-                        </Link>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-xs text-forest-500">
-                      Self-service data export and account deletion aren&rsquo;t built yet — reach out and we&rsquo;ll handle it directly.
-                    </p>
-                  </div>
-                </div>
+                <AddressesManager />
               </div>
 
-              <div>
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="font-display text-2xl text-forest-900">Recent orders</h2>
-                  <button
-                    type="button"
-                    onClick={() => selectTab("orders")}
-                    className="text-sm font-medium text-forest-700 hover:text-forest-900"
-                  >
-                    View all orders
-                  </button>
-                </div>
-                {orders === null ? (
-                  <p className="py-8 text-center text-sm text-forest-500">Loading...</p>
-                ) : orders.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-forest-500">No orders yet.</p>
-                ) : (
-                  <div className="mt-4 space-y-2">
-                    {orders.slice(0, 5).map((order) => (
-                      <div key={order.id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#e4d9c1] bg-white/70 px-4 py-3">
-                        <div>
-                          <p className="font-display text-base text-forest-900">{order.orderRef}</p>
-                          <p className="text-xs text-forest-500">{new Date(order.createdAt).toLocaleDateString(undefined, {dateStyle: "medium"})}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm text-forest-700">{formatCurrency(order.totalIdr, currency)}</span>
-                          <span className="rounded-full border border-[#e4d9c1] bg-[#eee4cd] px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-forest-700">
-                            {orderStatusLabels[order.status] ?? order.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           ) : null}
 
