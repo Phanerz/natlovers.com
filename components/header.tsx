@@ -249,6 +249,10 @@ export function Header() {
 
     const target = document.querySelector(`[data-nav-href="${href}"]`);
     if (!target) {
+      // No such section on this page — the Custom Studio is a standalone
+      // route rather than a homepage section, so route to it instead of
+      // leaving the click dead.
+      router.push(href);
       return;
     }
 

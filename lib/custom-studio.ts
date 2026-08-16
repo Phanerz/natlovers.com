@@ -136,7 +136,10 @@ export type Personalisation = z.infer<typeof personalisationSchema>;
 
 export const emptyPersonalisation: Personalisation = {kind: "none"};
 
-export function describePersonalisation(personalisation: Personalisation): string {
+export function describePersonalisation(personalisation: Personalisation | undefined): string {
+  if (!personalisation) {
+    return "None";
+  }
   if (personalisation.kind === "text") {
     return `Stitched text: "${personalisation.text}"`;
   }
@@ -155,13 +158,18 @@ const handleEnum = z.enum(["Handbag", "Shoulder Bag", "Sling Bag", "Clutch"]);
 const sizeEnum = z.enum(["Small", "Medium", "Large"]);
 const colourEnum = z.enum(["Agel", "Water Hyacinth", "Gajih", "Woven Fabric", "Patchwork"]);
 
+// handle and personalisation are no longer offered in the studio (the form
+// was cut down to what a customer can meaningfully decide from a photograph
+// alone). They stay in the schema as optional rather than being deleted,
+// because requests submitted before the cut still carry them and the studio
+// must keep rendering what those customers actually asked for.
 export const bagConfigSchema = z.object({
   productType: z.literal("Bags"),
   shape: shapeEnum,
   colour: colourEnum,
-  handle: handleEnum,
+  handle: handleEnum.optional(),
   size: sizeEnum,
-  personalisation: personalisationSchema
+  personalisation: personalisationSchema.optional()
 });
 
 // Deliberately minimal: a doll is sculpted from a photograph, so granular
@@ -173,7 +181,7 @@ export const dollConfigSchema = z.object({
   subject: z.enum(["person", "pet"]),
   size: sizeEnum,
   clothingPreference: z.string().trim().max(200).default(""),
-  personalisation: personalisationSchema
+  personalisation: personalisationSchema.optional()
 });
 
 export const apparelConfigSchema = z.object({
@@ -182,7 +190,7 @@ export const apparelConfigSchema = z.object({
   size: z.enum(["XS", "S", "M", "L", "XL"]),
   colour: colourEnum,
   placement: z.enum(["Chest", "Back", "Sleeve", "Hem"]),
-  personalisation: personalisationSchema
+  personalisation: personalisationSchema.optional()
 });
 
 export const customConfigSchema = z.discriminatedUnion("productType", [
@@ -212,8 +220,7 @@ export function defaultConfigFor(productType: CustomProductType): CustomConfig {
       productType: "Dolls",
       subject: "person",
       size: "Medium",
-      clothingPreference: "",
-      personalisation: emptyPersonalisation
+      clothingPreference: ""
     };
   }
   if (productType === "Apparels") {
@@ -222,17 +229,14 @@ export function defaultConfigFor(productType: CustomProductType): CustomConfig {
       garment: "Tote Apron",
       size: "M",
       colour: "Agel",
-      placement: "Chest",
-      personalisation: emptyPersonalisation
+      placement: "Chest"
     };
   }
   return {
     productType: "Bags",
     shape: "Rectangle",
     colour: "Agel",
-    handle: "Handbag",
-    size: "Medium",
-    personalisation: emptyPersonalisation
+    size: "Medium"
   };
 }
 
@@ -240,13 +244,19 @@ export function defaultConfigFor(productType: CustomProductType): CustomConfig {
 // panel, the admin detail view, and the notification email — one function so
 // all three describe a request identically.
 export function summariseConfig(config: CustomConfig): Array<{label: string; value: string}> {
+  // Handle and Personal touch appear only when the stored configuration
+  // actually carries them. New requests never do (both were retired from the
+  // form), but requests submitted earlier still must show what was asked for.
+  const retired = (config: CustomConfig) =>
+    config.personalisation ? [{label: "Personal touch", value: describePersonalisation(config.personalisation)}] : [];
+
   if (config.productType === "Bags") {
     return [
       {label: "Shape", value: config.shape},
       {label: "Base colour", value: colourLabel(config.colour)},
-      {label: "Handle", value: config.handle},
+      ...(config.handle ? [{label: "Handle", value: config.handle}] : []),
       {label: "Size", value: config.size},
-      {label: "Personal touch", value: describePersonalisation(config.personalisation)}
+      ...retired(config)
     ];
   }
   if (config.productType === "Dolls") {
@@ -254,7 +264,7 @@ export function summariseConfig(config: CustomConfig): Array<{label: string; val
       {label: "Subject", value: dollSubjectLabels[config.subject]},
       {label: "Approximate size", value: config.size},
       {label: "Clothing preference", value: config.clothingPreference?.trim() || "No preference given"},
-      {label: "Personal touch", value: describePersonalisation(config.personalisation)}
+      ...retired(config)
     ];
   }
   return [
@@ -262,7 +272,7 @@ export function summariseConfig(config: CustomConfig): Array<{label: string; val
     {label: "Size", value: config.size},
     {label: "Base colour", value: colourLabel(config.colour)},
     {label: "Placement", value: config.placement},
-    {label: "Personal touch", value: describePersonalisation(config.personalisation)}
+    ...retired(config)
   ];
 }
 

@@ -139,7 +139,11 @@ export function calculateEstimate(config: CustomConfig, basis: PricingBasis): Es
       detail: colourLabel(config.colour),
       amountIdr: modifier(pricingModifiers.colour, config.colour)
     });
-    lines.push({label: "Handle", detail: config.handle, amountIdr: modifier(pricingModifiers.handle, config.handle)});
+    // Only priced when the stored configuration actually carries a handle —
+    // the studio stopped asking for one, but older requests still have it.
+    if (config.handle) {
+      lines.push({label: "Handle", detail: config.handle, amountIdr: modifier(pricingModifiers.handle, config.handle)});
+    }
     lines.push({label: "Size", detail: config.size, amountIdr: modifier(pricingModifiers.size, config.size)});
   } else if (config.productType === "Dolls") {
     lines.push({
@@ -168,7 +172,7 @@ export function calculateEstimate(config: CustomConfig, basis: PricingBasis): Es
   }
 
   const personalisation = config.personalisation;
-  if (personalisation.kind !== "none") {
+  if (personalisation && personalisation.kind !== "none") {
     lines.push({
       label: "Personal touch",
       detail: describePersonalisation(personalisation),

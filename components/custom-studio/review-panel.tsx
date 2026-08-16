@@ -100,9 +100,13 @@ export function EstimatePanel({
     return (
       <div className={compact ? "" : "rounded-2xl border border-[#e4dcc9] bg-[#faf6ec] px-3.5 py-3"}>
         <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-forest-500">Estimated total</p>
-        <p className="mt-1 font-display text-lg text-forest-900">Quoted after studio review</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-forest-500">
-          We don&apos;t have comparable catalogue pricing for this type yet, so the studio will quote your piece directly.
+        <p className={`mt-0.5 font-display text-forest-900 ${compact ? "text-base leading-none" : "text-lg"}`}>
+          Quoted after studio review
+        </p>
+        <p className="mt-1 text-[10px] leading-relaxed text-forest-500">
+          {compact
+            ? "No comparable catalogue pricing for this type yet."
+            : "We don’t have comparable catalogue pricing for this type yet, so the studio will quote your piece directly."}
         </p>
       </div>
     );
@@ -111,18 +115,21 @@ export function EstimatePanel({
   return (
     <div className={compact ? "" : "rounded-2xl border border-[#e4dcc9] bg-[#faf6ec] px-3.5 py-3"}>
       <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-forest-500">Estimated total</p>
-      <p className="mt-1 font-display text-2xl leading-none text-forest-900">
+      <p className={`mt-0.5 font-display leading-none text-forest-900 ${compact ? "text-xl" : "text-2xl"}`}>
         {formatCurrency(estimate.totalIdr, currency)}
       </p>
       {modifiersAreUnconfigured(estimate) ? (
         // Said plainly rather than letting a customer infer that every
         // option happens to be free of charge.
-        <p className="mt-1.5 text-[11px] leading-relaxed text-forest-500">
-          Based on comparable pieces in our catalogue. Option surcharges aren&apos;t reflected yet — the studio confirms
-          the real figure.
+        <p className="mt-1 text-[10px] leading-relaxed text-forest-500">
+          {compact
+            ? "Estimate only — option surcharges aren’t set yet."
+            : "Based on comparable pieces in our catalogue. Option surcharges aren’t reflected yet — the studio confirms the real figure."}
         </p>
       ) : (
-        <p className="mt-1.5 text-[11px] leading-relaxed text-forest-500">{ESTIMATE_DISCLAIMER}</p>
+        <p className="mt-1 text-[10px] leading-relaxed text-forest-500">
+          {compact ? "Estimate only — the studio confirms the final price." : ESTIMATE_DISCLAIMER}
+        </p>
       )}
     </div>
   );

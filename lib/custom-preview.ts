@@ -55,8 +55,10 @@ function scoreBag(product: PreviewProduct, config: Extract<CustomConfig, {produc
   if (product.shape === config.shape) matched.push("shape");
   else unmatched.push("shape");
 
-  if (product.handleType === config.handle) matched.push("handle");
-  else unmatched.push("handle");
+  if (config.handle) {
+    if (product.handleType === config.handle) matched.push("handle");
+    else unmatched.push("handle");
+  }
 
   if (product.materials.includes(config.colour)) matched.push("base colour");
   else unmatched.push("base colour");
@@ -69,7 +71,7 @@ function scoreBag(product: PreviewProduct, config: Extract<CustomConfig, {produc
   // fibre is a far more useful reference than the reverse.
   const score =
     (product.shape === config.shape ? 8 : 0) +
-    (product.handleType === config.handle ? 6 : 0) +
+    (config.handle && product.handleType === config.handle ? 6 : 0) +
     (product.materials.includes(config.colour) ? 3 : 0) +
     (product.size === config.size ? 1 : 0);
 
@@ -144,17 +146,3 @@ function formatList(items: string[]): string {
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
-// Which handle options the catalogue can actually show for a given shape.
-// A handle is offered only if the workshop has genuinely made that
-// shape/handle combination — the incompatibility is read out of real
-// product data rather than asserted in code, so it stays true as the
-// catalogue changes instead of encoding today's inventory as a rule.
-export function availableHandlesForShape(shape: string, catalogue: PreviewCatalogue): Set<string> {
-  const handles = new Set<string>();
-  for (const product of catalogue.Bags) {
-    if (product.shape === shape && product.handleType) {
-      handles.add(product.handleType);
-    }
-  }
-  return handles;
-}

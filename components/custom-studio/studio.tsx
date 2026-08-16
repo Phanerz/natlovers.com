@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {ArrowRight, Check, Heart, Leaf, Lock, RotateCcw} from "lucide-react";
+import {ArrowRight, Check, Leaf, RotateCcw} from "lucide-react";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {ConfigPanel} from "@/components/custom-studio/config-panel";
 import {PreviewPanel} from "@/components/custom-studio/preview-panel";
@@ -30,12 +30,41 @@ type LocalDraft = {productType: CustomProductType; config: CustomConfig; notes: 
 
 type StepKey = "design" | "inspiration" | "details" | "review";
 
-const steps: {key: StepKey; label: string; hint: string}[] = [
-  {key: "design", label: "Design", hint: "Make it yours"},
-  {key: "inspiration", label: "Inspiration", hint: "Add your ideas"},
-  {key: "details", label: "Details", hint: "Tell us more"},
-  {key: "review", label: "Review", hint: "Submit request"}
+// The studio's one and only numbering. Every panel on the page carries the
+// number it has here, so the progress rail at the top and the workspace
+// below always agree — previously the rail counted 1-4 while the left column
+// counted its own fields 1-5, which read as two sequences fighting.
+const steps: {key: StepKey; n: number; label: string; hint: string}[] = [
+  {key: "design", n: 1, label: "Design", hint: "Make it yours"},
+  {key: "inspiration", n: 2, label: "Inspiration", hint: "Add your ideas"},
+  {key: "details", n: 3, label: "Details", hint: "Tell us more"},
+  {key: "review", n: 4, label: "Review", hint: "Submit request"}
 ];
+
+function StepBadge({n, done, size = "sm"}: {n: number; done: boolean; size?: "sm" | "xs"}) {
+  const box = size === "xs" ? "h-5 w-5 text-[10px]" : "h-6 w-6 text-[11px]";
+  return (
+    <span
+      className={`flex ${box} shrink-0 items-center justify-center rounded-full font-semibold transition-colors duration-300 ${
+        done ? "bg-forest-900 text-sand-50" : "border border-[#ddd5c4] bg-[#faf6ec] text-forest-500"
+      }`}
+    >
+      {done ? <Check className="h-3 w-3" /> : n}
+    </span>
+  );
+}
+
+function StepHeader({n, label, hint, done}: {n: number; label: string; hint: string; done: boolean}) {
+  return (
+    <div className="mb-3 flex items-center gap-2">
+      <StepBadge n={n} done={done} size="xs" />
+      <p className="text-[11.5px] font-semibold leading-none text-forest-900">
+        {label}
+        <span className="ml-1.5 font-normal text-forest-400">{hint}</span>
+      </p>
+    </div>
+  );
+}
 
 export function CustomStudio({
   basis,
@@ -61,9 +90,9 @@ export function CustomStudio({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState<CustomRequestView | null>(null);
 
-  // "Touched" is what the progress indicator reads, so a step lights up
-  // because the customer actually did something — not because a default
-  // value happens to be present.
+  // "Touched" is what the progress rail reads, so a step lights up because
+  // the customer actually did something — not because a default value
+  // happens to be present.
   const [designTouched, setDesignTouched] = useState(Boolean(initialDraft));
   const [notesTouched, setNotesTouched] = useState(Boolean(initialDraft?.notes));
 
@@ -173,18 +202,17 @@ export function CustomStudio({
   // Progress
   // ---------------------------------------------------------------------
 
-  const completion: Record<StepKey, boolean> = {
-    design: designTouched,
-    inspiration: images.length > 0,
-    details: notesTouched && notes.trim().length > 0,
-    review: false
-  };
-
   // The studio needs something expressed in the customer's own terms before
   // a request is worth a maker's time — a configuration alone says what
   // shape it is, not what it is for.
   const canSubmit = designTouched && (images.length > 0 || notes.trim().length > 0);
-  completion.review = canSubmit;
+
+  const completion: Record<StepKey, boolean> = {
+    design: designTouched,
+    inspiration: images.length > 0,
+    details: notesTouched && notes.trim().length > 0,
+    review: canSubmit
+  };
 
   function scrollTo(key: StepKey) {
     const target =
@@ -280,60 +308,69 @@ export function CustomStudio({
   }
 
   return (
-    <div className="shell space-y-6 py-10">
-      {/* Header */}
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-        <div className="lg:max-w-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-forest-500">Custom Studio</p>
-          <h1 className="mt-2.5 font-display text-4xl leading-[1.1] text-forest-900 sm:text-5xl">
-            Create your
-            <br />
-            one-of-a-kind {noun}
-            <Leaf className="ml-2 inline-block h-6 w-6 text-forest-500" />
-          </h1>
-          <p className="mt-3 text-sm leading-relaxed text-forest-600">
-            Design something personal.
-            <br />
-            We&apos;ll handcraft it with care.
-          </p>
+    <div className="shell space-y-3 py-5">
+      {/* Header: title, type tabs, and the progress rail all on one row so
+          the workspace below starts as high up the page as possible. */}
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-forest-500">Custom Studio</p>
+            <h1 className="mt-0.5 font-display text-2xl leading-tight text-forest-900 sm:text-[1.75rem]">
+              Create your one-of-a-kind {noun}
+              <Leaf className="ml-1.5 inline-block h-4 w-4 text-forest-500" />
+            </h1>
+          </div>
+
+          <div className="flex gap-1.5">
+            {customProductTypes.map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => selectType(type)}
+                aria-pressed={config.productType === type}
+                className={`rounded-full border px-4 py-1.5 text-[11.5px] font-medium transition-all duration-200 ${
+                  config.productType === type
+                    ? "border-forest-900 bg-forest-900 text-sand-50"
+                    : "border-[#ddd5c4] bg-[#fffdf9] text-forest-700 hover:border-forest-400"
+                }`}
+              >
+                {customTypeTabLabel[type]}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="flex flex-1 items-start gap-6 lg:justify-end">
-          <ol className="hidden flex-1 items-center justify-between gap-2 lg:flex">
-            {steps.map((step, index) => {
-              const done = completion[step.key];
-              return (
-                <li key={step.key} className="flex flex-1 items-center gap-2 last:flex-none">
-                  <button
-                    type="button"
-                    onClick={() => (step.key === "review" ? setReviewOpen(canSubmit) : scrollTo(step.key))}
-                    disabled={step.key === "review" && !canSubmit}
-                    className="flex items-center gap-2.5 text-left disabled:cursor-not-allowed"
-                  >
+        <div className="flex items-center gap-4">
+          <ol className="hidden items-center gap-2 lg:flex">
+            {steps.map((step, index) => (
+              <li key={step.key} className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => (step.key === "review" ? setReviewOpen(canSubmit) : scrollTo(step.key))}
+                  disabled={step.key === "review" && !canSubmit}
+                  className="flex items-center gap-2 text-left disabled:cursor-not-allowed"
+                >
+                  <StepBadge n={step.n} done={completion[step.key]} />
+                  <span className="hidden xl:block">
                     <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold transition-colors duration-300 ${
-                        done
-                          ? "bg-forest-900 text-sand-50"
-                          : "border border-[#ddd5c4] bg-[#faf6ec] text-forest-500"
+                      className={`block text-[11.5px] font-semibold leading-none ${
+                        completion[step.key] ? "text-forest-900" : "text-forest-600"
                       }`}
                     >
-                      {done ? <Check className="h-3.5 w-3.5" /> : index + 1}
+                      {step.label}
                     </span>
-                    <span className="hidden xl:block">
-                      <span className={`block text-[12px] font-semibold ${done ? "text-forest-900" : "text-forest-600"}`}>
-                        {step.label}
-                      </span>
-                      <span className="block text-[10px] text-forest-400">{step.hint}</span>
-                    </span>
-                  </button>
-                  {index < steps.length - 1 ? (
-                    <span
-                      className={`h-px flex-1 transition-colors duration-500 ${done ? "bg-forest-400" : "bg-[#ddd5c4]"}`}
-                    />
-                  ) : null}
-                </li>
-              );
-            })}
+                    <span className="mt-0.5 block text-[10px] leading-none text-forest-400">{step.hint}</span>
+                  </span>
+                </button>
+                {index < steps.length - 1 ? (
+                  <span
+                    className={`h-px w-6 transition-colors duration-500 xl:w-10 ${
+                      completion[step.key] ? "bg-forest-400" : "bg-[#ddd5c4]"
+                    }`}
+                  />
+                ) : null}
+              </li>
+            ))}
           </ol>
 
           <HowItWorks />
@@ -341,7 +378,7 @@ export function CustomStudio({
       </div>
 
       {restoredNotice ? (
-        <p className="flex items-center gap-2 rounded-2xl border border-[#e4dcc9] bg-[#faf6ec] px-4 py-2.5 text-[12px] text-forest-600">
+        <p className="flex items-center gap-2 rounded-xl border border-[#e4dcc9] bg-[#faf6ec] px-3 py-1.5 text-[11.5px] text-forest-600">
           <RotateCcw className="h-3.5 w-3.5 text-forest-500" />
           Your draft was restored.
           <button type="button" onClick={() => void startOver()} className="ml-1 underline underline-offset-2">
@@ -350,38 +387,37 @@ export function CustomStudio({
         </p>
       ) : null}
 
-      {/* Product type tabs */}
-      <div className="flex flex-wrap gap-2">
-        {customProductTypes.map((type) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => selectType(type)}
-            aria-pressed={config.productType === type}
-            className={`rounded-full border px-5 py-2 text-[12px] font-medium transition-all duration-200 ${
-              config.productType === type
-                ? "border-forest-900 bg-forest-900 text-sand-50"
-                : "border-[#ddd5c4] bg-[#fffdf9] text-forest-700 hover:border-forest-400"
-            }`}
-          >
-            {customTypeTabLabel[type]}
-          </button>
-        ))}
-      </div>
-
-      {/* Three-column workspace */}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,25fr)_minmax(0,45fr)_minmax(0,30fr)]">
-        <div ref={designRef} className="rounded-[1.6rem] border border-[#e0d8c7] bg-[#fdfaf3] p-5">
-          <ConfigPanel config={config} onChange={updateConfig} catalogue={catalogue} />
+      {/* Three-column workspace. Each column is headed by the step number it
+          corresponds to on the rail above. */}
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,24fr)_minmax(0,46fr)_minmax(0,30fr)]">
+        <div ref={designRef} className="rounded-2xl border border-[#e0d8c7] bg-[#fdfaf3] p-4">
+          <StepHeader n={1} label="Design" hint="Make it yours" done={completion.design} />
+          <ConfigPanel config={config} onChange={updateConfig} />
         </div>
 
-        <div className="min-h-[26rem] rounded-[1.6rem] border border-[#e0d8c7] bg-[#fdfaf3] p-4 lg:min-h-[34rem]">
+        <div className="min-h-[22rem] rounded-2xl border border-[#e0d8c7] bg-[#fdfaf3] p-3 lg:min-h-[27rem]">
           <PreviewPanel config={config} catalogue={catalogue} />
         </div>
 
-        <div ref={inspirationRef} className="rounded-[1.6rem] border border-[#e0d8c7] bg-[#fdfaf3] p-5">
-          <div ref={detailsRef}>
+        <div className="flex flex-col gap-3">
+          <div ref={inspirationRef} className="rounded-2xl border border-[#e0d8c7] bg-[#fdfaf3] p-4">
+            <StepHeader n={2} label="Inspiration" hint="Add your ideas" done={completion.inspiration} />
             <InspirationPanel
+              section="inspiration"
+              images={images}
+              onImagesChange={setImages}
+              notes={notes}
+              onNotesChange={updateNotes}
+              requestId={requestId}
+              signedIn={signedIn}
+              onNeedsDraft={saveDraft}
+            />
+          </div>
+
+          <div ref={detailsRef} className="rounded-2xl border border-[#e0d8c7] bg-[#fdfaf3] p-4">
+            <StepHeader n={3} label="Details" hint="Tell us more" done={completion.details} />
+            <InspirationPanel
+              section="details"
               images={images}
               onImagesChange={setImages}
               notes={notes}
@@ -394,23 +430,20 @@ export function CustomStudio({
         </div>
       </div>
 
-      {/* Footer bar */}
-      <div className="flex flex-col gap-5 rounded-[1.6rem] border border-[#e0d8c7] bg-[#fdfaf3] px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="grid flex-1 gap-5 sm:grid-cols-3">
-          <Tip icon={Heart} title="Tip: Simple is beautiful." body="Clear photos and simple details give the best result." />
-          <Tip icon={Leaf} title="Every piece is handmade" body="with care and attention." />
-          <Tip icon={Lock} title="Secure & private" body="Your ideas are safe with us." />
+      {/* Step 4 sits in the footer bar, where the action actually is. */}
+      <div className="flex flex-col gap-3 rounded-2xl border border-[#e0d8c7] bg-[#fdfaf3] px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <StepBadge n={4} done={completion.review} />
+          <EstimatePanel estimate={estimate} currency={currency} compact />
         </div>
 
-        <div className="flex shrink-0 flex-col items-stretch gap-2.5 lg:w-72">
-          <EstimatePanel estimate={estimate} currency={currency} />
-
+        <div className="flex flex-col items-stretch gap-1 sm:items-end">
           {signedIn ? (
             <button
               type="button"
               onClick={() => setReviewOpen(true)}
               disabled={!canSubmit}
-              className="button-lift flex items-center justify-center gap-2 rounded-full bg-forest-900 px-6 py-3.5 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-45"
+              className="button-lift flex items-center justify-center gap-2 rounded-full bg-forest-900 px-6 py-3 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-45"
             >
               Review &amp; submit request
               <ArrowRight className="h-4 w-4" />
@@ -418,7 +451,7 @@ export function CustomStudio({
           ) : (
             <Link
               href="/login"
-              className="button-lift flex items-center justify-center gap-2 rounded-full bg-forest-900 px-6 py-3.5 text-sm font-semibold text-sand-50"
+              className="button-lift flex items-center justify-center gap-2 rounded-full bg-forest-900 px-6 py-3 text-sm font-semibold text-sand-50"
             >
               Sign in to send your request
               <ArrowRight className="h-4 w-4" />
@@ -426,7 +459,7 @@ export function CustomStudio({
           )}
 
           {signedIn && !canSubmit ? (
-            <p className="text-center text-[11px] leading-relaxed text-forest-500">
+            <p className="text-center text-[10.5px] leading-relaxed text-forest-500 sm:text-right">
               Add a photo or a note so the studio knows what you&apos;re picturing.
             </p>
           ) : null}
@@ -448,26 +481,6 @@ export function CustomStudio({
           onSubmit={() => void submit()}
         />
       ) : null}
-    </div>
-  );
-}
-
-function Tip({
-  icon: Icon,
-  title,
-  body
-}: {
-  icon: typeof Heart;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="flex items-start gap-2.5">
-      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-forest-500" />
-      <div>
-        <p className="text-[12px] font-semibold text-forest-900">{title}</p>
-        <p className="text-[11px] leading-relaxed text-forest-600">{body}</p>
-      </div>
     </div>
   );
 }
