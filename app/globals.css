@@ -1038,12 +1038,17 @@ button {
 }
 
 .aoh-squircle {
-  border-radius: 26px;
+  border-radius: 32px;
   corner-shape: squircle;
 }
 
 .aoh-squircle-sm {
-  border-radius: 16px;
+  border-radius: 20px;
+  corner-shape: squircle;
+}
+
+.aoh-squircle-xs {
+  border-radius: 14px;
   corner-shape: squircle;
 }
 
@@ -1053,7 +1058,6 @@ button {
 
 .aoh-glass {
   isolation: isolate;
-  border-radius: inherit;
   background: linear-gradient(150deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03) 55%, rgba(255, 255, 255, 0.07));
   backdrop-filter: blur(28px) saturate(1.7);
   -webkit-backdrop-filter: blur(28px) saturate(1.7);

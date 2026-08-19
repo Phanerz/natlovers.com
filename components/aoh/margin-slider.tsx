@@ -1,8 +1,7 @@
 "use client";
 
-import {useEffect} from "react";
+import {useEffect, useState} from "react";
 import {motion, useReducedMotion, useSpring, useTransform} from "framer-motion";
-import {AnimatedNumber} from "@/components/aoh/animated-number";
 import {fmtKoma} from "@/lib/aoh-pricing";
 
 export function MarginSlider({
@@ -22,6 +21,9 @@ export function MarginSlider({
   const spring = useSpring(value, {stiffness: 260, damping: 28, mass: 0.8});
   const fillWidth = useTransform(spring, (v) => `${((v - min) / (max - min)) * 100}%`);
 
+  const [editValue, setEditValue] = useState(fmtKoma(value, 2));
+  const [focused, setFocused] = useState(false);
+
   useEffect(() => {
     if (reduceMotion) {
       spring.jump(value);
@@ -30,14 +32,54 @@ export function MarginSlider({
     }
   }, [value, min, max, reduceMotion, spring]);
 
+  // While the field isn't focused, its text tracks the animated spring value
+  // (so dragging the slider still tweens the number); while focused, typing
+  // takes over and the spring stops overwriting what's being typed.
+  useEffect(() => {
+    if (focused) return;
+    setEditValue(fmtKoma(spring.get(), 2));
+    const unsubscribe = spring.on("change", (latest) => setEditValue(fmtKoma(latest, 2)));
+    return unsubscribe;
+  }, [spring, focused]);
+
+  function commitEditValue() {
+    const parsed = parseFloat(editValue.replace(",", "."));
+    if (Number.isFinite(parsed)) {
+      const clamped = Math.min(max, Math.max(min, parsed));
+      onChange(Math.round(clamped * 100) / 100);
+    } else {
+      setEditValue(fmtKoma(value, 2));
+    }
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between">
         <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">Margin</span>
-        <span className="aoh-font-display text-[26px] font-semibold text-[#f3d9a8]">
-          <AnimatedNumber value={value} format={(v) => fmtKoma(v, 2)} />
-          &times;
-        </span>
+        <label className="flex items-baseline gap-1">
+          <input
+            type="text"
+            inputMode="decimal"
+            value={editValue}
+            onFocus={(event) => {
+              setFocused(true);
+              event.currentTarget.select();
+            }}
+            onChange={(event) => setEditValue(event.target.value)}
+            onBlur={() => {
+              commitEditValue();
+              setFocused(false);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.currentTarget.blur();
+              }
+            }}
+            aria-label="Margin penjualan (angka)"
+            className="aoh-font-display w-[3.2em] bg-transparent text-right text-[23px] font-semibold text-[#f3d9a8] outline-none focus:text-[#f6dfae]"
+          />
+          <span className="aoh-font-display text-[23px] font-semibold text-[#f3d9a8]">&times;</span>
+        </label>
       </div>
 
       <div className="relative flex items-center">

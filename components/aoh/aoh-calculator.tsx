@@ -208,8 +208,8 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
             <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[#e0b477]">
               Alfa Omega Hardware
             </p>
-            <h1 className="aoh-font-display mt-1 text-[28px] font-semibold leading-tight text-[var(--aoh-ink)]">
-              Kalkulator Harga Klise
+            <h1 className="aoh-font-display mt-1 text-[24px] font-semibold leading-tight text-[var(--aoh-ink)]">
+              Kalkulator Harga
             </h1>
           </div>
           <motion.button
@@ -285,7 +285,7 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
                 placeholder="Lebar"
                 value={width}
                 onChange={(event) => setWidth(event.target.value)}
-                className="aoh-squircle-sm min-h-[52px] border border-white/10 bg-white/5 px-4 text-[16px] text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/60"
+                className="aoh-squircle-sm min-w-0 min-h-[52px] w-full border border-white/10 bg-white/5 px-4 text-[16px] text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/60"
               />
               <span className="text-white/35">&times;</span>
               <input
@@ -294,7 +294,7 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
                 placeholder="Tinggi"
                 value={height}
                 onChange={(event) => setHeight(event.target.value)}
-                className="aoh-squircle-sm min-h-[52px] border border-white/10 bg-white/5 px-4 text-[16px] text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/60"
+                className="aoh-squircle-sm min-w-0 min-h-[52px] w-full border border-white/10 bg-white/5 px-4 text-[16px] text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/60"
               />
             </div>
           </div>
@@ -328,13 +328,13 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
           <OutputRow label="Modal" value={modal} format={fmtRp} />
           <div className="flex items-baseline justify-between bg-[#d9a75c]/12 px-5 py-4">
             <span className="font-mono text-[12px] uppercase tracking-[0.1em] text-[#f3d9a8]">Harga jual</span>
-            <span className="aoh-font-display text-[28px] font-bold text-[#f3d9a8]">
+            <span className="aoh-font-display text-[25px] font-bold text-[#f3d9a8]">
               <AnimatedNumber value={hargaJual} format={fmtRp} />
             </span>
           </div>
           <div className="flex items-baseline justify-between px-5 py-3.5">
             <span className="font-mono text-[12px] text-white/60">Profit</span>
-            <span className="aoh-font-display text-[17px] font-semibold text-[#9bd08f]">
+            <span className="aoh-font-display text-[15px] font-semibold text-[#9bd08f]">
               <AnimatedNumber value={profit} format={fmtRp} />
             </span>
           </div>
@@ -361,14 +361,14 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
               setQuoteDirty(true);
             }}
             rows={11}
-            className="aoh-squircle-sm min-h-[240px] w-full resize-y border border-dashed border-white/15 bg-black/20 px-4 py-3.5 font-mono text-[14px] leading-6 text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/50"
+            className="aoh-squircle-sm min-h-[240px] w-full resize-y border border-dashed border-white/15 bg-black/20 px-4 py-3.5 font-mono text-[13px] leading-6 text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/50"
           />
           <motion.button
             type="button"
             onClick={handleCopy}
             whileTap={tapAnim}
             transition={spring}
-            className={`aoh-squircle-pill flex min-h-[48px] items-center justify-center gap-2 px-5 font-mono text-[14px] font-semibold uppercase tracking-wide transition-colors ${
+            className={`aoh-squircle-pill flex min-h-[48px] items-center justify-center gap-2 px-5 font-mono text-[13px] font-semibold uppercase tracking-wide transition-colors ${
               copied ? "bg-[#9bd08f] text-[#132015]" : "bg-[#d9a75c] text-[#241a0d]"
             }`}
           >
@@ -388,8 +388,8 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
 function OutputRow({label, value, format}: {label: string; value: number; format: (n: number) => string}) {
   return (
     <div className="flex items-baseline justify-between border-b border-white/5 px-5 py-3.5 last:border-b-0">
-      <span className="font-mono text-[13px] text-white/60">{label}</span>
-      <span className="aoh-font-display text-[16px] font-medium text-[var(--aoh-ink)]">
+      <span className="font-mono text-[12px] text-white/60">{label}</span>
+      <span className="aoh-font-display text-[14px] font-medium text-[var(--aoh-ink)]">
         <AnimatedNumber value={value} format={format} />
       </span>
     </div>

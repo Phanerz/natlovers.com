@@ -92,7 +92,7 @@ export function SettingsPanel({
                                   onChange={(event) =>
                                     onRateChange(group.id, tebal, jenis, parseFloat(event.target.value) || 0)
                                   }
-                                  className="aoh-squircle-sm w-24 border border-white/10 bg-white/5 px-2 py-1.5 font-mono text-[14px] text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/60"
+                                  className="aoh-squircle-xs w-24 border border-white/10 bg-white/5 px-2 py-1.5 font-mono text-[14px] text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/60"
                                 />
                               </td>
                             );

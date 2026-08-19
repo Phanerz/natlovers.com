@@ -2,7 +2,7 @@
 
 import {useRef, useState} from "react";
 import {AnimatePresence, motion, useReducedMotion} from "framer-motion";
-import {ChevronDown} from "lucide-react";
+import {Check, ChevronDown} from "lucide-react";
 import {useClickOutside} from "@/components/use-click-outside";
 
 export type GlassSelectOption = {
@@ -43,13 +43,15 @@ export function GlassSelect({
           onClick={() => setOpen((prev) => !prev)}
           whileTap={reduceMotion || disabled ? undefined : {scale: 0.97}}
           transition={spring}
-          className="aoh-squircle aoh-glass relative flex min-h-[52px] w-full items-center justify-between gap-3 px-4 py-3 text-left text-[16px] text-[var(--aoh-ink)] disabled:opacity-40"
+          className={`aoh-squircle aoh-glass relative flex min-h-[52px] w-full items-center justify-between gap-3 border px-4 py-3 text-left text-[15px] text-[var(--aoh-ink)] transition-colors disabled:opacity-40 ${
+            open ? "border-[#d9a75c]/45" : "border-transparent"
+          }`}
         >
           <span className="truncate">{current ? current.label : "Pilih"}</span>
           <motion.span
             animate={{rotate: open ? 180 : 0}}
             transition={spring}
-            className="shrink-0 text-white/60"
+            className={`shrink-0 ${open ? "text-[#e0b477]" : "text-white/55"}`}
           >
             <ChevronDown size={18} />
           </motion.span>
@@ -58,14 +60,14 @@ export function GlassSelect({
         <AnimatePresence>
           {open ? (
             <motion.div
-              initial={reduceMotion ? {opacity: 0} : {opacity: 0, scale: 0.94, y: -6}}
+              initial={reduceMotion ? {opacity: 0} : {opacity: 0, scale: 0.95, y: -6}}
               animate={reduceMotion ? {opacity: 1} : {opacity: 1, scale: 1, y: 0}}
               exit={reduceMotion ? {opacity: 0} : {opacity: 0, scale: 0.96, y: -4}}
               transition={reduceMotion ? {duration: 0.12} : spring}
-              className="aoh-squircle-sm aoh-glass aoh-panel-solid absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-72 origin-top overflow-y-auto p-1.5"
+              className="aoh-squircle-sm aoh-glass aoh-panel-solid absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-72 origin-top overflow-y-auto p-2"
               style={{transformOrigin: "top center"}}
             >
-              {options.map((option) => {
+              {options.map((option, index) => {
                 const active = option.value === value;
                 return (
                   <button
@@ -75,11 +77,20 @@ export function GlassSelect({
                       onChange(option.value);
                       setOpen(false);
                     }}
-                    className={`flex w-full min-h-[44px] items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-left text-[14px] transition-colors ${
-                      active ? "bg-white/16 text-[var(--aoh-ink)]" : "text-white/85 active:bg-white/10"
-                    }`}
+                    className={`aoh-squircle-xs flex w-full min-h-[46px] items-center justify-between gap-3 px-3.5 py-2.5 text-left text-[14px] transition-colors ${
+                      index > 0 ? "mt-1" : ""
+                    } ${active ? "bg-[#d9a75c]/16 text-[var(--aoh-ink)]" : "text-white/85 active:bg-white/8"}`}
                   >
-                    <span>{option.label}</span>
+                    <span className="flex items-center gap-2 truncate">
+                      <span
+                        className={`flex h-4 w-4 shrink-0 items-center justify-center text-[#e0b477] transition-opacity ${
+                          active ? "opacity-100" : "opacity-0"
+                        }`}
+                      >
+                        <Check size={14} strokeWidth={2.5} />
+                      </span>
+                      <span className="truncate">{option.label}</span>
+                    </span>
                     {option.hint ? (
                       <span className="shrink-0 font-mono text-[11px] text-[#e0b477]">{option.hint}</span>
                     ) : null}
