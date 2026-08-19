@@ -120,6 +120,13 @@
       "when": 1786773627710,
       "tag": "0016_chemical_lady_mastermind",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1787131624626,
+      "tag": "0017_absent_talon",
+      "breakpoints": true
     }
   ]
 }

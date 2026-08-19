@@ -14,8 +14,10 @@ import {
   JENIS_ORDER,
   fmtRp,
   fmtAngka,
+  fetchRemoteConfig,
   loadPriceData,
   loadSettings,
+  pushRemoteConfig,
   savePriceData,
   saveSettings,
   type AohSettings,
@@ -23,7 +25,7 @@ import {
   type Jenis
 } from "@/lib/aoh-pricing";
 
-export function AohCalculator() {
+export function AohCalculator({fontClassName}: {fontClassName?: string}) {
   const reduceMotion = useReducedMotion();
   const spring = {type: "spring" as const, stiffness: 380, damping: 30};
 
@@ -45,25 +47,46 @@ export function AohCalculator() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const savedData = loadPriceData();
-    const savedSettings = loadSettings();
-    setPriceData(savedData);
-    setSettings(savedSettings);
-    setOngkir(String(savedSettings.ongkirDefault));
-    setMargin(savedSettings.marginDefault);
-    setHydrated(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+
+    // Local cache first so the calculator is usable instantly (and offline);
+    // the server copy — whichever device touched it last — then overrides
+    // it once the fetch resolves, since that's the source of truth across
+    // devices.
+    const localData = loadPriceData();
+    const localSettings = loadSettings();
+    setPriceData(localData);
+    setSettings(localSettings);
+    setOngkir(String(localSettings.ongkirDefault));
+    setMargin(localSettings.marginDefault);
+
+    fetchRemoteConfig().then((remote) => {
+      if (cancelled) return;
+      const data = remote.priceData ?? localData;
+      const cfg = remote.settings ?? localSettings;
+      setPriceData(data);
+      setSettings(cfg);
+      setOngkir(String(cfg.ongkirDefault));
+      setMargin(cfg.marginDefault);
+      setHydrated(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
     savePriceData(priceData);
-  }, [priceData, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
     saveSettings(settings);
-  }, [settings, hydrated]);
+
+    const timeout = setTimeout(() => {
+      pushRemoteConfig(priceData, settings);
+    }, 800);
+
+    return () => clearTimeout(timeout);
+  }, [priceData, settings, hydrated]);
 
   const currentGroup = useMemo(
     () => priceData.find((group) => group.id === groupId) ?? priceData[0],
@@ -168,7 +191,7 @@ export function AohCalculator() {
   const tapAnim = reduceMotion ? undefined : {scale: 0.94};
 
   return (
-    <main className="aoh-page relative min-h-[100dvh] text-[var(--aoh-ink)]">
+    <main className={`aoh-page relative min-h-[100dvh] text-[var(--aoh-ink)] ${fontClassName ?? ""}`}>
       <BackgroundMesh />
 
       <div
@@ -182,10 +205,10 @@ export function AohCalculator() {
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[#d9a75c]">
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[#e0b477]">
               Alfa Omega Hardware
             </p>
-            <h1 className="mt-1 text-2xl font-semibold leading-tight text-[var(--aoh-ink)]">
+            <h1 className="aoh-font-display mt-1 text-[28px] font-semibold leading-tight text-[var(--aoh-ink)]">
               Kalkulator Harga Klise
             </h1>
           </div>
@@ -195,7 +218,7 @@ export function AohCalculator() {
             whileTap={tapAnim}
             transition={spring}
             aria-label="Pengaturan harga"
-            className={`aoh-squircle-sm flex h-11 w-11 shrink-0 items-center justify-center border border-white/10 ${
+            className={`aoh-squircle-sm flex h-11 w-11 shrink-0 items-center justify-center border border-white/15 ${
               settingsOpen ? "bg-white/15" : "bg-white/5"
             }`}
           >
@@ -212,8 +235,8 @@ export function AohCalculator() {
           onReset={handleResetPricing}
         />
 
-        <section className="aoh-squircle aoh-glass flex flex-col gap-4 p-5">
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">Spesifikasi klise</p>
+        <section className="aoh-squircle aoh-glass relative flex flex-col gap-4 p-5">
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/65">Spesifikasi klise</p>
           <div className="grid grid-cols-2 gap-3">
             <GlassSelect
               label="Kedalaman"
@@ -243,16 +266,16 @@ export function AohCalculator() {
             }))}
           />
           {availableJenis.length === 0 ? (
-            <p className="font-mono text-[11px] text-[#d19169]">
+            <p className="font-mono text-[11px] text-[#e29b7c]">
               Tidak tersedia untuk kombinasi kedalaman dan tebal ini.
             </p>
           ) : null}
         </section>
 
-        <section className="aoh-squircle aoh-glass flex flex-col gap-4 p-5">
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">Ukuran &amp; ongkos</p>
+        <section className="aoh-squircle aoh-glass relative flex flex-col gap-4 p-5">
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/65">Ukuran &amp; ongkos</p>
           <div>
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/50">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">
               Ukuran matras (cm)
             </span>
             <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2.5">
@@ -262,32 +285,32 @@ export function AohCalculator() {
                 placeholder="Lebar"
                 value={width}
                 onChange={(event) => setWidth(event.target.value)}
-                className="aoh-squircle-sm min-h-[52px] border border-white/10 bg-white/5 px-4 text-[15px] text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/60"
+                className="aoh-squircle-sm min-h-[52px] border border-white/10 bg-white/5 px-4 text-[16px] text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/60"
               />
-              <span className="text-white/30">&times;</span>
+              <span className="text-white/35">&times;</span>
               <input
                 type="text"
                 inputMode="decimal"
                 placeholder="Tinggi"
                 value={height}
                 onChange={(event) => setHeight(event.target.value)}
-                className="aoh-squircle-sm min-h-[52px] border border-white/10 bg-white/5 px-4 text-[15px] text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/60"
+                className="aoh-squircle-sm min-h-[52px] border border-white/10 bg-white/5 px-4 text-[16px] text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/60"
               />
             </div>
           </div>
           <label className="flex flex-col gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/50">Ongkir (Rp)</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">Ongkir (Rp)</span>
             <input
               type="text"
               inputMode="numeric"
               value={ongkir}
               onChange={(event) => setOngkir(event.target.value.replace(/[^0-9]/g, ""))}
-              className="aoh-squircle-sm min-h-[52px] border border-white/10 bg-white/5 px-4 text-[15px] text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/60"
+              className="aoh-squircle-sm min-h-[52px] border border-white/10 bg-white/5 px-4 text-[16px] text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/60"
             />
           </label>
         </section>
 
-        <section className="aoh-squircle aoh-glass aoh-glass-tint p-5">
+        <section className="aoh-squircle aoh-glass aoh-glass-tint relative p-5">
           <MarginSlider
             value={margin}
             min={settings.marginMin}
@@ -297,34 +320,34 @@ export function AohCalculator() {
           />
         </section>
 
-        <section className="aoh-squircle aoh-glass overflow-hidden p-0">
+        <section className="aoh-squircle aoh-glass relative overflow-hidden p-0">
           <OutputRow label="Rate / cm2" value={rate} format={fmtRp} />
           <OutputRow label="Luas matras" value={luas} format={(n) => `${fmtAngka(n)} cm2`} />
           <OutputRow label="Biaya produksi" value={biayaProduksi} format={fmtRp} />
           <OutputRow label="Ongkir" value={ongkirValue} format={fmtRp} />
           <OutputRow label="Modal" value={modal} format={fmtRp} />
-          <div className="flex items-baseline justify-between bg-[#d9a75c]/10 px-5 py-4">
-            <span className="font-mono text-[12px] uppercase tracking-[0.1em] text-[#f0d29c]">Harga jual</span>
-            <span className="font-mono text-2xl font-bold text-[#f0d29c]">
+          <div className="flex items-baseline justify-between bg-[#d9a75c]/12 px-5 py-4">
+            <span className="font-mono text-[12px] uppercase tracking-[0.1em] text-[#f3d9a8]">Harga jual</span>
+            <span className="aoh-font-display text-[28px] font-bold text-[#f3d9a8]">
               <AnimatedNumber value={hargaJual} format={fmtRp} />
             </span>
           </div>
           <div className="flex items-baseline justify-between px-5 py-3.5">
-            <span className="font-mono text-[12px] text-white/50">Profit</span>
-            <span className="font-mono text-[15px] text-[#8fbf85]">
+            <span className="font-mono text-[12px] text-white/60">Profit</span>
+            <span className="aoh-font-display text-[17px] font-semibold text-[#9bd08f]">
               <AnimatedNumber value={profit} format={fmtRp} />
             </span>
           </div>
         </section>
 
-        <section className="aoh-squircle aoh-glass flex flex-col gap-3 p-5">
+        <section className="aoh-squircle aoh-glass relative flex flex-col gap-3 p-5">
           <div className="flex items-center justify-between">
-            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/50">Teks penawaran</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/65">Teks penawaran</p>
             {quoteDirty ? (
               <button
                 type="button"
                 onClick={handleResetQuote}
-                className="flex items-center gap-1 font-mono text-[11px] text-[#d9a75c] active:opacity-70"
+                className="flex items-center gap-1 font-mono text-[11px] text-[#e0b477] active:opacity-70"
               >
                 <RotateCcw size={12} />
                 Reset ke teks otomatis
@@ -338,15 +361,15 @@ export function AohCalculator() {
               setQuoteDirty(true);
             }}
             rows={11}
-            className="aoh-squircle-sm min-h-[240px] w-full resize-y border border-dashed border-white/15 bg-black/20 px-4 py-3.5 font-mono text-[13px] leading-6 text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/50"
+            className="aoh-squircle-sm min-h-[240px] w-full resize-y border border-dashed border-white/15 bg-black/20 px-4 py-3.5 font-mono text-[14px] leading-6 text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/50"
           />
           <motion.button
             type="button"
             onClick={handleCopy}
             whileTap={tapAnim}
             transition={spring}
-            className={`aoh-squircle-pill flex min-h-[48px] items-center justify-center gap-2 px-5 font-mono text-[13px] font-semibold uppercase tracking-wide transition-colors ${
-              copied ? "bg-[#8fbf85] text-[#132015]" : "bg-[#d9a75c] text-[#241a0d]"
+            className={`aoh-squircle-pill flex min-h-[48px] items-center justify-center gap-2 px-5 font-mono text-[14px] font-semibold uppercase tracking-wide transition-colors ${
+              copied ? "bg-[#9bd08f] text-[#132015]" : "bg-[#d9a75c] text-[#241a0d]"
             }`}
           >
             {copied ? <Check size={16} /> : <Copy size={16} />}
@@ -354,7 +377,7 @@ export function AohCalculator() {
           </motion.button>
         </section>
 
-        <p className="pb-2 text-center font-mono text-[10px] tracking-[0.08em] text-white/25">
+        <p className="pb-2 text-center font-mono text-[10px] tracking-[0.08em] text-white/35">
           Alat internal Alfa Omega Hardware &middot; klise kuningan
         </p>
       </div>
@@ -365,8 +388,8 @@ export function AohCalculator() {
 function OutputRow({label, value, format}: {label: string; value: number; format: (n: number) => string}) {
   return (
     <div className="flex items-baseline justify-between border-b border-white/5 px-5 py-3.5 last:border-b-0">
-      <span className="font-mono text-[12px] text-white/50">{label}</span>
-      <span className="font-mono text-[14px] text-[var(--aoh-ink)]">
+      <span className="font-mono text-[13px] text-white/60">{label}</span>
+      <span className="aoh-font-display text-[16px] font-medium text-[var(--aoh-ink)]">
         <AnimatedNumber value={value} format={format} />
       </span>
     </div>

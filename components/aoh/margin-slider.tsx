@@ -33,8 +33,8 @@ export function MarginSlider({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/50">Margin</span>
-        <span className="font-mono text-2xl font-semibold text-[#f0d29c]">
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">Margin</span>
+        <span className="aoh-font-display text-[26px] font-semibold text-[#f3d9a8]">
           <AnimatedNumber value={value} format={(v) => fmtKoma(v, 2)} />
           &times;
         </span>
@@ -63,7 +63,7 @@ export function MarginSlider({
         />
       </div>
 
-      <div className="flex justify-between font-mono text-[10px] text-white/40">
+      <div className="flex justify-between font-mono text-[10px] text-white/50">
         <span>{fmtKoma(min, 2)}&times;</span>
         <span>{fmtKoma(max, 2)}&times;</span>
       </div>

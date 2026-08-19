@@ -35,7 +35,7 @@ export function GlassSelect({
 
   return (
     <div className="flex flex-col gap-2" ref={wrapRef}>
-      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/50">{label}</span>
+      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">{label}</span>
       <div className="relative">
         <motion.button
           type="button"
@@ -43,7 +43,7 @@ export function GlassSelect({
           onClick={() => setOpen((prev) => !prev)}
           whileTap={reduceMotion || disabled ? undefined : {scale: 0.97}}
           transition={spring}
-          className="aoh-squircle aoh-glass flex min-h-[52px] w-full items-center justify-between gap-3 px-4 py-3 text-left text-[15px] text-[var(--aoh-ink)] disabled:opacity-40"
+          className="aoh-squircle aoh-glass relative flex min-h-[52px] w-full items-center justify-between gap-3 px-4 py-3 text-left text-[16px] text-[var(--aoh-ink)] disabled:opacity-40"
         >
           <span className="truncate">{current ? current.label : "Pilih"}</span>
           <motion.span
@@ -62,7 +62,7 @@ export function GlassSelect({
               animate={reduceMotion ? {opacity: 1} : {opacity: 1, scale: 1, y: 0}}
               exit={reduceMotion ? {opacity: 0} : {opacity: 0, scale: 0.96, y: -4}}
               transition={reduceMotion ? {duration: 0.12} : spring}
-              className="aoh-squircle-sm aoh-glass absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-72 origin-top overflow-y-auto p-1.5"
+              className="aoh-squircle-sm aoh-glass aoh-panel-solid absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-72 origin-top overflow-y-auto p-1.5"
               style={{transformOrigin: "top center"}}
             >
               {options.map((option) => {
@@ -76,12 +76,12 @@ export function GlassSelect({
                       setOpen(false);
                     }}
                     className={`flex w-full min-h-[44px] items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-left text-[14px] transition-colors ${
-                      active ? "bg-white/16 text-[var(--aoh-ink)]" : "text-white/75 active:bg-white/10"
+                      active ? "bg-white/16 text-[var(--aoh-ink)]" : "text-white/85 active:bg-white/10"
                     }`}
                   >
                     <span>{option.label}</span>
                     {option.hint ? (
-                      <span className="shrink-0 font-mono text-[11px] text-[#d9a75c]">{option.hint}</span>
+                      <span className="shrink-0 font-mono text-[11px] text-[#e0b477]">{option.hint}</span>
                     ) : null}
                   </button>
                 );

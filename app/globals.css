@@ -1013,6 +1013,7 @@ button {
 
 
 
+
 /* ======================================================================
  * /aoh — Alfa Omega Hardware pricing calculator. Fully scoped under
  * .aoh-page so none of this leaks into the rest of the site's forest/sand
@@ -1022,6 +1023,18 @@ button {
 .aoh-page {
   color-scheme: dark;
   --aoh-ink: #f4f1ea;
+  font-family: var(--aoh-font-mono), ui-monospace, "JetBrains Mono", monospace;
+}
+
+/* Compound selector beats Tailwind's own single-class .font-mono on
+   specificity, so the real loaded typeface wins without having to touch
+   every className in every component. */
+.aoh-page .font-mono {
+  font-family: var(--aoh-font-mono), ui-monospace, "JetBrains Mono", monospace;
+}
+
+.aoh-font-display {
+  font-family: var(--aoh-font-display), "Space Grotesk", sans-serif;
 }
 
 .aoh-squircle {
@@ -1039,7 +1052,6 @@ button {
 }
 
 .aoh-glass {
-  position: relative;
   isolation: isolate;
   border-radius: inherit;
   background: linear-gradient(150deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03) 55%, rgba(255, 255, 255, 0.07));
@@ -1077,12 +1089,19 @@ button {
   background: linear-gradient(150deg, rgba(217, 167, 92, 0.28), rgba(217, 167, 92, 0.06) 55%, rgba(255, 255, 255, 0.08));
 }
 
+/* Floating menus (the GlassSelect options panel) sit on top of whatever's
+   behind them — including other page content while open — so they get a
+   more opaque backing than the resting glass panels, for crisp text. */
+.aoh-panel-solid {
+  background: linear-gradient(165deg, rgba(30, 26, 37, 0.97), rgba(19, 17, 24, 0.94));
+}
+
 .aoh-mesh {
   position: fixed;
   inset: 0;
   z-index: 0;
   overflow: hidden;
-  background: #131210;
+  background: #100f16;
 }
 
 .aoh-blob {

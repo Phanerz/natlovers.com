@@ -231,6 +231,19 @@ export const orderItems = pgTable("order_items", {
   quantity: integer("quantity").notNull()
 }).enableRLS();
 
+// Single shared row (id "default") for the /aoh pricing calculator's rate
+// table and settings — there's no login for that tool, so this is the one
+// config every device reads and writes, last write wins. RLS enabled with
+// no policies: same default-deny-to-the-public-API treatment as every other
+// non-public table here, since this is internal shop pricing, not
+// storefront content.
+export const aohConfig = pgTable("aoh_config", {
+  id: text("id").primaryKey().default("default"),
+  priceData: jsonb("price_data").notNull(),
+  settings: jsonb("settings").notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}).enableRLS();
+
 export const accounts = pgTable(
   "account",
   {

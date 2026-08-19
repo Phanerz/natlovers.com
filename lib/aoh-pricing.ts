@@ -118,3 +118,33 @@ export function saveSettings(settings: AohSettings) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
 }
+
+// Shared server-side copy so rates/settings follow whoever touched them
+// last across every device, not just the browser that saved them —
+// localStorage above stays as the instant, offline-safe local cache.
+export async function fetchRemoteConfig(): Promise<{priceData: DepthGroup[] | null; settings: AohSettings | null}> {
+  try {
+    const response = await fetch("/api/aoh/settings", {cache: "no-store"});
+    if (!response.ok) return {priceData: null, settings: null};
+    const data = (await response.json()) as {priceData: DepthGroup[] | null; settings: Partial<AohSettings> | null};
+    return {
+      priceData: data.priceData ?? null,
+      settings: data.settings ? {...DEFAULT_SETTINGS, ...data.settings} : null
+    };
+  } catch {
+    return {priceData: null, settings: null};
+  }
+}
+
+export async function pushRemoteConfig(priceData: DepthGroup[], settings: AohSettings) {
+  try {
+    await fetch("/api/aoh/settings", {
+      method: "PUT",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({priceData, settings})
+    });
+  } catch {
+    // Offline or the request failed — localStorage already has the latest
+    // value on this device, and the next successful change will retry.
+  }
+}
