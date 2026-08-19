@@ -32,7 +32,7 @@ export function SettingsPanel({
           transition={reduceMotion ? {duration: 0.15} : {type: "spring", stiffness: 300, damping: 32}}
           className="overflow-hidden"
         >
-          <div className="aoh-squircle aoh-glass relative mt-4 flex flex-col gap-6 p-5">
+          <div className="aoh-squircle aoh-glass relative mt-4 flex flex-col gap-6 p-5 backdrop-blur-2xl backdrop-saturate-150">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm text-white/80">
                 Sesuaikan rate per cm&sup2;, ongkir default, dan teks penawaran. Tersimpan otomatis dan tersinkron ke

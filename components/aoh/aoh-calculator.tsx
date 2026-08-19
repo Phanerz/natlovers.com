@@ -235,7 +235,7 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
           onReset={handleResetPricing}
         />
 
-        <section className="aoh-squircle aoh-glass relative flex flex-col gap-4 p-5">
+        <section className="aoh-squircle aoh-glass relative z-20 flex flex-col gap-4 p-5 backdrop-blur-2xl backdrop-saturate-150">
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/65">Spesifikasi klise</p>
           <div className="grid grid-cols-2 gap-3">
             <GlassSelect
@@ -272,7 +272,7 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
           ) : null}
         </section>
 
-        <section className="aoh-squircle aoh-glass relative flex flex-col gap-4 p-5">
+        <section className="aoh-squircle aoh-glass relative flex flex-col gap-4 p-5 backdrop-blur-2xl backdrop-saturate-150">
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/65">Ukuran &amp; ongkos</p>
           <div>
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/65">
@@ -310,7 +310,7 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
           </label>
         </section>
 
-        <section className="aoh-squircle aoh-glass aoh-glass-tint relative p-5">
+        <section className="aoh-squircle aoh-glass aoh-glass-tint relative p-5 backdrop-blur-2xl backdrop-saturate-150">
           <MarginSlider
             value={margin}
             min={settings.marginMin}
@@ -320,7 +320,7 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
           />
         </section>
 
-        <section className="aoh-squircle aoh-glass relative overflow-hidden p-0">
+        <section className="aoh-squircle aoh-glass relative overflow-hidden p-0 backdrop-blur-2xl backdrop-saturate-150">
           <OutputRow label="Rate / cm2" value={rate} format={fmtRp} />
           <OutputRow label="Luas matras" value={luas} format={(n) => `${fmtAngka(n)} cm2`} />
           <OutputRow label="Biaya produksi" value={biayaProduksi} format={fmtRp} />
@@ -340,7 +340,7 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
           </div>
         </section>
 
-        <section className="aoh-squircle aoh-glass relative flex flex-col gap-3 p-5">
+        <section className="aoh-squircle aoh-glass relative flex flex-col gap-3 p-5 backdrop-blur-2xl backdrop-saturate-150">
           <div className="flex items-center justify-between">
             <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/65">Teks penawaran</p>
             {quoteDirty ? (

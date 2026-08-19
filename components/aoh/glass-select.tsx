@@ -43,7 +43,7 @@ export function GlassSelect({
           onClick={() => setOpen((prev) => !prev)}
           whileTap={reduceMotion || disabled ? undefined : {scale: 0.97}}
           transition={spring}
-          className={`aoh-squircle aoh-glass relative flex min-h-[52px] w-full items-center justify-between gap-3 border px-4 py-3 text-left text-[15px] text-[var(--aoh-ink)] transition-colors disabled:opacity-40 ${
+          className={`aoh-squircle aoh-glass relative flex min-h-[52px] w-full items-center justify-between gap-3 border px-4 py-3 text-left text-[15px] text-[var(--aoh-ink)] backdrop-blur-2xl backdrop-saturate-150 transition-colors disabled:opacity-40 ${
             open ? "border-[#d9a75c]/45" : "border-transparent"
           }`}
         >
@@ -64,7 +64,7 @@ export function GlassSelect({
               animate={reduceMotion ? {opacity: 1} : {opacity: 1, scale: 1, y: 0}}
               exit={reduceMotion ? {opacity: 0} : {opacity: 0, scale: 0.96, y: -4}}
               transition={reduceMotion ? {duration: 0.12} : spring}
-              className="aoh-squircle-sm aoh-glass aoh-panel-solid absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-72 origin-top overflow-y-auto p-2"
+              className="aoh-squircle-sm aoh-glass aoh-panel-solid absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-72 origin-top overflow-y-auto p-2 backdrop-blur-2xl backdrop-saturate-150"
               style={{transformOrigin: "top center"}}
             >
               {options.map((option, index) => {
