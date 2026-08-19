@@ -15,6 +15,7 @@ export function Footer() {
   if (
     pathname === "/catalogue" ||
     pathname === "/login" ||
+    pathname === "/aoh" ||
     pathname?.startsWith("/mimin") ||
     pathname?.startsWith("/account")
   ) {

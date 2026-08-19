@@ -477,6 +477,10 @@ export function Header() {
     setCheckoutState(null);
   }
 
+  if (pathname === "/aoh") {
+    return null;
+  }
+
   return (
     <>
       <header className="sticky top-0 z-40 min-h-[var(--header-height)] bg-forest-900/80 text-sand-50 shadow-[0_16px_48px_rgba(0,0,0,0.32)] backdrop-blur-xl">
