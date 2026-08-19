@@ -41,7 +41,7 @@ export function SettingsPanel({
               <button
                 type="button"
                 onClick={onReset}
-                className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/15 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-white/60 active:bg-white/10"
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/15 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-white/65 active:bg-white/10"
               >
                 <RotateCcw size={13} />
                 Reset
@@ -71,7 +71,9 @@ export function SettingsPanel({
                     <tbody>
                       {group.tebalOptions.map((tebal) => (
                         <tr key={tebal}>
-                          <td className="border-b border-white/5 py-2 pr-3 font-mono text-white/80">{tebal} mm</td>
+                          <td className="border-b border-white/5 py-2 pr-3 font-mono font-medium text-white/85">
+                            {tebal} mm
+                          </td>
                           {JENIS_ORDER.map((jenis) => {
                             const rate = group.rates[tebal]?.[jenis];
                             if (rate === undefined) {
@@ -107,7 +109,7 @@ export function SettingsPanel({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="flex flex-col gap-1.5">
-                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/60">
+                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/65">
                   Ongkir default (Rp)
                 </span>
                 <input
@@ -124,7 +126,7 @@ export function SettingsPanel({
               </label>
 
               <label className="flex flex-col gap-1.5">
-                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/60">
+                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/65">
                   Margin default (&times;)
                 </span>
                 <input
@@ -142,7 +144,7 @@ export function SettingsPanel({
               </label>
 
               <label className="flex flex-col gap-1.5 sm:col-span-2">
-                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/60">Nama toko</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/65">Nama toko</span>
                 <input
                   type="text"
                   value={settings.namaToko}
@@ -152,7 +154,7 @@ export function SettingsPanel({
               </label>
 
               <label className="flex flex-col gap-1.5 sm:col-span-2">
-                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/60">
+                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/65">
                   Judul penawaran
                 </span>
                 <input
@@ -164,7 +166,7 @@ export function SettingsPanel({
               </label>
 
               <label className="flex flex-col gap-1.5 sm:col-span-2">
-                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/60">
+                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/65">
                   Catatan penutup
                 </span>
                 <textarea

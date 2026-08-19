@@ -1037,19 +1037,21 @@ button {
   font-family: var(--aoh-font-display), "Space Grotesk", sans-serif;
 }
 
+/* Plain border-radius, deliberately not the experimental corner-shape
+   property — that rendered inconsistently across different element types
+   (overflow-hidden cards, plain panels, buttons), which read as "the
+   corners don't match" rather than a premium continuous curve. Standard
+   radius is the one thing guaranteed to look identical everywhere. */
 .aoh-squircle {
   border-radius: 32px;
-  corner-shape: squircle;
 }
 
 .aoh-squircle-sm {
   border-radius: 20px;
-  corner-shape: squircle;
 }
 
 .aoh-squircle-xs {
   border-radius: 14px;
-  corner-shape: squircle;
 }
 
 .aoh-squircle-pill {

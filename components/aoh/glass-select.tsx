@@ -47,7 +47,7 @@ export function GlassSelect({
             open ? "border-[#d9a75c]/45" : "border-transparent"
           }`}
         >
-          <span className="truncate">{current ? current.label : "Pilih"}</span>
+          <span className="truncate font-medium">{current ? current.label : "Pilih"}</span>
           <motion.span
             animate={{rotate: open ? 180 : 0}}
             transition={spring}
@@ -79,7 +79,11 @@ export function GlassSelect({
                     }}
                     className={`aoh-squircle-xs flex w-full min-h-[46px] items-center justify-between gap-3 px-3.5 py-2.5 text-left text-[14px] transition-colors ${
                       index > 0 ? "mt-1" : ""
-                    } ${active ? "bg-[#d9a75c]/16 text-[var(--aoh-ink)]" : "text-white/85 active:bg-white/8"}`}
+                    } ${
+                      active
+                        ? "bg-[#d9a75c]/16 font-medium text-[var(--aoh-ink)]"
+                        : "text-white/85 active:bg-white/8"
+                    }`}
                   >
                     <span className="flex items-center gap-2 truncate">
                       <span

@@ -275,7 +275,7 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
         <section className="aoh-squircle aoh-glass relative flex flex-col gap-4 p-5">
           <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-white/65">Ukuran &amp; ongkos</p>
           <div>
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/65">
               Ukuran matras (cm)
             </span>
             <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2.5">
@@ -287,7 +287,7 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
                 onChange={(event) => setWidth(event.target.value)}
                 className="aoh-squircle-sm min-w-0 min-h-[52px] w-full border border-white/10 bg-white/5 px-4 text-[16px] text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/60"
               />
-              <span className="text-white/35">&times;</span>
+              <span className="text-white/50">&times;</span>
               <input
                 type="text"
                 inputMode="decimal"
@@ -299,7 +299,7 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
             </div>
           </div>
           <label className="flex flex-col gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">Ongkir (Rp)</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/65">Ongkir (Rp)</span>
             <input
               type="text"
               inputMode="numeric"
@@ -333,7 +333,7 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
             </span>
           </div>
           <div className="flex items-baseline justify-between px-5 py-3.5">
-            <span className="font-mono text-[12px] text-white/60">Profit</span>
+            <span className="font-mono text-[12px] text-white/65">Profit</span>
             <span className="aoh-font-display text-[15px] font-semibold text-[#9bd08f]">
               <AnimatedNumber value={profit} format={fmtRp} />
             </span>
@@ -388,8 +388,8 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
 function OutputRow({label, value, format}: {label: string; value: number; format: (n: number) => string}) {
   return (
     <div className="flex items-baseline justify-between border-b border-white/5 px-5 py-3.5 last:border-b-0">
-      <span className="font-mono text-[12px] text-white/60">{label}</span>
-      <span className="aoh-font-display text-[14px] font-medium text-[var(--aoh-ink)]">
+      <span className="font-mono text-[12px] text-white/65">{label}</span>
+      <span className="aoh-font-display text-[14px] font-semibold text-[var(--aoh-ink)]">
         <AnimatedNumber value={value} format={format} />
       </span>
     </div>
