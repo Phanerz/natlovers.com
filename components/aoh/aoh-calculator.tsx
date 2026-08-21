@@ -128,9 +128,8 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
     const depthLabel = currentGroup.label.replace("Kedalaman ", "");
     return [
       settings.quoteJudul,
-      settings.namaToko,
       "",
-      `Spesifikasi   : Klise kuningan ${jenis || "-"}`,
+      `Jenis         : ${jenis || "-"}`,
       `Kedalaman     : ${depthLabel}`,
       `Tebal plat    : ${tebal} mm`,
       `Ukuran matras : ${width || "0"} x ${height || "0"} cm (luas ${fmtAngka(luas)} cm2)`,
@@ -138,7 +137,10 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
       "",
       `Total harga   : ${fmtRp(hargaJual)}`,
       "",
-      settings.quotePenutup
+      settings.quotePenutup,
+      "",
+      "Salam,",
+      settings.namaToko
     ].join("\n");
   }, [currentGroup, jenis, tebal, width, height, luas, ongkirValue, hargaJual, settings]);
 
@@ -179,6 +181,67 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
         };
       })
     );
+  }
+
+  function handleToggleRate(targetGroupId: string, targetTebal: number, targetJenis: Jenis, enable: boolean) {
+    setPriceData((prev) =>
+      prev.map((group) => {
+        if (group.id !== targetGroupId) return group;
+        const row = {...group.rates[targetTebal]};
+        if (enable) {
+          row[targetJenis] = 0;
+        } else {
+          delete row[targetJenis];
+        }
+        return {...group, rates: {...group.rates, [targetTebal]: row}};
+      })
+    );
+  }
+
+  function handleAddTebal(targetGroupId: string, tebalValue: number) {
+    setPriceData((prev) =>
+      prev.map((group) => {
+        if (group.id !== targetGroupId || group.tebalOptions.includes(tebalValue)) return group;
+        return {
+          ...group,
+          tebalOptions: [...group.tebalOptions, tebalValue].sort((a, b) => a - b),
+          rates: {...group.rates, [tebalValue]: {}}
+        };
+      })
+    );
+  }
+
+  function handleRemoveTebal(targetGroupId: string, tebalValue: number) {
+    setPriceData((prev) =>
+      prev.map((group) => {
+        if (group.id !== targetGroupId) return group;
+        const rest = {...group.rates};
+        delete rest[tebalValue];
+        return {...group, tebalOptions: group.tebalOptions.filter((t) => t !== tebalValue), rates: rest};
+      })
+    );
+  }
+
+  function handleAddGroup(label: string) {
+    const trimmed = label.trim();
+    if (!trimmed) return;
+    setPriceData((prev) => {
+      const slug = trimmed
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+      let id = slug || `kategori-${Date.now()}`;
+      let suffix = 2;
+      while (prev.some((group) => group.id === id)) {
+        id = `${slug || "kategori"}-${suffix}`;
+        suffix += 1;
+      }
+      return [...prev, {id, label: trimmed, tebalOptions: [], rates: {}}];
+    });
+  }
+
+  function handleRemoveGroup(targetGroupId: string) {
+    setPriceData((prev) => (prev.length > 1 ? prev.filter((group) => group.id !== targetGroupId) : prev));
   }
 
   function handleResetPricing() {
@@ -231,6 +294,11 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
           priceData={priceData}
           settings={settings}
           onRateChange={handleRateChange}
+          onToggleRate={handleToggleRate}
+          onAddTebal={handleAddTebal}
+          onRemoveTebal={handleRemoveTebal}
+          onAddGroup={handleAddGroup}
+          onRemoveGroup={handleRemoveGroup}
           onSettingsChange={setSettings}
           onReset={handleResetPricing}
         />

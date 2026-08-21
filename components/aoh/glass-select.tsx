@@ -60,12 +60,11 @@ export function GlassSelect({
         <AnimatePresence>
           {open ? (
             <motion.div
-              initial={reduceMotion ? {opacity: 0} : {opacity: 0, scale: 0.95, y: -6}}
-              animate={reduceMotion ? {opacity: 1} : {opacity: 1, scale: 1, y: 0}}
-              exit={reduceMotion ? {opacity: 0} : {opacity: 0, scale: 0.96, y: -4}}
+              initial={reduceMotion ? {opacity: 0} : {opacity: 0, y: -8}}
+              animate={reduceMotion ? {opacity: 1} : {opacity: 1, y: 0}}
+              exit={reduceMotion ? {opacity: 0} : {opacity: 0, y: -6}}
               transition={reduceMotion ? {duration: 0.12} : spring}
-              className="aoh-squircle-sm aoh-glass aoh-panel-solid absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-72 origin-top overflow-y-auto p-2 backdrop-blur-2xl backdrop-saturate-150"
-              style={{transformOrigin: "top center"}}
+              className="aoh-squircle-sm aoh-glass aoh-panel-solid absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-72 overflow-y-auto p-2 backdrop-blur-2xl backdrop-saturate-150"
             >
               {options.map((option, index) => {
                 const active = option.value === value;

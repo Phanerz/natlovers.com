@@ -60,9 +60,9 @@ export const DEFAULT_SETTINGS: AohSettings = {
   marginMin: 1.2,
   marginMax: 2.5,
   marginStep: 0.05,
-  quoteJudul: "PENAWARAN KLISE KUNINGAN",
+  quoteJudul: "Terima kasih sudah menghubungi Alfa Omega Hardware. Berikut penawaran untuk pesanan Anda:",
   quotePenutup:
-    "Harga sudah termasuk ongkos kirim, mengacu pada daftar harga terbaru dan dapat berubah sewaktu-waktu mengikuti fluktuasi harga bahan baku kuningan.",
+    "Setiap pesanan kami kerjakan dari kuningan pilihan dengan presisi terjaga, sehingga hasil emboss atau hot stamp rapi dan tahan lama dipakai berulang kali. Kalau spesifikasi di atas sudah sesuai, tinggal konfirmasi saja dan pesanan langsung kami proses.",
   namaToko: "Alfa Omega Hardware"
 };
 
