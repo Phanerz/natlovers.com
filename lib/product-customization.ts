@@ -1,10 +1,11 @@
-import type {ShopMaterial, ShopShape, ShopSize} from "@/app/catalogue/shop-data";
+import type {ShopHandle, ShopMaterial, ShopShape, ShopSize} from "@/app/catalogue/shop-data";
 import {
   type BagConfig,
   type CustomConfig,
   type CustomProductType,
   type DollConfig,
   customBagColours,
+  customBagHandles,
   customBagShapes,
   defaultConfigFor,
   isCustomProductType
@@ -24,6 +25,7 @@ import {
 export function defaultConfigForProduct(product: {
   productType: string;
   shape: ShopShape | null;
+  handle: ShopHandle | null;
   size: ShopSize | null;
   materials: ShopMaterial[];
 }): CustomConfig | null {
@@ -41,6 +43,12 @@ export function defaultConfigForProduct(product: {
       ...base,
       shape: product.shape && (customBagShapes as string[]).includes(product.shape) ? product.shape : base.shape,
       colour: knownColour ?? base.colour,
+      // Custom Studio's own form stopped asking for handle (see the comment
+      // on bagConfigSchema in lib/custom-studio.ts), but the field itself is
+      // still real and still priced/persisted end to end — the product page
+      // is what sets it, seeded from the actual product's handle type.
+      handle:
+        product.handle && (customBagHandles as string[]).includes(product.handle) ? product.handle : customBagHandles[0],
       size: product.size ?? base.size
     };
   }

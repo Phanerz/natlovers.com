@@ -9,10 +9,10 @@ import {useSitePreferences} from "@/components/site-preferences-provider";
 import {useStorefront} from "@/components/storefront-provider";
 import {useWishlist} from "@/components/use-wishlist";
 import {formatCurrency} from "@/lib/format";
-import {ConfigPanel} from "@/components/custom-studio/config-panel";
+import {ConfigPanel, FieldLabel, PillRow} from "@/components/custom-studio/config-panel";
 import {EstimatePanel} from "@/components/custom-studio/review-panel";
 import {calculateEstimate, emptyPricingBasis} from "@/lib/custom-pricing";
-import {LOCAL_CUSTOM_DRAFT_KEY, type CustomConfig, type LocalCustomDraft} from "@/lib/custom-studio";
+import {LOCAL_CUSTOM_DRAFT_KEY, customBagHandles, type CustomConfig, type LocalCustomDraft} from "@/lib/custom-studio";
 import {defaultConfigForProduct} from "@/lib/product-customization";
 import type {AdminProduct} from "@/lib/admin-products";
 
@@ -117,6 +117,22 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
             Make it yours
           </p>
           <ConfigPanel config={config} onChange={setConfig} />
+
+          {/* Custom Studio's own ConfigPanel stopped asking for a handle
+              (see the comment on bagConfigSchema in lib/custom-studio.ts),
+              but the field is still real — still priced, validated, and
+              carried through to the order — so the product page is where
+              it's set, seeded from this product's actual handle type. */}
+          {config.productType === "Bags" ? (
+            <div className="mt-4 space-y-1.5">
+              <FieldLabel hint={config.handle}>Handle</FieldLabel>
+              <PillRow
+                options={customBagHandles}
+                value={config.handle ?? customBagHandles[0]}
+                onSelect={(handle) => setConfig({...config, handle: handle as typeof config.handle})}
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
 

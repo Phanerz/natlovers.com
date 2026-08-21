@@ -21,7 +21,7 @@ import {
 // lives on the step headers; numbering the fields inside step 1 as well gave
 // the page two competing sequences that disagreed with each other.
 
-function FieldLabel({children, hint}: {children: React.ReactNode; hint?: string}) {
+export function FieldLabel({children, hint}: {children: React.ReactNode; hint?: string}) {
   return (
     <div className="flex items-baseline justify-between gap-2">
       <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-forest-500">{children}</p>
@@ -91,7 +91,7 @@ function ShapeGlyph({shape}: {shape: string}) {
   );
 }
 
-function PillRow({
+export function PillRow({
   options,
   value,
   onSelect
