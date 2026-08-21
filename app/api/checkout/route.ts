@@ -2,6 +2,7 @@ import {NextRequest, NextResponse} from "next/server";
 import {addressInputSchema} from "@/lib/addresses";
 import {createOrder} from "@/lib/orders";
 import {getSession} from "@/lib/auth";
+import {customConfigSchema} from "@/lib/custom-studio";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -13,10 +14,18 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const items = Array.isArray(body?.items)
     ? body.items
-        .map((item: {slug?: string; quantity?: number}) => ({
-          slug: String(item.slug ?? ""),
-          quantity: Number(item.quantity) || 0
-        }))
+        .map((item: {slug?: string; quantity?: number; config?: unknown}) => {
+          // Same rule as the cart route: a config is only ever carried
+          // through once it's confirmed to match a real Custom Studio
+          // shape, never trusted as opaque client JSON straight into an
+          // order record.
+          const configResult = item.config != null ? customConfigSchema.safeParse(item.config) : null;
+          return {
+            slug: String(item.slug ?? ""),
+            quantity: Number(item.quantity) || 0,
+            config: configResult?.success ? configResult.data : null
+          };
+        })
         .filter((item: {slug: string; quantity: number}) => item.slug && item.quantity > 0)
     : [];
 

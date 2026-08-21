@@ -30,6 +30,7 @@ export type AdminProduct = {
   isActive: boolean;
   stock: number | null;
   productCode: string | null;
+  dimensions: string | null;
   updatedAt: string;
 };
 
@@ -58,6 +59,9 @@ export type ProductFormState = {
   // Just the part after the fixed "NAT-" prefix — the prefix itself is
   // rendered read-only in the form and re-joined in buildFormData.
   productCodeSuffix: string;
+  // Free text, e.g. "Approx. 30 x 20 x 15 cm". Empty means "not measured
+  // yet" — kept as a plain string like stock/productCodeSuffix above.
+  dimensions: string;
 };
 
 export function emptyForm(): ProductFormState {
@@ -74,7 +78,8 @@ export function emptyForm(): ProductFormState {
     tags: "",
     images: [],
     stock: "",
-    productCodeSuffix: ""
+    productCodeSuffix: "",
+    dimensions: ""
   };
 }
 
@@ -92,7 +97,8 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     tags: product.tags.join(", "),
     images: [],
     stock: product.stock !== null ? String(product.stock) : "",
-    productCodeSuffix: product.productCode ? product.productCode.slice(PRODUCT_CODE_PREFIX.length) : ""
+    productCodeSuffix: product.productCode ? product.productCode.slice(PRODUCT_CODE_PREFIX.length) : "",
+    dimensions: product.dimensions ?? ""
   };
 }
 
@@ -129,6 +135,7 @@ export function buildFormData(form: ProductFormState) {
 
   formData.set("stock", form.stock.trim());
   formData.set("productCode", form.productCodeSuffix.trim() ? `${PRODUCT_CODE_PREFIX}${form.productCodeSuffix.trim()}` : "");
+  formData.set("dimensions", form.dimensions.trim());
 
   return formData;
 }

@@ -2,10 +2,17 @@ import {and, desc, eq, inArray, sql} from "drizzle-orm";
 import {AddressInput, createAddress, getDefaultAddress, updateAddress} from "@/lib/addresses";
 import {clearCart} from "@/lib/cart";
 import {db, orderItems, orders, products, users} from "@/lib/db";
+import type {CustomConfig} from "@/lib/custom-studio";
 
 export {orderStatusLabels} from "@/lib/order-status";
 
-export type OrderItemView = {slug: string; name: string; priceIdr: number; quantity: number};
+export type OrderItemView = {
+  slug: string;
+  name: string;
+  priceIdr: number;
+  quantity: number;
+  config: CustomConfig | null;
+};
 
 export type OrderView = {
   id: string;
@@ -32,7 +39,7 @@ function generateOrderRef(): string {
 // it's also saved to below (for next time's checkout to prefill from).
 export async function createOrder(
   userId: string,
-  requestedItems: {slug: string; quantity: number}[],
+  requestedItems: {slug: string; quantity: number; config?: CustomConfig | null}[],
   bank: {bankName: string; accountName: string; accountNumber: string},
   address: AddressInput
 ): Promise<OrderView> {
@@ -57,7 +64,8 @@ export async function createOrder(
         productSlug: product.slug,
         productName: product.name,
         priceIdr: product.priceIdr,
-        quantity: requested.quantity
+        quantity: requested.quantity,
+        config: requested.config ?? null
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
@@ -118,7 +126,8 @@ export async function createOrder(
       slug: item.productSlug,
       name: item.productName,
       priceIdr: item.priceIdr,
-      quantity: item.quantity
+      quantity: item.quantity,
+      config: item.config as CustomConfig | null
     }))
   };
 }
@@ -142,7 +151,13 @@ export async function getOrdersForUser(userId: string): Promise<OrderView[]> {
   const itemsByOrder = new Map<string, OrderItemView[]>();
   for (const row of itemRows) {
     const list = itemsByOrder.get(row.orderId) ?? [];
-    list.push({slug: row.productSlug, name: row.productName, priceIdr: row.priceIdr, quantity: row.quantity});
+    list.push({
+      slug: row.productSlug,
+      name: row.productName,
+      priceIdr: row.priceIdr,
+      quantity: row.quantity,
+      config: row.config as CustomConfig | null
+    });
     itemsByOrder.set(row.orderId, list);
   }
 
@@ -203,7 +218,13 @@ async function attachItemsForAdmin(
   const itemsByOrder = new Map<string, OrderItemView[]>();
   for (const row of itemRows) {
     const list = itemsByOrder.get(row.orderId) ?? [];
-    list.push({slug: row.productSlug, name: row.productName, priceIdr: row.priceIdr, quantity: row.quantity});
+    list.push({
+      slug: row.productSlug,
+      name: row.productName,
+      priceIdr: row.priceIdr,
+      quantity: row.quantity,
+      config: row.config as CustomConfig | null
+    });
     itemsByOrder.set(row.orderId, list);
   }
 

@@ -1,12 +1,13 @@
 "use client";
 
 import {useCallback, useEffect, useState} from "react";
-import {useRouter} from "next/navigation";
+import {usePathname, useRouter} from "next/navigation";
 import {useSession} from "next-auth/react";
 
 export function useWishlist() {
   const {status} = useSession();
   const router = useRouter();
+  const pathname = usePathname();
   const [slugs, setSlugs] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
 
@@ -40,7 +41,7 @@ export function useWishlist() {
   const toggle = useCallback(
     async (slug: string) => {
       if (status !== "authenticated") {
-        router.push("/login");
+        router.push(`/login?callbackUrl=${encodeURIComponent(pathname || "/")}`);
         return;
       }
 
@@ -77,7 +78,7 @@ export function useWishlist() {
         });
       }
     },
-    [slugs, status, router]
+    [slugs, status, router, pathname]
   );
 
   const isWishlisted = useCallback((slug: string) => slugs.has(slug), [slugs]);

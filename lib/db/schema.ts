@@ -37,6 +37,12 @@ export const products = pgTable(
     // Bags/Dolls-only.
     size: text("size"),
     materials: text("materials").array().notNull().default([]),
+    // Free text rather than separate height/width/depth columns, so it can
+    // honestly express handmade variance ("Approx. 30 x 20 x 15 cm") instead
+    // of implying a precision the product doesn't have. Optional — an admin
+    // fills it in when they have the real measurement; the product page
+    // falls back to showing the Small/Medium/Large size instead when null.
+    dimensions: text("dimensions"),
     // Bags-only.
     shape: text("shape"),
     handleType: text("handle_type"),
@@ -170,6 +176,14 @@ export const cartItems = pgTable(
       .references(() => users.id, {onDelete: "cascade"}),
     productSlug: text("product_slug").notNull(),
     quantity: integer("quantity").notNull().default(1),
+    // The customisation chosen when this line was added (a Custom Studio
+    // CustomConfig — see lib/custom-studio.ts), or null for a product added
+    // with no customisation, e.g. an Accessory. One line per product per
+    // user (same composite PK as before), so re-adding the same product with
+    // a different configuration replaces the stored config rather than
+    // creating a second line — the same "last write wins" behaviour the
+    // quantity field already has.
+    config: jsonb("config"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow()
   },
@@ -228,7 +242,11 @@ export const orderItems = pgTable("order_items", {
   productSlug: text("product_slug").notNull(),
   productName: text("product_name").notNull(),
   priceIdr: integer("price_idr").notNull(),
-  quantity: integer("quantity").notNull()
+  quantity: integer("quantity").notNull(),
+  // Snapshot of the cart line's config at checkout time, same snapshot
+  // philosophy as productName/priceIdr above — what was actually ordered
+  // must stay legible even if the cart line it came from is long gone.
+  config: jsonb("config")
 }).enableRLS();
 
 // Single shared row (id "default") for the /aoh pricing calculator's rate

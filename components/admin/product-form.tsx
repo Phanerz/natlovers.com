@@ -190,6 +190,16 @@ export function ProductForm({
             </div>
           </label>
 
+          <label className="space-y-2 text-sm text-forest-700">
+            <span className="muted">Dimensions (optional)</span>
+            <input
+              value={form.dimensions}
+              onChange={(event) => onChange({...form, dimensions: event.target.value})}
+              placeholder="e.g. Approx. 30 x 20 x 15 cm"
+              className={fieldClass}
+            />
+          </label>
+
           <label className="space-y-2 text-sm text-forest-700 sm:col-span-2">
             <span className="muted">Description</span>
             <textarea

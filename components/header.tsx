@@ -415,7 +415,7 @@ export function Header() {
   const cartProducts = cartItems
     .map((item) => {
       const product = resolveProduct(item.slug, locale);
-      return product ? {...product, quantity: item.quantity} : null;
+      return product ? {...product, quantity: item.quantity, config: item.config} : null;
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
@@ -425,7 +425,7 @@ export function Header() {
     checkoutDraft?.items
       .map((item) => {
         const product = resolveProduct(item.slug, locale);
-        return product ? {...product, quantity: item.quantity} : null;
+        return product ? {...product, quantity: item.quantity, config: item.config} : null;
       })
       .filter((item): item is NonNullable<typeof item> => item !== null) ?? [];
   const checkoutTotalIdr = checkoutProducts.reduce(
@@ -447,7 +447,7 @@ export function Header() {
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
           method: "bank_transfer",
-          items: checkoutProducts.map((item) => ({slug: item.slug, quantity: item.quantity})),
+          items: checkoutProducts.map((item) => ({slug: item.slug, quantity: item.quantity, config: item.config})),
           total: checkoutTotalIdr,
           address: addressForm
         })

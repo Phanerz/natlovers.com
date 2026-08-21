@@ -2,6 +2,7 @@
 
 import {useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
 import type {PointerEvent as ReactPointerEvent} from "react";
+import {useSearchParams} from "next/navigation";
 import {Baby, ChevronDown, Gem, PanelLeftClose, PanelLeftOpen, Shirt, ShoppingBag, SlidersHorizontal, X} from "lucide-react";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {useClickOutside} from "@/components/use-click-outside";
@@ -97,6 +98,7 @@ function isScrollLocked(target: EventTarget | null) {
 
 export function CatalogueContent() {
   const {currency, locale} = useSitePreferences();
+  const searchParams = useSearchParams();
 
   // The whole catalogue now lives in Postgres — this fetch is the single
   // source, so admin creates/edits/deactivations show up immediately
@@ -121,7 +123,17 @@ export function CatalogueContent() {
     };
   }, []);
 
-  const [selectedProductType, setSelectedProductType] = useState<ShopProductType>("Bags");
+  // Seeded from ?type=Bags (e.g. a category link from a product page's
+  // breadcrumb) when present and valid; falls back to the original default
+  // otherwise. Lazy initializer so this only ever runs once, on mount — the
+  // catalogue's own tab clicks still just call setSelectedProductType and
+  // never touch the URL.
+  const [selectedProductType, setSelectedProductType] = useState<ShopProductType>(() => {
+    const requested = searchParams.get("type");
+    return (shopProductTypes as readonly string[]).includes(requested ?? "")
+      ? (requested as ShopProductType)
+      : "Bags";
+  });
   const [selectedMaterials, setSelectedMaterials] = useState<ShopMaterial[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<ShopSize[]>([]);
   const [selectedShapes, setSelectedShapes] = useState<ShopShape[]>([]);

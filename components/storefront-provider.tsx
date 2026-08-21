@@ -1,15 +1,17 @@
 "use client";
 
 import {createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState} from "react";
-import {useRouter} from "next/navigation";
+import {usePathname, useRouter} from "next/navigation";
 import {useSession} from "next-auth/react";
 import type {ProductCard as ProductCardType} from "@/lib/data";
 import {Locale} from "@/lib/site";
 import type {AdminProduct} from "@/lib/admin-products";
+import type {CustomConfig} from "@/lib/custom-studio";
 
 type CartItem = {
   slug: string;
   quantity: number;
+  config: CustomConfig | null;
 };
 
 type CheckoutDraft = {
@@ -25,7 +27,7 @@ type StorefrontContextValue = {
   checkoutDraft: CheckoutDraft;
   getProducts: (locale?: Locale) => ProductCardType[];
   resolveProduct: (slug: string, locale?: Locale) => ProductCardType | undefined;
-  addToCart: (slug: string, quantity?: number) => void;
+  addToCart: (slug: string, quantity?: number, config?: CustomConfig | null) => void;
   removeFromCart: (slug: string) => void;
   updateQuantity: (slug: string, quantity: number) => void;
   clearCart: () => void;
@@ -61,6 +63,7 @@ function toProductCard(product: AdminProduct): ProductCardType {
 export function StorefrontProvider({children}: {children: ReactNode}) {
   const {status} = useSession();
   const router = useRouter();
+  const pathname = usePathname();
 
   const [products, setProducts] = useState<ProductCardType[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -107,11 +110,15 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
     };
   }, [status]);
 
-  const persistQuantity = useCallback((slug: string, quantity: number) => {
+  // config is omitted from the request entirely (not sent as null) unless
+  // the caller explicitly passes one — the API route treats "field absent"
+  // as "leave whatever's already stored," which is what a plain quantity
+  // bump from the cart drawer needs.
+  const persistQuantity = useCallback((slug: string, quantity: number, config?: CustomConfig | null) => {
     fetch("/api/cart", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({slug, quantity})
+      body: JSON.stringify(config !== undefined ? {slug, quantity, config} : {slug, quantity})
     }).catch(() => undefined);
   }, []);
 
@@ -123,22 +130,25 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
     return products.find((product) => product.slug === slug);
   }
 
-  function addToCart(slug: string, quantity = 1) {
+  function addToCart(slug: string, quantity = 1, config?: CustomConfig | null) {
     if (status !== "authenticated") {
-      router.push("/login");
+      router.push(`/login?callbackUrl=${encodeURIComponent(pathname || "/")}`);
       return;
     }
 
     const existing = cartItems.find((item) => item.slug === slug);
     const nextQuantity = (existing?.quantity ?? 0) + quantity;
+    // A config passed explicitly (adding from the product page) replaces
+    // whatever the line already had; re-adding with none leaves it as-is.
+    const nextConfig = config !== undefined ? config : (existing?.config ?? null);
 
     setCartItems((current) =>
       existing
-        ? current.map((item) => (item.slug === slug ? {...item, quantity: nextQuantity} : item))
-        : [...current, {slug, quantity: nextQuantity}]
+        ? current.map((item) => (item.slug === slug ? {...item, quantity: nextQuantity, config: nextConfig} : item))
+        : [...current, {slug, quantity: nextQuantity, config: nextConfig}]
     );
     setCabinetOpen(true);
-    persistQuantity(slug, nextQuantity);
+    persistQuantity(slug, nextQuantity, config !== undefined ? config : undefined);
   }
 
   function updateQuantity(slug: string, quantity: number) {
@@ -180,7 +190,7 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
   }
 
   function startBankTransferForProduct(slug: string) {
-    setCheckoutDraft({items: [{slug, quantity: 1}], direct: true});
+    setCheckoutDraft({items: [{slug, quantity: 1, config: null}], direct: true});
     setCabinetOpen(true);
   }
 

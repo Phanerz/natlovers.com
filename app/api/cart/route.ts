@@ -1,6 +1,7 @@
 import {NextRequest, NextResponse} from "next/server";
 import {getCartItems, setCartItemQuantity} from "@/lib/cart";
 import {getSession} from "@/lib/auth";
+import {customConfigSchema} from "@/lib/custom-studio";
 
 export async function GET() {
   const session = await getSession();
@@ -22,12 +23,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({error: "Unauthorized."}, {status: 401});
   }
 
-  const body = (await request.json()) as {slug?: string; quantity?: number};
+  const body = (await request.json()) as {slug?: string; quantity?: number; config?: unknown};
   if (!body.slug || typeof body.quantity !== "number") {
     return NextResponse.json({error: "Missing slug or quantity."}, {status: 400});
   }
 
-  await setCartItemQuantity(userId, body.slug, body.quantity);
+  // config is only ever validated, never trusted as-is — a malformed value
+  // here would otherwise sit silently in the cart line all the way through
+  // to an order.
+  let config: ReturnType<typeof customConfigSchema.parse> | null | undefined;
+  if (body.config === null) {
+    config = null;
+  } else if (body.config !== undefined) {
+    const parsed = customConfigSchema.safeParse(body.config);
+    if (!parsed.success) {
+      return NextResponse.json({error: "Invalid customisation."}, {status: 400});
+    }
+    config = parsed.data;
+  }
+
+  await setCartItemQuantity(userId, body.slug, body.quantity, config);
   const items = await getCartItems(userId);
   return NextResponse.json({items});
 }

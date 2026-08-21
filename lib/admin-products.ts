@@ -1,4 +1,4 @@
-import {desc, eq} from "drizzle-orm";
+import {and, desc, eq} from "drizzle-orm";
 import {z} from "zod";
 import {uploadFile} from "@/lib/blob";
 import {db, products} from "@/lib/db";
@@ -27,6 +27,7 @@ export type AdminProduct = ShopProduct & {
   isActive: boolean;
   stock: number | null;
   productCode: string | null;
+  dimensions: string | null;
   updatedAt: string;
 };
 
@@ -92,6 +93,15 @@ function parseStockField(formData: FormData): number | null {
   return value;
 }
 
+// Same "empty input clears to null" behavior as stock/productCode above.
+function parseDimensionsField(formData: FormData): string | null {
+  const raw = formData.get("dimensions");
+  if (raw === null || raw.toString().trim() === "") {
+    return null;
+  }
+  return raw.toString().trim();
+}
+
 function parseProductCodeField(formData: FormData): string | null {
   const raw = formData.get("productCode");
   if (raw === null || raw.toString().trim() === "") {
@@ -123,6 +133,7 @@ function toAdminProduct(row: typeof products.$inferSelect): AdminProduct {
     isActive: row.isActive,
     stock: row.stock,
     productCode: row.productCode,
+    dimensions: row.dimensions,
     updatedAt: row.updatedAt.toISOString()
   };
 }
@@ -204,6 +215,18 @@ export async function getAllProducts(): Promise<AdminProduct[]> {
   return rows.map(toAdminProduct);
 }
 
+// Public: the product detail page's single source of truth for one product.
+// Deliberately mirrors getAllProducts' isActive filter — a deactivated
+// product must stay invisible on its own detail page the same way it's
+// invisible in the catalogue grid, not just hidden from listings.
+export async function getProductBySlug(slug: string): Promise<AdminProduct | null> {
+  const [row] = await db
+    .select()
+    .from(products)
+    .where(and(eq(products.slug, slug), eq(products.isActive, true)));
+  return row ? toAdminProduct(row) : null;
+}
+
 // Admin-only: includes deactivated products so the Manage Products view can
 // still find and reactivate them, unlike the public catalogue feed above.
 export async function getAllProductsForAdmin(): Promise<AdminProduct[]> {
@@ -237,6 +260,7 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
   if (productCode) {
     await assertProductCodeAvailable(productCode);
   }
+  const dimensions = parseDimensionsField(formData);
 
   const slug = await uniqueSlug(slugify(parsed.name));
   const images = await uploadImages(slug, imageFiles);
@@ -257,7 +281,8 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       accessoryCategory: attributes.accessoryCategory,
       tags: parsed.tags ?? [],
       stock,
-      productCode
+      productCode,
+      dimensions
     })
     .returning();
 
@@ -289,6 +314,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
   if (productCode && productCode !== existing.productCode) {
     await assertProductCodeAvailable(productCode, slug);
   }
+  const dimensions = formData.has("dimensions") ? parseDimensionsField(formData) : existing.dimensions;
 
   // productType may not be changing on this edit — attribute validation
   // always runs against whichever type the product actually is (the
@@ -326,6 +352,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       ...(images ? {images} : {}),
       stock,
       productCode,
+      dimensions,
       updatedAt: new Date()
     })
     .where(eq(products.slug, slug))

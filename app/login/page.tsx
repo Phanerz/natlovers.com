@@ -1,7 +1,8 @@
 "use client";
 
-import {FormEvent, useState} from "react";
+import {FormEvent, Suspense, useState} from "react";
 import {signIn} from "next-auth/react";
+import {useSearchParams} from "next/navigation";
 import {AuthScreenBackdrop} from "@/components/auth-screen-backdrop";
 
 type Status = "idle" | "submitting" | "sent" | "error";
@@ -50,15 +51,23 @@ function Sprig() {
   );
 }
 
-export default function LoginPage() {
+function LoginForm() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
+
+  // Only ever a same-origin relative path — anything else falls back to
+  // "/", same as NextAuth's own default redirect guard would enforce
+  // server-side anyway, but this keeps a malformed query param from ever
+  // reaching signIn() at all.
+  const rawCallbackUrl = searchParams.get("callbackUrl");
+  const callbackUrl = rawCallbackUrl && rawCallbackUrl.startsWith("/") ? rawCallbackUrl : "/";
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setStatus("submitting");
 
-    const result = await signIn("email", {email, redirect: false, callbackUrl: "/"});
+    const result = await signIn("email", {email, redirect: false, callbackUrl});
 
     if (result?.error) {
       setStatus("error");
@@ -92,7 +101,7 @@ export default function LoginPage() {
             <div className="w-full space-y-5">
               <button
                 type="button"
-                onClick={() => signIn("google-customer", {callbackUrl: "/"})}
+                onClick={() => signIn("google-customer", {callbackUrl})}
                 className="glass-btn-secondary flex w-full items-center justify-center gap-3 rounded-full px-6 py-3.5 text-base font-semibold text-forest-900"
               >
                 <GoogleIcon />
@@ -131,5 +140,13 @@ export default function LoginPage() {
         </div>
       </AuthScreenBackdrop>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }
