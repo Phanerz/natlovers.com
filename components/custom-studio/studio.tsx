@@ -11,22 +11,16 @@ import {EstimatePanel, HowItWorks, ReviewPanel, SuccessState} from "@/components
 import {calculateEstimate, type PricingBasis} from "@/lib/custom-pricing";
 import {findPreviewMatch, type PreviewCatalogue} from "@/lib/custom-preview";
 import {
+  LOCAL_CUSTOM_DRAFT_KEY,
   customProductTypes,
   customTypeNoun,
   customTypeTabLabel,
   defaultConfigFor,
   type CustomConfig,
-  type CustomProductType
+  type CustomProductType,
+  type LocalCustomDraft
 } from "@/lib/custom-studio";
 import type {CustomRequestImageView, CustomRequestView} from "@/lib/custom-requests";
-
-// Local mirror of the server draft. Authenticated customers get their draft
-// back from the database; everyone else still gets their work back from
-// this, so someone who designed a bag before signing in doesn't lose it at
-// the sign-in redirect.
-const LOCAL_DRAFT_KEY = "natlovers-custom-draft";
-
-type LocalDraft = {productType: CustomProductType; config: CustomConfig; notes: string};
 
 type StepKey = "design" | "inspiration" | "details" | "review";
 
@@ -115,9 +109,9 @@ export function CustomStudio({
       return;
     }
     try {
-      const raw = window.localStorage.getItem(LOCAL_DRAFT_KEY);
+      const raw = window.localStorage.getItem(LOCAL_CUSTOM_DRAFT_KEY);
       if (!raw) return;
-      const parsed = JSON.parse(raw) as LocalDraft;
+      const parsed = JSON.parse(raw) as LocalCustomDraft;
       if (parsed?.config?.productType) {
         setConfig(parsed.config);
         setNotes(parsed.notes ?? "");
@@ -146,8 +140,8 @@ export function CustomStudio({
       return;
     }
     try {
-      const draft: LocalDraft = {productType: config.productType, config, notes};
-      window.localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify(draft));
+      const draft: LocalCustomDraft = {productType: config.productType, config, notes};
+      window.localStorage.setItem(LOCAL_CUSTOM_DRAFT_KEY, JSON.stringify(draft));
     } catch {
       // Private-browsing quota failures shouldn't break the studio.
     }
@@ -272,7 +266,7 @@ export function CustomStudio({
       }
 
       try {
-        window.localStorage.removeItem(LOCAL_DRAFT_KEY);
+        window.localStorage.removeItem(LOCAL_CUSTOM_DRAFT_KEY);
       } catch {
         // Nothing to do — the draft is cleared server-side regardless.
       }
@@ -294,7 +288,7 @@ export function CustomStudio({
     setNotesTouched(false);
     setRequestId(null);
     try {
-      window.localStorage.removeItem(LOCAL_DRAFT_KEY);
+      window.localStorage.removeItem(LOCAL_CUSTOM_DRAFT_KEY);
     } catch {
       // Ignored.
     }

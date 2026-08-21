@@ -363,3 +363,16 @@ export const openCustomRequestStatuses: CustomRequestStatus[] = [
 // ---------------------------------------------------------------------------
 
 export const DEFAULT_INTAKE_PAUSED_MESSAGE = "Custom Studio is temporarily paused, check back soon.";
+
+// ---------------------------------------------------------------------------
+// Local (pre-auth) draft
+// ---------------------------------------------------------------------------
+
+// The studio's own localStorage key for a draft that hasn't been saved
+// server-side yet — shared with anything that hands a configuration to the
+// studio before the customer is necessarily signed in (see the studio's own
+// restore effect, and the product page's "Customise This Bag" button), so
+// there is exactly one definition of what a local draft looks like.
+export const LOCAL_CUSTOM_DRAFT_KEY = "natlovers-custom-draft";
+
+export type LocalCustomDraft = {productType: CustomProductType; config: CustomConfig; notes: string};

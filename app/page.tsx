@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import {Suspense} from "react";
 import {AboutContent} from "@/components/about-content";
 import {CustomStudioSection} from "@/components/custom-studio/studio-section";
 import {Hero} from "@/components/hero";
@@ -18,7 +19,9 @@ export default function HomePage() {
       </ScrollSection>
 
       <ScrollSection navHref="/catalogue" className="snap-page">
-        <CatalogueContent />
+        <Suspense fallback={null}>
+          <CatalogueContent />
+        </Suspense>
       </ScrollSection>
 
       <ScrollSection navHref="/custom" className="snap-page">
