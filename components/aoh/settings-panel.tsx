@@ -94,86 +94,88 @@ export function SettingsPanel({
                   </button>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[420px] border-collapse text-sm">
-                    <thead>
-                      <tr>
-                        <th className="border-b border-white/10 py-2 pr-3 text-left font-mono text-[10px] uppercase tracking-wide text-white/55">
-                          Tebal
-                        </th>
-                        {JENIS_ORDER.map((jenis) => (
-                          <th
-                            key={jenis}
-                            className="border-b border-white/10 py-2 px-2 text-left font-mono text-[10px] uppercase tracking-wide text-white/55"
-                          >
-                            {jenis}
+                <div className="aoh-squircle-sm overflow-hidden border border-white/10">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[420px] border-collapse text-sm">
+                      <thead>
+                        <tr className="bg-white/[0.05]">
+                          <th className="border-b border-white/15 py-2.5 pl-3 pr-3 text-left font-mono text-[10px] uppercase tracking-wide text-white/60">
+                            Tebal
                           </th>
-                        ))}
-                        <th className="border-b border-white/10 py-2 pl-2" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {group.tebalOptions.map((tebal) => (
-                        <tr key={tebal}>
-                          <td className="border-b border-white/5 py-2 pr-3 font-mono font-medium text-white/85">
-                            {tebal} mm
-                          </td>
-                          {JENIS_ORDER.map((jenis) => {
-                            const rate = group.rates[tebal]?.[jenis];
-                            if (rate === undefined) {
+                          {JENIS_ORDER.map((jenis) => (
+                            <th
+                              key={jenis}
+                              className="border-b border-l border-white/10 py-2.5 px-3 text-left font-mono text-[10px] uppercase tracking-wide text-white/60"
+                            >
+                              {jenis}
+                            </th>
+                          ))}
+                          <th className="w-10 border-b border-l border-white/10 py-2.5 pl-2" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {group.tebalOptions.map((tebal, rowIndex) => (
+                          <tr key={tebal} className={rowIndex % 2 === 1 ? "bg-white/[0.025]" : ""}>
+                            <td className="border-b border-white/5 py-2 pl-3 pr-3 font-mono font-medium text-white/85">
+                              {tebal} mm
+                            </td>
+                            {JENIS_ORDER.map((jenis) => {
+                              const rate = group.rates[tebal]?.[jenis];
+                              if (rate === undefined) {
+                                return (
+                                  <td key={jenis} className="border-b border-l border-white/5 px-3 py-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => onToggleRate(group.id, tebal, jenis, true)}
+                                      aria-label={`Tambahkan ${jenis} untuk ${tebal}mm`}
+                                      className="aoh-squircle-xs flex h-9 w-9 items-center justify-center border border-dashed border-white/15 text-white/30 transition-colors active:border-[#d9a75c]/50 active:text-[#e0b477]"
+                                    >
+                                      <Plus size={13} />
+                                    </button>
+                                  </td>
+                                );
+                              }
                               return (
-                                <td key={jenis} className="border-b border-white/5 px-2 py-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => onToggleRate(group.id, tebal, jenis, true)}
-                                    aria-label={`Tambahkan ${jenis} untuk ${tebal}mm`}
-                                    className="aoh-squircle-xs flex h-9 w-9 items-center justify-center border border-dashed border-white/15 text-white/30 transition-colors active:border-[#d9a75c]/50 active:text-[#e0b477]"
-                                  >
-                                    <Plus size={13} />
-                                  </button>
+                                <td key={jenis} className="border-b border-l border-white/5 px-3 py-2">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="number"
+                                      inputMode="numeric"
+                                      min={0}
+                                      step={50}
+                                      value={rate}
+                                      onChange={(event) =>
+                                        onRateChange(group.id, tebal, jenis, parseFloat(event.target.value) || 0)
+                                      }
+                                      className="aoh-squircle-xs w-20 border border-white/10 bg-white/5 px-2 py-1.5 font-mono text-[14px] text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/60"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => onToggleRate(group.id, tebal, jenis, false)}
+                                      aria-label={`Hapus ${jenis} untuk ${tebal}mm`}
+                                      className="flex h-6 w-6 shrink-0 items-center justify-center text-white/25 active:text-[#e29b7c]"
+                                    >
+                                      &times;
+                                    </button>
+                                  </div>
                                 </td>
                               );
-                            }
-                            return (
-                              <td key={jenis} className="border-b border-white/5 px-2 py-2">
-                                <div className="flex items-center gap-1">
-                                  <input
-                                    type="number"
-                                    inputMode="numeric"
-                                    min={0}
-                                    step={50}
-                                    value={rate}
-                                    onChange={(event) =>
-                                      onRateChange(group.id, tebal, jenis, parseFloat(event.target.value) || 0)
-                                    }
-                                    className="aoh-squircle-xs w-20 border border-white/10 bg-white/5 px-2 py-1.5 font-mono text-[14px] text-[var(--aoh-ink)] outline-none focus:border-[#d9a75c]/60"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => onToggleRate(group.id, tebal, jenis, false)}
-                                    aria-label={`Hapus ${jenis} untuk ${tebal}mm`}
-                                    className="flex h-6 w-6 shrink-0 items-center justify-center text-white/25 active:text-[#e29b7c]"
-                                  >
-                                    &times;
-                                  </button>
-                                </div>
-                              </td>
-                            );
-                          })}
-                          <td className="border-b border-white/5 py-2 pl-2">
-                            <button
-                              type="button"
-                              onClick={() => onRemoveTebal(group.id, tebal)}
-                              aria-label={`Hapus tebal ${tebal}mm`}
-                              className="flex h-7 w-7 items-center justify-center rounded-full text-white/30 active:bg-white/10 active:text-[#e29b7c]"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            })}
+                            <td className="border-b border-l border-white/5 py-2 pl-2">
+                              <button
+                                type="button"
+                                onClick={() => onRemoveTebal(group.id, tebal)}
+                                aria-label={`Hapus tebal ${tebal}mm`}
+                                className="flex h-7 w-7 items-center justify-center rounded-full text-white/30 active:bg-white/10 active:text-[#e29b7c]"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2">
