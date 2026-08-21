@@ -17,10 +17,24 @@ export type DepthGroup = {
   rates: Record<number, RateRow>;
 };
 
+// Kedalaman (engraving depth) is its own flat dropdown — 1mm, 1,5mm, 2mm,
+// 3mm — each an independent DepthGroup with its own Tebal (plate
+// thickness) options and rates, not paired buckets like the original
+// "1,5mm & 2mm" / "3mm & 4mm" tables. 1,5mm and 2mm carry forward the same
+// rate table the business already uses (that table was originally listed
+// as covering both depths together); 3mm carries forward the former
+// "3mm & 4mm" table's rates. 1mm has no prior rate data — add its tebal
+// options and prices from the settings panel.
 export const DEFAULT_PRICE_DATA: DepthGroup[] = [
   {
-    id: "1.5-2mm",
-    label: "Kedalaman 1,5mm & 2mm",
+    id: "1mm",
+    label: "1mm",
+    tebalOptions: [],
+    rates: {}
+  },
+  {
+    id: "1.5mm",
+    label: "1,5mm",
     tebalOptions: [1.5, 2, 3, 4, 5, 6, 7],
     rates: {
       1.5: {"Hot Stamp": 1300, Resin: 900},
@@ -33,8 +47,22 @@ export const DEFAULT_PRICE_DATA: DepthGroup[] = [
     }
   },
   {
-    id: "3-4mm",
-    label: "Kedalaman 3mm & 4mm",
+    id: "2mm",
+    label: "2mm",
+    tebalOptions: [1.5, 2, 3, 4, 5, 6, 7],
+    rates: {
+      1.5: {"Hot Stamp": 1300, Resin: 900},
+      2: {"Emboss Cekung": 4500, "Emboss Datar": 3500, "Hot Stamp": 2000, Resin: 900},
+      3: {"Emboss Cekung": 5100, "Emboss Datar": 4500, "Emboss & Hotstamp": 7200, "Hot Stamp": 2500, Resin: 900},
+      4: {"Emboss Cekung": 6500, "Emboss Datar": 5100, "Emboss & Hotstamp": 8200, "Hot Stamp": 3000, Resin: 900},
+      5: {"Emboss Cekung": 7500, "Emboss Datar": 6500, "Emboss & Hotstamp": 8700, "Hot Stamp": 3500, Resin: 900},
+      6: {"Emboss Cekung": 8500, "Emboss Datar": 7500, "Emboss & Hotstamp": 9200, "Hot Stamp": 4100, Resin: 900},
+      7: {"Emboss Cekung": 9500, "Emboss Datar": 8500, "Emboss & Hotstamp": 9212, "Hot Stamp": 4300, Resin: 900}
+    }
+  },
+  {
+    id: "3mm",
+    label: "3mm",
     tebalOptions: [7, 10],
     rates: {
       7: {"Hot Stamp": 8000},

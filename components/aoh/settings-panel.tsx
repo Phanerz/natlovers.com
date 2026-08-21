@@ -80,7 +80,9 @@ export function SettingsPanel({
             {priceData.map((group) => (
               <div key={group.id} className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-[#e0b477]">{group.label}</p>
+                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-[#e0b477]">
+                    Kedalaman {group.label}
+                  </p>
                   <button
                     type="button"
                     onClick={() => onRemoveGroup(group.id)}

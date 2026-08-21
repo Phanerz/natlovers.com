@@ -33,8 +33,12 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
   const [priceData, setPriceData] = useState<DepthGroup[]>(DEFAULT_PRICE_DATA);
   const [settings, setSettings] = useState<AohSettings>(DEFAULT_SETTINGS);
 
-  const [groupId, setGroupId] = useState(DEFAULT_PRICE_DATA[0].id);
-  const [tebal, setTebal] = useState(DEFAULT_PRICE_DATA[0].tebalOptions[0]);
+  // Default to the first group that actually has tebal options — a newly
+  // added, still-empty Kedalaman category (like the stock "1mm" entry)
+  // shouldn't be what a fresh page load lands on.
+  const initialGroup = DEFAULT_PRICE_DATA.find((group) => group.tebalOptions.length > 0) ?? DEFAULT_PRICE_DATA[0];
+  const [groupId, setGroupId] = useState(initialGroup.id);
+  const [tebal, setTebal] = useState(initialGroup.tebalOptions[0] ?? 0);
   const [jenis, setJenis] = useState<Jenis>("Hot Stamp");
   const [width, setWidth] = useState("");
   const [height, setHeight] = useState("");
@@ -95,7 +99,7 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
 
   useEffect(() => {
     if (!currentGroup.tebalOptions.includes(tebal)) {
-      setTebal(currentGroup.tebalOptions[0]);
+      setTebal(currentGroup.tebalOptions[0] ?? 0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentGroup]);
@@ -125,12 +129,11 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
   const profit = hargaJual - modal;
 
   const autoQuoteText = useMemo(() => {
-    const depthLabel = currentGroup.label.replace("Kedalaman ", "");
     return [
       settings.quoteJudul,
       "",
       `Jenis         : ${jenis || "-"}`,
-      `Kedalaman     : ${depthLabel}`,
+      `Kedalaman     : ${currentGroup.label}`,
       `Tebal plat    : ${tebal} mm`,
       `Ukuran matras : ${width || "0"} x ${height || "0"} cm (luas ${fmtAngka(luas)} cm2)`,
       `Ongkos kirim  : ${fmtRp(ongkirValue)}`,
