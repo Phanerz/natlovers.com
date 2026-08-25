@@ -39,7 +39,7 @@ const config: Config = {
         body: ["'Trebuchet MS'", "sans-serif"]
       },
       boxShadow: {
-        card: "0 24px 60px rgba(28, 46, 30, 0.12)"
+        card: "0 4px 12px rgba(0, 0, 0, 0.06)"
       },
       backgroundImage: {
         paper:

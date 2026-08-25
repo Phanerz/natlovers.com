@@ -198,13 +198,13 @@ button {
 }
 
 .card {
-  @apply rounded-[2rem] border backdrop-blur;
+  @apply rounded-lg border;
   border-color: rgba(17, 35, 25, 0.08);
-  background: rgba(255, 251, 244, 0.84);
-  /* Ambient drop shadow (was Tailwind's shadow-card) plus a resting inner
-     highlight so the surface reads as glass even when nothing's hovered. */
-  box-shadow: 0 24px 60px rgba(28, 46, 30, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.55),
-    inset 0 -1px 6px rgba(180, 158, 116, 0.05);
+  background: rgba(255, 251, 244, 0.92);
+  /* Flat by default per DESIGN.md — a regular content card, not a glass
+     one (that scope is buttons and explicitly-marked featured cards only).
+     A subtle resting shadow, no blur, no glass bevel. */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .section-title {
@@ -241,14 +241,14 @@ button {
 
 .motion-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 34px 80px rgba(17, 35, 25, 0.14);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   border-color: rgba(10, 88, 62, 0.18);
   background: rgba(255, 252, 246, 0.96);
 }
 
-/* Same iridescent lit-glass edge as .auth-glass-card/.liquid-glass-active,
-   faded in on hover only — a card that's just been lifted off the surface
-   catching a thin rim of light, not a permanent decorative border. */
+/* Same iridescent lit-glass edge .liquid-glass-active uses, faded in on
+   hover only — a card that's just been lifted off the surface catching a
+   thin rim of light, not a permanent decorative border. */
 .motion-card::after {
   content: "";
   position: absolute;
@@ -380,7 +380,7 @@ button {
 
 /* ============================================================
    Elevated glass button/icon-button/stepper chrome — the same bevel +
-   iridescent-edge language as .liquid-glass/.auth-glass-card above,
+   iridescent-edge language as .liquid-glass above,
    generalized into reusable primitives for every solid, outline, and icon
    button site-wide (starting with the cart drawer). Deliberately NOT a
    generic iOS blue/gray reskin — same forest/sand palette this brand
@@ -667,6 +667,61 @@ button {
   mask-composite: exclude;
 }
 
+/*
+ * Flat (non-glass) counterparts of .liquid-glass-on-light / .liquid-glass-
+ * active, for the same sliding-pill tab-bar mechanic used somewhere out of
+ * glass scope per DESIGN.md (catalogue category tabs, admin sidebar nav).
+ * Deliberately separate classes rather than restyling the .liquid-glass-*
+ * originals — those are still genuinely in use for glass-scoped elements
+ * elsewhere (the header nav, product gallery icon buttons), so the
+ * originals stay untouched and these carry the flat treatment instead.
+ * Same transition timing as .liquid-glass-active, so the tab-switch glide
+ * feels identical — only the surface (solid fill, no blur/bevel/iridescent
+ * edge) changed.
+ */
+.flat-tab-bar {
+  background: #fdfaf3;
+  border: 1px solid rgba(52, 67, 50, 0.12);
+}
+
+.flat-tab-active {
+  position: absolute;
+  border-radius: 9999px;
+  background: #172015;
+  transition-property: left, width, transform;
+  transition-duration: 560ms, 560ms, 220ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1),
+    cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+
+.flat-tab-active.is-dragging {
+  z-index: 20;
+  transition-property: width, transform;
+  transition-duration: 180ms, 220ms;
+  transition-timing-function: ease, cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: scale(1.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flat-tab-active,
+  .flat-tab-active.is-dragging {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* Flat counterpart of .liquid-glass-dark, for the admin sidebar's active nav
+   item — same reasoning as .flat-tab-bar/.flat-tab-active above: the admin
+   sidebar is out of glass scope, but .liquid-glass-dark itself is still
+   genuinely in use for glass-scoped primary buttons elsewhere (e.g. the
+   product page's Add to Bag), so it stays untouched and this carries the
+   flat treatment instead. */
+.flat-nav-active {
+  background: #172015;
+  border: 1px solid transparent;
+}
+
 .liquid-glass-label {
   display: inline-block;
   transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -764,61 +819,6 @@ button {
   .liquid-glass-label {
     transition: none;
   }
-}
-
-/*
- * Auth screens' sign-in card: same liquid-glass language as the header
- * (heavy blur+saturate so the hero video genuinely refracts through, a
- * specular sheen across the top-left), but tuned cream/warm instead of
- * neutral-white so it still reads as "Natlovers" glass, not generic frosted
- * UI chrome, and kept well short of fully transparent so copy stays legible
- * over a busy moving background. The blur itself is applied as Tailwind's
- * backdrop-blur/backdrop-saturate utilities on the element instead of a
- * literal backdrop-filter here — this build's CSS pipeline silently drops
- * hand-written backdrop-filter declarations (it does the same to the
- * existing .liquid-glass rule below), but keeps ones emitted by Tailwind's
- * own utility classes.
- */
-.auth-glass-card {
-  position: relative;
-  background: linear-gradient(165deg, rgba(255, 253, 249, 0.72), rgba(250, 244, 231, 0.5));
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.6),
-    inset 0 -1px 12px rgba(255, 255, 255, 0.1),
-    0 28px 76px rgba(6, 17, 11, 0.4);
-}
-
-.auth-glass-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(125deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 42%);
-  opacity: 0.9;
-  pointer-events: none;
-}
-
-/* A crisp lit-glass edge instead of a flat 1px line: a masked gradient ring
- * (bright top-left highlight fading through a warm sand glow bottom-right),
- * the same technique the header's nav pill uses for its iridescent fringe. */
-.auth-glass-card::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1.5px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.9),
-    rgba(255, 255, 255, 0.16) 35%,
-    rgba(255, 255, 255, 0.1) 65%,
-    rgba(255, 238, 197, 0.65)
-  );
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
 }
 
 .hero-title-shadow {

@@ -131,7 +131,7 @@ export function InspirationPanel({
           rows={4}
           onChange={(event) => onNotesChange(event.target.value)}
           placeholder="Tell us anything you'd like us to know…"
-          className="w-full resize-none rounded-xl border border-[#ddd5c4] bg-white px-3 py-2.5 text-[13px] leading-relaxed text-forest-900 outline-none placeholder:text-forest-300 focus:border-forest-600"
+          className="w-full resize-none rounded-md border border-[#ddd5c4] bg-white px-3 py-2.5 text-[13px] leading-relaxed text-forest-900 outline-none placeholder:text-forest-300 focus:border-forest-600"
         />
         <p className="text-right text-[10px] text-forest-400">
           {notes.length} / {MAX_NOTES}
@@ -162,7 +162,7 @@ export function InspirationPanel({
             inputRef.current?.click();
           }
         }}
-        className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 py-5 text-center transition-colors duration-150 ${
+        className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed px-4 py-5 text-center transition-colors duration-150 ${
           dragOver ? "border-forest-500 bg-forest-50" : "border-[#d4c5ab] bg-[#fffdf9] hover:border-forest-300"
         }`}
       >

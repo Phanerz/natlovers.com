@@ -712,7 +712,7 @@ export function Header() {
         >
           <div
             onClick={(event) => event.stopPropagation()}
-            className={`ml-auto flex h-full w-full max-w-[33rem] flex-col border-l border-[#d7cab2] bg-[rgba(247,240,227,0.97)] p-6 shadow-[0_28px_90px_rgba(18,20,14,0.32)] transition-transform ${
+            className={`ml-auto flex h-full w-full max-w-[33rem] flex-col border-l border-[#d7cab2] bg-[rgba(247,240,227,0.97)] p-6 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-transform ${
               cabinetEntered
                 ? "translate-x-0 duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
                 : "translate-x-full duration-200 ease-in"
@@ -742,7 +742,7 @@ export function Header() {
             </div>
 
             {previewProduct ? (
-              <div className="mt-5 rounded-[1.6rem] border border-[#d2c3a8] bg-[#fffaf2] p-4 shadow-[0_14px_34px_rgba(79,58,28,0.08)]">
+              <div className="mt-5 rounded-lg border border-[#d2c3a8] bg-[#fffaf2] p-4 shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
                 <div className="flex items-center justify-between gap-3">
                   <p className="muted">Preview</p>
                   <button
@@ -753,7 +753,7 @@ export function Header() {
                     Close
                   </button>
                 </div>
-                <div className="mt-3 overflow-hidden rounded-[1.3rem] border border-[#d2c3a8] shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
+                <div className="mt-3 overflow-hidden rounded-lg border border-[#d2c3a8] shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
                   <div
                     className="aspect-[4/3] w-full bg-cover bg-center"
                     style={{backgroundImage: `url(${previewProduct.imageUrl})`}}
@@ -779,7 +779,7 @@ export function Header() {
             ) : null}
 
             {checkoutDraft ? (
-              <div className="mt-5 rounded-[1.6rem] border border-[#32503b] bg-[#102418] p-5 text-sand-50 shadow-[0_18px_44px_rgba(9,20,13,0.28)]">
+              <div className="mt-5 rounded-lg border border-[#32503b] bg-[#102418] p-5 text-sand-50 shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.28em] text-sand-200/80">
@@ -803,9 +803,9 @@ export function Header() {
                   {checkoutProducts.map((item) => (
                     <div
                       key={item.slug}
-                      className="flex items-center gap-4 rounded-[1rem] border border-white/18 bg-white/8 px-3 py-3"
+                      className="flex items-center gap-4 rounded-lg border border-white/18 bg-white/8 px-3 py-3"
                     >
-                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[0.75rem] border border-white/15 bg-white/10">
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-white/15 bg-white/10">
                         {item.imageUrl ? (
                           <Image src={item.imageUrl} alt="" fill sizes="56px" className="object-contain p-1" />
                         ) : null}
@@ -833,43 +833,43 @@ export function Header() {
                         value={addressForm.recipientName}
                         onChange={(event) => setAddressForm((current) => ({...current, recipientName: event.target.value}))}
                         placeholder="Recipient name"
-                        className="rounded-xl border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                        className="rounded-md border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
                       />
                       <input
                         value={addressForm.phone}
                         onChange={(event) => setAddressForm((current) => ({...current, phone: event.target.value}))}
                         placeholder="Phone (for WhatsApp)"
-                        className="rounded-xl border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                        className="rounded-md border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
                       />
                       <input
                         value={addressForm.street}
                         onChange={(event) => setAddressForm((current) => ({...current, street: event.target.value}))}
                         placeholder="Street address"
-                        className="rounded-xl border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60 sm:col-span-2"
+                        className="rounded-md border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60 sm:col-span-2"
                       />
                       <input
                         value={addressForm.city}
                         onChange={(event) => setAddressForm((current) => ({...current, city: event.target.value}))}
                         placeholder="City"
-                        className="rounded-xl border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                        className="rounded-md border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
                       />
                       <input
                         value={addressForm.province}
                         onChange={(event) => setAddressForm((current) => ({...current, province: event.target.value}))}
                         placeholder="Province / state (optional)"
-                        className="rounded-xl border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                        className="rounded-md border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
                       />
                       <input
                         value={addressForm.postalCode}
                         onChange={(event) => setAddressForm((current) => ({...current, postalCode: event.target.value}))}
                         placeholder="Postal code"
-                        className="rounded-xl border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                        className="rounded-md border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
                       />
                       <input
                         value={addressForm.country}
                         onChange={(event) => setAddressForm((current) => ({...current, country: event.target.value}))}
                         placeholder="Country"
-                        className="rounded-xl border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                        className="rounded-md border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
                       />
                     </div>
                   </div>
@@ -892,7 +892,7 @@ export function Header() {
                   </button>
                 ) : null}
                 {checkoutState ? (
-                  <div className="mt-4 rounded-[1.2rem] border border-white/16 bg-white/10 p-4 text-sm leading-7 text-sand-50/94">
+                  <div className="mt-4 rounded-lg border border-white/16 bg-white/10 p-4 text-sm leading-7 text-sand-50/94">
                     <p className="font-medium">Order ref: {checkoutState.orderRef}</p>
                     <p className="mt-2">Bank: {checkoutState.bankName}</p>
                     <p>Account name: {checkoutState.accountName}</p>
@@ -936,12 +936,12 @@ export function Header() {
                   {cartProducts.map((item) => (
                     <div
                       key={item.slug}
-                      className="motion-card flex gap-4 rounded-[1.5rem] border border-[#d2c3a8] bg-[#fffaf2] p-4 shadow-[0_14px_34px_rgba(79,58,28,0.08)]"
+                      className="motion-card flex gap-4 rounded-lg border border-[#d2c3a8] bg-[#fffaf2] p-4 shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
                     >
                       <button
                         type="button"
                         onClick={() => openPreview(item.slug)}
-                        className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[1.1rem] border border-[#d5c8b1] bg-[#eee4cd] shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]"
+                        className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border border-[#d5c8b1] bg-[#eee4cd] shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]"
                       >
                         {item.imageUrl ? (
                           <Image src={item.imageUrl} alt="" fill sizes="96px" className="object-contain p-1.5" />
@@ -1001,7 +1001,7 @@ export function Header() {
                   ))}
                 </div>
               ) : (
-                <div className="rounded-[1.6rem] border border-[#d2c3a8] bg-[#fffaf2] p-6 text-sm leading-7 text-forest-700 shadow-[0_14px_34px_rgba(79,58,28,0.08)]">
+                <div className="rounded-lg border border-[#d2c3a8] bg-[#fffaf2] p-6 text-sm leading-7 text-forest-700 shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
                   Your cabinet is empty. Add a piece from the catalogue, then preview it or take it straight to bank transfer checkout here.
                 </div>
               )}

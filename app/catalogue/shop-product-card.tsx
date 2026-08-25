@@ -89,7 +89,7 @@ export function ShopProductCard({
                 sits on the same vertical center as them instead of its
                 height being whatever the text/padding happened to add up
                 to. */}
-            <span className="inline-flex h-8 items-center whitespace-nowrap rounded-full bg-gradient-to-b from-[#3d5140] to-[#26301f] px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f7f4ee] shadow-[0_3px_10px_rgba(0,0,0,0.28)] ring-1 ring-inset ring-white/15">
+            <span className="inline-flex h-8 items-center whitespace-nowrap rounded-full bg-gradient-to-b from-[#3d5140] to-[#26301f] px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f7f4ee] shadow-[0_4px_12px_rgba(0,0,0,0.06)] ring-1 ring-inset ring-white/15">
               {locale === "en" ? "Sold Out" : "Habis Terjual"}
             </span>
           </div>
@@ -105,7 +105,7 @@ export function ShopProductCard({
             event.stopPropagation();
             toggle(product.slug);
           }}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/85 shadow-[0_2px_8px_rgba(0,0,0,0.12)] backdrop-blur transition-all duration-200 hover:bg-white active:scale-90"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/85 shadow-[0_4px_12px_rgba(0,0,0,0.06)] backdrop-blur transition-all duration-200 hover:bg-white active:scale-90"
         >
           <Heart
             className={`h-4 w-4 transition-colors duration-200 ${favorited ? "fill-[#344332] text-[#344332]" : "text-[#344332]"}`}
@@ -122,7 +122,7 @@ export function ShopProductCard({
             event.stopPropagation();
             addToCart(product.slug);
           }}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/85 shadow-[0_2px_8px_rgba(0,0,0,0.12)] backdrop-blur transition-all duration-200 hover:bg-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/85 shadow-[0_4px_12px_rgba(0,0,0,0.06)] backdrop-blur transition-all duration-200 hover:bg-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
         >
           <ShoppingBag className="h-4 w-4" />
         </button>

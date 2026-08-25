@@ -111,7 +111,7 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
       ) : null}
 
       {config ? (
-        <div className="mt-6 rounded-2xl border border-[#e0d8c7] bg-[#fdfaf3] p-4">
+        <div className="mt-6 rounded-lg border border-[#e0d8c7] bg-[#fdfaf3] p-4">
           <p className="mb-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.24em] text-forest-500">
             <Sparkles className="h-3.5 w-3.5" />
             Make it yours

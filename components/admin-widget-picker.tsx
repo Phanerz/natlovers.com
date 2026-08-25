@@ -18,7 +18,7 @@ function SelectedWidgetRow({widgetKey, onRemove}: {widgetKey: WidgetKey; onRemov
       value={widgetKey}
       dragListener={false}
       dragControls={dragControls}
-      className="flex items-center gap-3 rounded-2xl border border-[#e4d9c1] bg-white/70 p-3"
+      className="flex items-center gap-3 rounded-lg border border-[#e4d9c1] bg-white/70 p-3"
       whileDrag={{boxShadow: "0 14px 32px rgba(23,32,21,0.18)", scale: 1.01}}
     >
       <button
@@ -102,7 +102,7 @@ export function AdminWidgetPicker({initialWidgets, onSaved}: {initialWidgets: Wi
             ))}
           </Reorder.Group>
         ) : (
-          <p className="rounded-2xl border border-dashed border-[#e4d9c1] p-4 text-center text-xs text-forest-500">
+          <p className="rounded-lg border border-dashed border-[#e4d9c1] p-4 text-center text-xs text-forest-500">
             No widgets pinned — pick from below.
           </p>
         )}

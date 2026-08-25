@@ -46,9 +46,9 @@ function OptionCard({
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`relative flex flex-col items-center justify-end gap-1 rounded-xl border px-2 py-2 text-center transition-all duration-200 ${
+      className={`relative flex flex-col items-center justify-end gap-1 rounded-lg border px-2 py-2 text-center transition-all duration-200 ${
         selected
-          ? "border-forest-700 bg-white shadow-[0_8px_20px_rgba(23,32,21,0.10)]"
+          ? "border-forest-700 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
           : "border-[#ddd5c4] bg-[#fffdf9] hover:border-forest-400 hover:bg-white"
       }`}
     >
@@ -230,12 +230,12 @@ export function ConfigPanel({
             rows={2}
             onChange={(event) => onChange({...config, clothingPreference: event.target.value})}
             placeholder="A favourite outfit, a colour they always wore…"
-            className="w-full resize-none rounded-xl border border-[#ddd5c4] bg-white px-3 py-2 text-[13px] leading-relaxed text-forest-900 outline-none placeholder:text-forest-300 focus:border-forest-600"
+            className="w-full resize-none rounded-md border border-[#ddd5c4] bg-white px-3 py-2 text-[13px] leading-relaxed text-forest-900 outline-none placeholder:text-forest-300 focus:border-forest-600"
           />
         </div>
 
         {/* Stated plainly rather than implied by the absence of controls. */}
-        <p className="rounded-xl border border-[#e4dcc9] bg-[#faf6ec] px-3 py-2 text-[10.5px] leading-relaxed text-forest-600">
+        <p className="rounded-lg border border-[#e4dcc9] bg-[#faf6ec] px-3 py-2 text-[10.5px] leading-relaxed text-forest-600">
           Dolls are sculpted by hand from your photographs — the likeness comes from the pictures you upload.
         </p>
       </div>

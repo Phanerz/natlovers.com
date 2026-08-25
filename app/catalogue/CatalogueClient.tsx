@@ -749,7 +749,7 @@ export function CatalogueContent() {
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#d9cfc0] px-6 py-3 sm:px-10">
           <div
             ref={tabsRef}
-            className="liquid-glass-on-light relative flex w-max items-center gap-1 overflow-x-auto rounded-full p-1.5"
+            className="flat-tab-bar relative flex w-max items-center gap-1 overflow-x-auto rounded-full p-1.5"
           >
             {tabIndicator
               ? (() => {
@@ -763,7 +763,7 @@ export function CatalogueContent() {
                       onPointerMove={handleTabIndicatorPointerMove}
                       onPointerUp={handleTabIndicatorPointerUp}
                       onPointerCancel={handleTabIndicatorPointerUp}
-                      className={`liquid-glass-active top-1.5 h-[calc(100%-0.75rem)] ${
+                      className={`flat-tab-active top-1.5 h-[calc(100%-0.75rem)] ${
                         isTabDragging ? "is-dragging" : "cursor-grab active:cursor-grabbing"
                       }`}
                       style={{
@@ -825,8 +825,8 @@ export function CatalogueContent() {
                   }`}
                   style={isDragOrigin ? {touchAction: "none"} : undefined}
                 >
-                  <Icon className={`h-3.5 w-3.5 transition-colors duration-200 ${active ? "text-[#20241b]" : ""}`} />
-                  <span className={`liquid-glass-label transition-colors duration-200 ${active ? "text-[#20241b]" : ""}`}>
+                  <Icon className={`h-3.5 w-3.5 transition-colors duration-200 ${active ? "text-sand-50" : ""}`} />
+                  <span className={`liquid-glass-label transition-colors duration-200 ${active ? "text-sand-50" : ""}`}>
                     {productTypeLabels[type][locale]}
                   </span>
                 </button>
@@ -860,7 +860,7 @@ export function CatalogueContent() {
               {sortMenuMounted ? (
                 <div
                   style={{transformOrigin: "top right"}}
-                  className={`absolute right-0 top-11 z-20 w-52 rounded-2xl border border-[#d9cfc0] bg-[#f7f4ee] py-2 shadow-[0_16px_40px_rgba(46,46,40,0.14)] transition-all ${
+                  className={`absolute right-0 top-11 z-20 w-52 rounded-lg border border-[#d9cfc0] bg-[#f7f4ee] py-2 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all ${
                     sortMenuEntered
                       ? "translate-y-0 scale-100 opacity-100 duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
                       : "translate-y-1 scale-[0.92] opacity-0 duration-100 ease-out"

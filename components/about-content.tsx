@@ -160,7 +160,7 @@ export function AboutContent() {
                 className="h-full w-full object-cover"
               />
               <span className="absolute inset-0 bg-[rgba(7,18,12,0.28)] transition-colors duration-300 group-hover:bg-[rgba(7,18,12,0.4)]" />
-              <span className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-sand-100 text-forest-900 shadow-[0_16px_34px_rgba(22,22,15,0.32)] transition-[transform,box-shadow] duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-110 group-hover:shadow-[0_20px_44px_rgba(22,22,15,0.42)] sm:h-20 sm:w-20">
+              <span className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-sand-100 text-forest-900 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-[transform,box-shadow] duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-110 group-hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] sm:h-20 sm:w-20">
                 <Play className="h-7 w-7 translate-x-0.5 fill-current sm:h-8 sm:w-8" />
               </span>
             </button>

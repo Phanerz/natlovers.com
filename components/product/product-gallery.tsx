@@ -126,7 +126,7 @@ export function ProductGallery({images, name, tintHex}: {images: string[]; name:
               aria-label={`${name} image ${index + 1}`}
               aria-current={index === activeImage}
               onClick={() => selectImage(index)}
-              className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700 lg:h-20 lg:w-20 ${
+              className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-lg transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700 lg:h-20 lg:w-20 ${
                 index === activeImage ? "ring-2 ring-forest-900" : "opacity-70 hover:opacity-100"
               }`}
             >
@@ -137,7 +137,7 @@ export function ProductGallery({images, name, tintHex}: {images: string[]; name:
       ) : null}
 
       <div
-        className="relative order-1 aspect-[4/5] w-full overflow-hidden rounded-[1.4rem] shadow-[0_24px_60px_rgba(20,33,22,0.18)] lg:order-2"
+        className="relative order-1 aspect-[4/5] w-full overflow-hidden rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.06)] lg:order-2"
         style={{backgroundColor: tintHex}}
       >
         {images[activeImage] ? (

@@ -9,14 +9,14 @@ import {AdminHeroCard} from "./hero-card-types";
 function CardPreview({card}: {card: AdminHeroCard}) {
   if (card.cardType === "image" && card.imageUrl) {
     return (
-      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-[#d9ccb3] bg-[#f2ecdc]">
+      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-[#d9ccb3] bg-[#f2ecdc]">
         <Image src={card.imageUrl} alt="Hero card image" fill className="object-cover" />
       </div>
     );
   }
   return (
     <div
-      className="h-14 w-14 shrink-0 rounded-xl border border-[#d9ccb3]"
+      className="h-14 w-14 shrink-0 rounded-lg border border-[#d9ccb3]"
       style={{backgroundColor: card.colorValue ?? "#7a7a7a"}}
     />
   );
@@ -41,7 +41,7 @@ function HeroCardRow({
       dragListener={false}
       dragControls={dragControls}
       onDragEnd={onDragEnd}
-      className="flex flex-wrap items-center gap-4 rounded-2xl border border-[#e7ddc6] bg-[#fffdf9] p-4"
+      className="flex flex-wrap items-center gap-4 rounded-lg border border-[#e7ddc6] bg-[#fffdf9] p-4"
       whileDrag={{boxShadow: "0 14px 32px rgba(23,32,21,0.18)", scale: 1.01}}
     >
       <button

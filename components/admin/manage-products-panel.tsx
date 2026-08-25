@@ -204,13 +204,13 @@ export function ManageProductsPanel({
             <Filter className="h-4 w-4" />
           </button>
           {filterOpen ? (
-            <div className="absolute right-0 top-[3.25rem] z-20 w-44 space-y-1 rounded-2xl border border-[#d7cab2] bg-[#fffaf1] p-2 shadow-[0_18px_40px_rgba(28,25,18,0.18)]">
+            <div className="absolute right-0 top-[3.25rem] z-20 w-44 space-y-1 rounded-lg border border-[#d7cab2] bg-[#fffaf1] p-2 shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
               {(Object.keys(statusFilterLabels) as StatusFilter[]).map((value) => (
                 <button
                   key={value}
                   type="button"
                   onClick={() => updateStatusFilter(value)}
-                  className={`block w-full rounded-xl px-3 py-2 text-left text-sm ${
+                  className={`block w-full rounded-lg px-3 py-2 text-left text-sm ${
                     statusFilter === value ? "bg-forest-900 text-sand-50" : "text-forest-700 hover:bg-[#f0e7d4]"
                   }`}
                 >
@@ -223,7 +223,7 @@ export function ManageProductsPanel({
       </div>
 
       {selected.size > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-forest-700 bg-forest-900 px-5 py-3 text-sand-50">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-forest-700 bg-forest-900 px-5 py-3 text-sand-50">
           <span className="text-sm font-medium">
             {selected.size} product{selected.size === 1 ? "" : "s"} selected
           </span>
@@ -295,7 +295,7 @@ export function ManageProductsPanel({
                     </td>
                     <td className="py-3 pr-3">
                       <div className="flex items-center gap-3">
-                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-[#d9ccb3] bg-[#f2ecdc]">
+                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-[#d9ccb3] bg-[#f2ecdc]">
                           {product.imageUrl ? (
                             <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
                           ) : null}

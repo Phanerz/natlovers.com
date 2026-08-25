@@ -34,7 +34,7 @@ function formFromAddress(address: AddressView): AddressFormState {
 }
 
 const fieldClass =
-  "w-full rounded-xl border border-[#e4d9c1] bg-white px-4 py-2.5 text-sm text-forest-900 outline-none focus:border-forest-400";
+  "w-full rounded-md border border-[#e4d9c1] bg-white px-4 py-2.5 text-sm text-forest-900 outline-none focus:border-forest-400";
 
 export function AddressesManager() {
   const [addresses, setAddresses] = useState<AddressView[] | null>(null);
@@ -133,7 +133,7 @@ export function AddressesManager() {
       </div>
 
       {formOpen ? (
-        <form onSubmit={handleSubmit} className="mt-5 space-y-3 rounded-2xl border border-[#e4d9c1] bg-white/70 p-5">
+        <form onSubmit={handleSubmit} className="mt-5 space-y-3 rounded-lg border border-[#e4d9c1] bg-white/70 p-5">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1.5 text-sm text-forest-700">
               <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Label</span>
@@ -234,17 +234,17 @@ export function AddressesManager() {
         {addresses === null ? (
           <p className="py-8 text-center text-sm text-forest-500">Loading...</p>
         ) : addresses.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-[#e4d9c1] bg-white/50 py-12 text-center">
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-[#e4d9c1] bg-white/50 py-12 text-center">
             <MapPin className="h-6 w-6 text-forest-400" />
             <p className="text-sm text-forest-600">No saved addresses yet.</p>
           </div>
         ) : (
           addresses.map((address) => (
-            <div key={address.id} className="rounded-2xl border border-[#e4d9c1] bg-white/70 p-5">
+            <div key={address.id} className="rounded-lg border border-[#e4d9c1] bg-white/70 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   {address.isDefault ? (
-                    <span className="flex items-center gap-1 rounded-full bg-forest-900 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-sand-50 shadow-[0_4px_12px_rgba(23,32,21,0.22)]">
+                    <span className="flex items-center gap-1 rounded-full bg-forest-900 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-sand-50 shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
                       <Check className="h-3 w-3" strokeWidth={3} />
                       Default
                     </span>

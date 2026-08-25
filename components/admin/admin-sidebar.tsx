@@ -20,10 +20,10 @@ function SectionLabel({children}: {children: React.ReactNode}) {
   return <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#2e2e28]">{children}</span>;
 }
 
-// Active state uses the same frosted "liquid glass" dark pill as the rest of
-// the site's primary buttons (e.g. the catalogue product page's Add to Cart
-// button) instead of a flat solid fill, so the admin panel's chrome matches
-// the Apple-glass language used everywhere else in the app.
+// Active state uses a flat solid dark fill (.flat-nav-active) rather than
+// the site's glass treatment — per DESIGN.md, glass is reserved for primary
+// buttons/CTAs and explicitly-marked featured cards, and admin nav doesn't
+// qualify as either.
 function NavLink({
   href,
   active,
@@ -38,10 +38,10 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={`button-lift flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+      className={`button-lift flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
         active
-          ? "liquid-glass-dark text-sand-50"
-          : "text-[#3c3c34] hover:-translate-y-px hover:bg-[#eee7d8] hover:text-[#344332] hover:shadow-[0_4px_12px_rgba(23,32,21,0.08)]"
+          ? "flat-nav-active text-sand-50"
+          : "text-[#3c3c34] hover:-translate-y-px hover:bg-[#eee7d8] hover:text-[#344332] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
       }`}
     >
       <Icon className="h-4 w-4 shrink-0" />
@@ -56,7 +56,9 @@ function AddLink({href, active, label}: {href: Route; active: boolean; label: st
       href={href}
       aria-label={label}
       className={`icon-button button-lift flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-transform duration-200 active:scale-90 ${
-        active ? "liquid-glass-dark text-sand-50" : "liquid-glass-on-light text-[#5c5c50] hover:text-[#344332]"
+        active
+          ? "flat-nav-active text-sand-50"
+          : "border border-[#d4c5ab] bg-[#fffaf1] text-[#5c5c50] hover:text-[#344332]"
       }`}
     >
       <PlusCircle className="h-4 w-4" />
@@ -115,7 +117,7 @@ export function AdminSidebar() {
   const isAddHero = onDashboardRoute && tab === "add-hero-card";
 
   return (
-    <aside className="w-full shrink-0 rounded-[1.75rem] border border-[#d4c5ab] bg-[#fffaf1] p-4 lg:w-64">
+    <aside className="w-full shrink-0 rounded-lg border border-[#d4c5ab] bg-[#fffaf1] p-4 lg:w-64">
       <div className="border-b border-[#d9cfc0] pb-3">
         <NavLink href="/mimin" active={isDashboardHome} icon={LayoutDashboard}>
           Dashboard
@@ -132,10 +134,10 @@ export function AdminSidebar() {
               <button
                 type="button"
                 onClick={() => setProductsExpanded((value) => !value)}
-                className={`button-lift flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] ${
+                className={`button-lift flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] ${
                   isManage
-                    ? "liquid-glass-dark text-sand-50"
-                    : "text-[#3c3c34] hover:-translate-y-px hover:bg-[#eee7d8] hover:text-[#344332] hover:shadow-[0_4px_12px_rgba(23,32,21,0.08)]"
+                    ? "flat-nav-active text-sand-50"
+                    : "text-[#3c3c34] hover:-translate-y-px hover:bg-[#eee7d8] hover:text-[#344332] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
                 }`}
               >
                 <ShoppingBag className="h-4 w-4 shrink-0" />
@@ -191,10 +193,10 @@ export function AdminSidebar() {
         </div>
         <Link
           href="/mimin/orders"
-          className={`button-lift flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          className={`button-lift flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
             pathname === "/mimin/orders"
-              ? "liquid-glass-dark text-sand-50"
-              : "text-[#3c3c34] hover:-translate-y-px hover:bg-[#eee7d8] hover:text-[#344332] hover:shadow-[0_4px_12px_rgba(23,32,21,0.08)]"
+              ? "flat-nav-active text-sand-50"
+              : "text-[#3c3c34] hover:-translate-y-px hover:bg-[#eee7d8] hover:text-[#344332] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
           }`}
         >
           <span className="flex items-center gap-2.5">
@@ -209,9 +211,9 @@ export function AdminSidebar() {
         </Link>
         <Link
           href="/mimin/custom-requests"
-          className={`button-lift mt-1 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          className={`button-lift mt-1 flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-[13.5px] font-medium transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
             pathname?.startsWith("/mimin/custom-requests")
-              ? "liquid-glass-dark text-sand-50"
+              ? "flat-nav-active text-sand-50"
               : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
           }`}
         >
@@ -240,7 +242,7 @@ export function AdminSidebar() {
         <button
           type="button"
           onClick={() => signOut({callbackUrl: "/mimin"})}
-          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium text-[#8a4a3a] transition-colors duration-150 hover:bg-[#f7e9e2]"
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[13.5px] font-medium text-[#8a4a3a] transition-colors duration-150 hover:bg-[#f7e9e2]"
         >
           <LogOut className="h-4 w-4 shrink-0" />
           Sign out

@@ -14,7 +14,7 @@ export function Toast({toast, onDismiss}: {toast: ToastState; onDismiss: () => v
   return (
     <div
       role="status"
-      className={`fixed bottom-6 right-6 z-[60] flex max-w-sm items-start gap-3 rounded-2xl border px-5 py-4 shadow-[0_18px_44px_rgba(18,20,14,0.28)] ${
+      className={`fixed bottom-6 right-6 z-[60] flex max-w-sm items-start gap-3 rounded-lg border px-5 py-4 shadow-[0_4px_12px_rgba(0,0,0,0.06)] ${
         isSuccess ? "border-[#2f5b2b]/30 bg-forest-900 text-sand-50" : "border-red-900/30 bg-red-900 text-red-50"
       }`}
     >

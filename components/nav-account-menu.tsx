@@ -50,7 +50,7 @@ export function NavAccountMenu({
   return (
     <div
       style={{transformOrigin: "top right"}}
-      className={`menu-surface absolute right-0 top-14 z-50 w-72 overflow-hidden rounded-[1.5rem] border border-[#e4d9c1] bg-[rgba(250,246,236,0.98)] p-2 shadow-[0_24px_60px_rgba(28,25,18,0.2)] transition-all ease-[cubic-bezier(0.22,1,0.36,1)] ${
+      className={`menu-surface absolute right-0 top-14 z-50 w-72 overflow-hidden rounded-lg border border-[#e4d9c1] bg-[rgba(250,246,236,0.98)] p-2 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all ease-[cubic-bezier(0.22,1,0.36,1)] ${
         entered
           ? "scale-100 opacity-100 duration-[180ms]"
           : `scale-[0.94] opacity-0 ${open ? "duration-[180ms]" : "duration-[130ms]"}`
@@ -84,7 +84,7 @@ export function NavAccountMenu({
               href={item.href}
               onClick={onNavigate}
               style={{transitionDelay: `${delayMs}ms`}}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-forest-700 transition-all duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/70 hover:text-forest-900 ${
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-forest-700 transition-all duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-white/70 hover:text-forest-900 ${
                 entered ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
               }`}
             >
@@ -100,7 +100,7 @@ export function NavAccountMenu({
       <button
         type="button"
         onClick={onSignOut}
-        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#a4402b] transition-colors duration-150 hover:bg-[#f7e9e2]"
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[#a4402b] transition-colors duration-150 hover:bg-[#f7e9e2]"
       >
         <LogOut className="h-4 w-4" />
         Sign out

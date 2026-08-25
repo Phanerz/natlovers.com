@@ -20,7 +20,7 @@ const items = [
 
 export function ReassuranceBar() {
   return (
-    <div className="grid gap-4 divide-y divide-forest-100 rounded-2xl border border-forest-100 bg-[#fdfaf3] px-5 py-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:px-6">
+    <div className="grid gap-4 divide-y divide-forest-100 rounded-lg border border-forest-100 bg-[#fdfaf3] px-5 py-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:px-6">
       {items.map(({icon: Icon, text}, index) => (
         <div key={index} className={`flex items-start gap-3 ${index > 0 ? "pt-4 sm:pt-0 sm:pl-6" : ""}`}>
           <Icon className="mt-0.5 h-4 w-4 shrink-0 text-forest-500" />

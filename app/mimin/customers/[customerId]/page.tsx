@@ -100,21 +100,21 @@ export default async function AdminCustomerDetailPage({params}: {params: Promise
       </div>
 
       <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-[1.4rem] border border-[#d4c5ab] bg-[#fffaf1] p-4">
+        <div className="rounded-lg border border-[#d4c5ab] bg-[#fffaf1] p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-forest-500">Total Orders</p>
           <p className="mt-1 font-display text-2xl text-forest-900">{customer.totalOrders}</p>
         </div>
-        <div className="rounded-[1.4rem] border border-[#d4c5ab] bg-[#fffaf1] p-4">
+        <div className="rounded-lg border border-[#d4c5ab] bg-[#fffaf1] p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-forest-500">Total Spent</p>
           <p className="mt-1 font-display text-2xl text-forest-900">{formatIdr(customer.totalSpentIdr)}</p>
         </div>
-        <div className="rounded-[1.4rem] border border-[#d4c5ab] bg-[#fffaf1] p-4">
+        <div className="rounded-lg border border-[#d4c5ab] bg-[#fffaf1] p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-forest-500">First Order</p>
           <p className="mt-1 font-display text-2xl text-forest-900">
             {customer.firstOrderAt ? formatDate(customer.firstOrderAt) : "—"}
           </p>
         </div>
-        <div className="rounded-[1.4rem] border border-[#d4c5ab] bg-[#fffaf1] p-4">
+        <div className="rounded-lg border border-[#d4c5ab] bg-[#fffaf1] p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-forest-500">Last Order</p>
           <p className="mt-1 font-display text-2xl text-forest-900">
             {customer.lastOrderAt ? formatDate(customer.lastOrderAt) : "—"}

@@ -43,7 +43,7 @@ function CloverIcon() {
 export function AdminSignIn() {
   return (
     <AuthScreenBackdrop>
-      <div className="auth-glass-card motion-card flex aspect-square w-full max-w-sm flex-col items-center justify-center gap-6 rounded-[2.4rem] p-8 text-center backdrop-blur-2xl backdrop-saturate-150 sm:p-10">
+      <div className="card motion-card flex aspect-square w-full max-w-sm flex-col items-center justify-center gap-6 p-8 text-center sm:p-10">
         <div className="flex flex-col items-center gap-4">
           <CloverIcon />
           <div>

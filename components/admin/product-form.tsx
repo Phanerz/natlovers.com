@@ -35,7 +35,7 @@ function SectionCard({step, title, children}: {step: number; title: string; chil
 }
 
 const fieldClass =
-  "w-full rounded-xl border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-base text-forest-900 outline-none focus:border-forest-400";
+  "w-full rounded-md border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-base text-forest-900 outline-none focus:border-forest-400";
 
 // Each Product Type owns its own attribute set — a Doll gets only Size, an
 // Accessory gets only Category, Apparel gets nothing beyond Basic Info/
@@ -179,7 +179,7 @@ export function ProductForm({
 
           <label className="space-y-2 text-sm text-forest-700">
             <span className="muted">Product Code (optional)</span>
-            <div className="flex items-center overflow-hidden rounded-xl border border-[#d4c5ab] bg-[#fffdf9] focus-within:border-forest-400">
+            <div className="flex items-center overflow-hidden rounded-md border border-[#d4c5ab] bg-[#fffdf9] focus-within:border-forest-400">
               <span className="pl-4 text-base text-forest-500">{PRODUCT_CODE_PREFIX}</span>
               <input
                 value={form.productCodeSuffix}

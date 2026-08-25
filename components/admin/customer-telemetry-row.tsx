@@ -17,7 +17,7 @@ function TelemetryCard({
   subtext?: string;
 }) {
   return (
-    <div className="flex min-h-[128px] flex-col items-start rounded-[1.4rem] border border-[#d4c5ab] bg-[#fffaf1] p-4 text-left">
+    <div className="flex min-h-[128px] flex-col items-start rounded-lg border border-[#d4c5ab] bg-[#fffaf1] p-4 text-left">
       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eee4cd] text-forest-700">
         <Icon className="h-5 w-5" />
       </div>
