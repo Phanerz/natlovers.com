@@ -146,6 +146,11 @@ function AccountContent() {
           }
         }
       )
+      .catch(() => {
+        // A network failure here just means the profile form starts empty
+        // — .finally() below still flips `profileLoaded` either way, so
+        // this only exists to stop the rejection from going unhandled.
+      })
       .finally(() => {
         if (!cancelled) {
           setProfileLoaded(true);

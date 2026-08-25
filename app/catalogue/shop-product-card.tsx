@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import {Heart, ShoppingBag} from "lucide-react";
+import {ImageWithFallback} from "@/components/image-with-fallback";
 import {useStorefront} from "@/components/storefront-provider";
 import {useWishlist} from "@/components/use-wishlist";
 import {formatCurrency} from "@/lib/format";
@@ -60,7 +60,7 @@ export function ShopProductCard({
       <div className="absolute inset-0 overflow-hidden" style={{backgroundColor: imageStyle.bg}}>
         <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-8">
           <div className="relative h-full w-full">
-            <Image
+            <ImageWithFallback
               src={product.imageUrl}
               alt={product.name}
               fill

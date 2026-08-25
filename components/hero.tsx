@@ -1,15 +1,48 @@
 ﻿"use client";
 
 import Link from "next/link";
-import {useMemo, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {ArrowRight} from "lucide-react";
 import {CurrencyCode, Locale} from "@/lib/site";
 import {HeroCardStack} from "@/components/hero-card-stack";
+
+const HERO_VIDEO_SRC = "https://ftw7p3nsw06ehaup.public.blob.vercel-storage.com/natlovers-hero.mp4";
 
 const phonetic = "/\u02C8n\u00E6t.l\u0259\u028A.v\u0259z/";
 
 export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
   const [offset, setOffset] = useState({x: 0, y: 0});
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // The poster image is what needs to paint fast (it's the LCP candidate on
+  // this page) \u2014 the video itself is deferred until after the browser has
+  // actually painted, so an 8MB+ eagerly-buffering <video autoPlay> doesn't
+  // compete for bandwidth/main-thread time with everything else the page
+  // needs on first load. Same video file, just no longer render-blocking.
+  // Set programmatically (not a static <source>/autoPlay) because a <video>
+  // doesn't reliably pick up a source added after the fact without an
+  // explicit load() call; the double rAF guarantees this runs after the
+  // browser has committed at least one real paint, not just after mount.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        el.src = HERO_VIDEO_SRC;
+        el.load();
+        el.play().catch(() => {
+          // Autoplay can still be blocked in some contexts even when
+          // muted \u2014 the poster stays visible either way, so this is a
+          // silent no-op rather than an error state.
+        });
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
+    };
+  }, []);
 
 const titleTransform = useMemo(() => {
   return `perspective(1200px)
@@ -53,15 +86,14 @@ const cardTransform = useMemo(() => {
           style={{ transform: backgroundTransform }}
         >
           <video
+            ref={videoRef}
             className="h-full w-full object-cover"
-            autoPlay
             muted
             loop
             playsInline
+            preload="none"
             poster="/images/natlovers-bags-1.jpg"
-          >
-            <source src="https://ftw7p3nsw06ehaup.public.blob.vercel-storage.com/natlovers-hero.mp4" type="video/mp4" />
-          </video>
+          />
           <div className="absolute inset-0 bg-[#06110b]/76" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_28%,rgba(115,155,134,0.26),transparent_22%),radial-gradient(circle_at_82%_24%,rgba(232,221,190,0.12),transparent_18%),linear-gradient(180deg,rgba(6,17,11,0.72),rgba(6,17,11,0.46)_42%,rgba(6,17,11,0.74)_100%)]" />
           <div className="ambient-orb left-10 top-10 h-28 w-28 bg-sand-100/12" />

@@ -96,16 +96,32 @@ function isScrollLocked(target: EventTarget | null) {
   return Boolean(conditional && conditional.scrollHeight > conditional.clientHeight + 1);
 }
 
-export function CatalogueContent() {
+export function CatalogueContent({initialProducts}: {initialProducts?: ShopProduct[]} = {}) {
   const {currency, locale} = useSitePreferences();
   const searchParams = useSearchParams();
 
-  // The whole catalogue now lives in Postgres — this fetch is the single
-  // source, so admin creates/edits/deactivations show up immediately
-  // without a redeploy.
-  const [products, setProducts] = useState<ShopProduct[]>([]);
+  // The whole catalogue lives in Postgres. The standalone /catalogue route
+  // now passes real server-rendered data as initialProducts (see
+  // app/catalogue/page.tsx, itself force-dynamic so that data is already
+  // live per request), so the grid paints on first render instead of
+  // waiting on a client-side fetch round-trip — that waterfall was the
+  // dominant cost in this page's LCP. The home page's embedded catalogue
+  // section (below the fold, not LCP-relevant) still renders this with no
+  // prop and relies entirely on the client fetch below, same as before.
+  const [products, setProducts] = useState<ShopProduct[]>(initialProducts ?? []);
+  const hasInitialProducts = initialProducts !== undefined;
 
   useEffect(() => {
+    // Skipped when the server already provided live data — re-fetching the
+    // same force-dynamic data a moment after SSR was pure redundant work,
+    // and replacing the grid's content right after first paint was also
+    // producing a small measurable layout shift for no benefit. Only the
+    // home-page embed (no initialProducts, nothing rendered server-side to
+    // begin with) actually needs this.
+    if (hasInitialProducts) {
+      return;
+    }
+
     let cancelled = false;
 
     fetch("/api/admin/products", {cache: "no-store"})
@@ -755,6 +771,14 @@ export function CatalogueContent() {
               ? (() => {
                   const lensLeft = tabDragLeft ?? tabIndicator.left;
                   const lensWidth = tabDragWidth ?? tabIndicator.width;
+                  // Position travels via transform: translateX() (GPU-
+                  // compositable) instead of the `left` offset — `left`
+                  // stays permanently 0 (set in the .flat-tab-active CSS
+                  // rule). The drag-lift scale has to be combined into this
+                  // same transform string rather than left as a separate
+                  // CSS-class transform, since an inline style's transform
+                  // always wins over a class's.
+                  const liftTransform = isTabDragging ? " scale(1.04)" : "";
 
                   return (
                     <span
@@ -767,8 +791,8 @@ export function CatalogueContent() {
                         isTabDragging ? "is-dragging" : "cursor-grab active:cursor-grabbing"
                       }`}
                       style={{
-                        left: lensLeft,
                         width: lensWidth,
+                        transform: `translateX(${lensLeft}px)${liftTransform}`,
                         pointerEvents: "auto",
                         touchAction: "none",
                         cursor: isTabDragging ? "grabbing" : "grab"

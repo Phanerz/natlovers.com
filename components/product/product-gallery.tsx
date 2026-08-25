@@ -1,8 +1,8 @@
 "use client";
 
 import {useEffect, useRef, useState} from "react";
-import Image from "next/image";
 import {ChevronLeft, ChevronRight, Maximize2, X} from "lucide-react";
+import {ImageWithFallback} from "@/components/image-with-fallback";
 
 function Lightbox({
   images,
@@ -80,7 +80,7 @@ function Lightbox({
 
       <div className="relative h-[80vh] w-full max-w-3xl" onClick={(event) => event.stopPropagation()}>
         {images[index] ? (
-          <Image src={images[index]} alt={`${name} ${index + 1}`} fill sizes="90vw" className="object-contain" />
+          <ImageWithFallback src={images[index]} alt={`${name} ${index + 1}`} fill sizes="90vw" className="object-contain" />
         ) : null}
       </div>
     </div>
@@ -130,7 +130,7 @@ export function ProductGallery({images, name, tintHex}: {images: string[]; name:
                 index === activeImage ? "ring-2 ring-forest-900" : "opacity-70 hover:opacity-100"
               }`}
             >
-              <Image src={url} alt={`${name} ${index + 1}`} fill sizes="80px" className="object-cover" />
+              <ImageWithFallback src={url} alt={`${name} ${index + 1}`} fill sizes="80px" className="object-cover" />
             </button>
           ))}
         </div>
@@ -148,7 +148,7 @@ export function ProductGallery({images, name, tintHex}: {images: string[]; name:
             className="absolute inset-0 h-full w-full cursor-zoom-in"
             style={{opacity: imgOpacity, transition: "opacity 180ms ease"}}
           >
-            <Image
+            <ImageWithFallback
               src={images[activeImage]}
               alt={name}
               fill

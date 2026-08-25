@@ -139,6 +139,12 @@ export function Header() {
           setAddressForm((current) => ({...current, recipientName: session.user!.name ?? ""}));
         }
       })
+      .catch(() => {
+        // A network failure here just means the form starts blank instead
+        // of prefilled — .finally() below still flips `addressLoaded`
+        // either way, so this only exists to stop the rejection from going
+        // unhandled.
+      })
       .finally(() => {
         if (!cancelled) setAddressLoaded(true);
       });
@@ -483,7 +489,12 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 min-h-[var(--header-height)] bg-forest-900/80 text-sand-50 shadow-[0_16px_48px_rgba(0,0,0,0.32)] backdrop-blur-xl">
+      {/* backdrop-blur-md below the sm breakpoint, backdrop-blur-xl at sm+ —
+          this is the one blur that's genuinely live every scroll frame on
+          every page (the header is sticky), so it gets the mobile-tier
+          reduction DESIGN.md calls for; every other glass surface in the app
+          is either already blur-free or only mounted transiently. */}
+      <header className="sticky top-0 z-40 min-h-[var(--header-height)] bg-forest-900/80 text-sand-50 shadow-[0_16px_48px_rgba(0,0,0,0.32)] backdrop-blur-md sm:backdrop-blur-xl">
         <div className="shell flex min-h-[var(--header-height)] items-center justify-between gap-4 py-3">
           <Link
             href="/"
@@ -520,6 +531,16 @@ export function Header() {
                   // cleanly covers whatever it slides over (via the
                   // z-index bump in .is-dragging) reads as an intentional
                   // "picked up and moving" object instead.
+                  // Position travels via transform: translateX() (GPU-
+                  // compositable) instead of the `left` offset itself —
+                  // `left` stays permanently 0 (set in the .liquid-glass-
+                  // active CSS rule). The drag-lift scale/translateY has to
+                  // be combined into this same transform string rather than
+                  // left as a separate CSS-class transform, since an inline
+                  // style's `transform` always wins over a class's and the
+                  // two can't apply simultaneously otherwise.
+                  const liftTransform = isDragging ? " scale(1.07) translateY(-3px)" : "";
+
                   return (
                     <span
                       aria-hidden
@@ -531,8 +552,8 @@ export function Header() {
                         isDragging ? "is-dragging" : "cursor-grab active:cursor-grabbing"
                       }`}
                       style={{
-                        left: lensLeft,
                         width: lensWidth,
+                        transform: `translateX(${lensLeft}px)${liftTransform}`,
                         pointerEvents: "auto",
                         touchAction: "none",
                         cursor: isDragging ? "grabbing" : "grab"
