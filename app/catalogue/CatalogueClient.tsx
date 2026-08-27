@@ -862,7 +862,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
             <button
               type="button"
               onClick={() => setMobileFiltersOpen(true)}
-              className="liquid-glass-on-light flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-[#2e2e28] transition-transform duration-200 active:scale-95 lg:hidden"
+              className="liquid-glass-on-light relative flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-[#2e2e28] transition-transform duration-200 active:scale-95 lg:hidden"
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
               Filters
@@ -874,7 +874,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
               <button
                 type="button"
                 onClick={() => setSortOpen((open) => !open)}
-                className="liquid-glass-on-light flex items-center gap-2 rounded-full px-4 py-2 text-sm text-[#2e2e28] transition-transform duration-200 active:scale-95"
+                className="liquid-glass-on-light relative flex items-center gap-2 rounded-full px-4 py-2 text-sm text-[#2e2e28] transition-transform duration-200 active:scale-95"
               >
                 <span className="text-[#6b6b5f]">Sort by:</span>
                 <span className="font-medium">{sortOptions.find((option) => option.value === sort)?.label}</span>
@@ -884,7 +884,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
               {sortMenuMounted ? (
                 <div
                   style={{transformOrigin: "top right"}}
-                  className={`absolute right-0 top-11 z-20 w-52 rounded-lg border border-[#d9cfc0] bg-[#f7f4ee] py-2 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all ${
+                  className={`absolute right-0 top-11 z-20 w-52 rounded-xl border border-[#d9cfc0] bg-[#f7f4ee] py-2 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all ${
                     sortMenuEntered
                       ? "translate-y-0 scale-100 opacity-100 duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
                       : "translate-y-1 scale-[0.92] opacity-0 duration-100 ease-out"
@@ -973,7 +973,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
                 type="button"
                 aria-label="Close filters"
                 onClick={() => setMobileFiltersOpen(false)}
-                className="liquid-glass-on-light mb-4 flex h-9 w-9 items-center justify-center rounded-full text-[#2e2e28] transition-transform duration-200 active:scale-90"
+                className="liquid-glass-on-light relative mb-4 flex h-9 w-9 items-center justify-center rounded-full text-[#2e2e28] transition-transform duration-200 active:scale-90"
               >
                 <X className="h-4 w-4" />
               </button>

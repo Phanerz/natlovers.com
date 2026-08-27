@@ -110,7 +110,7 @@ function StackCard({
 
   return (
     <motion.div
-      className={`absolute inset-0 select-none overflow-hidden rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.06)] ${
+      className={`absolute inset-0 select-none overflow-hidden rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] ${
         distance === 0 ? "cursor-grab active:cursor-grabbing" : ""
       }`}
       style={distance === 0 ? {x, y, rotate, touchAction: "none"} : undefined}

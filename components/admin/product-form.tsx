@@ -33,7 +33,7 @@ function ToggleRow({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3">
+    <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3">
       <span>
         <span className="block text-sm font-medium text-forest-900">{label}</span>
         <span className="block text-xs text-forest-500">{hint}</span>
@@ -72,7 +72,7 @@ function SectionCard({step, title, children}: {step: number; title: string; chil
 }
 
 const fieldClass =
-  "w-full rounded-md border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-base text-forest-900 outline-none focus:border-forest-400";
+  "w-full rounded-lg border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-base text-forest-900 outline-none focus:border-forest-400";
 
 // Each Product Type owns its own attribute set  -  a Doll gets only Size, an
 // Accessory gets only Category, Apparel gets nothing beyond Basic Info/
@@ -159,7 +159,13 @@ export function ProductForm({
 }: {
   mode: "create" | "edit";
   form: ProductFormState;
-  onChange: (next: ProductFormState) => void;
+  // Also accepts an updater function (same shape as React's own
+  // Dispatch<SetStateAction<...>>, which is what admin-dashboard.tsx passes
+  // as setEditForm/setCreateForm)  -  the Colours section's two toggles use
+  // that form below so two fast, back-to-back field updates each read the
+  // latest state instead of both closing over the same stale `form` snapshot
+  // and one silently clobbering the other.
+  onChange: (next: ProductFormState | ((prev: ProductFormState) => ProductFormState)) => void;
   onSubmit: (event: FormEvent) => void;
   submitting: boolean;
   errorMessage: string | null;
@@ -216,7 +222,7 @@ export function ProductForm({
 
           <label className="space-y-2 text-sm text-forest-700">
             <span className="muted">Product Code (optional)</span>
-            <div className="flex items-center overflow-hidden rounded-md border border-[#d4c5ab] bg-[#fffdf9] focus-within:border-forest-400">
+            <div className="flex items-center overflow-hidden rounded-lg border border-[#d4c5ab] bg-[#fffdf9] focus-within:border-forest-400">
               <span className="pl-4 text-base text-forest-500">{PRODUCT_CODE_PREFIX}</span>
               <input
                 value={form.productCodeSuffix}
@@ -290,13 +296,13 @@ export function ProductForm({
           label="Base colour"
           hint="Lets a customer pick the colour of the piece itself."
           checked={form.hasBaseColour}
-          onChange={(checked) => onChange({...form, hasBaseColour: checked})}
+          onChange={(checked) => onChange((prev) => ({...prev, hasBaseColour: checked}))}
         />
         {form.hasBaseColour ? (
           <ColourOptionsEditor
             label="Base colour"
             options={form.baseColourOptions}
-            onChange={(baseColourOptions) => onChange({...form, baseColourOptions})}
+            onChange={(baseColourOptions) => onChange((prev) => ({...prev, baseColourOptions}))}
           />
         ) : null}
 
@@ -304,37 +310,18 @@ export function ProductForm({
           label="Handle colour"
           hint="Lets a customer pick the colour of the handle or strap."
           checked={form.hasHandleColour}
-          onChange={(checked) => onChange({...form, hasHandleColour: checked})}
+          onChange={(checked) => onChange((prev) => ({...prev, hasHandleColour: checked}))}
         />
         {form.hasHandleColour ? (
           <ColourOptionsEditor
             label="Handle colour"
             options={form.handleColourOptions}
-            onChange={(handleColourOptions) => onChange({...form, handleColourOptions})}
+            onChange={(handleColourOptions) => onChange((prev) => ({...prev, handleColourOptions}))}
           />
         ) : null}
       </SectionCard>
 
       {errorMessage ? <p className="text-sm font-medium text-red-600">{errorMessage}</p> : null}
-
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="submit"
-          disabled={submitting}
-          className="glass-btn-primary flex-1 rounded-full px-6 py-4 text-base font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {submitting ? "Saving..." : mode === "create" ? "Save Product" : "Save changes"}
-        </button>
-        {onCancel ? (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-full border border-[#cdbfa6] bg-[#fffaf1] px-6 py-4 text-base font-medium text-forest-700"
-          >
-            Cancel
-          </button>
-        ) : null}
-      </div>
 
       {mode === "edit" && product ? (
         <SectionCard step={5} title="Danger Zone">
@@ -372,6 +359,25 @@ export function ProductForm({
           </div>
         </SectionCard>
       ) : null}
+
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="glass-btn-primary flex-1 rounded-full px-6 py-4 text-base font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {submitting ? "Saving..." : mode === "create" ? "Save Product" : "Save changes"}
+        </button>
+        {onCancel ? (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-full border border-[#cdbfa6] bg-[#fffaf1] px-6 py-4 text-base font-medium text-forest-700"
+          >
+            Cancel
+          </button>
+        ) : null}
+      </div>
     </form>
   );
 }

@@ -14,6 +14,18 @@ import {
 
 export type ColourOption = {label: string; hex: string};
 
+// Quick-start palette offered in the admin colour editor and used to seed
+// new products  -  colour sections show by default (the admin toggle exists
+// to turn a section off for a product that genuinely has no colour choice,
+// not to opt in), and an empty "no colours added yet" section the moment
+// it's turned on would look broken, so it starts populated with these three
+// real brand colours instead.
+export const TEMPLATE_COLOUR_OPTIONS: ColourOption[] = [
+  {label: "Natlovers Green", hex: "#344332"},
+  {label: "Black", hex: "#000000"},
+  {label: "White", hex: "#FFFFFF"}
+];
+
 export type AdminProduct = {
   slug: string;
   name: string;
@@ -92,10 +104,10 @@ export function emptyForm(): ProductFormState {
     stock: "",
     productCodeSuffix: "",
     dimensions: "",
-    hasBaseColour: false,
-    baseColourOptions: [],
-    hasHandleColour: false,
-    handleColourOptions: []
+    hasBaseColour: true,
+    baseColourOptions: TEMPLATE_COLOUR_OPTIONS.map((option) => ({...option})),
+    hasHandleColour: true,
+    handleColourOptions: TEMPLATE_COLOUR_OPTIONS.map((option) => ({...option}))
   };
 }
 

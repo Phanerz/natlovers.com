@@ -7,7 +7,7 @@ import {PauseCircle} from "lucide-react";
 export function PausedNotice({message}: {message: string}) {
   return (
     <div className="shell py-16">
-      <div className="mx-auto max-w-lg rounded-lg border border-[#e0d8c7] bg-[#fffdf9] p-10 text-center shadow-card">
+      <div className="mx-auto max-w-lg rounded-xl border border-[#e0d8c7] bg-[#fffdf9] p-10 text-center shadow-card">
         <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-forest-100">
           <PauseCircle className="h-7 w-7 text-forest-700" />
         </span>

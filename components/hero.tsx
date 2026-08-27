@@ -108,7 +108,7 @@ const cardTransform = useMemo(() => {
               </div>
 
               <div
-                className="museum-panel relative overflow-hidden transition-transform duration-300 ease-out mt-[21px] rounded-lg border border-[#efe3cb]/20 bg-[linear-gradient(135deg,rgba(255,248,238,0.15),rgba(255,255,255,0.08))] px-5 py-6 text-white backdrop-blur-sm shadow-[0_4px_12px_rgba(0,0,0,0.06)] sm:px-7 sm:py-7 lg:px-[34px] lg:py-[34px] xl:px-[55px] xl:py-[34px]"
+                className="museum-panel relative overflow-hidden transition-transform duration-300 ease-out mt-[21px] rounded-xl border border-[#efe3cb]/20 bg-[linear-gradient(135deg,rgba(255,248,238,0.15),rgba(255,255,255,0.08))] px-5 py-6 text-white backdrop-blur-sm shadow-[0_4px_12px_rgba(0,0,0,0.06)] sm:px-7 sm:py-7 lg:px-[34px] lg:py-[34px] xl:px-[55px] xl:py-[34px]"
                 style={{ transform: titleTransform, transformStyle: "preserve-3d" }}
               >
                 {/* glass light sweep */}

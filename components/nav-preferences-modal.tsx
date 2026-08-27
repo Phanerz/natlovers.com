@@ -28,7 +28,7 @@ function Sprig() {
   );
 }
 
-const localeLabels: Record<Locale, string> = {en: "English", id: "Bahasa"};
+const localeLabels: Record<Locale, string> = {en: "English", id: "Bahasa Indonesia"};
 
 // How long the exit transition runs before the component actually unmounts
 //  -  must match the slowest of the panel/backdrop exit durations below.
@@ -78,7 +78,7 @@ export function NavPreferencesModal({
       <div className="mx-auto flex min-h-full max-w-2xl items-center">
         <div
           onClick={(event) => event.stopPropagation()}
-          className={`menu-surface w-full max-w-2xl overflow-hidden rounded-lg border border-[#e4d9c1] bg-[rgba(250,246,236,0.98)] shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all ${
+          className={`menu-surface w-full max-w-2xl overflow-hidden rounded-xl border border-[#e4d9c1] bg-[rgba(250,246,236,0.98)] shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all ${
             entered
               ? "translate-y-0 scale-100 opacity-100 duration-[420ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
               : `translate-y-4 scale-[0.88] opacity-0 ease-out ${open ? "duration-200" : "duration-150"}`
@@ -109,7 +109,7 @@ export function NavPreferencesModal({
                       key={option}
                       type="button"
                       onClick={() => onSelectLocale(option)}
-                      className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left ${
+                      className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${
                         active ? "glass-btn-primary text-sand-50" : "glass-btn-secondary text-forest-800"
                       }`}
                     >
@@ -142,7 +142,7 @@ export function NavPreferencesModal({
                       key={option}
                       type="button"
                       onClick={() => onSelectCurrency(option)}
-                      className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left ${
+                      className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left ${
                         active ? "glass-btn-primary text-sand-50" : "glass-btn-secondary text-forest-800"
                       }`}
                     >

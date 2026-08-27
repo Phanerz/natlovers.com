@@ -51,7 +51,7 @@ export function NavSearchModal({
       <div className="mx-auto flex min-h-full max-w-xl items-center">
       <div
         onClick={(event) => event.stopPropagation()}
-        className={`menu-surface w-full max-w-xl overflow-hidden rounded-lg border border-[#e4d9c1] bg-[rgba(250,246,236,0.98)] shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all ${
+        className={`menu-surface w-full max-w-xl overflow-hidden rounded-xl border border-[#e4d9c1] bg-[rgba(250,246,236,0.98)] shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all ${
           entered
             ? "translate-y-0 scale-100 opacity-100 duration-[420ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
             : "translate-y-4 scale-[0.88] opacity-0 duration-150 ease-out"
@@ -118,9 +118,9 @@ export function NavSearchModal({
                   key={product.slug}
                   type="button"
                   onClick={() => onSelect(product.slug)}
-                  className="motion-card flex w-full items-center gap-4 rounded-lg border border-[#e4d9c1] bg-white/70 p-3 text-left shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#d5c8b1] hover:bg-white hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
+                  className="motion-card flex w-full items-center gap-4 rounded-xl border border-[#e4d9c1] bg-white/70 p-3 text-left shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#d5c8b1] hover:bg-white hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
                 >
-                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-[#e4d9c1] bg-[#eee4cd]">
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#e4d9c1] bg-[#eee4cd]">
                     {product.imageUrl ? (
                       <Image src={product.imageUrl} alt="" fill sizes="64px" className="object-contain p-1" />
                     ) : null}

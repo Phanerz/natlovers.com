@@ -44,7 +44,7 @@ export function CustomRequestsHistory({currency}: {currency: CurrencyCode}) {
     return (
       <div className="space-y-4">
         <h2 className="font-display text-2xl text-forest-900">Custom requests</h2>
-        <div className="rounded-lg border border-[#e4d9c1] bg-white/70 p-8 text-center">
+        <div className="rounded-xl border border-[#e4d9c1] bg-white/70 p-8 text-center">
           <p className="text-sm leading-relaxed text-forest-600">
             You haven&apos;t commissioned anything yet. The Custom Studio is where you design a piece and we handcraft it.
           </p>
@@ -72,7 +72,7 @@ export function CustomRequestsHistory({currency}: {currency: CurrencyCode}) {
         const quoted = request.finalPriceIdr !== null;
 
         return (
-          <div key={request.id} className="rounded-lg border border-[#e4d9c1] bg-white/70 p-5">
+          <div key={request.id} className="rounded-xl border border-[#e4d9c1] bg-white/70 p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-display text-lg text-forest-900">{request.requestRef}</p>
               <span
@@ -101,7 +101,7 @@ export function CustomRequestsHistory({currency}: {currency: CurrencyCode}) {
             {request.images.length ? (
               <div className="mt-3 flex flex-wrap gap-2 border-t border-[#e4d9c1] pt-3">
                 {request.images.map((image) => (
-                  <div key={image.id} className="relative h-14 w-14 overflow-hidden rounded-lg border border-[#e4d9c1]">
+                  <div key={image.id} className="relative h-14 w-14 overflow-hidden rounded-xl border border-[#e4d9c1]">
                     <Image src={image.url} alt="Inspiration" fill sizes="56px" className="object-cover" />
                   </div>
                 ))}

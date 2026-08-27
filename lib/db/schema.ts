@@ -47,13 +47,13 @@ export const products = pgTable(
     shape: text("shape"),
     handleType: text("handle_type"),
     // Per-product colour options, each an admin-entered hex swatch (not a
-    // fixed enum) - so a bag with no natural-dye equivalent, or a product
-    // that just doesn't offer a colour choice, can turn this off entirely
-    // rather than showing an empty or irrelevant picker. Same pattern for
-    // handle colour, a separate axis from bag body colour.
-    hasBaseColour: boolean("has_base_colour").notNull().default(false),
+    // fixed enum). Defaults to true/on: colour choice shows for a product
+    // unless the admin explicitly turns it off for one that genuinely has
+    // none. Same pattern for handle colour, a separate axis from bag body
+    // colour.
+    hasBaseColour: boolean("has_base_colour").notNull().default(true),
     baseColourOptions: jsonb("base_colour_options").$type<{label: string; hex: string}[]>(),
-    hasHandleColour: boolean("has_handle_colour").notNull().default(false),
+    hasHandleColour: boolean("has_handle_colour").notNull().default(true),
     handleColourOptions: jsonb("handle_colour_options").$type<{label: string; hex: string}[]>(),
     // Accessories-only.
     accessoryCategory: text("accessory_category"),

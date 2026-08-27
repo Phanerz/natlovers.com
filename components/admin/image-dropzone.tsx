@@ -101,7 +101,7 @@ export function ImageDropzone({
           {images.map((url, index) => (
             <div
               key={url}
-              className="group relative aspect-square overflow-hidden rounded-lg border border-[#d9ccb3] bg-[#f2ecdc]"
+              className="group relative aspect-square overflow-hidden rounded-xl border border-[#d9ccb3] bg-[#f2ecdc]"
             >
               <Image src={url} alt={`Product image ${index + 1}`} fill sizes="160px" className="object-cover" />
 
@@ -175,7 +175,7 @@ export function ImageDropzone({
               inputRef.current?.click();
             }
           }}
-          className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors duration-150 ${
+          className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors duration-150 ${
             dragOver ? "border-forest-500 bg-forest-50" : "border-[#d4c5ab] bg-[#fffdf9] hover:border-forest-300"
           }`}
         >

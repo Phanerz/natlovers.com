@@ -92,7 +92,7 @@ export function KpiCard({
   );
 
   const className =
-    "group flex min-h-[148px] flex-col items-start rounded-lg border border-[#d4c5ab] bg-[#fffaf1] p-4 text-left transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-forest-400 hover:bg-[#f6efdd] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] active:translate-y-0 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700";
+    "group flex min-h-[148px] flex-col items-start rounded-xl border border-[#d4c5ab] bg-[#fffaf1] p-4 text-left transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-forest-400 hover:bg-[#f6efdd] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] active:translate-y-0 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700";
 
   if (href) {
     return (

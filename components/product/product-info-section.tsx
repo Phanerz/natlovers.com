@@ -16,7 +16,7 @@ export function ProductInfoSection({product}: {product: AdminProduct}) {
   const dimensionsLabel = product.dimensions ? "Dimensions" : "Size";
 
   return (
-    <div className="mt-14 grid gap-8 rounded-lg border border-forest-100 bg-[#fffdf9] p-6 sm:p-8 lg:grid-cols-2 lg:gap-12">
+    <div className="mt-14 grid gap-8 rounded-xl border border-forest-100 bg-[#fffdf9] p-6 sm:p-8 lg:grid-cols-2 lg:gap-12">
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-forest-800">Product Details</h2>
         <p className="whitespace-pre-wrap text-sm leading-relaxed text-forest-600">

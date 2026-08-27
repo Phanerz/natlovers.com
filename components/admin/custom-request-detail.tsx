@@ -107,7 +107,7 @@ function MessageComposer({
   }
 
   return (
-    <div className="space-y-2.5 rounded-lg border border-[#e7ddc6] bg-[#fffdf9] p-4">
+    <div className="space-y-2.5 rounded-xl border border-[#e7ddc6] bg-[#fffdf9] p-4">
       <input
         value={subject}
         onChange={(event) => setSubject(event.target.value)}
@@ -119,7 +119,7 @@ function MessageComposer({
         onChange={(event) => setMessage(event.target.value)}
         rows={6}
         placeholder="Write to the customer in your own words..."
-        className="w-full resize-none rounded-md border border-[#d4c5ab] bg-white px-4 py-3 text-sm leading-relaxed text-forest-900 outline-none focus:border-forest-400"
+        className="w-full resize-none rounded-lg border border-[#d4c5ab] bg-white px-4 py-3 text-sm leading-relaxed text-forest-900 outline-none focus:border-forest-400"
       />
       <div className="flex gap-2">
         <button
@@ -229,7 +229,7 @@ export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}
         <div className="space-y-6">
           <div className="card space-y-4 p-6 sm:p-8">
             <h2 className="font-display text-xl text-forest-900">Configuration</h2>
-            <dl className="divide-y divide-[#eee7d8] rounded-lg border border-[#e7ddc6] bg-[#fffdf9]">
+            <dl className="divide-y divide-[#eee7d8] rounded-xl border border-[#e7ddc6] bg-[#fffdf9]">
               {rows.map((row) => (
                 <div key={row.label} className="flex items-baseline justify-between gap-4 px-4 py-3">
                   <dt className="text-sm text-forest-500">{row.label}</dt>
@@ -250,7 +250,7 @@ export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}
                     key={image.id}
                     type="button"
                     onClick={() => setLightbox(image.url)}
-                    className="relative aspect-square overflow-hidden rounded-lg border border-[#d9ccb3] bg-[#f2ecdc] transition-transform duration-200 hover:scale-[1.02]"
+                    className="relative aspect-square overflow-hidden rounded-xl border border-[#d9ccb3] bg-[#f2ecdc] transition-transform duration-200 hover:scale-[1.02]"
                   >
                     <Image src={image.url} alt="Inspiration" fill sizes="200px" className="object-cover" />
                   </button>
@@ -264,7 +264,7 @@ export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}
           <div className="card space-y-3 p-6 sm:p-8">
             <h2 className="font-display text-xl text-forest-900">Customer notes</h2>
             {request.notes?.trim() ? (
-              <p className="whitespace-pre-wrap rounded-lg border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3 text-sm leading-relaxed text-forest-800">
+              <p className="whitespace-pre-wrap rounded-xl border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3 text-sm leading-relaxed text-forest-800">
                 {request.notes}
               </p>
             ) : (
@@ -282,7 +282,7 @@ export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}
               onChange={(event) => setAdminNotes(event.target.value)}
               rows={5}
               placeholder="Notes for the studio: materials on hand, who's making it, what was agreed on the phone..."
-              className="w-full resize-none rounded-md border border-[#d4c5ab] bg-white px-4 py-3 text-sm leading-relaxed text-forest-900 outline-none focus:border-forest-400"
+              className="w-full resize-none rounded-lg border border-[#d4c5ab] bg-white px-4 py-3 text-sm leading-relaxed text-forest-900 outline-none focus:border-forest-400"
             />
             <button
               type="button"
@@ -362,7 +362,7 @@ export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}
           <div className="card space-y-3 p-6">
             <h2 className="font-display text-xl text-forest-900">Pricing</h2>
 
-            <div className="rounded-lg border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3">
+            <div className="rounded-xl border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-500">
                 Estimate shown to customer
               </p>

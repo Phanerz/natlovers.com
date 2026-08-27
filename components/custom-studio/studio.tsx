@@ -372,7 +372,7 @@ export function CustomStudio({
       </div>
 
       {restoredNotice ? (
-        <p className="flex items-center gap-2 rounded-lg border border-[#e4dcc9] bg-[#faf6ec] px-3 py-1.5 text-[11.5px] text-forest-600">
+        <p className="flex items-center gap-2 rounded-xl border border-[#e4dcc9] bg-[#faf6ec] px-3 py-1.5 text-[11.5px] text-forest-600">
           <RotateCcw className="h-3.5 w-3.5 text-forest-500" />
           Your draft was restored.
           <button type="button" onClick={() => void startOver()} className="ml-1 underline underline-offset-2">
@@ -384,17 +384,17 @@ export function CustomStudio({
       {/* Three-column workspace. Each column is headed by the step number it
           corresponds to on the rail above. */}
       <div className="grid gap-3 lg:grid-cols-[minmax(0,24fr)_minmax(0,46fr)_minmax(0,30fr)]">
-        <div ref={designRef} className="rounded-lg border border-[#e0d8c7] bg-[#fdfaf3] p-4">
+        <div ref={designRef} className="rounded-xl border border-[#e0d8c7] bg-[#fdfaf3] p-4">
           <StepHeader n={1} label="Design" hint="Make it yours" done={completion.design} />
           <ConfigPanel config={config} onChange={updateConfig} />
         </div>
 
-        <div className="min-h-[22rem] rounded-lg border border-[#e0d8c7] bg-[#fdfaf3] p-3 lg:min-h-[27rem]">
+        <div className="min-h-[22rem] rounded-xl border border-[#e0d8c7] bg-[#fdfaf3] p-3 lg:min-h-[27rem]">
           <PreviewPanel config={config} catalogue={catalogue} />
         </div>
 
         <div className="flex flex-col gap-3">
-          <div ref={inspirationRef} className="rounded-lg border border-[#e0d8c7] bg-[#fdfaf3] p-4">
+          <div ref={inspirationRef} className="rounded-xl border border-[#e0d8c7] bg-[#fdfaf3] p-4">
             <StepHeader n={2} label="Inspiration" hint="Add your ideas" done={completion.inspiration} />
             <InspirationPanel
               section="inspiration"
@@ -408,7 +408,7 @@ export function CustomStudio({
             />
           </div>
 
-          <div ref={detailsRef} className="rounded-lg border border-[#e0d8c7] bg-[#fdfaf3] p-4">
+          <div ref={detailsRef} className="rounded-xl border border-[#e0d8c7] bg-[#fdfaf3] p-4">
             <StepHeader n={3} label="Details" hint="Tell us more" done={completion.details} />
             <InspirationPanel
               section="details"
@@ -425,7 +425,7 @@ export function CustomStudio({
       </div>
 
       {/* Step 4 sits in the footer bar, where the action actually is. */}
-      <div className="flex flex-col gap-3 rounded-lg border border-[#e0d8c7] bg-[#fdfaf3] px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-xl border border-[#e0d8c7] bg-[#fdfaf3] px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <StepBadge n={4} done={completion.review} />
           <EstimatePanel estimate={estimate} currency={currency} compact />

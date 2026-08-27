@@ -131,7 +131,7 @@ export function InspirationPanel({
           rows={4}
           onChange={(event) => onNotesChange(event.target.value)}
           placeholder="Tell us anything you'd like us to know…"
-          className="w-full resize-none rounded-md border border-[#ddd5c4] bg-white px-3 py-2.5 text-[13px] leading-relaxed text-forest-900 outline-none placeholder:text-forest-300 focus:border-forest-600"
+          className="w-full resize-none rounded-lg border border-[#ddd5c4] bg-white px-3 py-2.5 text-[13px] leading-relaxed text-forest-900 outline-none placeholder:text-forest-300 focus:border-forest-600"
         />
         <p className="text-right text-[10px] text-forest-400">
           {notes.length} / {MAX_NOTES}
@@ -162,7 +162,7 @@ export function InspirationPanel({
             inputRef.current?.click();
           }
         }}
-        className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed px-4 py-5 text-center transition-colors duration-150 ${
+        className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 py-5 text-center transition-colors duration-150 ${
           dragOver ? "border-forest-500 bg-forest-50" : "border-[#d4c5ab] bg-[#fffdf9] hover:border-forest-300"
         }`}
       >
@@ -198,7 +198,7 @@ export function InspirationPanel({
       ) : null}
 
       {failed ? (
-        <div className="flex items-start justify-between gap-2 rounded-lg border border-[#e6c4b6] bg-[#fdf1ec] px-2.5 py-1.5">
+        <div className="flex items-start justify-between gap-2 rounded-xl border border-[#e6c4b6] bg-[#fdf1ec] px-2.5 py-1.5">
           <p className="flex items-start gap-1.5 text-[10.5px] leading-relaxed text-[#a4553c]">
             <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
             {failed.message}
@@ -221,7 +221,7 @@ export function InspirationPanel({
           {images.map((image) => (
             <div
               key={image.id}
-              className="group relative aspect-square overflow-hidden rounded-lg border border-[#d9ccb3] bg-[#f2ecdc]"
+              className="group relative aspect-square overflow-hidden rounded-xl border border-[#d9ccb3] bg-[#f2ecdc]"
             >
               <Image src={image.url} alt="Inspiration" fill sizes="64px" className="object-cover" />
               <button
@@ -238,7 +238,7 @@ export function InspirationPanel({
             type="button"
             onClick={() => inputRef.current?.click()}
             aria-label="Add more photos"
-            className="flex aspect-square items-center justify-center rounded-lg border border-dashed border-[#d4c5ab] bg-[#fffdf9] text-forest-500 transition-colors hover:border-forest-400"
+            className="flex aspect-square items-center justify-center rounded-xl border border-dashed border-[#d4c5ab] bg-[#fffdf9] text-forest-500 transition-colors hover:border-forest-400"
           >
             <Plus className="h-3.5 w-3.5" />
           </button>

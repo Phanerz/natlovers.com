@@ -51,7 +51,7 @@ export function HowItWorks() {
           <div
             role="dialog"
             aria-label="How the Custom Studio works"
-            className="absolute right-0 top-[calc(100%+10px)] z-[61] w-[min(22rem,calc(100vw-2rem))] rounded-lg border border-[#e0d8c7] bg-[#fffdf9] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
+            className="absolute right-0 top-[calc(100%+10px)] z-[61] w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-[#e0d8c7] bg-[#fffdf9] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
           >
             <div className="mb-3 flex items-start justify-between gap-3">
               <p className="font-display text-lg leading-tight text-forest-900">How a commission works</p>
@@ -74,7 +74,7 @@ export function HowItWorks() {
               ))}
             </ol>
 
-            <p className="mt-4 rounded-lg border border-[#e4dcc9] bg-[#faf6ec] px-3 py-2.5 text-[11px] leading-relaxed text-forest-600">
+            <p className="mt-4 rounded-xl border border-[#e4dcc9] bg-[#faf6ec] px-3 py-2.5 text-[11px] leading-relaxed text-forest-600">
               <strong className="font-semibold text-forest-800">About the estimate:</strong> {ESTIMATE_DISCLAIMER}
             </p>
           </div>
@@ -98,7 +98,7 @@ export function EstimatePanel({
 }) {
   if (!estimate) {
     return (
-      <div className={compact ? "" : "rounded-lg border border-[#e4dcc9] bg-[#faf6ec] px-3.5 py-3"}>
+      <div className={compact ? "" : "rounded-xl border border-[#e4dcc9] bg-[#faf6ec] px-3.5 py-3"}>
         <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-forest-500">Estimated total</p>
         <p className={`mt-0.5 font-display text-forest-900 ${compact ? "text-base leading-none" : "text-lg"}`}>
           Quoted after studio review
@@ -113,7 +113,7 @@ export function EstimatePanel({
   }
 
   return (
-    <div className={compact ? "" : "rounded-lg border border-[#e4dcc9] bg-[#faf6ec] px-3.5 py-3"}>
+    <div className={compact ? "" : "rounded-xl border border-[#e4dcc9] bg-[#faf6ec] px-3.5 py-3"}>
       <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-forest-500">Estimated total</p>
       <p className={`mt-0.5 font-display leading-none text-forest-900 ${compact ? "text-xl" : "text-2xl"}`}>
         {formatCurrency(estimate.totalIdr, currency)}
@@ -177,7 +177,7 @@ export function ReviewPanel({
       aria-label="Review your custom request"
       className="fixed inset-0 z-[75] flex items-start justify-center overflow-y-auto bg-forest-900/70 p-4 backdrop-blur-sm sm:p-8"
     >
-      <div className="my-auto w-full max-w-2xl rounded-lg border border-[#e0d8c7] bg-[#fffdf9] p-6 shadow-[0_4px_12px_rgba(0,0,0,0.06)] sm:p-8">
+      <div className="my-auto w-full max-w-2xl rounded-xl border border-[#e0d8c7] bg-[#fffdf9] p-6 shadow-[0_4px_12px_rgba(0,0,0,0.06)] sm:p-8">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-forest-500">Review your request</p>
@@ -199,7 +199,7 @@ export function ReviewPanel({
         <div className="space-y-4">
           <section>
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-forest-500">Your design</p>
-            <dl className="divide-y divide-[#eee7d8] rounded-lg border border-[#e4dcc9] bg-white/70">
+            <dl className="divide-y divide-[#eee7d8] rounded-xl border border-[#e4dcc9] bg-white/70">
               {rows.map((row) => (
                 <div key={row.label} className="flex items-baseline justify-between gap-4 px-4 py-2.5">
                   <dt className="text-[12px] text-forest-500">{row.label}</dt>
@@ -212,7 +212,7 @@ export function ReviewPanel({
           {/* The preview's honesty carries through to the review step, so a
               customer confirms knowing exactly what the picture did and did
               not represent. */}
-          <p className="rounded-lg border border-[#e4dcc9] bg-[#faf6ec] px-4 py-3 text-[11px] leading-relaxed text-forest-600">
+          <p className="rounded-xl border border-[#e4dcc9] bg-[#faf6ec] px-4 py-3 text-[11px] leading-relaxed text-forest-600">
             {describePreviewMatch(match, noun)}
           </p>
 
@@ -223,7 +223,7 @@ export function ReviewPanel({
               </p>
               <div className="flex flex-wrap gap-2">
                 {images.map((image) => (
-                  <div key={image.id} className="relative h-16 w-16 overflow-hidden rounded-lg border border-[#d9ccb3]">
+                  <div key={image.id} className="relative h-16 w-16 overflow-hidden rounded-xl border border-[#d9ccb3]">
                     <Image src={image.url} alt="Inspiration" fill sizes="64px" className="object-cover" />
                   </div>
                 ))}
@@ -234,7 +234,7 @@ export function ReviewPanel({
           {notes.trim() ? (
             <section>
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-forest-500">Your notes</p>
-              <p className="whitespace-pre-wrap rounded-lg border border-[#e4dcc9] bg-white/70 px-4 py-3 text-[13px] leading-relaxed text-forest-800">
+              <p className="whitespace-pre-wrap rounded-xl border border-[#e4dcc9] bg-white/70 px-4 py-3 text-[13px] leading-relaxed text-forest-800">
                 {notes}
               </p>
             </section>
@@ -243,7 +243,7 @@ export function ReviewPanel({
           <EstimatePanel estimate={estimate} currency={currency} />
 
           {error ? (
-            <p className="flex items-start gap-2 rounded-lg border border-[#e6c4b6] bg-[#fdf1ec] px-4 py-3 text-[12px] leading-relaxed text-[#a4553c]">
+            <p className="flex items-start gap-2 rounded-xl border border-[#e6c4b6] bg-[#fdf1ec] px-4 py-3 text-[12px] leading-relaxed text-[#a4553c]">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               {error}
             </p>
@@ -292,7 +292,7 @@ export function SuccessState({
   return (
     <div className="shell py-16">
       <div className="mx-auto max-w-2xl">
-        <div className="rounded-lg border border-[#e0d8c7] bg-[#fffdf9] p-8 text-center shadow-card sm:p-12">
+        <div className="rounded-xl border border-[#e0d8c7] bg-[#fffdf9] p-8 text-center shadow-card sm:p-12">
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-forest-100">
             <CheckCircle2 className="h-7 w-7 text-forest-700" />
           </span>
@@ -302,15 +302,15 @@ export function SuccessState({
           </p>
 
           <div className="mt-7 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-[#e4dcc9] bg-[#faf6ec] px-4 py-3">
+            <div className="rounded-xl border border-[#e4dcc9] bg-[#faf6ec] px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-forest-500">Reference</p>
               <p className="mt-1 font-display text-lg text-forest-900">{request.requestRef}</p>
             </div>
-            <div className="rounded-lg border border-[#e4dcc9] bg-[#faf6ec] px-4 py-3">
+            <div className="rounded-xl border border-[#e4dcc9] bg-[#faf6ec] px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-forest-500">Piece</p>
               <p className="mt-1 font-display text-lg text-forest-900">{productType}</p>
             </div>
-            <div className="rounded-lg border border-[#e4dcc9] bg-[#faf6ec] px-4 py-3">
+            <div className="rounded-xl border border-[#e4dcc9] bg-[#faf6ec] px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-forest-500">Estimated</p>
               <p className="mt-1 font-display text-lg text-forest-900">
                 {request.estimatedPriceIdr > 0 ? formatCurrency(request.estimatedPriceIdr, currency) : "To be quoted"}

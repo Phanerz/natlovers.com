@@ -63,7 +63,7 @@ export function HeroImageDropzone({
             inputRef.current?.click();
           }
         }}
-        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors duration-150 ${
+        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors duration-150 ${
           dragOver ? "border-forest-500 bg-forest-50" : "border-[#d4c5ab] bg-[#fffdf9] hover:border-forest-300"
         }`}
       >
@@ -85,7 +85,7 @@ export function HeroImageDropzone({
       {previews.length ? (
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
           {previews.map((url, index) => (
-            <div key={url} className="group relative aspect-square overflow-hidden rounded-lg border border-[#d9ccb3] bg-[#f2ecdc]">
+            <div key={url} className="group relative aspect-square overflow-hidden rounded-xl border border-[#d9ccb3] bg-[#f2ecdc]">
               <Image src={url} alt={`Selected image ${index + 1}`} fill unoptimized className="object-cover" />
               <button
                 type="button"

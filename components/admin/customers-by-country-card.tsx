@@ -10,7 +10,7 @@ export function CustomersByCountryCard({rows}: {rows: CustomersByCountryRow[]}) 
           {rows.map((row) => (
             <div
               key={row.country ?? "unassigned"}
-              className="flex items-center justify-between gap-3 rounded-lg border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3"
+              className="flex items-center justify-between gap-3 rounded-xl border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3"
             >
               <span className="flex items-center gap-3 text-sm text-forest-800">
                 <Globe2 className={`h-4 w-4 ${row.country ? "text-forest-500" : "text-forest-400"}`} />

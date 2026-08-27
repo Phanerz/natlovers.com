@@ -101,7 +101,7 @@ function RangePicker({range, onChange}: {range: DateRangeKey; onChange: (range: 
         <ChevronDown className={`h-3.5 w-3.5 text-forest-500 transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${open ? "rotate-180" : ""}`} />
       </button>
       <div
-        className={`absolute right-0 top-[calc(100%+0.5rem)] z-20 w-44 origin-top-right rounded-lg border border-[#d7cab2] bg-[#fffaf1] p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        className={`absolute right-0 top-[calc(100%+0.5rem)] z-20 w-44 origin-top-right rounded-xl border border-[#d7cab2] bg-[#fffaf1] p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
           open ? "scale-100 opacity-100" : "pointer-events-none scale-95 opacity-0"
         }`}
       >
@@ -113,7 +113,7 @@ function RangePicker({range, onChange}: {range: DateRangeKey; onChange: (range: 
               onChange(value);
               setOpen(false);
             }}
-            className={`block w-full rounded-lg px-3 py-2 text-left text-sm transition-colors duration-150 ${
+            className={`block w-full rounded-xl px-3 py-2 text-left text-sm transition-colors duration-150 ${
               range === value ? "bg-forest-900 text-sand-50" : "text-forest-700 hover:bg-[#f0e7d4]"
             }`}
           >
@@ -255,7 +255,7 @@ function NeedsAttentionCard({stats}: {stats: Stats}) {
             <Link
               key={item.key}
               href={item.href}
-              className="flex items-center justify-between gap-3 rounded-lg border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3 transition-colors duration-150 hover:bg-[#f6efdd]"
+              className="flex items-center justify-between gap-3 rounded-xl border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3 transition-colors duration-150 hover:bg-[#f6efdd]"
             >
               <span className="flex items-center gap-3">
                 <item.icon className="h-4 w-4 text-[#a4402b]" />
@@ -341,7 +341,7 @@ function BestSellingProductsCard({products}: {products: BestSellingProduct[] | n
       ) : (
         <div className="space-y-2">
           {products.map((product, index) => (
-            <div key={product.slug} className="flex items-center justify-between gap-3 rounded-lg border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3">
+            <div key={product.slug} className="flex items-center justify-between gap-3 rounded-xl border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3">
               <span className="flex items-center gap-3 text-sm text-forest-800">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#eee4cd] text-xs font-semibold text-forest-700">
                   {index + 1}

@@ -16,7 +16,7 @@ Liquid glass (blur, refraction, soft continuous radius) applies ONLY to:
 - Primary buttons / CTAs (`.glass-btn-primary` and equivalent)
 - Featured/highlight cards explicitly marked as such (e.g. hero product cards, custom-studio preview cards)  -  NOT every card, NOT list/grid cards, NOT form containers
 
-Everything else  -  nav, inputs, standard product cards, containers, tables, footers  -  stays flat warm-editorial: 1px border, `--surface` fill, radius 6–8, no blur, subtle shadow only where noted in section 6.
+Everything else  -  nav, inputs, standard product cards, containers, tables, footers  -  stays flat warm-editorial: 1px border, `--surface` fill, radius 8–12, no blur, subtle shadow only where noted in section 6.
 
 **Glass elements themselves**
 - Radius: continuous/superellipse curve, larger than the flat-editorial scale (16–24 range is fine here  -  glass needs room to read as glass)
@@ -25,9 +25,9 @@ Everything else  -  nav, inputs, standard product cards, containers, tables, foo
 - Keep the accent color consistent with the rest of the palette  -  don't let glass introduce its own color language (no cold blue/cyan tints, stay warm)
 
 **Everything NOT in the glass scope**
-- Buttons (secondary): `--surface` fill, 1px `--border`, radius 6–8, padding 10/18, weight 500
-- Cards / product tiles: `--surface` fill, 1px `--border`, radius 8. Flat by default, no blur.
-- Inputs: 1px `--border`, radius 6, padding 10/14. Focus: 2px `--accent` outline, 2px offset. No glow.
+- Buttons (secondary): `--surface` fill, 1px `--border`, radius 8–12, padding 10/18, weight 500
+- Cards / product tiles: `--surface` fill, 1px `--border`, radius 12. Flat by default, no blur.
+- Inputs: 1px `--border`, radius 8, padding 10/14. Focus: 2px `--accent` outline, 2px offset. No glow.
 - Pills / badges: keep full radius regardless of the rest of this section  -  pills are exempt from the "less rounded" rule entirely.
 
 ## 5. Layout Principles

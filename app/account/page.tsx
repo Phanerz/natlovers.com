@@ -265,7 +265,7 @@ function AccountContent() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[16rem_1fr]">
-        <aside className="rounded-lg border border-[#e4d9c1] bg-white/60 p-3 backdrop-blur-xl lg:sticky lg:top-24 lg:self-start">
+        <aside className="rounded-xl border border-[#e4d9c1] bg-white/60 p-3 backdrop-blur-xl lg:sticky lg:top-24 lg:self-start">
           <div className="flex items-center gap-3 px-3 py-3">
             <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-forest-900">
               {user.image ? (
@@ -296,7 +296,7 @@ function AccountContent() {
                   key={item.key}
                   type="button"
                   onClick={() => selectTab(item.key)}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors duration-150 ${
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors duration-150 ${
                     active ? "bg-forest-900 text-sand-50" : "text-forest-700 hover:bg-white"
                   }`}
                 >
@@ -312,14 +312,14 @@ function AccountContent() {
           <button
             type="button"
             onClick={() => signOut({callbackUrl: "/signed-out"})}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-[#a4402b] transition-colors duration-150 hover:bg-[#f7e9e2]"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[#a4402b] transition-colors duration-150 hover:bg-[#f7e9e2]"
           >
             <LogOut className="h-4 w-4" />
             Sign out
           </button>
         </aside>
 
-        <div className="rounded-lg border border-[#e4d9c1] bg-white/60 p-6 backdrop-blur-xl sm:p-8">
+        <div className="rounded-xl border border-[#e4d9c1] bg-white/60 p-6 backdrop-blur-xl sm:p-8">
           {tab === "profile" ? (
             <div className="space-y-8">
               {isAdmin && adminTelemetry && adminStats ? (
@@ -335,7 +335,7 @@ function AccountContent() {
                       <input
                         value={form.name}
                         onChange={(event) => setForm((current) => ({...current, name: event.target.value}))}
-                        className="w-full rounded-md border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
+                        className="w-full rounded-lg border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
                       />
                     </label>
                     <label className="space-y-1.5 text-sm text-forest-700">
@@ -343,7 +343,7 @@ function AccountContent() {
                       <input
                         value={user.email ?? ""}
                         disabled
-                        className="w-full cursor-not-allowed rounded-md border border-[#e4d9c1] bg-[#f3ede0] px-4 py-3 text-forest-500"
+                        className="w-full cursor-not-allowed rounded-lg border border-[#e4d9c1] bg-[#f3ede0] px-4 py-3 text-forest-500"
                       />
                     </label>
                     <label htmlFor="profile-phone" className="space-y-1.5 text-sm text-forest-700 sm:col-span-2">
@@ -386,7 +386,7 @@ function AccountContent() {
               <div className="space-y-4">
                 <h2 className="font-display text-2xl text-forest-900">Orders & purchases</h2>
                 {orders.map((order) => (
-                  <div key={order.id} className="rounded-lg border border-[#e4d9c1] bg-white/70 p-5">
+                  <div key={order.id} className="rounded-xl border border-[#e4d9c1] bg-white/70 p-5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="font-display text-lg text-forest-900">{order.orderRef}</p>
                       <span className="rounded-full border border-[#e4d9c1] bg-[#eee4cd] px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-forest-700">
@@ -436,9 +436,9 @@ function AccountContent() {
                     <Link
                       key={product.slug}
                       href={`/catalogue/${product.slug}`}
-                      className="flex items-center gap-3 rounded-lg border border-[#e4d9c1] bg-white/70 p-3 transition-colors duration-150 hover:bg-white"
+                      className="flex items-center gap-3 rounded-xl border border-[#e4d9c1] bg-white/70 p-3 transition-colors duration-150 hover:bg-white"
                     >
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-[#eee4cd]">
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#eee4cd]">
                         {product.imageUrl ? (
                           <Image src={product.imageUrl} alt="" fill sizes="64px" className="object-cover" />
                         ) : null}
@@ -474,7 +474,7 @@ function AccountContent() {
                   <select
                     value={locale}
                     onChange={(event) => setLocale(event.target.value as Locale)}
-                    className="w-full rounded-md border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
+                    className="w-full rounded-lg border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
                   >
                     {locales.map((option) => (
                       <option key={option} value={option}>
@@ -488,7 +488,7 @@ function AccountContent() {
                   <select
                     value={currency}
                     onChange={(event) => setCurrency(event.target.value as CurrencyCode)}
-                    className="w-full rounded-md border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
+                    className="w-full rounded-lg border border-[#e4d9c1] bg-white px-4 py-3 text-forest-900 outline-none focus:border-forest-400"
                   >
                     {currencies.map((option) => (
                       <option key={option} value={option}>

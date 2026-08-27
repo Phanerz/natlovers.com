@@ -50,7 +50,7 @@ export function ProductCustomizer({
   }
 
   return (
-    <div className="space-y-5 rounded-lg border border-forest-100 bg-[#fdfaf3] p-4 sm:p-5">
+    <div className="space-y-5 rounded-xl border border-forest-100 bg-[#fdfaf3] p-4 sm:p-5">
       {showSize ? (
         <div>
           <p className="mb-2.5 text-sm font-semibold text-forest-900">{sizeStep}. Choose your size</p>
@@ -64,7 +64,7 @@ export function ProductCustomizer({
                   key={option}
                   onClick={() => onSizeChange(option)}
                   aria-pressed={active}
-                  className={`relative rounded-lg border p-3 text-left transition-colors duration-150 ${
+                  className={`relative rounded-xl border p-3 text-left transition-colors duration-150 ${
                     active ? "border-forest-700 bg-white" : "border-[#ddd5c4] bg-[#fffdf9] hover:border-forest-400"
                   }`}
                 >

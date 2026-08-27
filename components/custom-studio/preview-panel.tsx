@@ -42,7 +42,7 @@ export function PreviewPanel({config, catalogue}: {config: CustomConfig; catalog
 
   return (
     <div className="flex h-full flex-col gap-3">
-      <div className="relative flex-1 overflow-hidden rounded-lg border border-[#e0d8c7] bg-[#f0ebdf]">
+      <div className="relative flex-1 overflow-hidden rounded-xl border border-[#e0d8c7] bg-[#f0ebdf]">
         {activeImage ? (
           <>
             <Image
@@ -104,7 +104,7 @@ export function PreviewPanel({config, catalogue}: {config: CustomConfig; catalog
                 onClick={() => setActiveIndex(index)}
                 aria-label={`Angle ${index + 1}`}
                 aria-pressed={index === activeIndex}
-                className={`relative h-16 w-20 shrink-0 overflow-hidden rounded-lg border transition-all duration-200 ${
+                className={`relative h-16 w-20 shrink-0 overflow-hidden rounded-xl border transition-all duration-200 ${
                   index === activeIndex ? "border-forest-700 ring-1 ring-forest-700" : "border-[#ddd5c4] opacity-75 hover:opacity-100"
                 }`}
               >
@@ -128,7 +128,7 @@ export function PreviewPanel({config, catalogue}: {config: CustomConfig; catalog
           photograph, so repeating the caption underneath would say the same
           thing twice. */}
       {match.quality !== "none" ? (
-        <p className="flex items-start gap-2 rounded-lg border border-[#e4dcc9] bg-[#faf6ec] px-3.5 py-2.5 text-[11px] leading-relaxed text-forest-600">
+        <p className="flex items-start gap-2 rounded-xl border border-[#e4dcc9] bg-[#faf6ec] px-3.5 py-2.5 text-[11px] leading-relaxed text-forest-600">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-forest-500" />
           <span>{caption}</span>
         </p>

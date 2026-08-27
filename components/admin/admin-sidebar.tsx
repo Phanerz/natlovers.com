@@ -38,7 +38,7 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={`button-lift flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+      className={`button-lift flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
         active
           ? "flat-nav-active text-sand-50"
           : "text-[#3c3c34] hover:-translate-y-px hover:bg-[#eee7d8] hover:text-[#344332] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
@@ -70,7 +70,7 @@ function SubItem({href, label, active}: {href: Route; label: string; active: boo
   return (
     <Link
       href={href}
-      className={`flex w-full items-center gap-2 rounded-lg py-1.5 pl-8 pr-3 text-left text-[13px] transition-colors duration-150 ${
+      className={`flex w-full items-center gap-2 rounded-xl py-1.5 pl-8 pr-3 text-left text-[13px] transition-colors duration-150 ${
         active ? "font-medium text-forest-900" : "text-[#6b6b5f] hover:text-[#344332]"
       }`}
     >
@@ -117,7 +117,7 @@ export function AdminSidebar() {
   const isAddHero = onDashboardRoute && tab === "add-hero-card";
 
   return (
-    <aside className="w-full shrink-0 rounded-lg border border-[#d4c5ab] bg-[#fffaf1] p-4 lg:w-64">
+    <aside className="w-full shrink-0 rounded-xl border border-[#d4c5ab] bg-[#fffaf1] p-4 lg:w-64">
       <div className="border-b border-[#d9cfc0] pb-3">
         <NavLink href="/mimin" active={isDashboardHome} icon={LayoutDashboard}>
           Dashboard
@@ -134,7 +134,7 @@ export function AdminSidebar() {
               <button
                 type="button"
                 onClick={() => setProductsExpanded((value) => !value)}
-                className={`button-lift flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] ${
+                className={`button-lift flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] ${
                   isManage
                     ? "flat-nav-active text-sand-50"
                     : "text-[#3c3c34] hover:-translate-y-px hover:bg-[#eee7d8] hover:text-[#344332] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
@@ -193,7 +193,7 @@ export function AdminSidebar() {
         </div>
         <Link
           href="/mimin/orders"
-          className={`button-lift flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          className={`button-lift flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
             pathname === "/mimin/orders"
               ? "flat-nav-active text-sand-50"
               : "text-[#3c3c34] hover:-translate-y-px hover:bg-[#eee7d8] hover:text-[#344332] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
@@ -211,7 +211,7 @@ export function AdminSidebar() {
         </Link>
         <Link
           href="/mimin/custom-requests"
-          className={`button-lift mt-1 flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-[13.5px] font-medium transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          className={`button-lift mt-1 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
             pathname?.startsWith("/mimin/custom-requests")
               ? "flat-nav-active text-sand-50"
               : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
@@ -242,7 +242,7 @@ export function AdminSidebar() {
         <button
           type="button"
           onClick={() => signOut({callbackUrl: "/mimin"})}
-          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[13.5px] font-medium text-[#8a4a3a] transition-colors duration-150 hover:bg-[#f7e9e2]"
+          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium text-[#8a4a3a] transition-colors duration-150 hover:bg-[#f7e9e2]"
         >
           <LogOut className="h-4 w-4 shrink-0" />
           Sign out

@@ -5,7 +5,7 @@ import {HeroImageDropzone} from "./hero-image-dropzone";
 import {HeroCardFormState, HeroCardType} from "./hero-card-types";
 
 const fieldClass =
-  "w-full rounded-md border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-base text-forest-900 outline-none focus:border-forest-400";
+  "w-full rounded-lg border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-base text-forest-900 outline-none focus:border-forest-400";
 
 const TYPE_OPTIONS: {value: HeroCardType; label: string}[] = [
   {value: "image", label: "Image"},
@@ -57,7 +57,7 @@ export function HeroCardForm({
               type="color"
               value={form.colorValue}
               onChange={(event) => onChange({...form, colorValue: event.target.value})}
-              className="h-12 w-14 shrink-0 cursor-pointer rounded-lg border border-[#d4c5ab] bg-transparent p-1"
+              className="h-12 w-14 shrink-0 cursor-pointer rounded-xl border border-[#d4c5ab] bg-transparent p-1"
             />
             <input
               value={form.colorValue}
