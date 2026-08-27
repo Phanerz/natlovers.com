@@ -2,7 +2,7 @@ import {NextRequest, NextResponse} from "next/server";
 import {createProduct, deleteProductPermanently, getAllProducts, getAllProductsForAdmin, setProductActive, updateProduct} from "@/lib/admin-products";
 import {getSession, isAdminEmail} from "@/lib/auth";
 
-// Serves live product/price data to the storefront — must never be served
+// Serves live product/price data to the storefront  -  must never be served
 // from Next's Full Route Cache.
 export const dynamic = "force-dynamic";
 
@@ -71,7 +71,7 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// Hard delete — permanently removes the row. Safe even for a product with
+// Hard delete  -  permanently removes the row. Safe even for a product with
 // order history, since order_items snapshots name/price rather than
 // referencing products by foreign key (see the comment on
 // deleteProductPermanently). Hiding a product without deleting it is the

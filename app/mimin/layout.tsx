@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 // Single admin auth gate + the persistent sidebar shell for every /mimin/*
-// route — previously only the dashboard tab itself rendered a sidebar, so
+// route  -  previously only the dashboard tab itself rendered a sidebar, so
 // navigating to Orders (or now Stock/Customers) dropped it entirely. Every
 // admin page below this layout can assume it's already authenticated and
 // just render its own content.
@@ -23,7 +23,7 @@ export default async function MiminLayout({children}: {children: React.ReactNode
     );
   }
 
-  // Wider than the storefront's shared .shell (max-w-7xl) — the admin panel
+  // Wider than the storefront's shared .shell (max-w-7xl)  -  the admin panel
   // benefits from using more of a wide monitor, unlike storefront copy/imagery
   // which reads worse stretched out. Scoped to this layout (not .shell itself)
   // so every /mimin/* page gets it consistently without touching the public

@@ -127,7 +127,7 @@ function RangePicker({range, onChange}: {range: DateRangeKey; onChange: (range: 
 
 // Computed after mount (not during the server render) so a deployed
 // server's clock/timezone can never disagree with the visitor's own and
-// cause a hydration mismatch — starts with a neutral fallback that's
+// cause a hydration mismatch  -  starts with a neutral fallback that's
 // replaced within a frame.
 function useGreeting(): string {
   const [greeting, setGreeting] = useState("Hello");
@@ -309,7 +309,7 @@ function RecentOrdersCard({orders}: {orders: RecentOrder[]}) {
                       {order.orderRef}
                     </Link>
                   </td>
-                  <td className="py-3 pr-3 text-forest-700">{order.customerName ?? order.customerEmail ?? "—"}</td>
+                  <td className="py-3 pr-3 text-forest-700">{order.customerName ?? order.customerEmail ?? "-"}</td>
                   <td className="py-3 pr-3 whitespace-nowrap text-forest-700">{formatIdr(order.totalIdr)}</td>
                   <td className="py-3 pr-3">
                     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${statusBadgeStyles[order.status] ?? "bg-[#eee4cd] text-forest-700"}`}>

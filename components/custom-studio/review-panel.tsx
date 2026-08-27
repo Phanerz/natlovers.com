@@ -12,7 +12,7 @@ import {describePreviewMatch, type PreviewMatch} from "@/lib/custom-preview";
 import type {CustomRequestImageView, CustomRequestView} from "@/lib/custom-requests";
 
 // Explains the process before anything is filled in, and is explicit that
-// the estimate is not the price — the single most important thing for a
+// the estimate is not the price  -  the single most important thing for a
 // customer to understand before they spend ten minutes configuring.
 export function HowItWorks() {
   const [open, setOpen] = useState(false);
@@ -123,12 +123,12 @@ export function EstimatePanel({
         // option happens to be free of charge.
         <p className="mt-1 text-[10px] leading-relaxed text-forest-500">
           {compact
-            ? "Estimate only — option surcharges aren’t set yet."
-            : "Based on comparable pieces in our catalogue. Option surcharges aren’t reflected yet — the studio confirms the real figure."}
+            ? "Estimate only. Option surcharges aren’t set yet."
+            : "Based on comparable pieces in our catalogue. Option surcharges aren’t reflected yet, so the studio confirms the real figure."}
         </p>
       ) : (
         <p className="mt-1 text-[10px] leading-relaxed text-forest-500">
-          {compact ? "Estimate only — the studio confirms the final price." : ESTIMATE_DISCLAIMER}
+          {compact ? "Estimate only. The studio confirms the final price." : ESTIMATE_DISCLAIMER}
         </p>
       )}
     </div>

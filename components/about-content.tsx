@@ -8,12 +8,12 @@ const SETTLE_EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
 const SETTLE_DURATION = 800;
 
 // FLIP entrance: snap to a viewport-covering transform, then transition back
-// to identity — avoids position:fixed since the section is already screen-centered.
+// to identity  -  avoids position:fixed since the section is already screen-centered.
 // Scale is uniform (like object-fit: cover), not independent X/Y stretch: on
 // tall/narrow ratios (mobile portrait especially) the height-to-cover factor
 // can run 3x+ the width factor, and stretching non-uniformly to hit both
 // visibly distorts the video. Netflix's own expand transitions never stretch
-// content either — they scale uniformly and let the excess overflow/crop,
+// content either  -  they scale uniformly and let the excess overflow/crop,
 // which viewport overflow-x:clip (and .snap-page's overflow-y on desktop)
 // already handles for us.
 function playIntro(card: HTMLDivElement, section: HTMLDivElement) {
@@ -83,10 +83,10 @@ export function AboutContent() {
     const card = cardRef.current;
     if (!section || !card) return;
 
-    // Replays on every entry, not just the first — scrolling away and back
+    // Replays on every entry, not just the first  -  scrolling away and back
     // (or revisiting /about) should retrigger the Netflix-style reveal.
     // Leaving view stops playback entirely (not just pauses) so the video is
-    // always found at 0:00 next time — same guarantee standalone /about gets
+    // always found at 0:00 next time  -  same guarantee standalone /about gets
     // for free from unmounting, reproduced here since this section stays
     // mounted while scrolled away on the homepage.
     const observer = new IntersectionObserver(

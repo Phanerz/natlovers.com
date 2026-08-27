@@ -17,13 +17,13 @@ export type DepthGroup = {
   rates: Record<number, RateRow>;
 };
 
-// Kedalaman (engraving depth) is its own flat dropdown — 1mm, 1,5mm, 2mm,
-// 3mm — each an independent DepthGroup with its own Tebal (plate
+// Kedalaman (engraving depth) is its own flat dropdown  -  1mm, 1,5mm, 2mm,
+// 3mm  -  each an independent DepthGroup with its own Tebal (plate
 // thickness) options and rates, not paired buckets like the original
 // "1,5mm & 2mm" / "3mm & 4mm" tables. 1,5mm and 2mm carry forward the same
 // rate table the business already uses (that table was originally listed
 // as covering both depths together); 3mm carries forward the former
-// "3mm & 4mm" table's rates. 1mm has no prior rate data — add its tebal
+// "3mm & 4mm" table's rates. 1mm has no prior rate data  -  add its tebal
 // options and prices from the settings panel.
 export const DEFAULT_PRICE_DATA: DepthGroup[] = [
   {
@@ -148,7 +148,7 @@ export function saveSettings(settings: AohSettings) {
 }
 
 // Shared server-side copy so rates/settings follow whoever touched them
-// last across every device, not just the browser that saved them —
+// last across every device, not just the browser that saved them  - 
 // localStorage above stays as the instant, offline-safe local cache.
 export async function fetchRemoteConfig(): Promise<{priceData: DepthGroup[] | null; settings: AohSettings | null}> {
   try {
@@ -172,7 +172,7 @@ export async function pushRemoteConfig(priceData: DepthGroup[], settings: AohSet
       body: JSON.stringify({priceData, settings})
     });
   } catch {
-    // Offline or the request failed — localStorage already has the latest
+    // Offline or the request failed  -  localStorage already has the latest
     // value on this device, and the next successful change will retry.
   }
 }

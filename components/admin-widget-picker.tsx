@@ -6,7 +6,7 @@ import {GripVertical, Plus, X} from "lucide-react";
 import {MAX_WIDGETS, WIDGET_CATALOG, WIDGET_KEYS, WidgetKey} from "@/lib/admin-widgets";
 
 // Same Reorder/useDragControls pattern already proven in
-// manage-hero-cards-panel.tsx — a drag handle starts the gesture
+// manage-hero-cards-panel.tsx  -  a drag handle starts the gesture
 // explicitly (dragListener={false}) rather than the whole row being
 // draggable, so the Remove button underneath it stays clickable.
 function SelectedWidgetRow({widgetKey, onRemove}: {widgetKey: WidgetKey; onRemove: () => void}) {
@@ -103,7 +103,7 @@ export function AdminWidgetPicker({initialWidgets, onSaved}: {initialWidgets: Wi
           </Reorder.Group>
         ) : (
           <p className="rounded-lg border border-dashed border-[#e4d9c1] p-4 text-center text-xs text-forest-500">
-            No widgets pinned — pick from below.
+            No widgets pinned  -  pick from below.
           </p>
         )}
       </div>

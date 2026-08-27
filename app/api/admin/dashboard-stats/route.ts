@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     // fans out ~8 queries in parallel, and stacking 3 more query groups on
     // top of that from a single request bursts well past this pool's
     // connection cap under any real contention on the shared Supabase
-    // pooler — better to trade a little latency for not being the request
+    // pooler  -  better to trade a little latency for not being the request
     // that tips a contended pool over into everyone queuing.
     const stats = await getDashboardStats(range);
     const salesSeries = await getSalesSeries(range);

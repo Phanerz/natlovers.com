@@ -12,7 +12,7 @@ export type AccessoryCategory = "Bracelet" | "Charm" | "Necklace";
 
 export type ShopProductType = "Bags" | "Dolls" | "Accessories" | "Apparels";
 
-// Each product type owns its own attribute set — a Doll has only size, an
+// Each product type owns its own attribute set  -  a Doll has only size, an
 // Accessory has only category, Apparel has none of these. Every per-type
 // field is nullable rather than the product carrying irrelevant fields from
 // a different type.
@@ -32,7 +32,7 @@ export type ShopProduct = {
 
 type BilingualLabel = {en: string; id: string};
 
-// Fixed, literal display order per group — Size stays in its given logical
+// Fixed, literal display order per group  -  Size stays in its given logical
 // order, everything else listed here is already alphabetical (by English
 // label) and stays fixed regardless of locale.
 export const bagMaterials: ShopMaterial[] = ["Agel", "Gajih", "Patchwork", "Water Hyacinth", "Woven Fabric"];

@@ -1,6 +1,5 @@
 import {and, desc, eq} from "drizzle-orm";
 import {z} from "zod";
-import {uploadFile} from "@/lib/blob";
 import {db, products} from "@/lib/db";
 import {
   AccessoryCategory,
@@ -18,7 +17,7 @@ import {
   shopSizes
 } from "@/app/catalogue/shop-data";
 
-const IMAGE_PREFIX = "products";
+export type ColourOption = {label: string; hex: string};
 
 export type AdminProduct = ShopProduct & {
   images: string[];
@@ -28,12 +27,25 @@ export type AdminProduct = ShopProduct & {
   stock: number | null;
   productCode: string | null;
   dimensions: string | null;
+  hasBaseColour: boolean;
+  baseColourOptions: ColourOption[];
+  hasHandleColour: boolean;
+  handleColourOptions: ColourOption[];
   updatedAt: string;
 };
 
 export const PRODUCT_CODE_PREFIX = "NAT-";
 
-// Every per-type attribute is optional at the schema level — which fields
+export const MAX_PRODUCT_IMAGES = 6;
+
+const HEX_COLOUR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+const colourOptionSchema = z.object({
+  label: z.string().trim().min(1, "Every colour option needs a name."),
+  hex: z.string().trim().regex(HEX_COLOUR_PATTERN, "Colour must be a valid hex code, e.g. #B7924B or #FFF.")
+});
+
+// Every per-type attribute is optional at the schema level  -  which fields
 // are actually required is enforced per productType below, not here, since
 // a Doll requiring "shape" (a Bags-only field) would be nonsensical.
 const shopProductInputSchema = z.object({
@@ -79,7 +91,7 @@ async function uniqueSlug(base: string) {
 }
 
 // Both fields are optional and "cleared" (empty input) means null, not 0 or
-// "" — handled outside the zod object above since that clear-to-null
+// ""  -  handled outside the zod object above since that clear-to-null
 // behavior doesn't fit the shared create/.partial() update schema cleanly.
 function parseStockField(formData: FormData): number | null {
   const raw = formData.get("stock");
@@ -114,6 +126,39 @@ function parseProductCodeField(formData: FormData): string | null {
   return code;
 }
 
+// Images are uploaded up front (see app/api/admin/products/images/route.ts)
+// and arrive here as already-hosted URLs in their final, admin-chosen order
+// (position 0 is the main image) - this just validates the count.
+function parseImagesField(formData: FormData): string[] {
+  const images = formData.getAll("images").map(String).filter(Boolean);
+  if (images.length > MAX_PRODUCT_IMAGES) {
+    throw new Error(`A product can have at most ${MAX_PRODUCT_IMAGES} images.`);
+  }
+  return images;
+}
+
+// Colour options travel as a JSON string (a plain repeated form field can't
+// carry an ordered array of {label, hex} objects) and are re-validated here
+// regardless of what the admin form already checked client-side - a hex
+// value never reaches the database unvalidated.
+function parseColourOptionsField(formData: FormData, field: string): ColourOption[] {
+  const raw = formData.get(field);
+  if (raw === null || raw.toString().trim() === "") {
+    return [];
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw.toString());
+  } catch {
+    throw new Error("Colour options were malformed.");
+  }
+  const result = z.array(colourOptionSchema).safeParse(parsed);
+  if (!result.success) {
+    throw new Error(result.error.issues[0]?.message ?? "Invalid colour option.");
+  }
+  return result.data;
+}
+
 function toAdminProduct(row: typeof products.$inferSelect): AdminProduct {
   return {
     slug: row.slug,
@@ -134,6 +179,10 @@ function toAdminProduct(row: typeof products.$inferSelect): AdminProduct {
     stock: row.stock,
     productCode: row.productCode,
     dimensions: row.dimensions,
+    hasBaseColour: row.hasBaseColour,
+    baseColourOptions: (row.baseColourOptions as ColourOption[] | null) ?? [],
+    hasHandleColour: row.hasHandleColour,
+    handleColourOptions: (row.handleColourOptions as ColourOption[] | null) ?? [],
     updatedAt: row.updatedAt.toISOString()
   };
 }
@@ -145,23 +194,8 @@ async function assertProductCodeAvailable(code: string, excludeSlug?: string) {
   }
 }
 
-async function uploadImages(slug: string, files: File[]): Promise<string[]> {
-  return Promise.all(
-    files.map((file, index) => {
-      const extension = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
-      return uploadFile(`${IMAGE_PREFIX}/${slug}-${Date.now()}-${index}.${extension}`, file);
-    })
-  );
-}
-
-function collectImageFiles(formData: FormData): File[] {
-  return formData
-    .getAll("images")
-    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
-}
-
 // Each product type owns its own required-field set and its own valid
-// materials list — a Bag can only carry bagMaterials, Dolls/Accessories/
+// materials list  -  a Bag can only carry bagMaterials, Dolls/Accessories/
 // Apparel carry none.
 function attributesForType(
   productType: ShopProductType,
@@ -216,7 +250,7 @@ export async function getAllProducts(): Promise<AdminProduct[]> {
 }
 
 // Public: the product detail page's single source of truth for one product.
-// Deliberately mirrors getAllProducts' isActive filter — a deactivated
+// Deliberately mirrors getAllProducts' isActive filter  -  a deactivated
 // product must stay invisible on its own detail page the same way it's
 // invisible in the catalogue grid, not just hidden from listings.
 export async function getProductBySlug(slug: string): Promise<AdminProduct | null> {
@@ -250,8 +284,8 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
 
   const attributes = attributesForType(parsed.productType, parsed);
 
-  const imageFiles = collectImageFiles(formData);
-  if (!imageFiles.length) {
+  const images = parseImagesField(formData);
+  if (!images.length) {
     throw new Error("At least one image is required.");
   }
 
@@ -261,9 +295,12 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     await assertProductCodeAvailable(productCode);
   }
   const dimensions = parseDimensionsField(formData);
+  const hasBaseColour = formData.get("hasBaseColour") === "true";
+  const baseColourOptions = hasBaseColour ? parseColourOptionsField(formData, "baseColourOptions") : [];
+  const hasHandleColour = formData.get("hasHandleColour") === "true";
+  const handleColourOptions = hasHandleColour ? parseColourOptionsField(formData, "handleColourOptions") : [];
 
   const slug = await uniqueSlug(slugify(parsed.name));
-  const images = await uploadImages(slug, imageFiles);
 
   const [row] = await db
     .insert(products)
@@ -282,7 +319,11 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       tags: parsed.tags ?? [],
       stock,
       productCode,
-      dimensions
+      dimensions,
+      hasBaseColour,
+      baseColourOptions,
+      hasHandleColour,
+      handleColourOptions
     })
     .returning();
 
@@ -315,8 +356,22 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
     await assertProductCodeAvailable(productCode, slug);
   }
   const dimensions = formData.has("dimensions") ? parseDimensionsField(formData) : existing.dimensions;
+  const hasBaseColour = formData.has("hasBaseColour") ? formData.get("hasBaseColour") === "true" : existing.hasBaseColour;
+  const baseColourOptions = hasBaseColour
+    ? formData.has("baseColourOptions")
+      ? parseColourOptionsField(formData, "baseColourOptions")
+      : ((existing.baseColourOptions as ColourOption[] | null) ?? [])
+    : [];
+  const hasHandleColour = formData.has("hasHandleColour")
+    ? formData.get("hasHandleColour") === "true"
+    : existing.hasHandleColour;
+  const handleColourOptions = hasHandleColour
+    ? formData.has("handleColourOptions")
+      ? parseColourOptionsField(formData, "handleColourOptions")
+      : ((existing.handleColourOptions as ColourOption[] | null) ?? [])
+    : [];
 
-  // productType may not be changing on this edit — attribute validation
+  // productType may not be changing on this edit  -  attribute validation
   // always runs against whichever type the product actually is (the
   // incoming type if it's being changed, otherwise the existing one), using
   // a merge of new + existing values so an edit that only touches, say,
@@ -333,8 +388,13 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
     materials: parsed.materials ?? existing.materials
   });
 
-  const imageFiles = collectImageFiles(formData);
-  const images = imageFiles.length ? await uploadImages(slug, imageFiles) : undefined;
+  let images: string[] | undefined;
+  if (formData.has("images")) {
+    images = parseImagesField(formData);
+    if (!images.length) {
+      throw new Error("At least one image is required.");
+    }
+  }
 
   const [row] = await db
     .update(products)
@@ -353,6 +413,10 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       stock,
       productCode,
       dimensions,
+      hasBaseColour,
+      baseColourOptions,
+      hasHandleColour,
+      handleColourOptions,
       updatedAt: new Date()
     })
     .where(eq(products.slug, slug))
@@ -362,7 +426,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
 }
 
 // order_items snapshot productName/priceIdr at order time with no foreign
-// key back to `products` — so a hard delete here can never orphan or
+// key back to `products`  -  so a hard delete here can never orphan or
 // corrupt existing order history, even for a product that's been ordered
 // before. Safe to call unconditionally.
 export async function deleteProductPermanently(slug: string): Promise<boolean> {

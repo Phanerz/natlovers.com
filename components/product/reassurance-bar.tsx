@@ -1,6 +1,6 @@
 import {Clock, MessageCircleQuestion, ShieldAlert} from "lucide-react";
 
-// Real, confirmed store policy — not placeholder copy. Kept in English only:
+// Real, confirmed store policy  -  not placeholder copy. Kept in English only:
 // this is policy text with legal weight, and an unreviewed translation could
 // change what it actually promises.
 const items = [

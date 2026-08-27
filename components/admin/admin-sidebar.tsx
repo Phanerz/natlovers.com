@@ -9,9 +9,9 @@ import {ChevronUp, GalleryHorizontal, LayoutDashboard, LogOut, Palette, PlusCirc
 import {ShopProductType, productTypeLabels, shopProductTypes} from "@/app/catalogue/shop-data";
 
 // Typography/spacing/interaction lifted directly from app/catalogue/
-// filter-sidebar.tsx's FilterSection — same uppercase tracked label, same
+// filter-sidebar.tsx's FilterSection  -  same uppercase tracked label, same
 // border-b rhythm between groups, same ChevronUp-flips-to-180-when-closed
-// accordion — so the admin shell reads as the same design system as the
+// accordion  -  so the admin shell reads as the same design system as the
 // public catalogue's own sidebar, not a separate admin template. Unlike the
 // catalogue sidebar, this one has no whole-panel collapse/rail mode: admin
 // nav needs to stay reachable at all times, so only the "Manage Products"
@@ -21,7 +21,7 @@ function SectionLabel({children}: {children: React.ReactNode}) {
 }
 
 // Active state uses a flat solid dark fill (.flat-nav-active) rather than
-// the site's glass treatment — per DESIGN.md, glass is reserved for primary
+// the site's glass treatment  -  per DESIGN.md, glass is reserved for primary
 // buttons/CTAs and explicitly-marked featured cards, and admin nav doesn't
 // qualify as either.
 function NavLink({
@@ -105,7 +105,7 @@ export function AdminSidebar() {
 
   const tab = searchParams.get("tab");
   // Bags/Dolls/Accessories/Apparels sub-links carry their type lowercased
-  // (see the href below) — comparing against that same lowercased form here
+  // (see the href below)  -  comparing against that same lowercased form here
   // is what makes the active dot actually track the selected category
   // instead of always sitting on "All Products".
   const selectedType = searchParams.get("type");

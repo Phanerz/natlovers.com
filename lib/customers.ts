@@ -2,12 +2,12 @@ import {count, desc, eq, inArray, min, sql} from "drizzle-orm";
 import {AddressView, getDefaultAddress} from "@/lib/addresses";
 import {addresses, db, orderItems, orders, users} from "@/lib/db";
 
-// Orders in these statuses represent money actually received — same
+// Orders in these statuses represent money actually received  -  same
 // convention as lib/dashboard-stats.ts's revenue math, so "Total Spent"
 // here means the same thing "Total Revenue" means on the dashboard.
 const PAID_STATUSES = new Set(["paid", "fulfilled"]);
 
-// "Customer count" is every row in the users table — there's no separate
+// "Customer count" is every row in the users table  -  there's no separate
 // customer/admin flag in the schema (admin access is gated by the
 // ADMIN_EMAILS allowlist at the auth layer, not a DB column), so an admin
 // who has signed in counts here too, same as any other real account. Used
@@ -21,7 +21,7 @@ export async function getCustomerCount(): Promise<number> {
 export type CustomersByCountryRow = {country: string | null; count: number; percentage: number};
 
 // Grouped by each customer's default saved address (a real signal now that
-// checkout captures a shipping country) — customers with no saved address
+// checkout captures a shipping country)  -  customers with no saved address
 // at all land in an "Unassigned" bucket (country: null), which always
 // sorts last regardless of its count, per how this card is meant to read:
 // real coverage first, the gap called out honestly at the bottom.
@@ -109,10 +109,10 @@ async function getOrderAggregatesByUser(): Promise<Map<string, {firstOrderAt: Da
 }
 
 // "New this month" and "customer since" both use first-order date as the
-// proxy for when someone became a customer — the users table has no
+// proxy for when someone became a customer  -  the users table has no
 // account-created timestamp at all (NextAuth's DrizzleAdapter shape doesn't
 // include one), so a real order is the earliest genuine signal available.
-// "Returning" counts any 2+ orders regardless of status — placing a second
+// "Returning" counts any 2+ orders regardless of status  -  placing a second
 // order is real repeat engagement even before it's paid.
 export async function getCustomerTelemetry(): Promise<CustomerTelemetry> {
   const [[totalRow], aggregates] = await Promise.all([

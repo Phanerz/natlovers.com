@@ -28,7 +28,7 @@ export async function GET(_request: Request, {params}: {params: Promise<{id: str
 
 // Status changes, the final price, and internal notes all land here. The
 // admin check is re-verified server-side rather than trusted from the
-// client — a hidden button is not a security boundary.
+// client  -  a hidden button is not a security boundary.
 export async function PATCH(request: Request, {params}: {params: Promise<{id: string}>}) {
   if (!(await requireAdminEmail())) {
     return NextResponse.json({error: "Unauthorized."}, {status: 401});

@@ -77,7 +77,7 @@ function magicLinkEmailHtml(url: string) {
 export const authOptions: NextAuthOptions = {
   // @auth/drizzle-adapter's own types expect these tables in their
   // pre-`.enableRLS()` shape (its type still requires `enableRLS` to be a
-  // callable method it never actually calls) — a type-only mismatch from
+  // callable method it never actually calls)  -  a type-only mismatch from
   // enabling RLS on the NextAuth tables in schema.ts, not a runtime one;
   // the adapter works from the table's columns/name, which are unchanged.
   adapter: DrizzleAdapter(db, {
@@ -96,7 +96,7 @@ export const authOptions: NextAuthOptions = {
     // Same Google OAuth app as the admin provider, registered under a
     // second id so the signIn callback can tell them apart and only gate
     // the admin one with ADMIN_EMAILS. allowDangerousEmailAccountLinking
-    // is safe here specifically because Google verifies the email itself —
+    // is safe here specifically because Google verifies the email itself  - 
     // a customer who signed up via magic link and later hits "Continue
     // with Google" on the same address should land in the same account
     // rather than hit a linking conflict.
@@ -111,7 +111,7 @@ export const authOptions: NextAuthOptions = {
       async sendVerificationRequest({identifier, url}) {
         const resend = getResendClient();
         if (!resend) {
-          throw new Error("RESEND_API_KEY is not configured — cannot send the magic-link email.");
+          throw new Error("RESEND_API_KEY is not configured, so the magic-link email cannot be sent.");
         }
         const {error} = await resend.emails.send({
           from: magicLinkFrom,
@@ -142,11 +142,11 @@ export const authOptions: NextAuthOptions = {
     signIn: "/mimin"
   },
   callbacks: {
-    // google-admin is the admin login — the allowlist is what actually
+    // google-admin is the admin login  -  the allowlist is what actually
     // gates entry, since proving who you are via Google says nothing about
     // whether you should have admin access. Fails closed if ADMIN_EMAILS
     // isn't configured. google-customer and the email/magic-link provider
-    // are the customer login paths and aren't gated — any address can
+    // are the customer login paths and aren't gated  -  any address can
     // complete them.
     async signIn({user, account}) {
       if (account?.provider === "google-admin") {
@@ -155,7 +155,7 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     // Database sessions don't carry the user id onto session.user by
-    // default — /api/account needs it to know which row to read/update.
+    // default  -  /api/account needs it to know which row to read/update.
     async session({session, user}) {
       if (session.user) {
         session.user.id = user.id;
@@ -166,7 +166,7 @@ export const authOptions: NextAuthOptions = {
 };
 
 // Every /mimin/* page calls this once in the shared layout (the auth gate)
-// and again in the page itself (to read the email/name for display) — two
+// and again in the page itself (to read the email/name for display)  -  two
 // separate, uncached getServerSession calls each do their own session+user
 // DB round trip. cache() memoizes it per request (React's request-scoped
 // cache, not a persistent one), so both calls within the same page render

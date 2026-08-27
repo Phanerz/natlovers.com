@@ -2,7 +2,7 @@ import type {CustomConfig, CustomProductType} from "@/lib/custom-studio";
 import {colourLabel, describePersonalisation} from "@/lib/custom-studio";
 
 // The single source of Custom Studio pricing. Nothing anywhere else in the
-// app is allowed to add a number to an estimate — every component that shows
+// app is allowed to add a number to an estimate  -  every component that shows
 // a price calls calculateEstimate() and renders what it returns.
 //
 // Two deliberate rules govern this file:
@@ -17,7 +17,7 @@ import {colourLabel, describePersonalisation} from "@/lib/custom-studio";
 //     an oversight. Nobody has supplied the real surcharges yet, and a
 //     plausible-looking guess shown to a customer as an "Estimated total" is
 //     worse than no surcharge at all. Fill these in with the workshop's
-//     actual figures, in IDR, and the whole studio picks them up — no other
+//     actual figures, in IDR, and the whole studio picks them up  -  no other
 //     file needs touching.
 
 export type PricingModifiers = {
@@ -40,7 +40,7 @@ export type PricingModifiers = {
 
 // TODO(pricing): replace the zeroes with the workshop's real surcharges in
 // IDR. Until then every estimate equals the derived base price, which is
-// honest — the studio confirms the final figure either way.
+// honest  -  the studio confirms the final figure either way.
 export const pricingModifiers: PricingModifiers = {
   shape: {
     Rectangle: 0,
@@ -99,7 +99,7 @@ export const pricingModifiers: PricingModifiers = {
 
 // Lowest active catalogue price per product type, in IDR. A null entry means
 // the catalogue holds no active product of that type at all, so there is
-// nothing real to anchor an estimate to — the studio quotes that request by
+// nothing real to anchor an estimate to  -  the studio quotes that request by
 // hand instead of the page showing a made-up figure.
 export type PricingBasis = Record<CustomProductType, number | null>;
 
@@ -122,8 +122,8 @@ function modifier(table: Record<string, number>, key: string): number {
 }
 
 // Returns null when the product type has no catalogue price to build on.
-// Callers render "Quoted after studio review" in that case — see
-// EstimatePanel — rather than falling back to a placeholder amount.
+// Callers render "Quoted after studio review" in that case  -  see
+// EstimatePanel  -  rather than falling back to a placeholder amount.
 export function calculateEstimate(config: CustomConfig, basis: PricingBasis): Estimate | null {
   const basePriceIdr = basis[config.productType];
   if (basePriceIdr === null || basePriceIdr === undefined) {
@@ -139,7 +139,7 @@ export function calculateEstimate(config: CustomConfig, basis: PricingBasis): Es
       detail: colourLabel(config.colour),
       amountIdr: modifier(pricingModifiers.colour, config.colour)
     });
-    // Only priced when the stored configuration actually carries a handle —
+    // Only priced when the stored configuration actually carries a handle  - 
     // the studio stopped asking for one, but older requests still have it.
     if (config.handle) {
       lines.push({label: "Handle", detail: config.handle, amountIdr: modifier(pricingModifiers.handle, config.handle)});

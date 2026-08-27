@@ -5,7 +5,7 @@ import {getStoreSettings} from "@/lib/store-settings";
 import {sendCustomRequestReceivedEmail} from "@/lib/custom-notifications";
 
 // The customer's own Custom Studio draft. Everything here is scoped to the
-// signed-in user by lib/custom-requests.ts — no route in this file accepts a
+// signed-in user by lib/custom-requests.ts  -  no route in this file accepts a
 // request id from the client, so there is nothing to tamper with.
 export const dynamic = "force-dynamic";
 
@@ -26,7 +26,7 @@ export async function GET() {
 }
 
 // Autosave. Separate from POST so that saving progress can never be
-// mistaken for submitting — the two verbs mean genuinely different things
+// mistaken for submitting  -  the two verbs mean genuinely different things
 // to the customer and a mis-fired autosave must not land a commission in
 // the studio's queue.
 export async function PUT(request: Request) {

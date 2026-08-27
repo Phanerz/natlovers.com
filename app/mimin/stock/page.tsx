@@ -4,7 +4,7 @@ import {getSession} from "@/lib/auth";
 // Auth is already gated by app/mimin/layout.tsx.
 //
 // No raw_materials/finished_stock/consignment_stock schema exists yet (the
-// earlier stock-management task hasn't landed) — this page says so plainly
+// earlier stock-management task hasn't landed)  -  this page says so plainly
 // rather than rendering fabricated stock numbers. Once that schema exists,
 // this becomes the real Stock Overview: retail vs. consignment quantities,
 // reorder thresholds, low/out-of-stock lists.
@@ -27,7 +27,7 @@ export default async function StockPage() {
         <p className="max-w-md text-sm leading-6 text-forest-600">
           Raw materials, finished stock, and consignment tracking don&rsquo;t have a database schema yet, so this page
           can&rsquo;t honestly show any numbers. Product listings and their Visibility status are already live in{" "}
-          <span className="font-medium text-forest-800">Manage Products</span> — stock levels and reorder thresholds will
+          <span className="font-medium text-forest-800">Manage Products</span>  -  stock levels and reorder thresholds will
           land here once that schema is built.
         </p>
       </div>

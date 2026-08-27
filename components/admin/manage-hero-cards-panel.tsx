@@ -88,7 +88,7 @@ export function ManageHeroCardsPanel({
 }) {
   const [order, setOrder] = useState<AdminHeroCard[]>(() => [...cards].sort((a, b) => a.displayOrder - b.displayOrder));
 
-  // Reorder.Item's onDragEnd fires once per drag gesture — reading `order`
+  // Reorder.Item's onDragEnd fires once per drag gesture  -  reading `order`
   // straight from the closure risks catching a render from just before the
   // final onReorder update, so the drag-end handler reads this ref instead,
   // which is always current.
@@ -96,7 +96,7 @@ export function ManageHeroCardsPanel({
   orderRef.current = order;
 
   // Re-sync from the server-confirmed list whenever it changes (initial
-  // load, after a delete, after a reorder round-trips) — but not on every
+  // load, after a delete, after a reorder round-trips)  -  but not on every
   // parent re-render, so a drag in progress doesn't get yanked out from
   // under the pointer.
   useEffect(() => {

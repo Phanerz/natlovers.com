@@ -14,7 +14,7 @@ export function PausedNotice({message}: {message: string}) {
         <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.3em] text-forest-500">Custom Studio</p>
         <h2 className="mt-2 font-display text-3xl leading-tight text-forest-900">Taking a short pause</h2>
         <p className="mt-3 text-sm leading-relaxed text-forest-600">{message}</p>
-        {/* Drafts are untouched by the pause — nothing a customer has already
+        {/* Drafts are untouched by the pause  -  nothing a customer has already
             designed is lost while intake is closed. */}
         <p className="mt-2 text-[12px] leading-relaxed text-forest-500">
           Anything you&apos;ve already designed is saved and will be here when we reopen.

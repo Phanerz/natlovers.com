@@ -25,7 +25,7 @@ export function isCustomProductType(value: unknown): value is CustomProductType 
   return typeof value === "string" && (customProductTypes as readonly string[]).includes(value);
 }
 
-// Satisfies the compiler that every custom type is also a catalogue type —
+// Satisfies the compiler that every custom type is also a catalogue type  - 
 // if someone later adds a type here the catalogue does not know about, this
 // fails to compile rather than silently breaking preview lookups.
 const typesAreCatalogueTypes: readonly ShopProductType[] = customProductTypes;
@@ -60,7 +60,7 @@ export const customBagHandles: ShopHandle[] = ["Handbag", "Shoulder Bag", "Sling
 export const customBagSizes: ShopSize[] = ["Small", "Medium", "Large"];
 
 // The "base colour" row. Natlovers bags are undyed natural fibre, so the
-// colour is the material — these are the five fibres the workshop actually
+// colour is the material  -  these are the five fibres the workshop actually
 // weaves (bagMaterials in shop-data.ts), with swatch hexes taken from the
 // catalogue's existing materialImageStyle palette rather than picked fresh.
 // `active` retires a fibre from new commissions without deleting it, so
@@ -241,7 +241,7 @@ export function defaultConfigFor(productType: CustomProductType): CustomConfig {
 }
 
 // Flattens any configuration into ordered label/value rows for the review
-// panel, the admin detail view, and the notification email — one function so
+// panel, the admin detail view, and the notification email  -  one function so
 // all three describe a request identically.
 export function summariseConfig(config: CustomConfig): Array<{label: string; value: string}> {
   // Handle and Personal touch appear only when the stored configuration
@@ -282,7 +282,7 @@ export function summariseConfig(config: CustomConfig): Array<{label: string; val
 
 // The real lifecycle a commission goes through, built in full now even
 // though the customer-facing view collapses several of these into plainer
-// language — retrofitting intermediate states onto rows that were only ever
+// language  -  retrofitting intermediate states onto rows that were only ever
 // stored as "open" or "closed" would mean guessing, later, which of them a
 // historical request had actually reached.
 export const customRequestStatuses = [
@@ -302,7 +302,7 @@ export type CustomRequestStatus = (typeof customRequestStatuses)[number];
 export const customRequestStatusSchema = z.enum(customRequestStatuses);
 
 // Statuses an admin may set from the request detail view. `draft` is
-// excluded because a draft belongs to the customer — it exists only until
+// excluded because a draft belongs to the customer  -  it exists only until
 // they submit, and nothing in the studio should be able to push a request
 // back into a state the customer owns.
 export const adminSettableStatuses = customRequestStatuses.filter(
@@ -322,7 +322,7 @@ export const customRequestStatusLabels: Record<CustomRequestStatus, string> = {
 };
 
 // What the customer sees in their own request history. Several internal
-// states read as one thing from the outside — "under review" and "needs
+// states read as one thing from the outside  -  "under review" and "needs
 // customer input" are both, to the customer, the studio still looking at it.
 export const customerFacingStatusLabels: Record<CustomRequestStatus, string> = {
   draft: "Draft",
@@ -369,7 +369,7 @@ export const DEFAULT_INTAKE_PAUSED_MESSAGE = "Custom Studio is temporarily pause
 // ---------------------------------------------------------------------------
 
 // The studio's own localStorage key for a draft that hasn't been saved
-// server-side yet — shared with anything that hands a configuration to the
+// server-side yet  -  shared with anything that hands a configuration to the
 // studio before the customer is necessarily signed in (see the studio's own
 // restore effect, and the product page's "Customise This Bag" button), so
 // there is exactly one definition of what a local draft looks like.

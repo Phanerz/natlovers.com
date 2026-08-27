@@ -8,7 +8,7 @@ import {ProductPurchasePanel} from "@/components/product/product-purchase-panel"
 import {ProductInfoSection} from "@/components/product/product-info-section";
 import {ReassuranceBar} from "@/components/product/reassurance-bar";
 
-// Live catalogue data (price, stock, images) — never served from the Full
+// Live catalogue data (price, stock, images)  -  never served from the Full
 // Route Cache, same reasoning as /api/admin/products.
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export async function generateMetadata({params}: {params: Promise<{slug: string}
     return {title: "Product not found"};
   }
   return {
-    title: `${product.name} — Natlovers`,
+    title: `${product.name}  -  Natlovers`,
     description: product.description?.trim() || `${product.name}, handcrafted in Indonesia.`
   };
 }
@@ -28,7 +28,7 @@ export default async function ProductPage({params}: {params: Promise<{slug: stri
   const {slug} = await params;
   const product = await getProductBySlug(slug);
 
-  // A deactivated or missing product 404s outright — a sold-out product
+  // A deactivated or missing product 404s outright  -  a sold-out product
   // still gets a full page (the purchase panel just shows a disabled
   // "Sold Out" state), since sold-out and deactivated mean different things.
   if (!product) {

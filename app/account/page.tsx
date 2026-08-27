@@ -65,7 +65,7 @@ function EmptyState({title, body}: {title: string; body: string}) {
 
 // Renders whichever widgets this admin has pinned (see the Pinned overview
 // widgets picker in Account settings) via the shared catalog in
-// lib/admin-widgets.ts — every value is computed from the exact same live
+// lib/admin-widgets.ts  -  every value is computed from the exact same live
 // telemetry/stats queries the Customers CRM and main Dashboard pages use,
 // nothing fabricated here. Only ever rendered when the API has already
 // confirmed the viewer is an admin (see the isAdmin check in
@@ -148,7 +148,7 @@ function AccountContent() {
       )
       .catch(() => {
         // A network failure here just means the profile form starts empty
-        // — .finally() below still flips `profileLoaded` either way, so
+        //  -  .finally() below still flips `profileLoaded` either way, so
         // this only exists to stop the rejection from going unhandled.
       })
       .finally(() => {

@@ -2,7 +2,7 @@ import {materialLabels, sizeLabels} from "@/app/catalogue/shop-data";
 import {ProductAccordionRow} from "@/components/product/product-accordion-row";
 import type {AdminProduct} from "@/lib/admin-products";
 
-// Real, confirmed store policy — English only, same reasoning as the
+// Real, confirmed store policy  -  English only, same reasoning as the
 // reassurance bar: this is policy text with legal weight, not UI copy, so it
 // isn't run through an unreviewed translation.
 const SHIPPING_AND_RETURNS_COPY = [
@@ -18,7 +18,7 @@ export function ProductInfoSection({product}: {product: AdminProduct}) {
   return (
     <div className="mt-14 grid gap-8 rounded-lg border border-forest-100 bg-[#fffdf9] p-6 sm:p-8 lg:grid-cols-2 lg:gap-12">
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-forest-800">Description</h2>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-forest-800">Product Details</h2>
         <p className="whitespace-pre-wrap text-sm leading-relaxed text-forest-600">
           {product.description?.trim() || "No description provided yet."}
         </p>
@@ -28,7 +28,7 @@ export function ProductInfoSection({product}: {product: AdminProduct}) {
         {hasMaterials ? (
           <ProductAccordionRow title="Material & Care">
             <p>Materials: {product.materials.map((material) => materialLabels[material].en).join(", ")}.</p>
-            <p className="mt-1.5 text-forest-500">Undyed natural fibre, handwoven — the material is the colour.</p>
+            <p className="mt-1.5 text-forest-500">Undyed natural fibre, handwoven. The material is the colour.</p>
           </ProductAccordionRow>
         ) : null}
 

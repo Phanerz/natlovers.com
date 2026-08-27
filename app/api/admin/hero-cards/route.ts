@@ -8,7 +8,7 @@ import {
 } from "@/lib/admin-hero-cards";
 import {getSession, isAdminEmail} from "@/lib/auth";
 
-// Serves live hero-card data to the storefront — must never be served from
+// Serves live hero-card data to the storefront  -  must never be served from
 // Next's Full Route Cache.
 export const dynamic = "force-dynamic";
 
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Body carries the full ordered id list, as dropped in the admin panel's
-// drag-and-drop list — there's no single-id "move" anymore.
+// drag-and-drop list  -  there's no single-id "move" anymore.
 export async function PATCH(request: NextRequest) {
   if (!(await requireAdmin())) {
     return NextResponse.json({error: "Unauthorized."}, {status: 401});

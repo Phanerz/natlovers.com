@@ -26,7 +26,7 @@ type StepKey = "design" | "inspiration" | "details" | "review";
 
 // The studio's one and only numbering. Every panel on the page carries the
 // number it has here, so the progress rail at the top and the workspace
-// below always agree — previously the rail counted 1-4 while the left column
+// below always agree  -  previously the rail counted 1-4 while the left column
 // counted its own fields 1-5, which read as two sequences fighting.
 const steps: {key: StepKey; n: number; label: string; hint: string}[] = [
   {key: "design", n: 1, label: "Design", hint: "Make it yours"},
@@ -85,7 +85,7 @@ export function CustomStudio({
   const [submitted, setSubmitted] = useState<CustomRequestView | null>(null);
 
   // "Touched" is what the progress rail reads, so a step lights up because
-  // the customer actually did something — not because a default value
+  // the customer actually did something  -  not because a default value
   // happens to be present.
   const [designTouched, setDesignTouched] = useState(Boolean(initialDraft));
   const [notesTouched, setNotesTouched] = useState(Boolean(initialDraft?.notes));
@@ -120,7 +120,7 @@ export function CustomStudio({
         setRestoredNotice(true);
       }
     } catch {
-      // A corrupt local draft is not worth surfacing — the studio simply
+      // A corrupt local draft is not worth surfacing  -  the studio simply
       // starts fresh.
     }
   }, [initialDraft]);
@@ -197,7 +197,7 @@ export function CustomStudio({
   // ---------------------------------------------------------------------
 
   // The studio needs something expressed in the customer's own terms before
-  // a request is worth a maker's time — a configuration alone says what
+  // a request is worth a maker's time  -  a configuration alone says what
   // shape it is, not what it is for.
   const canSubmit = designTouched && (images.length > 0 || notes.trim().length > 0);
 
@@ -268,7 +268,7 @@ export function CustomStudio({
       try {
         window.localStorage.removeItem(LOCAL_CUSTOM_DRAFT_KEY);
       } catch {
-        // Nothing to do — the draft is cleared server-side regardless.
+        // Nothing to do  -  the draft is cleared server-side regardless.
       }
 
       setSubmitted(payload.request as CustomRequestView);

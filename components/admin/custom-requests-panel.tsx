@@ -31,7 +31,7 @@ export function StatusBadge({status}: {status: CustomRequestStatus}) {
 }
 
 function formatDate(value: string | null) {
-  return value ? new Date(value).toLocaleDateString(undefined, {dateStyle: "medium"}) : "—";
+  return value ? new Date(value).toLocaleDateString(undefined, {dateStyle: "medium"}) : "-";
 }
 
 // The capacity guardrail. Deliberately prominent rather than buried in a
@@ -241,7 +241,7 @@ export function CustomRequestsPanel() {
                       </Link>
                     </td>
                     <td className="py-3 pr-3">
-                      <span className="block text-forest-900">{request.customer.name ?? "—"}</span>
+                      <span className="block text-forest-900">{request.customer.name ?? "-"}</span>
                       <span className="block text-xs text-forest-500">{request.customer.email}</span>
                     </td>
                     <td className="py-3 pr-3 text-forest-700">{request.productType}</td>

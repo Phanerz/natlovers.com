@@ -10,7 +10,7 @@ export type AccountProfile = {
   phone: string | null;
   bio: string | null;
   // Raw column value, not yet sanitized against the current widget catalog
-  // — always null for non-admin accounts, since the picker UI that would
+  //  -  always null for non-admin accounts, since the picker UI that would
   // ever write this is admin-gated. Callers that render widgets should run
   // this through sanitizeWidgetKeys rather than trusting it directly, in
   // case the catalog has changed since it was saved.
@@ -53,7 +53,7 @@ export async function updateAccountProfile(userId: string, body: unknown): Promi
 }
 
 // Called only from a route that has already verified the caller is an
-// admin — this function itself doesn't re-check, since that gate belongs
+// admin  -  this function itself doesn't re-check, since that gate belongs
 // at the auth/session layer, not buried in a data-access helper.
 export async function updateAdminWidgets(userId: string, widgetKeys: unknown): Promise<WidgetKey[]> {
   const sanitized = sanitizeWidgetKeys(widgetKeys);

@@ -36,10 +36,10 @@ export function ShopProductCard({
   return (
     // className="contents" makes this <a> layout-invisible (display:
     // contents), so the <article> below is still the direct grid child for
-    // sizing purposes — the Link only adds click-through behavior, it
+    // sizing purposes  -  the Link only adds click-through behavior, it
     // never participates in the grid/flow itself.
     // self-start opts this card out of CSS Grid's default align-items:
-    // stretch — without it, if anything in the row makes the row taller
+    // stretch  -  without it, if anything in the row makes the row taller
     // than one card's own aspect-square height, every card in that row
     // gets silently stretched past aspect-square to match, tearing the
     // bottom-anchored overlay/ribbon away from the image above it.
@@ -49,7 +49,7 @@ export function ShopProductCard({
     // overflow-hidden is back here as a defensive backstop, not a load-
     // bearing fix: the overlay below is now built to never need more than
     // aspect-square affords in the first place (truncated name, tags in a
-    // single non-wrapping scrollable row) — this card sits in a fixed-
+    // single non-wrapping scrollable row)  -  this card sits in a fixed-
     // height, two-rows-per-page grid, so growing even slightly taller
     // doesn't just clip locally, it pushes the next row down far enough
     // that the *page's* own fixed-height container clips it instead,
@@ -74,7 +74,7 @@ export function ShopProductCard({
 
         {product.soldOut ? (
           // A rotated diagonal ribbon here used to be sized as a fraction of
-          // the card (h/w-2/5) so it would scale with the card — but that
+          // the card (h/w-2/5) so it would scale with the card  -  but that
           // made its footprint grow right along with the card, so at the
           // 2-col mobile width it swelled large enough to crowd the
           // heart/bag buttons in the opposite corner, and its rotated edges
@@ -82,7 +82,7 @@ export function ShopProductCard({
           // every other card size in between. A flat, fixed-size badge in
           // the same top-left slot has a constant footprint no matter how
           // wide the card is, so it never grows into the icons' corner and
-          // renders identically — same shape, same clearance — on every
+          // renders identically  -  same shape, same clearance  -  on every
           // layout instead of just the size it happened to be tuned for.
           <div className="pointer-events-none absolute left-2.5 top-2.5 z-20 sm:left-3 sm:top-3">
             {/* h-8 matches the heart/bag buttons' own h-8 exactly, so this
@@ -129,7 +129,7 @@ export function ShopProductCard({
       </div>
 
       {/*
-        This card has to stay exactly aspect-square — it's laid out inside
+        This card has to stay exactly aspect-square  -  it's laid out inside
         a fixed-height, two-rows-per-page momentum-scroll grid, so a card
         that grows even slightly taller pushes the next row's cards down
         far enough that the *page's* own fixed-height clipping cuts off
@@ -140,7 +140,7 @@ export function ShopProductCard({
         fixed and predictable no matter what it contains: the name is
         capped to one line (truncate), and tags run in a single
         horizontally-scrollable row (flex-nowrap + overflow-x-auto)
-        instead of wrapping — so however many tags there are, or however
+        instead of wrapping  -  so however many tags there are, or however
         long they run, they add width, never height.
       */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 overflow-hidden bg-gradient-to-t from-[#f7f4ee] from-45% via-[#f7f4eef2] to-transparent px-3 pb-3 pt-10 sm:px-4 sm:pb-4">

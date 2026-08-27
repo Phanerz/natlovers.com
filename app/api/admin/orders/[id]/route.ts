@@ -9,7 +9,7 @@ async function requireAdminEmail(): Promise<string | null> {
 }
 
 // This moves real money status, so the admin check is re-verified here
-// server-side rather than trusted from the client — the button being
+// server-side rather than trusted from the client  -  the button being
 // hidden from non-admins in the UI is not a security boundary, this is.
 // No body = mark_paid (Stop 1's original contract, kept working); a body
 // with action: "set_tracking" attaches a courier + tracking number and
@@ -52,7 +52,7 @@ export async function PATCH(request: Request, {params}: {params: Promise<{id: st
   }
 }
 
-// Permanent delete, for clearing test/junk orders out of the admin list —
+// Permanent delete, for clearing test/junk orders out of the admin list  - 
 // re-verifies admin server-side same as PATCH.
 export async function DELETE(_request: Request, {params}: {params: Promise<{id: string}>}) {
   const adminEmail = await requireAdminEmail();

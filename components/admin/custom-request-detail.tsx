@@ -18,7 +18,7 @@ import {StatusBadge} from "./custom-requests-panel";
 import {Toast, ToastState} from "./toast";
 
 function formatDateTime(value: string | null) {
-  return value ? new Date(value).toLocaleString(undefined, {dateStyle: "medium", timeStyle: "short"}) : "—";
+  return value ? new Date(value).toLocaleString(undefined, {dateStyle: "medium", timeStyle: "short"}) : "-";
 }
 
 // Full-size viewing for inspiration photos. The studio needs to actually see
@@ -179,7 +179,7 @@ export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}
 
   async function saveFinalPrice() {
     setSavingPrice(true);
-    // An empty field clears the quote rather than saving zero — see the
+    // An empty field clears the quote rather than saving zero  -  see the
     // nullable/optional split on adminUpdateSchema.
     const trimmed = finalPrice.trim();
     const parsed = trimmed === "" ? null : Number(trimmed);
@@ -281,7 +281,7 @@ export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}
               value={adminNotes}
               onChange={(event) => setAdminNotes(event.target.value)}
               rows={5}
-              placeholder="Notes for the studio — materials on hand, who's making it, what was agreed on the phone..."
+              placeholder="Notes for the studio: materials on hand, who's making it, what was agreed on the phone..."
               className="w-full resize-none rounded-md border border-[#d4c5ab] bg-white px-4 py-3 text-sm leading-relaxed text-forest-900 outline-none focus:border-forest-400"
             />
             <button
@@ -299,7 +299,7 @@ export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}
           <div className="card space-y-4 p-6">
             <h2 className="font-display text-xl text-forest-900">Customer</h2>
             <div className="space-y-1">
-              <p className="text-sm font-medium text-forest-900">{request.customer.name ?? "—"}</p>
+              <p className="text-sm font-medium text-forest-900">{request.customer.name ?? "-"}</p>
               <p className="text-sm text-forest-600">{request.customer.email ?? "No email on file"}</p>
               <p className="text-sm text-forest-600">{request.customer.phone ?? "No phone on file"}</p>
             </div>
@@ -313,7 +313,7 @@ export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}
 
               {/* WhatsApp is how this studio actually talks to most of its
                   customers, so it sits alongside email rather than behind it.
-                  A deep link, not an integration — no message is sent on the
+                  A deep link, not an integration  -  no message is sent on the
                   admin's behalf. */}
               {whatsapp ? (
                 <a

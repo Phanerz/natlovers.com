@@ -45,7 +45,7 @@ function toAddressView(row: typeof addresses.$inferSelect): AddressView {
 
 export async function getAddressesForUser(userId: string): Promise<AddressView[]> {
   const rows = await db.select().from(addresses).where(eq(addresses.userId, userId));
-  // Default first, then most recently updated — the address someone's most
+  // Default first, then most recently updated  -  the address someone's most
   // likely to want is either the one they always ship to or the one they
   // just touched.
   rows.sort((a, b) => {
@@ -69,7 +69,7 @@ async function unsetOtherDefaults(userId: string, exceptId?: string) {
 
 export async function createAddress(userId: string, input: AddressInput, makeDefault = false): Promise<AddressView> {
   const existing = await db.select({id: addresses.id}).from(addresses).where(eq(addresses.userId, userId));
-  // A customer's very first saved address is always the default — there's
+  // A customer's very first saved address is always the default  -  there's
   // no meaningful "not default" state when it's the only one they have.
   const isDefault = makeDefault || existing.length === 0;
 
@@ -127,7 +127,7 @@ export async function updateAddress(userId: string, id: string, input: AddressIn
 }
 
 // If the deleted address was the default and other addresses remain, the
-// most recently updated one is promoted — there's always exactly one
+// most recently updated one is promoted  -  there's always exactly one
 // default whenever at least one address exists.
 export async function deleteAddress(userId: string, id: string): Promise<boolean> {
   const [deleted] = await db

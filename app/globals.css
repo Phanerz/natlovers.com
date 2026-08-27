@@ -61,12 +61,12 @@ html {
 
 /*
  * Full-page section snapping for the home page's five sections (Hero,
- * Catalogue, Custom, Outlets, About) — desktop only, at the same 1024px
+ * Catalogue, Custom, Outlets, About)  -  desktop only, at the same 1024px
  * breakpoint the header/sidebar already switch on. This is pure CSS: the
  * browser owns the actual scroll physics (momentum, rubber-banding,
  * interrupting a snap mid-flight by scrolling again), nothing here
  * intercepts wheel/touch events or drives scroll position with JS. Below
- * this breakpoint .snap-page is inert — sections fall back to plain
+ * this breakpoint .snap-page is inert  -  sections fall back to plain
  * document flow and free scroll, since locked snapping is worse UX on the
  * small-screen traffic this brand mostly gets.
  *
@@ -82,7 +82,7 @@ html {
 
   .snap-page {
     scroll-snap-align: start;
-    /* Not scroll-snap-stop: always — that forces the browser to fight a
+    /* Not scroll-snap-stop: always  -  that forces the browser to fight a
        gesture's natural momentum to guarantee landing on the very next
        section no matter how hard the flick, which is part of what read as
        rushed/robotic rather than a glide. Without it, a normal-strength
@@ -90,16 +90,16 @@ html {
        hard flick can carry through to the one after. */
     height: calc(100dvh - var(--header-height));
     /* auto, not scroll: a section whose content fits exactly (Hero,
-       Catalogue) should never become its own scroll container at all —
+       Catalogue) should never become its own scroll container at all  - 
        only the taller ones (About, sometimes Custom) actually need this. */
     overflow-y: auto;
     /* Deliberately NOT overscroll-behavior: contain. That property blocks
-       scroll chaining — once wheel input hits a section's own overflow
+       scroll chaining  -  once wheel input hits a section's own overflow
        here, contain would stop it from ever reaching the outer document to
        move to the next section, which is exactly what made scrolling stop
        working at all. The default (chaining enabled) is what lets input
        fall through to the next snap point once a section's own internal
-       scroll is exhausted — or immediately, for sections with nothing to
+       scroll is exhausted  -  or immediately, for sections with nothing to
        scroll in the first place. */
   }
 }
@@ -148,7 +148,7 @@ html {
 }
 
 /*
- * The page itself no longer free-scrolls — navigation between sections
+ * The page itself no longer free-scrolls  -  navigation between sections
  * happens via the discrete long-scroll-navigator jumps, so a visible
  * page-level scrollbar has nothing meaningful left to represent. Hide it
  * on the root only; nested scrollable regions (sidebar list, mobile filter
@@ -166,7 +166,7 @@ body::-webkit-scrollbar {
 
 /* For small inline scroll regions (e.g. a single-row tag list that scrolls
  * sideways instead of wrapping) where a visible scrollbar would just be
- * clutter — the content is still genuinely scrollable, just without the
+ * clutter  -  the content is still genuinely scrollable, just without the
  * chrome. */
 .scrollbar-hide {
   scrollbar-width: none;
@@ -201,7 +201,7 @@ button {
   @apply rounded-lg border;
   border-color: rgba(17, 35, 25, 0.08);
   background: rgba(255, 251, 244, 0.92);
-  /* Flat by default per DESIGN.md — a regular content card, not a glass
+  /* Flat by default per DESIGN.md  -  a regular content card, not a glass
      one (that scope is buttons and explicitly-marked featured cards only).
      A subtle resting shadow, no blur, no glass bevel. */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
@@ -247,7 +247,7 @@ button {
 }
 
 /* Same iridescent lit-glass edge .liquid-glass-active uses, faded in on
-   hover only — a card that's just been lifted off the surface catching a
+   hover only  -  a card that's just been lifted off the surface catching a
    thin rim of light, not a permanent decorative border. */
 .motion-card::after {
   content: "";
@@ -283,7 +283,7 @@ button {
   box-shadow: 0 10px 22px rgba(17, 35, 25, 0.1);
 }
 
-/* Same principle as .glass-btn-primary's :active — an actual press should
+/* Same principle as .glass-btn-primary's :active  -  an actual press should
    compress, not just re-color, or it never reads as touching something
    real. Quick/snappy on purpose (matches every other press state site-
    wide); it's hover motion that needs to be slow, not this. */
@@ -350,7 +350,7 @@ button {
 }
 
 /* transform + brightness only, deliberately no background/box-shadow
-   override here — .icon-button pairs with several different background
+   override here  -  .icon-button pairs with several different background
    treatments (.liquid-glass's own inset highlights on the dark header,
    plain cream elsewhere), and replacing either on press would fight
    whichever is actually in play instead of just darkening it in place. */
@@ -369,7 +369,7 @@ button {
   box-shadow: 0 8px 17px rgba(0, 0, 0, 0.12);
 }
 
-/* No box-shadow override here either — same reasoning as .icon-button:active
+/* No box-shadow override here either  -  same reasoning as .icon-button:active
    above, since .control-pill is also paired with .liquid-glass's own bevel
    highlights (the locale/currency switcher in the header). */
 .control-pill:active {
@@ -379,18 +379,18 @@ button {
 }
 
 /* ============================================================
-   Elevated glass button/icon-button/stepper chrome — the same bevel +
+   Elevated glass button/icon-button/stepper chrome  -  the same bevel +
    iridescent-edge language as .liquid-glass above,
    generalized into reusable primitives for every solid, outline, and icon
    button site-wide (starting with the cart drawer). Deliberately NOT a
-   generic iOS blue/gray reskin — same forest/sand palette this brand
+   generic iOS blue/gray reskin  -  same forest/sand palette this brand
    already uses, just given real material depth.
 
    Motion is intentionally restrained: no spring/overshoot easing on
    hover (that read as bouncy/gamified) and no moving highlight sweep
    (a shine literally sliding across a button is a very recognizable
    "cheap SaaS" cliché). Hover is a slow, smooth ease-out lift with a
-   static glow that fades in in place — nothing travels across the
+   static glow that fades in in place  -  nothing travels across the
    surface. :active stays quick/snappy on purpose, since immediate
    feedback on an actual press is correct, expected tactility, not the
    "cartoony" quality the slower hover states were.
@@ -473,7 +473,7 @@ button {
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 4px 9px rgba(79, 58, 28, 0.04);
 }
 
-/* Circular icon buttons (close, remove, stepper) — same restrained
+/* Circular icon buttons (close, remove, stepper)  -  same restrained
    language: slow smooth lift on hover, no sweep, quick press feedback. */
 .glass-icon-btn {
   position: relative;
@@ -499,7 +499,7 @@ button {
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), inset 0 2px 5px rgba(79, 58, 28, 0.14);
 }
 
-/* Destructive affordance (remove-from-cart, delete) — a warm red-tinted
+/* Destructive affordance (remove-from-cart, delete)  -  a warm red-tinted
    glow that only appears on hover/focus, not a permanently red icon, so it
    reads as "this is removable" without shouting "danger" at rest. */
 .glass-icon-btn.is-danger:hover {
@@ -509,7 +509,7 @@ button {
     0 6px 12px rgba(196, 82, 62, 0.12);
 }
 
-/* Quantity stepper — a glass pill housing two .glass-stepper-btn taps. The
+/* Quantity stepper  -  a glass pill housing two .glass-stepper-btn taps. The
    buttons brighten and lift very slightly on hover and compress on press,
    rather than the container itself moving. */
 .glass-stepper {
@@ -581,7 +581,7 @@ button {
 }
 
 /*
- * Liquid Glass — Apple WWDC25-style frosted panel: heavy blur+saturate so
+ * Liquid Glass  -  Apple WWDC25-style frosted panel: heavy blur+saturate so
  * whatever sits behind genuinely refracts through, a bright specular arc
  * across the top-left to fake a curved glass surface catching light, and a
  * hairline border that reads as a bezel rather than a flat outline.
@@ -592,7 +592,7 @@ button {
      (see the comment above it in header.tsx): every element in this file
      using .liquid-glass lives inside that sticky header, so any blur here
      was still forcing a real-time GPU recomposite on every scroll frame,
-     site-wide — trimming the radius (22px -> 10px, previously) cut the
+     site-wide  -  trimming the radius (22px -> 10px, previously) cut the
      per-frame cost but not the per-frame *work*. A solid, higher-opacity
      tint reads as glass against the header's own near-opaque dark
      background without ever needing to resample anything live. */
@@ -622,7 +622,7 @@ button {
   position: absolute;
   left: 0;
   border-radius: 9999px;
-  /* Same no-blur reasoning as .liquid-glass above — this pill lives inside
+  /* Same no-blur reasoning as .liquid-glass above  -  this pill lives inside
      the same sticky header, so it paid the same site-wide per-scroll-frame
      recomposite cost. Bumped opacity to stay legible without it. */
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.16));
@@ -632,17 +632,17 @@ button {
     inset 0 -6px 10px rgba(52, 67, 50, 0.16),
     0 6px 18px rgba(0, 0, 0, 0.22);
   /* Position now travels via `transform: translateX()` (set inline,
-     alongside the drag-lift scale/translateY — see header.tsx) instead of
+     alongside the drag-lift scale/translateY  -  see header.tsx) instead of
      the `left` offset itself, so sliding between nav items is a compositor-
      only transform animation rather than a layout-triggering one; `left`
      stays permanently 0 and is never transitioned. `width` is left as a
      real layout property on purpose: faking a width change via scaleX()
      would squash this pill's box-shadow into a non-circular blur, which is
-     a worse visible regression than the (here, small — this element is
+     a worse visible regression than the (here, small  -  this element is
      absolutely positioned, so resizing it doesn't reflow anything else on
      the page) layout cost of an actual width transition.
      transform keeps the same 560ms/smooth-ease timing `left` used to carry
-     on its own — the drag-lift's quicker 220ms/bouncy feel (which also
+     on its own  -  the drag-lift's quicker 220ms/bouncy feel (which also
      lives on transform now, combined into one value in JS) only applies
      while .is-dragging is active, via the override below. */
   transition-property: width, transform, box-shadow;
@@ -653,7 +653,7 @@ button {
 
 /* While being dragged, `width` keeps a short transition so it morphs
  * cleanly as the drag crosses from one item's shape to the next instead of
- * jump-cutting; transform/box-shadow keep animating too — this is what
+ * jump-cutting; transform/box-shadow keep animating too  -  this is what
  * gives the "lift off the surface" pop on pickup. The translateX() position
  * component of transform is computed with zero transition delay during a
  * drag (see header.tsx) so the glass tracks the pointer with no lag; only
@@ -686,11 +686,11 @@ button {
  * active, for the same sliding-pill tab-bar mechanic used somewhere out of
  * glass scope per DESIGN.md (catalogue category tabs, admin sidebar nav).
  * Deliberately separate classes rather than restyling the .liquid-glass-*
- * originals — those are still genuinely in use for glass-scoped elements
+ * originals  -  those are still genuinely in use for glass-scoped elements
  * elsewhere (the header nav, product gallery icon buttons), so the
  * originals stay untouched and these carry the flat treatment instead.
  * Same transition timing as .liquid-glass-active, so the tab-switch glide
- * feels identical — only the surface (solid fill, no blur/bevel/iridescent
+ * feels identical  -  only the surface (solid fill, no blur/bevel/iridescent
  * edge) changed.
  */
 .flat-tab-bar {
@@ -707,7 +707,7 @@ button {
      inline transform: translateX() rather than the `left` offset, so it's
      compositor-only; `width` stays a real transition (this element is
      absolutely positioned, so it doesn't reflow anything else). transform
-     keeps the same 560ms/smooth timing `left` used to carry alone — the
+     keeps the same 560ms/smooth timing `left` used to carry alone  -  the
      quicker 220ms/bouncy drag-lift feel only applies via .is-dragging below. */
   transition-property: width, transform;
   transition-duration: 560ms, 560ms;
@@ -723,7 +723,7 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* transition: none only, deliberately not transform: none — transform now
+  /* transition: none only, deliberately not transform: none  -  transform now
      also carries this pill's actual position (translateX), so zeroing it
      would snap the indicator back to the first tab instead of just removing
      the slide animation. */
@@ -734,7 +734,7 @@ button {
 }
 
 /* Flat counterpart of .liquid-glass-dark, for the admin sidebar's active nav
-   item — same reasoning as .flat-tab-bar/.flat-tab-active above: the admin
+   item  -  same reasoning as .flat-tab-bar/.flat-tab-active above: the admin
    sidebar is out of glass scope, but .liquid-glass-dark itself is still
    genuinely in use for glass-scoped primary buttons elsewhere (e.g. the
    product page's Add to Bag), so it stays untouched and this carries the
@@ -755,7 +755,7 @@ button {
 }
 
 /*
- * Light-backdrop variants — same bezel/blur/specular language as
+ * Light-backdrop variants  -  same bezel/blur/specular language as
  * .liquid-glass, but inverted so it reads clearly over the site's cream
  * page background instead of the dark header: a soft dark-tinted glass
  * blob with a bright highlight on top, rather than a bright blob on dark.
@@ -772,7 +772,7 @@ button {
     0 6px 18px rgba(52, 67, 50, 0.08);
 }
 
-/* Static (non-absolute) dark glass pill for real buttons — same tint/blur/
+/* Static (non-absolute) dark glass pill for real buttons  -  same tint/blur/
    specular language as .liquid-glass-active-on-light, which is
    position:absolute because it's a sliding nav indicator, not a button. */
 .liquid-glass-dark {
@@ -830,7 +830,7 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* transition: none only, deliberately not transform: none — transform now
+  /* transition: none only, deliberately not transform: none  -  transform now
      also carries each pill's actual position (translateX), so zeroing it
      would snap the indicator back to the first item instead of just
      removing the slide animation. */
@@ -958,7 +958,7 @@ button {
 
 /* react-phone-number-input's own stylesheet (imported once, in
    components/phone-input.tsx) gives it working layout/behaviour but a
-   generic system look — this repaints its stable class names to match the
+   generic system look  -  this repaints its stable class names to match the
    site's own text-field shell (same border/radius/focus color as every
    plain <input> elsewhere) so the flag dropdown reads as one native field,
    not a third-party widget dropped on the page. */
@@ -1007,7 +1007,7 @@ button {
    states which code it will send rather than leaving it to be inferred from
    a flag. Rendered as a pseudo-element fed by --natlovers-dial-code (set in
    components/phone-input.tsx) precisely so it cannot be focused, selected,
-   or edited — it changes only by choosing another country in the dropdown.
+   or edited  -  it changes only by choosing another country in the dropdown.
    Countries are listed there as "Indonesia (+62)", so the same code appears
    in both places. */
 .natlovers-phone-input .PhoneInputCountry::after {
@@ -1042,7 +1042,7 @@ button {
 
 
 /* ======================================================================
- * /aoh — Alfa Omega Hardware pricing calculator. Fully scoped under
+ * /aoh  -  Alfa Omega Hardware pricing calculator. Fully scoped under
  * .aoh-page so none of this leaks into the rest of the site's forest/sand
  * design language.
  * ==================================================================== */
@@ -1065,7 +1065,7 @@ button {
 }
 
 /* Plain border-radius, deliberately not the experimental corner-shape
-   property — that rendered inconsistently across different element types
+   property  -  that rendered inconsistently across different element types
    (overflow-hidden cards, plain panels, buttons), which read as "the
    corners don't match" rather than a premium continuous curve. Standard
    radius is the one thing guaranteed to look identical everywhere. */
@@ -1087,7 +1087,7 @@ button {
 
 /* The blur/saturate itself is applied as Tailwind's backdrop-blur-2xl and
    backdrop-saturate-150 utilities on each element using this class instead
-   of a literal backdrop-filter here — this build's CSS pipeline silently
+   of a literal backdrop-filter here  -  this build's CSS pipeline silently
    drops hand-written backdrop-filter declarations (see .auth-glass-card
    above for the same note) but keeps ones emitted by Tailwind's own
    utility classes. */
@@ -1126,10 +1126,10 @@ button {
 }
 
 /* Floating menus (the GlassSelect options panel) sit on top of whatever's
-   behind them — including other page content while open — so they get a
+   behind them  -  including other page content while open  -  so they get a
    near-opaque backing and a heavier blur than the resting glass panels,
    for genuinely crisp text instead of a see-through smear. */
-/* Blur alone doesn't hide bright content behind a translucent surface —
+/* Blur alone doesn't hide bright content behind a translucent surface  - 
    it redistributes it, so a blurred, low-contrast but still-legible ghost
    of whatever sits behind can survive even at 90%+ opacity. A floating
    menu has to actually read as opaque; the backdrop-blur is still doing

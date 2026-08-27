@@ -1,7 +1,11 @@
 import {NextRequest, NextResponse} from "next/server";
+import {z} from "zod";
 import {getCartItems, setCartItemQuantity} from "@/lib/cart";
 import {getSession} from "@/lib/auth";
 import {customConfigSchema} from "@/lib/custom-studio";
+import {productSelectionSchema} from "@/lib/product-selection";
+
+const cartConfigSchema = z.union([customConfigSchema, productSelectionSchema]);
 
 export async function GET() {
   const session = await getSession();
@@ -15,7 +19,7 @@ export async function GET() {
 }
 
 // Upsert: quantity <= 0 removes the line. This is a "set" not an
-// "increment" — the caller sends the final quantity it wants.
+// "increment"  -  the caller sends the final quantity it wants.
 export async function POST(request: NextRequest) {
   const session = await getSession();
   const userId = session?.user?.id;
@@ -28,14 +32,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({error: "Missing slug or quantity."}, {status: 400});
   }
 
-  // config is only ever validated, never trusted as-is — a malformed value
+  // config is only ever validated, never trusted as-is  -  a malformed value
   // here would otherwise sit silently in the cart line all the way through
-  // to an order.
-  let config: ReturnType<typeof customConfigSchema.parse> | null | undefined;
+  // to an order. A line can carry either a full Custom Studio CustomConfig
+  // (from "Customise This Bag") or a plain ProductSelection (size/colour
+  // picked directly on the product page)  -  see lib/product-selection.ts.
+  let config: z.infer<typeof cartConfigSchema> | null | undefined;
   if (body.config === null) {
     config = null;
   } else if (body.config !== undefined) {
-    const parsed = customConfigSchema.safeParse(body.config);
+    const parsed = cartConfigSchema.safeParse(body.config);
     if (!parsed.success) {
       return NextResponse.json({error: "Invalid customisation."}, {status: 400});
     }

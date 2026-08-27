@@ -5,7 +5,7 @@ import {useEffect, useRef, useState} from "react";
 // Keeps a component mounted through its exit transition instead of
 // hard-unmounting the instant `open` flips false: entering sets `mounted`
 // immediately and flips `entered` true one frame later (so the initial
-// hidden style actually paints before transitioning — a node can't
+// hidden style actually paints before transitioning  -  a node can't
 // transition from a style it was never rendered with). Closing drops
 // `entered` right away to start the exit transition, then unmounts once
 // it's had time to finish. A fast re-open cancels the pending unmount and
@@ -25,7 +25,7 @@ export function useDelayedMount(open: boolean, exitMs = 150) {
       // A single rAF here isn't reliable: this effect runs inside React's
       // commit, and the browser can still fold the "just mounted, not
       // entered" style and the rAF's "entered" style into the very same
-      // paint — so the element's first-ever paint already has the open
+      // paint  -  so the element's first-ever paint already has the open
       // styles, and CSS transitions never fire (there's no earlier painted
       // frame to animate from). Nesting a second rAF forces one full frame
       // to actually get painted with the closed styles first, so the

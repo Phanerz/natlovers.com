@@ -1,7 +1,7 @@
 "use client";
 
 import {FormEvent} from "react";
-import {ImageDropzone} from "./image-dropzone";
+import {HeroImageDropzone} from "./hero-image-dropzone";
 import {HeroCardFormState, HeroCardType} from "./hero-card-types";
 
 const fieldClass =
@@ -70,7 +70,7 @@ export function HeroCardForm({
       ) : null}
 
       {form.cardType === "image" ? (
-        <ImageDropzone
+        <HeroImageDropzone
           files={form.image}
           onFilesChange={(files) => onChange({...form, image: files.slice(-1)})}
           uploadProgress={uploadProgress}

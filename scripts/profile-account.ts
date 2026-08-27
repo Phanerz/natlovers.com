@@ -35,7 +35,7 @@ async function main() {
   });
 
   console.log("\n--- Realistic page load: /api/account handler run CONCURRENTLY with /api/account/addresses ---");
-  console.log("(this is what the browser actually does — two separate fetches firing at once on page mount)");
+  console.log("(this is what the browser actually does: two separate fetches firing at once on page mount)");
   const concurrentStart = performance.now();
   await Promise.all([
     time("  [concurrent] /api/account sequence", async () => {

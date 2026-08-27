@@ -13,7 +13,7 @@ import {
 } from "@/lib/custom-studio";
 
 // Step 1 of the studio. One panel per product type, because each category
-// owns a genuinely different schema — a doll has no garment and a bag has no
+// owns a genuinely different schema  -  a doll has no garment and a bag has no
 // placement, and a single generic form would have to pretend otherwise.
 //
 // Nothing in here carries its own number. The studio has exactly one
@@ -63,7 +63,7 @@ function OptionCard({
   );
 }
 
-// Abstract line art rather than a stand-in photograph — a diagram cannot be
+// Abstract line art rather than a stand-in photograph  -  a diagram cannot be
 // mistaken for a picture of the finished piece, which a stock photo could.
 function ShapeGlyph({shape}: {shape: string}) {
   const common = "stroke-forest-700";
@@ -147,8 +147,8 @@ function ColourRow({value, onSelect}: {value: string; onSelect: (next: string) =
         ))}
       </div>
       {/* Natural fibre is undyed, so the swatch names the material rather
-          than a paint colour — the honest description of the choice. */}
-      <p className="text-[10px] leading-snug text-forest-400">Undyed natural fibre — the material is the colour.</p>
+          than a paint colour  -  the honest description of the choice. */}
+      <p className="text-[10px] leading-snug text-forest-400">Undyed natural fibre. The material is the colour.</p>
     </div>
   );
 }
@@ -236,7 +236,7 @@ export function ConfigPanel({
 
         {/* Stated plainly rather than implied by the absence of controls. */}
         <p className="rounded-lg border border-[#e4dcc9] bg-[#faf6ec] px-3 py-2 text-[10.5px] leading-relaxed text-forest-600">
-          Dolls are sculpted by hand from your photographs — the likeness comes from the pictures you upload.
+          Dolls are sculpted by hand from your photographs  -  the likeness comes from the pictures you upload.
         </p>
       </div>
     );

@@ -89,7 +89,7 @@ export async function DELETE(request: NextRequest) {
   // The blob itself is deliberately left in storage. Deleting it here would
   // make removing a photo irreversible the instant it is clicked, and blob
   // cleanup for genuinely abandoned uploads is a separate housekeeping
-  // concern — the row is what governs whether the studio ever sees it.
+  // concern  -  the row is what governs whether the studio ever sees it.
   const removed = await removeImage(userId, requestId, imageId);
   if (!removed) {
     return NextResponse.json({error: "Not found."}, {status: 404});

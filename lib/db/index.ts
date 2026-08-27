@@ -9,7 +9,7 @@ import * as schema from "./schema";
 // Cached on globalThis in dev: this module gets re-evaluated on every
 // Turbopack/Fast Refresh hot-reload, and without caching, each reload would
 // spin up a brand-new postgres connection pool without closing the previous
-// one — over a long dev session with many edits, that leaks connections
+// one  -  over a long dev session with many edits, that leaks connections
 // until the pooler's limit is exhausted and every query starts queuing for
 // a free connection, which reads as the whole site getting steadily
 // "laggier" the longer the session runs. Production doesn't hot-reload, so
@@ -20,7 +20,7 @@ declare global {
 }
 
 // max was 5 for a while on the theory that a smaller pool is a better
-// citizen of Supabase's shared pooler capacity — measured under real load,
+// citizen of Supabase's shared pooler capacity  -  measured under real load,
 // that was actually the cause of the "Customers/Orders render forever"
 // symptom: a single admin page load fans out up to 7 concurrent queries
 // (e.g. the customers page runs 3 top-level functions in parallel, each of
@@ -34,7 +34,7 @@ declare global {
 // that gets stuck for any reason (a Fast-Refresh module reload racing an
 // in-flight query, a network blip against the pooler, a client that gave up
 // but left the server-side handler still awaiting the query) never comes
-// back — Postgres has no reason to kill it, so it just sits there holding a
+// back  -  Postgres has no reason to kill it, so it just sits there holding a
 // slot forever. Enough of those accumulate over a dev session and every
 // subsequent request queues behind connections that will never free up.
 // Forcing Postgres to kill any query past 10s converts that into a fast,

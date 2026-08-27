@@ -91,13 +91,13 @@ export async function deleteHeroCard(id: string): Promise<void> {
 }
 
 // Takes the full ordered list of ids (as dropped) and writes each one's
-// index straight to displayOrder — replaces the old up/down swap-with-
+// index straight to displayOrder  -  replaces the old up/down swap-with-
 // neighbor approach now that the panel does free drag-and-drop reordering
 // instead of single-step moves.
 export async function reorderAllHeroCards(orderedIds: string[]): Promise<void> {
   const existing = await db.select({id: heroCards.id}).from(heroCards).where(inArray(heroCards.id, orderedIds));
   if (existing.length !== orderedIds.length) {
-    throw new Error("Hero card list is out of date — refresh and try again.");
+    throw new Error("Hero card list is out of date. Refresh and try again.");
   }
 
   await db.transaction(async (tx) => {

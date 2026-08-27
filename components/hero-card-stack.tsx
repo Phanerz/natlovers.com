@@ -34,7 +34,7 @@ const FLY_DISTANCE = 900;
 const VISIBLE_DEPTH = 3;
 const MAX_DRAG_ROTATION = 26;
 // The resting card leans very slightly clockwise (positive deg) for a
-// natural, ever-so-slightly-off-center feel — drag rotation is added on
+// natural, ever-so-slightly-off-center feel  -  drag rotation is added on
 // top of this base tilt, not in place of it.
 const FRONT_CARD_BASE_TILT = 3;
 
@@ -89,7 +89,7 @@ function StackCard({
   });
 
   function handleDragEnd(_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
-    // The dismiss decision only looks at the horizontal component — a
+    // The dismiss decision only looks at the horizontal component  -  a
     // straight up/down drag has near-zero offset.x/velocity.x, so it always
     // springs back to center regardless of how far vertically it went.
     // Diagonal throws (down-left, up-right, etc.) still count as long as
@@ -117,7 +117,7 @@ function StackCard({
       // Cards must never play a mount-in animation: the real hero cards load
       // from the API a beat after the placeholder colors render, and since
       // their ids differ from the placeholders', AnimatePresence treats them
-      // as brand-new elements entering — which used to fade/scale them in
+      // as brand-new elements entering  -  which used to fade/scale them in
       // right as the page loads, reading as an unwanted "boot up" animation.
       // initial={false} makes every card (placeholder, real, or newly
       // revealed at the back of the stack during a swipe) render directly at

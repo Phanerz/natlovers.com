@@ -4,19 +4,19 @@ import {boolean, index, integer, jsonb, pgPolicy, pgTable, primaryKey, text, tim
 type ProviderType = "oauth" | "email" | "credentials";
 
 // RLS note (applies to every table below): the app's own Postgres role
-// (see DB_POSTGRES_URL — connects as the Supabase-managed `postgres` role)
+// (see DB_POSTGRES_URL  -  connects as the Supabase-managed `postgres` role)
 // has BYPASSRLS, confirmed via `select rolbypassrls from pg_roles`, so none
 // of this affects the Next.js server's own queries. What it does affect is
 // Supabase's auto-generated PostgREST/GraphQL API, which is reachable by
 // anyone holding the project's anon key regardless of whether this app
-// happens to use it — RLS is what stands between that API and this data.
+// happens to use it  -  RLS is what stands between that API and this data.
 //
 // This app authenticates entirely through NextAuth (its own session table,
-// checked server-side), not Supabase Auth — no Supabase JWT is ever issued
+// checked server-side), not Supabase Auth  -  no Supabase JWT is ever issued
 // for a signed-in user, so `auth.uid()` is always null for every request
 // PostgREST receives here. A policy written as `auth.uid() = user_id`
 // would look like a real "read your own row" rule but would never actually
-// match anyone, since there's no session for it to match against — writing
+// match anyone, since there's no session for it to match against  -  writing
 // one would be misleading, not protective. So every PII-bearing table below
 // gets RLS enabled with *no* policies for `anon`/`authenticated`, which
 // means default-deny for the public API while the app itself is unaffected.
@@ -39,32 +39,41 @@ export const products = pgTable(
     materials: text("materials").array().notNull().default([]),
     // Free text rather than separate height/width/depth columns, so it can
     // honestly express handmade variance ("Approx. 30 x 20 x 15 cm") instead
-    // of implying a precision the product doesn't have. Optional — an admin
+    // of implying a precision the product doesn't have. Optional  -  an admin
     // fills it in when they have the real measurement; the product page
     // falls back to showing the Small/Medium/Large size instead when null.
     dimensions: text("dimensions"),
     // Bags-only.
     shape: text("shape"),
     handleType: text("handle_type"),
+    // Per-product colour options, each an admin-entered hex swatch (not a
+    // fixed enum) - so a bag with no natural-dye equivalent, or a product
+    // that just doesn't offer a colour choice, can turn this off entirely
+    // rather than showing an empty or irrelevant picker. Same pattern for
+    // handle colour, a separate axis from bag body colour.
+    hasBaseColour: boolean("has_base_colour").notNull().default(false),
+    baseColourOptions: jsonb("base_colour_options").$type<{label: string; hex: string}[]>(),
+    hasHandleColour: boolean("has_handle_colour").notNull().default(false),
+    handleColourOptions: jsonb("handle_colour_options").$type<{label: string; hex: string}[]>(),
     // Accessories-only.
     accessoryCategory: text("accessory_category"),
     productType: text("product_type").notNull(),
     tags: text("tags").array().notNull().default([]),
     soldOut: boolean("sold_out").notNull().default(false),
     isActive: boolean("is_active").notNull().default(true),
-    // Optional — most products don't track a count yet. When set, it's
+    // Optional  -  most products don't track a count yet. When set, it's
     // decremented on payment confirmation (see markOrderPaid in lib/orders.ts)
     // and floored at 0 rather than going negative.
     stock: integer("stock"),
     // Includes the "NAT-" prefix (e.g. "NAT-BAG007"), stored whole rather than
     // split, so every read site (table, form, order emails) shows the same
-    // string without reassembling it. Optional — older products have none.
+    // string without reassembling it. Optional  -  older products have none.
     productCode: text("product_code").unique(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow()
   },
   (table) => [
-    // Only active/visible products — a hidden or deactivated product must
+    // Only active/visible products  -  a hidden or deactivated product must
     // stay invisible to the public API the same way it's invisible on the
     // storefront. Writes are never granted here: creating/editing products
     // stays server-only via the bypassing app role.
@@ -93,7 +102,7 @@ export const heroCards = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow()
   },
   () => [
-    // Every row here is meant to be shown on the public homepage — there's
+    // Every row here is meant to be shown on the public homepage  -  there's
     // no hidden/draft state, so no filter is needed on top of "public".
     pgPolicy("Public can view hero cards", {as: "permissive", for: "select", to: "anon", using: sql`true`})
   ]
@@ -110,13 +119,13 @@ export const users = pgTable("user", {
   email: text("email").unique(),
   emailVerified: timestamp("emailVerified", {mode: "date"}),
   image: text("image"),
-  // App-specific additions beyond the adapter's required shape — the
+  // App-specific additions beyond the adapter's required shape  -  the
   // adapter only ever reads/writes the four columns above, so these are
   // safely ignored by it and only touched by our own /api/account route.
   phone: text("phone"),
   bio: text("bio"),
   // Ordered list of up to 4 metric keys (see lib/admin-widgets.ts) an admin
-  // has chosen to pin to their account-page overview — array order is
+  // has chosen to pin to their account-page overview  -  array order is
   // display order. Null/empty means "hasn't customized yet," which the app
   // treats as the same default 4-widget set the page always showed before
   // this was configurable, not an empty section. Non-admin accounts never
@@ -125,7 +134,7 @@ export const users = pgTable("user", {
   adminWidgets: text("admin_widgets").array()
 }).enableRLS();
 
-// A customer's reusable, editable shipping address — kept separate from any
+// A customer's reusable, editable shipping address  -  kept separate from any
 // order so it can be added/edited/reused across checkouts. What actually
 // ships with a given order is a frozen copy on that order row (see the
 // shipping* columns below), not a live reference to a row here, so editing
@@ -143,7 +152,7 @@ export const addresses = pgTable("addresses", {
   phone: text("phone").notNull(),
   street: text("street").notNull(),
   city: text("city").notNull(),
-  // Not every country uses a province/state — Singapore and Hong Kong
+  // Not every country uses a province/state  -  Singapore and Hong Kong
   // addresses, for instance, genuinely don't have one, so this stays
   // optional rather than forcing a fake value in to satisfy a NOT NULL.
   province: text("province"),
@@ -177,11 +186,11 @@ export const cartItems = pgTable(
     productSlug: text("product_slug").notNull(),
     quantity: integer("quantity").notNull().default(1),
     // The customisation chosen when this line was added (a Custom Studio
-    // CustomConfig — see lib/custom-studio.ts), or null for a product added
+    // CustomConfig  -  see lib/custom-studio.ts), or null for a product added
     // with no customisation, e.g. an Accessory. One line per product per
     // user (same composite PK as before), so re-adding the same product with
     // a different configuration replaces the stored config rather than
-    // creating a second line — the same "last write wins" behaviour the
+    // creating a second line  -  the same "last write wins" behaviour the
     // quantity field already has.
     config: jsonb("config"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -208,7 +217,7 @@ export const orders = pgTable("orders", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   // Payment-confirmation audit trail. Stored as a plain email snapshot
   // rather than a userId FK so the record survives even if that admin
-  // account is later renamed or removed — if a customer disputes a
+  // account is later renamed or removed  -  if a customer disputes a
   // payment, this needs to keep answering "who marked it paid and when"
   // regardless of what happens to the admin's account afterward.
   confirmedByEmail: text("confirmed_by_email"),
@@ -216,7 +225,7 @@ export const orders = pgTable("orders", {
   // Shipment tracking, set once an admin fulfills a paid order.
   trackingCourier: text("tracking_courier"),
   trackingNumber: text("tracking_number"),
-  // Shipping address, frozen at checkout time — same snapshot philosophy as
+  // Shipping address, frozen at checkout time  -  same snapshot philosophy as
   // order_items' productName/priceIdr: this is what actually shipped, so it
   // must stay accurate even if the customer later edits or deletes the
   // saved address it was copied from.
@@ -229,7 +238,7 @@ export const orders = pgTable("orders", {
   shippingCountry: text("shipping_country").notNull()
 }).enableRLS();
 
-// Snapshots product name/price at order time — deliberately not a foreign
+// Snapshots product name/price at order time  -  deliberately not a foreign
 // key to `products`, so an order stays accurate even if the product is
 // later edited, deactivated, or deleted from the catalogue.
 export const orderItems = pgTable("order_items", {
@@ -244,13 +253,13 @@ export const orderItems = pgTable("order_items", {
   priceIdr: integer("price_idr").notNull(),
   quantity: integer("quantity").notNull(),
   // Snapshot of the cart line's config at checkout time, same snapshot
-  // philosophy as productName/priceIdr above — what was actually ordered
+  // philosophy as productName/priceIdr above  -  what was actually ordered
   // must stay legible even if the cart line it came from is long gone.
   config: jsonb("config")
 }).enableRLS();
 
 // Single shared row (id "default") for the /aoh pricing calculator's rate
-// table and settings — there's no login for that tool, so this is the one
+// table and settings  -  there's no login for that tool, so this is the one
 // config every device reads and writes, last write wins. RLS enabled with
 // no policies: same default-deny-to-the-public-API treatment as every other
 // non-public table here, since this is internal shop pricing, not
@@ -305,7 +314,7 @@ export const verificationTokens = pgTable(
 ).enableRLS();
 
 // Custom Studio intake. A request is the customer's *configuration* plus
-// their inspiration photos — not an order. It carries an estimated price
+// their inspiration photos  -  not an order. It carries an estimated price
 // the studio can revise (finalPriceIdr) once someone has actually looked at
 // what was asked for, which is why the two are separate columns rather than
 // one price that gets overwritten: the quote and what the customer was
@@ -325,7 +334,7 @@ export const customRequests = pgTable(
       .$defaultFn(() => crypto.randomUUID()),
     // Human-quotable reference shown to the customer on the success screen
     // and used by the studio when they get back in touch. Null while the
-    // row is still a draft — a draft has nothing to quote yet — and
+    // row is still a draft  -  a draft has nothing to quote yet  -  and
     // assigned once at submit time.
     requestRef: text("request_ref").unique(),
     userId: text("user_id")
@@ -335,7 +344,7 @@ export const customRequests = pgTable(
     // vocabulary rather than inventing a second set of type names.
     productType: text("product_type").notNull(),
     configuration: jsonb("configuration").notNull().default({}),
-    // Prices are stored in IDR like orders.totalIdr — IDR is the currency
+    // Prices are stored in IDR like orders.totalIdr  -  IDR is the currency
     // the business actually operates in, and every display currency in the
     // app is a formatted conversion of it (see lib/format.ts). `currency`
     // records which one the customer was *looking at* when they submitted,
@@ -357,7 +366,7 @@ export const customRequests = pgTable(
     // the database rather than by a read-then-write in the route, because
     // two tabs saving at once would otherwise both find "no draft" and both
     // insert. Partial, so it constrains only drafts and never submitted
-    // requests — a customer may of course submit as many as they like.
+    // requests  -  a customer may of course submit as many as they like.
     oneDraftPerUser: uniqueIndex("custom_requests_one_draft_per_user")
       .on(table.userId)
       .where(sql`status = 'draft'`),
@@ -368,7 +377,7 @@ export const customRequests = pgTable(
 
 // Inspiration photos uploaded alongside a request. storageKey is the Vercel
 // Blob pathname, kept separately from the public url so the blob can still
-// be deleted after the fact — url alone is enough to display an image but
+// be deleted after the fact  -  url alone is enough to display an image but
 // not to manage it.
 export const customRequestImages = pgTable(
   "custom_request_images",
@@ -391,7 +400,7 @@ export const customRequestImages = pgTable(
 ).enableRLS();
 
 // Single-row store-wide settings. Exists for the Custom Studio intake
-// pause — the studio is one small team in Yogyakarta, and the honest
+// pause  -  the studio is one small team in Yogyakarta, and the honest
 // failure mode of a public custom-order form is accepting more work than
 // there are hands to make it. The pause is the capacity guardrail: it
 // closes new submissions without taking the page down or losing drafts.

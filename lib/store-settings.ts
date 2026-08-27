@@ -4,7 +4,7 @@ import {DEFAULT_INTAKE_PAUSED_MESSAGE} from "@/lib/custom-studio";
 
 // store_settings holds exactly one row, under this fixed id. Reads tolerate
 // the row not existing yet (a fresh database has never had an admin touch
-// settings) and report the safe default rather than failing — the safe
+// settings) and report the safe default rather than failing  -  the safe
 // default for intake being "open", since the pause is an action someone
 // takes, not a state the app should fall into on its own.
 const SETTINGS_ID = "default";

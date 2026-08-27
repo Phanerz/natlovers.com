@@ -16,9 +16,46 @@ import {
   shopSizes,
   sizeLabels
 } from "@/app/catalogue/shop-data";
+import {ColourOptionsEditor} from "./colour-options-editor";
 import {ImageDropzone} from "./image-dropzone";
 import {PillMultiSelect, PillSingleSelect} from "./pill-select";
 import {AdminProduct, PRODUCT_CODE_PREFIX, ProductFormState} from "./types";
+
+function ToggleRow({
+  label,
+  hint,
+  checked,
+  onChange
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3">
+      <span>
+        <span className="block text-sm font-medium text-forest-900">{label}</span>
+        <span className="block text-xs text-forest-500">{hint}</span>
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-150 ${
+          checked ? "bg-forest-700" : "bg-[#d9cfc0]"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-150 ${
+            checked ? "translate-x-[1.375rem]" : "translate-x-0.5"
+          }`}
+        />
+      </button>
+    </label>
+  );
+}
 
 function SectionCard({step, title, children}: {step: number; title: string; children: ReactNode}) {
   return (
@@ -37,7 +74,7 @@ function SectionCard({step, title, children}: {step: number; title: string; chil
 const fieldClass =
   "w-full rounded-md border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-base text-forest-900 outline-none focus:border-forest-400";
 
-// Each Product Type owns its own attribute set — a Doll gets only Size, an
+// Each Product Type owns its own attribute set  -  a Doll gets only Size, an
 // Accessory gets only Category, Apparel gets nothing beyond Basic Info/
 // Images. No shared generic block that shows fields irrelevant to the
 // selected type.
@@ -112,9 +149,8 @@ export function ProductForm({
   onChange,
   onSubmit,
   submitting,
-  uploadProgress,
   errorMessage,
-  existingImages = [],
+  imageSlug,
   onCancel,
   product,
   onDeactivate,
@@ -126,11 +162,12 @@ export function ProductForm({
   onChange: (next: ProductFormState) => void;
   onSubmit: (event: FormEvent) => void;
   submitting: boolean;
-  uploadProgress: number | null;
   errorMessage: string | null;
-  existingImages?: string[];
+  // Used only to name uploaded image blobs readably  -  doesn't need to be
+  // the real, final slug (a create-mode product doesn't have one yet).
+  imageSlug: string;
   onCancel?: () => void;
-  // Edit-mode only — lets the form itself hide/unhide/delete the product
+  // Edit-mode only  -  lets the form itself hide/unhide/delete the product
   // being edited, the same actions available from the list row.
   product?: AdminProduct;
   onDeactivate?: () => void;
@@ -237,11 +274,45 @@ export function ProductForm({
 
       <SectionCard step={3} title="Images">
         <ImageDropzone
-          files={form.images}
-          onFilesChange={(images) => onChange({...form, images})}
-          existingImages={existingImages}
-          uploadProgress={uploadProgress}
+          images={form.images}
+          onImagesChange={(images) => onChange({...form, images})}
+          slug={imageSlug}
         />
+      </SectionCard>
+
+      <SectionCard step={4} title="Colours">
+        <p className="text-sm text-forest-600">
+          Not every piece offers a colour choice. Turn these on only for products that genuinely do, and enter the real
+          hex code for each option.
+        </p>
+
+        <ToggleRow
+          label="Base colour"
+          hint="Lets a customer pick the colour of the piece itself."
+          checked={form.hasBaseColour}
+          onChange={(checked) => onChange({...form, hasBaseColour: checked})}
+        />
+        {form.hasBaseColour ? (
+          <ColourOptionsEditor
+            label="Base colour"
+            options={form.baseColourOptions}
+            onChange={(baseColourOptions) => onChange({...form, baseColourOptions})}
+          />
+        ) : null}
+
+        <ToggleRow
+          label="Handle colour"
+          hint="Lets a customer pick the colour of the handle or strap."
+          checked={form.hasHandleColour}
+          onChange={(checked) => onChange({...form, hasHandleColour: checked})}
+        />
+        {form.hasHandleColour ? (
+          <ColourOptionsEditor
+            label="Handle colour"
+            options={form.handleColourOptions}
+            onChange={(handleColourOptions) => onChange({...form, handleColourOptions})}
+          />
+        ) : null}
       </SectionCard>
 
       {errorMessage ? <p className="text-sm font-medium text-red-600">{errorMessage}</p> : null}
@@ -266,9 +337,9 @@ export function ProductForm({
       </div>
 
       {mode === "edit" && product ? (
-        <SectionCard step={4} title="Danger Zone">
+        <SectionCard step={5} title="Danger Zone">
           <p className="text-sm text-forest-600">
-            Same actions as the list view — hiding keeps the product's data and history, deleting removes it for good.
+            Same actions as the list view  -  hiding keeps the product's data and history, deleting removes it for good.
           </p>
           <div className="flex flex-wrap gap-3">
             {product.isActive ? (

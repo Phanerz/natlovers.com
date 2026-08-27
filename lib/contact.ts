@@ -2,7 +2,7 @@
 // both the account page and the studio's admin views can build the same link
 // from the same rules rather than each carrying its own copy.
 
-// Indonesian numbers are stored however the customer typed them — with
+// Indonesian numbers are stored however the customer typed them  -  with
 // spaces, with a leading 0, sometimes already in +62 form. wa.me accepts
 // only digits in international format, so normalising is what makes a saved
 // phone number actually clickable.

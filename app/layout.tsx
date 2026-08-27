@@ -22,7 +22,7 @@ export default function RootLayout({children}: {children: ReactNode}) {
             <StorefrontProvider>
               {/* Header and Footer render outside {children}, so Next's
                   app/error.tsx (which only wraps route-segment content)
-                  never covers them — a crash in either would otherwise fall
+                  never covers them  -  a crash in either would otherwise fall
                   through to app/global-error.tsx and tear down the whole
                   app shell (auth/cart/locale state included) instead of
                   just that one region. */}

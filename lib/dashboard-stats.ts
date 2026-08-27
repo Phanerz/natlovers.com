@@ -4,7 +4,7 @@ import {getCustomerCount} from "@/lib/customers";
 import {countOpenCustomRequests} from "@/lib/custom-requests";
 
 // A product only counts toward stock KPIs once it's opted into tracking
-// (stock IS NOT NULL) — most of the catalogue hasn't yet, so these stay
+// (stock IS NOT NULL)  -  most of the catalogue hasn't yet, so these stay
 // null (rendered as "Not tracked") until at least one product has a real
 // count, rather than showing a hollow zero that reads as "fully stocked."
 const LOW_STOCK_THRESHOLD = 5;
@@ -12,7 +12,7 @@ const LOW_STOCK_THRESHOLD = 5;
 export type DateRangeKey = "today" | "7d" | "month" | "year" | "all";
 
 // The sidebar's two nav badges used to be read off a full getDashboardStats(
-// "all") call — that endpoint alone fans out ~7 queries, then the sidebar's
+// "all") call  -  that endpoint alone fans out ~7 queries, then the sidebar's
 // concurrent invocation stacked directly on top of dashboard-home's own call
 // to the same heavy endpoint on every /mimin dashboard load (two overlapping
 // callers of the same expensive pipeline is exactly the pool-starvation
@@ -29,7 +29,7 @@ export async function getSidebarBadgeCounts(): Promise<{ordersAwaitingTransfer: 
   return {ordersAwaitingTransfer: awaitingRow.value, openCustomRequests};
 }
 
-// Orders in either of these statuses represent money actually received —
+// Orders in either of these statuses represent money actually received  - 
 // "paid" covers a confirmed transfer, "fulfilled" is the same order after
 // it's also shipped, still just as paid. Revenue/AOV/items-sold all count
 // against this set; a pending_transfer order contributes to order *volume*
@@ -43,7 +43,7 @@ export type ResolvedRange = {
   previousEnd: Date | null;
 };
 
-// "all" has no previous period to compare against — there's no meaningful
+// "all" has no previous period to compare against  -  there's no meaningful
 // "vs previous all-time," so comparisons are simply not offered for it.
 export function resolveDateRange(range: DateRangeKey, now: Date = new Date()): ResolvedRange {
   const end = now;
@@ -87,7 +87,7 @@ async function getPeriodMetrics(start: Date | null, end: Date): Promise<PeriodMe
   const rangeFilter = dateFilter ? and(dateFilter, endFilter) : endFilter;
 
   // totalOrders and paid-order count/revenue used to be two separate
-  // queries against the same orders/rangeFilter — collapsed into one via
+  // queries against the same orders/rangeFilter  -  collapsed into one via
   // conditional aggregation (same "count(*) filter (where ...)" pattern as
   // the stock query below) since they're both scans of the same row set,
   // just narrowed by a status check. See lib/db/index.ts's max:10 pool
@@ -150,7 +150,7 @@ export async function getDashboardStats(range: DateRangeKey): Promise<DashboardS
       ? getPeriodMetrics(resolved.previousStart, resolved.previousEnd!)
       : Promise.resolve(null),
     // total + active used to be two separate full-table counts on the same
-    // products table — same collapsing rationale as getPeriodMetrics above.
+    // products table  -  same collapsing rationale as getPeriodMetrics above.
     db
       .select({
         total: count(),
@@ -172,7 +172,7 @@ export async function getDashboardStats(range: DateRangeKey): Promise<DashboardS
 
   // Deliberately sequential, not folded into the Promise.all above. That
   // batch already fans out close to the connection pool ceiling (see the
-  // max: 10 rationale in lib/db/index.ts — getPeriodMetrics and
+  // max: 10 rationale in lib/db/index.ts  -  getPeriodMetrics and
   // getCustomerCount each run several queries of their own), and adding a
   // ninth parallel branch pushed a single dashboard load past it. Waiting
   // for a pool slot has no timeout, so the overflow did not surface as an
@@ -208,7 +208,7 @@ export async function getDashboardStats(range: DateRangeKey): Promise<DashboardS
 export type SalesSeriesPoint = {date: string; revenue: number; orders: number; itemsSold: number};
 
 // Granularity follows the range: short windows (today/7d/month) are grouped
-// by day, longer ones (year/all) by month — a year of daily points would be
+// by day, longer ones (year/all) by month  -  a year of daily points would be
 // an unreadable comb of bars, and a week of monthly points would be a
 // single dot.
 function granularityFor(range: DateRangeKey): "day" | "month" {
@@ -272,7 +272,7 @@ export async function getRecentOrders(limit = 5): Promise<RecentOrder[]> {
 export type BestSellingProduct = {slug: string; name: string; unitsSold: number; revenue: number};
 
 // Deliberately all-time (not scoped to the dashboard's selected date range)
-// and gated behind a minimum sample size — "best selling" out of 1-2 real
+// and gated behind a minimum sample size  -  "best selling" out of 1-2 real
 // orders isn't a ranking, it's noise dressed up as signal. Returns null
 // below that floor so the UI shows an honest "not enough data" state
 // instead of a fake leaderboard.

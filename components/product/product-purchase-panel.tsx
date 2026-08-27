@@ -3,18 +3,18 @@
 import {useMemo, useState} from "react";
 import {useRouter} from "next/navigation";
 import {useSession} from "next-auth/react";
-import {Heart, Share2, Sparkles} from "lucide-react";
+import {Heart, Share2} from "lucide-react";
 import {Toast, ToastState} from "@/components/admin/toast";
-import {useSitePreferences} from "@/components/site-preferences-provider";
 import {useStorefront} from "@/components/storefront-provider";
 import {useWishlist} from "@/components/use-wishlist";
 import {formatCurrency} from "@/lib/format";
-import {ConfigPanel, FieldLabel, PillRow} from "@/components/custom-studio/config-panel";
-import {EstimatePanel} from "@/components/custom-studio/review-panel";
-import {calculateEstimate, emptyPricingBasis} from "@/lib/custom-pricing";
-import {LOCAL_CUSTOM_DRAFT_KEY, customBagHandles, type CustomConfig, type LocalCustomDraft} from "@/lib/custom-studio";
+import {useSitePreferences} from "@/components/site-preferences-provider";
+import {LOCAL_CUSTOM_DRAFT_KEY, type LocalCustomDraft} from "@/lib/custom-studio";
 import {defaultConfigForProduct} from "@/lib/product-customization";
+import type {ProductSelection} from "@/lib/product-selection";
 import type {AdminProduct} from "@/lib/admin-products";
+import {ShopSize} from "@/app/catalogue/shop-data";
+import {ProductCustomizer} from "@/components/product/product-customizer";
 
 export function ProductPurchasePanel({product}: {product: AdminProduct}) {
   const router = useRouter();
@@ -24,20 +24,32 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
   const {addToCart} = useStorefront();
   const {isWishlisted, toggle: toggleWishlist} = useWishlist();
 
-  const initialConfig = useMemo(() => defaultConfigForProduct(product), [product]);
-  const [config, setConfig] = useState<CustomConfig | null>(initialConfig);
+  const showSize = product.size !== null;
+  const [size, setSize] = useState<ShopSize>(product.size ?? "Medium");
+  const [baseColour, setBaseColour] = useState<string | null>(product.baseColourOptions[0]?.label ?? null);
+  const [handleColour, setHandleColour] = useState<string | null>(product.handleColourOptions[0]?.label ?? null);
+
+  const hasSelection = showSize || product.hasBaseColour || product.hasHandleColour;
+  const selection: ProductSelection | undefined = hasSelection
+    ? {
+        kind: "productSelection",
+        ...(showSize ? {size} : {}),
+        ...(product.hasBaseColour && baseColour ? {baseColour} : {}),
+        ...(product.hasHandleColour && handleColour ? {handleColour} : {})
+      }
+    : undefined;
+
+  // Whether Custom Studio supports this product's type at all (Bags/Dolls/
+  // Apparels  -  see lib/custom-studio.ts) decides whether "Customise This
+  // Bag" shows. Custom Studio has its own shape/fixed-colour data model,
+  // unrelated to this page's size/colour picks, so this is only used to
+  // seed a sensible starting point for that separate flow, not read from
+  // directly elsewhere on this page.
+  const customStudioBase = useMemo(() => defaultConfigForProduct(product), [product]);
+
   const [addedNotice, setAddedNotice] = useState(false);
   const [customising, setCustomising] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
-
-  const basis = useMemo(() => ({...emptyPricingBasis, [product.productType]: product.priceIdr}), [product]);
-  const estimate = config ? calculateEstimate(config, basis) : null;
-  // Only worth showing as a breakdown once a selection actually moves the
-  // price away from the base — right now every Custom Studio modifier is
-  // still zero (see lib/custom-pricing.ts), so this stays hidden rather than
-  // implying options cost something they don't yet.
-  const priceAffectedByConfig = Boolean(estimate && estimate.totalIdr !== estimate.basePriceIdr);
-  const displayPriceIdr = estimate ? estimate.totalIdr : product.priceIdr;
 
   const wishlisted = isWishlisted(product.slug);
 
@@ -51,20 +63,31 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
         : `${product.stock} in stock`;
 
   function handleAddToBag() {
-    addToCart(product.slug, 1, config);
+    addToCart(product.slug, 1, selection ?? null);
     setAddedNotice(true);
     window.setTimeout(() => setAddedNotice(false), 2500);
   }
 
   async function handleCustomiseThisBag() {
-    if (!config || customising) return;
+    if (!customStudioBase || customising) return;
     setCustomising(true);
     try {
+      // Size is the one axis that maps cleanly onto Custom Studio's own
+      // config shape (same Small/Medium/Large domain for Bags and Dolls,
+      // the only types that show a size picker here)  -  carried over so the
+      // studio opens already reflecting what was chosen. Base/handle colour
+      // have no equivalent there (Custom Studio's colour is a fixed
+      // five-material enum, not a per-product hex swatch), so they aren't
+      // part of this handoff.
+      const config =
+        showSize && (customStudioBase.productType === "Bags" || customStudioBase.productType === "Dolls")
+          ? {...customStudioBase, size}
+          : customStudioBase;
       const draft: LocalCustomDraft = {productType: config.productType, config, notes: ""};
       try {
         window.localStorage.setItem(LOCAL_CUSTOM_DRAFT_KEY, JSON.stringify(draft));
       } catch {
-        // Private-browsing quota failure — the PUT below (when signed in) is
+        // Private-browsing quota failure  -  the PUT below (when signed in) is
         // the more durable path anyway, so this alone isn't fatal.
       }
 
@@ -88,7 +111,7 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
       try {
         await navigator.share({title: product.name, url});
       } catch {
-        // User cancelled the native share sheet — nothing to report.
+        // User cancelled the native share sheet, nothing to report.
       }
       return;
     }
@@ -104,48 +127,32 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
     <div className="lg:sticky lg:top-24">
       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-forest-600">Handcrafted in Indonesia</p>
       <h1 className="mt-2 font-display text-3xl leading-tight text-forest-900 sm:text-4xl">{product.name}</h1>
-      <p className="mt-1 font-display text-2xl text-forest-800">{formatCurrency(displayPriceIdr, currency)}</p>
+      <p className="mt-1 font-display text-2xl text-forest-800">{formatCurrency(product.priceIdr, currency)}</p>
 
       {product.description ? (
         <p className="mt-3 line-clamp-2 text-sm leading-6 text-forest-600">{product.description}</p>
       ) : null}
 
-      {config ? (
-        <div className="mt-6 rounded-lg border border-[#e0d8c7] bg-[#fdfaf3] p-4">
-          <p className="mb-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.24em] text-forest-500">
-            <Sparkles className="h-3.5 w-3.5" />
-            Make it yours
-          </p>
-          <ConfigPanel config={config} onChange={setConfig} />
-
-          {/* Custom Studio's own ConfigPanel stopped asking for a handle
-              (see the comment on bagConfigSchema in lib/custom-studio.ts),
-              but the field is still real — still priced, validated, and
-              carried through to the order — so the product page is where
-              it's set, seeded from this product's actual handle type. */}
-          {config.productType === "Bags" ? (
-            <div className="mt-4 space-y-1.5">
-              <FieldLabel hint={config.handle}>Handle</FieldLabel>
-              <PillRow
-                options={customBagHandles}
-                value={config.handle ?? customBagHandles[0]}
-                onSelect={(handle) => setConfig({...config, handle: handle as typeof config.handle})}
-              />
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {priceAffectedByConfig ? (
-        <div className="mt-4">
-          <EstimatePanel estimate={estimate} currency={currency} />
-        </div>
-      ) : null}
+      <div className="mt-6">
+        <ProductCustomizer
+          showSize={showSize}
+          size={size}
+          onSizeChange={setSize}
+          hasBaseColour={product.hasBaseColour}
+          baseColourOptions={product.baseColourOptions}
+          baseColour={baseColour}
+          onBaseColourChange={setBaseColour}
+          hasHandleColour={product.hasHandleColour}
+          handleColourOptions={product.handleColourOptions}
+          handleColour={handleColour}
+          onHandleColourChange={setHandleColour}
+        />
+      </div>
 
       <hr className="mt-6 border-forest-100" />
 
       <div className="mt-6 flex flex-col gap-3">
-        {config ? (
+        {customStudioBase ? (
           <button
             type="button"
             onClick={() => void handleCustomiseThisBag()}
@@ -161,7 +168,7 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
           onClick={handleAddToBag}
           disabled={outOfStock}
           className={
-            config
+            customStudioBase
               ? "glass-btn-secondary w-full rounded-full px-6 py-3.5 text-sm font-semibold text-forest-900 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
               : "liquid-glass-dark button-lift w-full rounded-full px-6 py-3.5 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
           }

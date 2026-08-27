@@ -9,7 +9,7 @@ import {colourHex, customTypeNoun, type CustomConfig} from "@/lib/custom-studio"
 // The centre column. It shows real photographs of real products, chosen by
 // how closely their recorded attributes match what is being configured, and
 // it always says out loud how close that match is. There is no compositing
-// and no generated imagery — a customer looking at this panel is looking at
+// and no generated imagery  -  a customer looking at this panel is looking at
 // something the workshop has actually made.
 
 export function PreviewPanel({config, catalogue}: {config: CustomConfig; catalogue: PreviewCatalogue}) {
@@ -48,7 +48,7 @@ export function PreviewPanel({config, catalogue}: {config: CustomConfig; catalog
             <Image
               key={activeImage}
               src={activeImage}
-              alt={`${match.product?.name ?? "Reference piece"} — angle ${activeIndex + 1}`}
+              alt={`${match.product?.name ?? "Reference piece"}  -  angle ${activeIndex + 1}`}
               fill
               sizes="(max-width: 1024px) 100vw, 45vw"
               className="object-cover"
@@ -84,7 +84,7 @@ export function PreviewPanel({config, catalogue}: {config: CustomConfig; catalog
       </div>
 
       {/* Angle thumbnails, shown only when the matched product genuinely has
-          more than one photograph — never padded out with placeholders. */}
+          more than one photograph  -  never padded out with placeholders. */}
       {images.length > 1 ? (
         <div className="flex items-center gap-2">
           <button

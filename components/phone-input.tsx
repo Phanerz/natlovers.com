@@ -8,7 +8,7 @@ import "react-phone-number-input/style.css";
 
 // Every ITU-assigned country calling code, sourced from libphonenumber-js's
 // metadata (what this library is built on) rather than a hand-maintained
-// list — that's the only way to credibly promise "every country, none
+// list  -  that's the only way to credibly promise "every country, none
 // missing." The flag dropdown carries the country/calling-code, so the
 // number field itself renders using that country's own national format
 // (e.g. a US number reads "(757) 123-4567") instead of a bare "+62"-style
@@ -18,7 +18,7 @@ const DEFAULT_COUNTRY: Country = "ID";
 
 // en.json is keyed by country code plus three UI strings ("ext", "country",
 // "phone") that are not countries at all, and "ZZ" which is the
-// "International" entry. Only real countries get a calling code appended —
+// "International" entry. Only real countries get a calling code appended  - 
 // getCountryCallingCode throws for anything else, which is exactly the
 // signal used to leave those entries alone.
 const labelsWithCallingCode: Record<string, string> = Object.fromEntries(
@@ -34,7 +34,7 @@ const labelsWithCallingCode: Record<string, string> = Object.fromEntries(
 // The dial code is displayed, never typed. It is rendered as a CSS
 // pseudo-element fed by this custom property (see .PhoneInputCountry::after
 // in globals.css) rather than as a text node inside the field, so there is
-// no way to put a caret in it — it changes only by picking a different
+// no way to put a caret in it  -  it changes only by picking a different
 // country from the dropdown, which is what the library already enforces for
 // the underlying value.
 function dialCodeVariable(country: Country | undefined): CSSProperties {

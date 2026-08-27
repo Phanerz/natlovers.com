@@ -20,6 +20,7 @@ import {
 import {signOut, useSession} from "next-auth/react";
 import {formatCurrency} from "@/lib/format";
 import {getDictionary} from "@/lib/translations";
+import {FlagIcon} from "@/components/flag-icon";
 import {NavAccountMenu} from "@/components/nav-account-menu";
 import {NavPreferencesModal} from "@/components/nav-preferences-modal";
 import {NavSearchModal} from "@/components/nav-search-modal";
@@ -35,7 +36,7 @@ function easeOutCubic(t: number) {
 
 // A nav click can cover a lot more ground than one CSS-snapped section
 // (Home to About is the whole page), so this runs longer than a single
-// section's own snap distance would need — fast enough to feel immediate,
+// section's own snap distance would need  -  fast enough to feel immediate,
 // slow enough not to be dizzying over that distance.
 const NAV_JUMP_DURATION_MS = 420;
 
@@ -112,7 +113,7 @@ export function Header() {
 
   // Prefills from the customer's saved default address (see /api/account/
   // addresses) the first time the checkout panel opens, so a returning
-  // customer isn't retyping their address on every order — falls back to
+  // customer isn't retyping their address on every order  -  falls back to
   // their account name for the recipient field when there's no saved
   // address yet.
   useEffect(() => {
@@ -141,7 +142,7 @@ export function Header() {
       })
       .catch(() => {
         // A network failure here just means the form starts blank instead
-        // of prefilled — .finally() below still flips `addressLoaded`
+        // of prefilled  -  .finally() below still flips `addressLoaded`
         // either way, so this only exists to stop the rejection from going
         // unhandled.
       })
@@ -187,7 +188,7 @@ export function Header() {
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   // Set on drop when the glass is handed off toward a different page: keeps
   // the pill pinned at the destination pill's exact position/width while
-  // router.push resolves, instead of snapping back to the origin first —
+  // router.push resolves, instead of snapping back to the origin first  - 
   // cleared once the new route's activeHref actually catches up to match
   // (or, failing that, by the backstop timeout below).
   const pendingNavHrefRef = useRef<string | null>(null);
@@ -199,7 +200,7 @@ export function Header() {
 
   const routeActiveHref = navItems.find((item) => isActiveHref(item.href))?.href ?? navItems[0].href;
   // A page can embed multiple nav-worthy sections under one route (the home
-  // page's Hero and Catalogue both live at "/") — when that's happening,
+  // page's Hero and Catalogue both live at "/")  -  when that's happening,
   // which section is actually in view wins over the plain route match, so
   // the pill tracks what's on screen instead of sticking to "Home".
   const activeHref =
@@ -226,7 +227,7 @@ export function Header() {
   // Once a drop hands off to a different item, the pill is pinned at the
   // destination's exact position (see handleIndicatorPointerUp) while the
   // scroll (or, rarely, a real navigation) resolves. The instant activeHref
-  // actually catches up to match, that pin is released — by then
+  // actually catches up to match, that pin is released  -  by then
   // indicator.left already measures to the same value, so nothing visibly
   // jumps.
   useEffect(() => {
@@ -244,7 +245,7 @@ export function Header() {
   // On "/", every section is already on the page, so a nav item is an
   // in-page jump to wherever its data-nav-href marker sits, not a route
   // change. Catalogue/Custom/Outlets/About also each have their own real
-  // standalone route now — from anywhere off "/" (including one of those
+  // standalone route now  -  from anywhere off "/" (including one of those
   // routes itself), a nav click is a normal navigation straight to the
   // target href.
   function goToNavHref(href: Route) {
@@ -255,7 +256,7 @@ export function Header() {
 
     const target = document.querySelector(`[data-nav-href="${href}"]`);
     if (!target) {
-      // No such section on this page — the Custom Studio is a standalone
+      // No such section on this page  -  the Custom Studio is a standalone
       // route rather than a homepage section, so route to it instead of
       // leaving the click dead.
       router.push(href);
@@ -281,7 +282,7 @@ export function Header() {
 
     // The pill's width magnetically snaps to whichever item it's currently
     // nearest, instead of staying frozen at the width of whatever item the
-    // drag started from — otherwise, as soon as it slides over a
+    // drag started from  -  otherwise, as soon as it slides over a
     // differently-sized label, it visibly stops matching anything it's
     // supposed to be hovering (reads as a glitch, not a drag).
     const dragCenter = left + indicator.width / 2;
@@ -313,7 +314,7 @@ export function Header() {
     }
 
     // Suppresses the click-through navigation a <a> would otherwise fire
-    // on pointerup — harmless here since it's always the already-active
+    // on pointerup  -  harmless here since it's always the already-active
     // link, but this keeps drag-vs-click unambiguous either way.
     event.preventDefault();
     draggingRef.current = true;
@@ -341,7 +342,7 @@ export function Header() {
     // actually captured by this element (capture can be lost mid-gesture).
     // Uncaught, that exception would abort this handler before any of the
     // drag-state resets below ran, leaving the pill's render permanently
-    // pinned to wherever it was last dragged — reading as the pill
+    // pinned to wherever it was last dragged  -  reading as the pill
     // freezing and never letting go.
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -380,7 +381,7 @@ export function Header() {
 
     if (closestHref && closestLink && closestHref !== activeHref) {
       // Glide the rest of the way to the destination pill's exact spot
-      // instead of snapping back to the origin first — release should read
+      // instead of snapping back to the origin first  -  release should read
       // as "landing on the page you dropped on," not a bounce-back.
       const targetBox = (closestLink as HTMLAnchorElement).getBoundingClientRect();
       setDragLeft(targetBox.left - navBox.left);
@@ -467,7 +468,7 @@ export function Header() {
       setCheckoutState(payload);
       // The server always clears the full cart on a successful order (even
       // for a "direct buy" of one item), so the client cart needs to mirror
-      // that immediately — otherwise the drawer keeps showing the
+      // that immediately  -  otherwise the drawer keeps showing the
       // just-ordered item as if it were still sitting in the bag.
       if (payload?.ok) {
         clearCart();
@@ -489,7 +490,7 @@ export function Header() {
 
   return (
     <>
-      {/* backdrop-blur-md below the sm breakpoint, backdrop-blur-xl at sm+ —
+      {/* backdrop-blur-md below the sm breakpoint, backdrop-blur-xl at sm+  - 
           this is the one blur that's genuinely live every scroll frame on
           every page (the header is sticky), so it gets the mobile-tier
           reduction DESIGN.md calls for; every other glass surface in the app
@@ -523,7 +524,7 @@ export function Header() {
                   // A magnified live clone of the nav labels used to render
                   // inside this pill while dragging, but it only ever lined
                   // up correctly at the instant its width exactly matched
-                  // whatever it was passing over — mid-morph (which is most
+                  // whatever it was passing over  -  mid-morph (which is most
                   // of the time, since width animates) the real label
                   // underneath wasn't fully covered yet, so the zoomed clone
                   // text and the real text showed through side by side and
@@ -532,7 +533,7 @@ export function Header() {
                   // z-index bump in .is-dragging) reads as an intentional
                   // "picked up and moving" object instead.
                   // Position travels via transform: translateX() (GPU-
-                  // compositable) instead of the `left` offset itself —
+                  // compositable) instead of the `left` offset itself  - 
                   // `left` stays permanently 0 (set in the .liquid-glass-
                   // active CSS rule). The drag-lift scale/translateY has to
                   // be combined into this same transform string rather than
@@ -578,14 +579,14 @@ export function Header() {
                   data-active={isActive}
                   onClick={(event) => {
                     // Every section lives on "/" now, so a plain click is an
-                    // in-page scroll, not a real navigation — except from
+                    // in-page scroll, not a real navigation  -  except from
                     // somewhere off-flow (a product detail page), where
                     // goToNavHref falls back to an actual route change.
                     event.preventDefault();
                     goToNavHref(item.href);
                   }}
                   // The active link visually sits directly on top of the glass
-                  // indicator (that's the whole point — it reads as one pill).
+                  // indicator (that's the whole point  -  it reads as one pill).
                   // Its own z-10 means a pointerdown there hits this <a>, not
                   // the indicator span underneath, so the drag has to be
                   // initiated from here too, not just the indicator itself.
@@ -612,7 +613,8 @@ export function Header() {
                 suppressHydrationWarning
                 className="liquid-glass control-pill header-text-shadow inline-flex min-w-[7.5rem] items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-[#fff7e5]"
               >
-                <span>{locale.toUpperCase()} / {currency}</span>
+                <FlagIcon locale={locale} className="h-3.5 w-5 shrink-0 rounded-[2px]" />
+                <span>{currency}</span>
                 <ChevronDown className="h-4 w-4" />
               </button>
               <NavPreferencesModal
@@ -932,14 +934,14 @@ export function Header() {
             {/*
               A card's rounded corner and shadow sitting flush against a
               plain overflow:auto edge gets sliced by a hard rectangular
-              boundary the instant the list scrolls even slightly — reading
+              boundary the instant the list scrolls even slightly  -  reading
               as the product card being "cut off" rather than just scrolled.
               Fading the scrollable area's own top/bottom edges via mask-
               image means whatever card is nearest that edge dissolves out
               gracefully instead of being hard-clipped.
             */}
             <div
-              // pt-4 (16px), not py-1 — the mask below fades the first 14px
+              // pt-4 (16px), not py-1  -  the mask below fades the first 14px
               // of this container to transparent, so the first card's own
               // top edge (and anything pinned to its corner, like the
               // remove button) needs to clear that band or it reads as

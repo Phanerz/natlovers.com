@@ -1,8 +1,12 @@
 import {NextRequest, NextResponse} from "next/server";
+import {z} from "zod";
 import {addressInputSchema} from "@/lib/addresses";
 import {createOrder} from "@/lib/orders";
 import {getSession} from "@/lib/auth";
 import {customConfigSchema} from "@/lib/custom-studio";
+import {productSelectionSchema} from "@/lib/product-selection";
+
+const orderConfigSchema = z.union([customConfigSchema, productSelectionSchema]);
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -16,10 +20,11 @@ export async function POST(request: NextRequest) {
     ? body.items
         .map((item: {slug?: string; quantity?: number; config?: unknown}) => {
           // Same rule as the cart route: a config is only ever carried
-          // through once it's confirmed to match a real Custom Studio
-          // shape, never trusted as opaque client JSON straight into an
-          // order record.
-          const configResult = item.config != null ? customConfigSchema.safeParse(item.config) : null;
+          // through once it's confirmed to match a real, known shape
+          // (either a Custom Studio CustomConfig or a plain
+          // ProductSelection), never trusted as opaque client JSON
+          // straight into an order record.
+          const configResult = item.config != null ? orderConfigSchema.safeParse(item.config) : null;
           return {
             slug: String(item.slug ?? ""),
             quantity: Number(item.quantity) || 0,
@@ -34,7 +39,7 @@ export async function POST(request: NextRequest) {
   }
 
   // A shipping address is required to place an order, not an optional
-  // extra — this is the fix for the operational gap where addresses were
+  // extra  -  this is the fix for the operational gap where addresses were
   // only ever gathered manually over WhatsApp/email with nothing stored.
   const addressResult = addressInputSchema.safeParse(body?.address);
   if (!addressResult.success) {

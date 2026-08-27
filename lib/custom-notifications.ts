@@ -14,7 +14,7 @@ import type {CustomRequestView} from "@/lib/custom-requests";
 
 const fromAddress = process.env.RESEND_FROM_EMAIL ?? "Natlovers <onboarding@resend.dev>";
 
-// Lazy, same reasoning as lib/auth.ts's getResendClient — this module is
+// Lazy, same reasoning as lib/auth.ts's getResendClient  -  this module is
 // imported at build/page-data-collection time, before the functions below
 // (and their own RESEND_API_KEY guards) ever run.
 let resendClient: Resend | null = null;
@@ -74,11 +74,11 @@ function configRows(request: CustomRequestView): string {
 }
 
 // Sent once, immediately after a request is submitted. Failures are caught
-// by the caller and logged — the commission is already stored, so a mail
-// outage must not surface to the customer as a failed submission.
+// by the caller and logged, since the commission is already stored, so a
+// mail outage must not surface to the customer as a failed submission.
 export async function sendCustomRequestReceivedEmail(userId: string, request: CustomRequestView): Promise<void> {
   if (!process.env.RESEND_API_KEY) {
-    console.warn("RESEND_API_KEY is not set — skipping custom request confirmation email.");
+    console.warn("RESEND_API_KEY is not set, skipping the custom request confirmation email.");
     return;
   }
 
@@ -114,7 +114,7 @@ export async function sendCustomRequestReceivedEmail(userId: string, request: Cu
   const {error} = await getResendClient().emails.send({
     from: fromAddress,
     to: customer.email,
-    subject: `Custom request received — ${request.requestRef}`,
+    subject: `Custom request received  -  ${request.requestRef}`,
     html: shell("We've got your request", body)
   });
 
@@ -124,7 +124,7 @@ export async function sendCustomRequestReceivedEmail(userId: string, request: Cu
 }
 
 // Sent by an admin from the request detail view. The message body is
-// whatever they typed — this is a courier, not a template engine, so the
+// whatever they typed  -  this is a courier, not a template engine, so the
 // studio keeps its own voice.
 export async function sendCustomRequestMessage(input: {
   toEmail: string;

@@ -3,6 +3,7 @@
 import {FormEvent, useEffect, useState} from "react";
 import {useRouter, useSearchParams} from "next/navigation";
 import {submitFormData} from "@/lib/xhr-form-submit";
+import {isValidHex} from "./colour-options-editor";
 import {DashboardHome} from "./dashboard-home";
 import {AdminHeroCard, HeroCardFormState, buildHeroCardFormData, emptyHeroCardForm} from "./hero-card-types";
 import {HeroCardForm} from "./hero-card-form";
@@ -18,6 +19,31 @@ const validTabs: Tab[] = ["dashboard", "add", "manage", "add-hero-card", "manage
 
 function tabFromParam(value: string | null): Tab {
   return validTabs.includes(value as Tab) ? (value as Tab) : "dashboard";
+}
+
+// Shared by the create and edit submit handlers below - a hex code never
+// reaches the server unvalidated, but checking here too means the admin
+// sees the problem immediately instead of after a round trip.
+function validateColourOptions(form: ProductFormState): string | null {
+  const groups: Array<{enabled: boolean; options: ProductFormState["baseColourOptions"]; name: string}> = [
+    {enabled: form.hasBaseColour, options: form.baseColourOptions, name: "base colour"},
+    {enabled: form.hasHandleColour, options: form.handleColourOptions, name: "handle colour"}
+  ];
+  for (const group of groups) {
+    if (!group.enabled) continue;
+    if (!group.options.length) {
+      return `Add at least one ${group.name} option, or turn it off.`;
+    }
+    for (const option of group.options) {
+      if (!option.label.trim()) {
+        return `Every ${group.name} option needs a name.`;
+      }
+      if (!isValidHex(option.hex)) {
+        return `"${option.label || option.hex}" needs a valid hex code, e.g. #B7924B.`;
+      }
+    }
+  }
+  return null;
 }
 
 export function AdminDashboard({userEmail, userName}: {userEmail: string; userName?: string | null}) {
@@ -101,6 +127,11 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
       setCreateError("Pick at least one material.");
       return;
     }
+    const colourError = validateColourOptions(createForm);
+    if (colourError) {
+      setCreateError(colourError);
+      return;
+    }
 
     setCreating(true);
     setCreateProgress(0);
@@ -147,6 +178,11 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
 
     if (!editForm.materials.length) {
       setEditError("Pick at least one material.");
+      return;
+    }
+    const colourError = validateColourOptions(editForm);
+    if (colourError) {
+      setEditError(colourError);
       return;
     }
 
@@ -386,9 +422,8 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
               onChange={setEditForm}
               onSubmit={handleEditSubmit}
               submitting={editSubmitting}
-              uploadProgress={editProgress}
               errorMessage={editError}
-              existingImages={editingProduct.images}
+              imageSlug={editingProduct.slug}
               onCancel={cancelEdit}
               product={editingProduct}
               onDeactivate={() => handleDeactivate(editingProduct)}
@@ -402,8 +437,8 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
               onChange={setCreateForm}
               onSubmit={handleCreate}
               submitting={creating}
-              uploadProgress={createProgress}
               errorMessage={createError}
+              imageSlug={createForm.name || "new-product"}
             />
           )
         ) : null}

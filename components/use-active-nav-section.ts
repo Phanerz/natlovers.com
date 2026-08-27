@@ -6,7 +6,7 @@ import {useEffect, useState} from "react";
 /**
  * Tracks which [data-nav-href] section is currently under the sticky
  * header, independent of the CSS scroll-snap that now drives the actual
- * scrolling — this only *observes* scroll position, it never drives it, so
+ * scrolling  -  this only *observes* scroll position, it never drives it, so
  * it works identically whether a section arrived via a snap, a wheel tick,
  * a dot-nav click, or a plain drag of the scrollbar. Shared by the header's
  * nav pill and the section dot-nav so both agree on "current section" from
@@ -55,7 +55,7 @@ export function useActiveNavSection(): string | null {
     document.addEventListener("visibilitychange", scheduleCompute);
 
     // The very first computeActiveSection() call above can measure a page
-    // that isn't in its final state yet — a webfont swap, an image
+    // that isn't in its final state yet  -  a webfont swap, an image
     // claiming its final size, or (in some embedding contexts) the tab
     // simply not being composited yet all leave every section's measured
     // position collapsed near 0, which makes the *last* one in DOM order

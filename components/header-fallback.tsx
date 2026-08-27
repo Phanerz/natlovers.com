@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 
-// Deliberately minimal — no cart, search, or nav-pill logic, since those are
+// Deliberately minimal  -  no cart, search, or nav-pill logic, since those are
 // exactly the kind of client-side complexity that could have caused the
 // real header to crash in the first place. Just enough that a visitor can
 // still get back to the homepage and see the catalogue link while the rest

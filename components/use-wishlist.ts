@@ -30,7 +30,7 @@ export function useWishlist() {
       })
       .catch(() => {
         // A network failure here just means the wishlist stays empty for
-        // this load — .finally() below still flips `loaded` either way, so
+        // this load  -  .finally() below still flips `loaded` either way, so
         // this only exists to stop the rejection from going unhandled.
       })
       .finally(() => {

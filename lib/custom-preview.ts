@@ -6,7 +6,7 @@ import type {CustomConfig, CustomProductType} from "@/lib/custom-studio";
 // The studio does not composite anything. It finds the real catalogue
 // product whose actual attributes come closest to what is being configured
 // and shows that product's real photographs. Where the match is inexact,
-// the UI says so — see PreviewMatch.quality, which the review step surfaces
+// the UI says so  -  see PreviewMatch.quality, which the review step surfaces
 // verbatim so nobody is led to believe they are looking at a rendering of
 // their own piece.
 
@@ -28,7 +28,7 @@ export const emptyPreviewCatalogue: PreviewCatalogue = {Bags: [], Dolls: [], App
 // How much of the configuration the shown photograph actually reflects.
 // "none" means the catalogue holds no product of this type at all, which is
 // the honest state for Dolls and Apparel until the workshop photographs
-// some — the preview panel renders an explanatory placeholder rather than
+// some  -  the preview panel renders an explanatory placeholder rather than
 // borrowing an unrelated product's picture.
 export type PreviewMatchQuality = "exact" | "close" | "type-only" | "none";
 
@@ -67,7 +67,7 @@ function scoreBag(product: PreviewProduct, config: Extract<CustomConfig, {produc
   else unmatched.push("size");
 
   // Shape and handle dominate the silhouette, so they are weighted above
-  // colour and size — a photograph of the right silhouette in the wrong
+  // colour and size  -  a photograph of the right silhouette in the wrong
   // fibre is a far more useful reference than the reverse.
   const score =
     (product.shape === config.shape ? 8 : 0) +
@@ -137,7 +137,7 @@ export function describePreviewMatch(match: PreviewMatch, noun: string): string 
   if (match.quality === "close") {
     return `Closest real piece we've made: ${match.product?.name}. It matches your ${formatList(match.matched)} but not your ${formatList(match.unmatched)}. Final appearance is confirmed by the studio.`;
   }
-  return `Shown: ${match.product?.name}, as a general reference for our work. It doesn't reflect your specific selections — the studio confirms the final design with you.`;
+  return `Shown: ${match.product?.name}, as a general reference for our work. It doesn't reflect your specific selections  -  the studio confirms the final design with you.`;
 }
 
 function formatList(items: string[]): string {

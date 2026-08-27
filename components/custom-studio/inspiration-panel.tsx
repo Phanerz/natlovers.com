@@ -9,7 +9,7 @@ import type {CustomRequestImageView} from "@/lib/custom-requests";
 
 // Steps 2 and 3 of the studio. They share one component because they share
 // the same draft plumbing, but they render as separate panels under their
-// own step numbers — `section` picks which half. Limits shown here come from
+// own step numbers  -  `section` picks which half. Limits shown here come from
 // lib/upload-limits.ts, the same constant the upload route enforces, so the
 // copy under the dropzone cannot drift from what the server will accept.
 

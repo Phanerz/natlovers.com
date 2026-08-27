@@ -1,7 +1,7 @@
 "use client";
 
 // global-error replaces the entire root layout when *it* is what throws, so
-// this can't rely on anything layout.tsx normally provides — no
+// this can't rely on anything layout.tsx normally provides  -  no
 // SitePreferencesProvider (English only here), and its own <html>/<body>
 // plus an explicit globals.css import, since layout.tsx (the only other
 // place that imports it) isn't rendered at all in this path.

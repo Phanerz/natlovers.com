@@ -12,6 +12,8 @@ import {
   shopSizes
 } from "@/app/catalogue/shop-data";
 
+export type ColourOption = {label: string; hex: string};
+
 export type AdminProduct = {
   slug: string;
   name: string;
@@ -31,6 +33,10 @@ export type AdminProduct = {
   stock: number | null;
   productCode: string | null;
   dimensions: string | null;
+  hasBaseColour: boolean;
+  baseColourOptions: ColourOption[];
+  hasHandleColour: boolean;
+  handleColourOptions: ColourOption[];
   updatedAt: string;
 };
 
@@ -38,7 +44,7 @@ export const PRODUCT_CODE_PREFIX = "NAT-";
 
 // Every per-type field is kept populated with a sensible default at all
 // times (not left undefined) so switching Product Type in the form never
-// hits an unset value — buildFormData below is what actually decides which
+// hits an unset value  -  buildFormData below is what actually decides which
 // of these get sent, based on the selected productType.
 export type ProductFormState = {
   name: string;
@@ -51,17 +57,23 @@ export type ProductFormState = {
   accessoryCategory: AccessoryCategory;
   materials: ShopMaterial[];
   tags: string;
-  images: File[];
-  // Empty string means "not tracked" — kept as strings (not number | null)
+  // Already-uploaded URLs, in the admin's chosen display order (index 0 is
+  // the main image)  -  see components/admin/image-dropzone.tsx.
+  images: string[];
+  // Empty string means "not tracked"  -  kept as strings (not number | null)
   // since these are plain controlled inputs; buildFormData below is what
   // decides what null/empty actually means when it builds the request.
   stock: string;
-  // Just the part after the fixed "NAT-" prefix — the prefix itself is
+  // Just the part after the fixed "NAT-" prefix  -  the prefix itself is
   // rendered read-only in the form and re-joined in buildFormData.
   productCodeSuffix: string;
   // Free text, e.g. "Approx. 30 x 20 x 15 cm". Empty means "not measured
-  // yet" — kept as a plain string like stock/productCodeSuffix above.
+  // yet"  -  kept as a plain string like stock/productCodeSuffix above.
   dimensions: string;
+  hasBaseColour: boolean;
+  baseColourOptions: ColourOption[];
+  hasHandleColour: boolean;
+  handleColourOptions: ColourOption[];
 };
 
 export function emptyForm(): ProductFormState {
@@ -79,7 +91,11 @@ export function emptyForm(): ProductFormState {
     images: [],
     stock: "",
     productCodeSuffix: "",
-    dimensions: ""
+    dimensions: "",
+    hasBaseColour: false,
+    baseColourOptions: [],
+    hasHandleColour: false,
+    handleColourOptions: []
   };
 }
 
@@ -95,15 +111,19 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     accessoryCategory: product.accessoryCategory ?? accessoryCategories[0],
     materials: product.materials,
     tags: product.tags.join(", "),
-    images: [],
+    images: product.images,
     stock: product.stock !== null ? String(product.stock) : "",
     productCodeSuffix: product.productCode ? product.productCode.slice(PRODUCT_CODE_PREFIX.length) : "",
-    dimensions: product.dimensions ?? ""
+    dimensions: product.dimensions ?? "",
+    hasBaseColour: product.hasBaseColour,
+    baseColourOptions: product.baseColourOptions,
+    hasHandleColour: product.hasHandleColour,
+    handleColourOptions: product.handleColourOptions
   };
 }
 
 // Only sends the attribute fields that are relevant to the selected
-// productType — a Doll's submission never carries shape/handle, an
+// productType  -  a Doll's submission never carries shape/handle, an
 // Accessory's never carries size/materials, and so on. That's what lets
 // lib/admin-products.ts's per-type validation work: it only ever sees the
 // fields that type actually owns.
@@ -131,11 +151,16 @@ export function buildFormData(form: ProductFormState) {
     .map((tag) => tag.trim())
     .filter(Boolean)
     .forEach((tag) => formData.append("tags", tag));
-  form.images.forEach((file) => formData.append("images", file));
+  form.images.forEach((url) => formData.append("images", url));
 
   formData.set("stock", form.stock.trim());
   formData.set("productCode", form.productCodeSuffix.trim() ? `${PRODUCT_CODE_PREFIX}${form.productCodeSuffix.trim()}` : "");
   formData.set("dimensions", form.dimensions.trim());
+
+  formData.set("hasBaseColour", String(form.hasBaseColour));
+  formData.set("baseColourOptions", JSON.stringify(form.baseColourOptions));
+  formData.set("hasHandleColour", String(form.hasHandleColour));
+  formData.set("handleColourOptions", JSON.stringify(form.handleColourOptions));
 
   return formData;
 }

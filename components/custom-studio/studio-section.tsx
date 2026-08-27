@@ -8,8 +8,8 @@ import {emptyPricingBasis, type PricingBasis} from "@/lib/custom-pricing";
 import {emptyPreviewCatalogue, type PreviewCatalogue} from "@/lib/custom-preview";
 import type {CustomRequestView} from "@/lib/custom-requests";
 
-// The homepage's Custom section. It renders the real Custom Studio — the
-// same component /custom renders — rather than a teaser that sends people
+// The homepage's Custom section. It renders the real Custom Studio  -  the
+// same component /custom renders  -  rather than a teaser that sends people
 // somewhere else to do the actual work.
 //
 // It fetches its own data because the homepage is a client component, so it

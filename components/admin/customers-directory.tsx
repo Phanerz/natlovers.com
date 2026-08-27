@@ -11,7 +11,7 @@ function formatDate(iso: string): string {
 }
 
 // Strips everything but digits, drops a leading trunk "0", and makes sure
-// the Indonesian country code is present exactly once — handles numbers
+// the Indonesian country code is present exactly once  -  handles numbers
 // saved as "0812...", "62812...", or "+62 812...." alike.
 function toWhatsAppLink(phone: string): string {
   const digits = phone.replace(/\D/g, "");
@@ -85,7 +85,7 @@ export function CustomersDirectory({customers}: {customers: CustomerListRow[]}) 
                   <td className="py-3 pr-3">
                     <div className="flex items-center gap-3">
                       <Avatar name={customer.name} email={customer.email} image={customer.image} />
-                      <span className="font-display text-base text-forest-900">{customer.name ?? "—"}</span>
+                      <span className="font-display text-base text-forest-900">{customer.name ?? "-"}</span>
                     </div>
                   </td>
                   <td className="py-3 pr-3">
@@ -112,17 +112,17 @@ export function CustomersDirectory({customers}: {customers: CustomerListRow[]}) 
                           <Mail className="h-4 w-4" />
                         </a>
                       ) : null}
-                      {!customer.phone && !customer.email ? <span className="text-forest-400">—</span> : null}
+                      {!customer.phone && !customer.email ? <span className="text-forest-400">-</span> : null}
                     </div>
                   </td>
                   <td className="py-3 pr-3 whitespace-nowrap text-forest-700">
-                    {customer.firstOrderAt ? formatDate(customer.firstOrderAt) : <span className="text-forest-400">—</span>}
+                    {customer.firstOrderAt ? formatDate(customer.firstOrderAt) : <span className="text-forest-400">-</span>}
                   </td>
                   <td className="py-3 pr-3 whitespace-nowrap text-forest-700">
                     {customer.orderCount} order{customer.orderCount === 1 ? "" : "s"}
                   </td>
                   <td className="py-3 pr-3 text-forest-700">
-                    {customer.city ?? <span className="text-forest-400">—</span>}
+                    {customer.city ?? <span className="text-forest-400">-</span>}
                   </td>
                 </tr>
               ))}

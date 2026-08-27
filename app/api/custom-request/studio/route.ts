@@ -9,7 +9,7 @@ import {getStoreSettings} from "@/lib/store-settings";
 // exists for the homepage, which is a client component (it reads locale and
 // currency from context), so the Custom section there cannot fetch pricing
 // and catalogue data during render the way the standalone route does.
-// Same data, same functions — the section is the real studio, not a copy.
+// Same data, same functions  -  the section is the real studio, not a copy.
 export const dynamic = "force-dynamic";
 
 export async function GET() {

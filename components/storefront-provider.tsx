@@ -6,12 +6,12 @@ import {useSession} from "next-auth/react";
 import type {ProductCard as ProductCardType} from "@/lib/data";
 import {Locale} from "@/lib/site";
 import type {AdminProduct} from "@/lib/admin-products";
-import type {CustomConfig} from "@/lib/custom-studio";
+import type {CartConfig} from "@/lib/cart";
 
 type CartItem = {
   slug: string;
   quantity: number;
-  config: CustomConfig | null;
+  config: CartConfig | null;
 };
 
 type CheckoutDraft = {
@@ -27,7 +27,7 @@ type StorefrontContextValue = {
   checkoutDraft: CheckoutDraft;
   getProducts: (locale?: Locale) => ProductCardType[];
   resolveProduct: (slug: string, locale?: Locale) => ProductCardType | undefined;
-  addToCart: (slug: string, quantity?: number, config?: CustomConfig | null) => void;
+  addToCart: (slug: string, quantity?: number, config?: CartConfig | null) => void;
   removeFromCart: (slug: string) => void;
   updateQuantity: (slug: string, quantity: number) => void;
   clearCart: () => void;
@@ -46,7 +46,7 @@ const StorefrontContext = createContext<StorefrontContextValue | null>(null);
 // The real catalogue (from /api/admin/products) is mapped onto the same
 // shape the cart drawer, search modal, and quick-preview panel already
 // render (title/story/imageUrl/materials as string[]) so none of that JSX
-// needed to change — only where the data comes from did.
+// needed to change  -  only where the data comes from did.
 function toProductCard(product: AdminProduct): ProductCardType {
   return {
     slug: product.slug,
@@ -86,7 +86,7 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
     };
   }, []);
 
-  // Cart lives in Postgres per account, not localStorage — it's hydrated
+  // Cart lives in Postgres per account, not localStorage  -  it's hydrated
   // here whenever sign-in state changes, and cleared locally on sign-out so
   // the drawer doesn't keep showing the previous account's items.
   useEffect(() => {
@@ -111,10 +111,10 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
   }, [status]);
 
   // config is omitted from the request entirely (not sent as null) unless
-  // the caller explicitly passes one — the API route treats "field absent"
+  // the caller explicitly passes one  -  the API route treats "field absent"
   // as "leave whatever's already stored," which is what a plain quantity
   // bump from the cart drawer needs.
-  const persistQuantity = useCallback((slug: string, quantity: number, config?: CustomConfig | null) => {
+  const persistQuantity = useCallback((slug: string, quantity: number, config?: CartConfig | null) => {
     fetch("/api/cart", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
@@ -130,7 +130,7 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
     return products.find((product) => product.slug === slug);
   }
 
-  function addToCart(slug: string, quantity = 1, config?: CustomConfig | null) {
+  function addToCart(slug: string, quantity = 1, config?: CartConfig | null) {
     if (status !== "authenticated") {
       router.push(`/login?callbackUrl=${encodeURIComponent(pathname || "/")}`);
       return;

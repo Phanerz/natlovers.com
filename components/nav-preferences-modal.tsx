@@ -4,6 +4,7 @@ import {useEffect, useState} from "react";
 import {createPortal} from "react-dom";
 import {Globe2, X} from "lucide-react";
 import {CurrencyCode, Locale, currencies, currencySymbols, locales} from "@/lib/site";
+import {FlagIcon} from "@/components/flag-icon";
 import {useDelayedMount} from "@/components/use-delayed-mount";
 
 function Sprig() {
@@ -30,7 +31,7 @@ function Sprig() {
 const localeLabels: Record<Locale, string> = {en: "English", id: "Bahasa"};
 
 // How long the exit transition runs before the component actually unmounts
-// — must match the slowest of the panel/backdrop exit durations below.
+//  -  must match the slowest of the panel/backdrop exit durations below.
 const EXIT_MS = 150;
 
 export function NavPreferencesModal({
@@ -63,7 +64,7 @@ export function NavPreferencesModal({
 
   // Portalled to <body> rather than rendered inline: the header this button
   // lives in has backdrop-blur (a backdrop-filter), which per spec makes it
-  // a containing block for position:fixed descendants — without the
+  // a containing block for position:fixed descendants  -  without the
   // portal, "fixed inset-0" here would resolve against the header's own
   // ~92px box instead of the viewport.
   return createPortal(
@@ -112,13 +113,7 @@ export function NavPreferencesModal({
                         active ? "glass-btn-primary text-sand-50" : "glass-btn-secondary text-forest-800"
                       }`}
                     >
-                      <span
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold uppercase ${
-                          active ? "bg-white/15 text-sand-50" : "bg-[#eee4cd] text-forest-800"
-                        }`}
-                      >
-                        {option}
-                      </span>
+                      <FlagIcon locale={option} className="h-6 w-9 shrink-0 rounded-[3px]" />
                       <span className="flex-1 text-sm font-medium">{localeLabels[option]}</span>
                       {active ? <CheckIcon /> : null}
                     </button>

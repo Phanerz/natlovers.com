@@ -44,7 +44,7 @@ const productTypeIcons: Record<ShopProductType, typeof ShoppingBag> = {
  * widening the existing 4 columns would blow each card up disproportionately
  * (and, combined with the fixed aspect-square, push a 2-row layout taller
  * than the viewport); adding a 5th column instead keeps each card close to
- * its original size — the freed width is spent on showing one more item, not
+ * its original size  -  the freed width is spent on showing one more item, not
  * on inflating the ones already there.
  */
 const MOBILE_BREAKPOINT = 640;
@@ -59,7 +59,7 @@ const MOBILE_CAPACITY = 6;
  * screen's worth of cards) sits side by side in one continuous flex strip;
  * a wheel gesture adds an impulse to a velocity value, and a
  * requestAnimationFrame loop integrates position += velocity * dt every
- * frame while velocity decays by a fixed per-millisecond friction factor —
+ * frame while velocity decays by a fixed per-millisecond friction factor  - 
  * so a hard/fast/long scroll keeps gliding under its own momentum exactly
  * as long as the physics says it should, not a fixed animation duration.
  * Once velocity drops below a threshold, the loop switches to a fast
@@ -104,7 +104,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   // now passes real server-rendered data as initialProducts (see
   // app/catalogue/page.tsx, itself force-dynamic so that data is already
   // live per request), so the grid paints on first render instead of
-  // waiting on a client-side fetch round-trip — that waterfall was the
+  // waiting on a client-side fetch round-trip  -  that waterfall was the
   // dominant cost in this page's LCP. The home page's embedded catalogue
   // section (below the fold, not LCP-relevant) still renders this with no
   // prop and relies entirely on the client fetch below, same as before.
@@ -112,7 +112,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   const hasInitialProducts = initialProducts !== undefined;
 
   useEffect(() => {
-    // Skipped when the server already provided live data — re-fetching the
+    // Skipped when the server already provided live data  -  re-fetching the
     // same force-dynamic data a moment after SSR was pure redundant work,
     // and replacing the grid's content right after first paint was also
     // producing a small measurable layout shift for no benefit. Only the
@@ -141,7 +141,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
 
   // Seeded from ?type=Bags (e.g. a category link from a product page's
   // breadcrumb) when present and valid; falls back to the original default
-  // otherwise. Lazy initializer so this only ever runs once, on mount — the
+  // otherwise. Lazy initializer so this only ever runs once, on mount  -  the
   // catalogue's own tab clicks still just call setSelectedProductType and
   // never touch the URL.
   const [selectedProductType, setSelectedProductType] = useState<ShopProductType>(() => {
@@ -183,7 +183,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   // selectProductType's state update (and the tabIndicator layout effect
   // that follows it) resolves, instead of snapping back to the origin tab
   // first. Cleared once selectedProductType actually catches up to match
-  // (or, failing that, by the backstop timeout below) — same handoff
+  // (or, failing that, by the backstop timeout below)  -  same handoff
   // pattern as the navbar's drag indicator in header.tsx.
   const pendingTabTypeRef = useRef<ShopProductType | null>(null);
   const pendingTabTimeoutRef = useRef<number | null>(null);
@@ -252,7 +252,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   // Once a drop hands off to a different tab, the pill is pinned at the
   // destination's exact position (see handleTabIndicatorPointerUp) while
   // selectProductType's state update resolves. The instant selectedProductType
-  // actually catches up to match, that pin is released — by then tabIndicator
+  // actually catches up to match, that pin is released  -  by then tabIndicator
   // already measures to the same value, so nothing visibly jumps.
   useEffect(() => {
     if (pendingTabTypeRef.current && selectedProductType === pendingTabTypeRef.current) {
@@ -280,7 +280,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
 
     // Snap the pill's width to whichever tab it's currently nearest, rather
     // than staying frozen at the width of whatever tab the drag started
-    // from — otherwise it visibly stops matching any label as soon as it
+    // from  -  otherwise it visibly stops matching any label as soon as it
     // slides over one of a different size.
     const dragCenter = left + tabIndicator.width / 2;
     let closestWidth = tabIndicator.width;
@@ -306,7 +306,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
 
     setTabDragWidth(closestWidth);
     // The label directly under the pill needs to switch to light text as
-    // soon as the pill slides onto it — waiting for drop would leave a dark
+    // soon as the pill slides onto it  -  waiting for drop would leave a dark
     // label sitting underneath an opaque dark pill while dragging, which is
     // exactly the "can't read the text while dragging" bug this fixes.
     setDragOverType(closestType);
@@ -318,7 +318,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
     }
 
     // Suppresses the click-through this would otherwise fire on the active
-    // tab button — harmless (it's already selected) but keeps drag-vs-click
+    // tab button  -  harmless (it's already selected) but keeps drag-vs-click
     // unambiguous either way.
     event.preventDefault();
     draggingTabRef.current = true;
@@ -343,12 +343,12 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
     draggingTabRef.current = false;
     setIsTabDragging(false);
     // releasePointerCapture throws NotFoundError if this pointer isn't
-    // actually captured by this element — which can happen (capture can be
+    // actually captured by this element  -  which can happen (capture can be
     // lost mid-gesture, e.g. if the browser silently declined to grant it,
     // or another element stole it). Uncaught, that exception aborted the
     // rest of this handler before the tabDragLeft/tabDragWidth resets below
     // ever ran, leaving the pill's render permanently pinned to its last
-    // dragged position (nothing ever nulled those out again) — reading as
+    // dragged position (nothing ever nulled those out again)  -  reading as
     // the pill freezing mid-drag and never letting go.
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -388,7 +388,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
 
     if (closestType && closestTab && closestType !== selectedProductType) {
       // Glide the rest of the way to the destination tab's exact spot
-      // instead of snapping back to the origin first — release should read
+      // instead of snapping back to the origin first  -  release should read
       // as "landing on the tab you dropped on," not a bounce-back.
       const targetBox = (closestTab as HTMLButtonElement).getBoundingClientRect();
       setTabDragLeft(targetBox.left - containerBox.left);
@@ -451,7 +451,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   const filteredProducts = useMemo(() => {
     const filtered = typeProducts.filter((product) => {
       // Materials apply to Bags only; size to Bags and Dolls; shape/handle
-      // to Bags only; category to Accessories only — each guard only ever
+      // to Bags only; category to Accessories only  -  each guard only ever
       // runs against the type it belongs to, since the other types'
       // selection state stays empty (reset on type switch).
       if (selectedMaterials.length && !product.materials.some((material) => selectedMaterials.includes(material))) {
@@ -514,7 +514,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   pageCountRef.current = pageCount;
 
   // Writes both the grid's transform and the bottom progress thumb's
-  // position straight to the DOM every physics frame — this is what makes
+  // position straight to the DOM every physics frame  -  this is what makes
   // the thumb visibly slide in lockstep with the actual scroll instead of
   // only jumping to its final spot once the motion settles.
   function applyScrollVisuals(offset: number) {
@@ -598,8 +598,8 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
       return;
     }
 
-    // Settling: ease toward the nearest page boundary — the "roulette ball
-    // dropping into a slot" — instead of stopping wherever friction left it.
+    // Settling: ease toward the nearest page boundary  -  the "roulette ball
+    // dropping into a slot"  -  instead of stopping wherever friction left it.
     const target = Math.min(maxIdx, Math.max(0, Math.round(offset)));
     const diff = target - offset;
 
@@ -652,7 +652,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
         const maxIdx = maxPageIndexRef.current;
 
         if ((offset <= 0.001 && direction < 0) || (offset >= maxIdx - 0.001 && direction > 0)) {
-          // Already resting at this end of the shelf — don't consume the
+          // Already resting at this end of the shelf  -  don't consume the
           // event, so it bubbles up to the site-wide section navigator,
           // which can then jump to the previous/next section instead.
           return;
@@ -686,7 +686,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   const thumbLeftPct = (clampedPageIndex / pageCount) * 100;
   const thumbWidthPct = (1 / pageCount) * 100;
 
-  // Dragging the progress pill scrubs the grid live — the same
+  // Dragging the progress pill scrubs the grid live  -  the same
   // applyScrollVisuals call the physics loop uses every frame, just driven
   // by pointer position instead of momentum, so the cards visibly track
   // the drag in real time. Any in-flight momentum is cancelled the moment
@@ -749,7 +749,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   return (
     <div className="h-[calc(100dvh-var(--header-height))] overflow-hidden bg-[#f7f4ee]">
       {/*
-        Deliberately a plain div, not <ScrollSection> — this is embedded
+        Deliberately a plain div, not <ScrollSection>  -  this is embedded
         inside app/page.tsx's own ScrollSection (the "/catalogue" snap
         page), which is the only data-nav-href marker this block needs.
         Its own height already matches that outer .snap-page exactly
@@ -759,7 +759,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
         {/*
           The tabs pill and the count/sort controls used to be two stacked
           shrink-0 rows, each eating its own slice of the fixed-height
-          budget this grid has to fit "2 rows of cards" into — merging them
+          budget this grid has to fit "2 rows of cards" into  -  merging them
           into one row gets that vertical space back for the grid itself.
         */}
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#d9cfc0] px-6 py-3 sm:px-10">
@@ -772,7 +772,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
                   const lensLeft = tabDragLeft ?? tabIndicator.left;
                   const lensWidth = tabDragWidth ?? tabIndicator.width;
                   // Position travels via transform: translateX() (GPU-
-                  // compositable) instead of the `left` offset — `left`
+                  // compositable) instead of the `left` offset  -  `left`
                   // stays permanently 0 (set in the .flat-tab-active CSS
                   // rule). The drag-lift scale has to be combined into this
                   // same transform string rather than left as a separate
@@ -814,7 +814,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
               // for the whole gesture. Attaching the move/up handlers based
               // on `active` instead used to detach them mid-drag the moment
               // the pill was dragged onto a *different* tab (since `active`
-              // follows dragOverType while dragging) — the browser kept
+              // follows dragOverType while dragging)  -  the browser kept
               // delivering the captured pointer events to this button, but
               // React no longer had a handler wired up to receive them, so
               // the drag would silently stop updating, reading as the pill
@@ -837,7 +837,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
                   // The active tab visually sits directly on top of the
                   // glass indicator (it's what makes it read as one pill),
                   // and its own z-10 means a pointerdown there hits this
-                  // button, not the indicator span underneath — so the drag
+                  // button, not the indicator span underneath  -  so the drag
                   // has to be initiated from here too when this is the tab
                   // currently holding the pill.
                   onPointerDown={isDragOrigin ? handleTabIndicatorPointerDown : undefined}

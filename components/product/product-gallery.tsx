@@ -116,7 +116,7 @@ export function ProductGallery({images, name, tintHex}: {images: string[]; name:
   return (
     <div className="flex flex-col gap-4 lg:flex-row">
       {images.length > 1 ? (
-        // Horizontal strip on mobile, vertical scrollable rail on desktop —
+        // Horizontal strip on mobile, vertical scrollable rail on desktop  - 
         // real DB order (array order), no reordering.
         <div className="order-2 flex max-h-none gap-3 overflow-x-auto pb-1 lg:order-1 lg:h-[520px] lg:w-20 lg:shrink-0 lg:flex-col lg:overflow-x-visible lg:overflow-y-auto lg:pb-0">
           {images.map((url, index) => (

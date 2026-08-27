@@ -57,7 +57,7 @@ export function ManageProductsPanel({
   const searchParams = useSearchParams();
 
   // The URL's `type` param is the single source of truth for which category
-  // is selected — both the sidebar's category links (admin-sidebar.tsx) and
+  // is selected  -  both the sidebar's category links (admin-sidebar.tsx) and
   // this panel's own pill row read and write the same param, so clicking
   // either one keeps the other in sync. Previously the pills only wrote to
   // local state, so clicking "Accessories" here never moved the sidebar's
@@ -98,7 +98,7 @@ export function ManageProductsPanel({
   const currentPage = Math.min(page, totalPages);
   const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  // Selection is scoped to what's visible on the current page — switching
+  // Selection is scoped to what's visible on the current page  -  switching
   // page or filters starts fresh rather than silently carrying a selection
   // the admin can no longer see.
   useEffect(() => {
@@ -320,8 +320,8 @@ export function ManageProductsPanel({
                         {product.isActive ? "Visible" : "Hidden"}
                       </span>
                     </td>
-                    <td className="py-3 pr-3 text-forest-700">{product.stock ?? <span className="text-forest-400">—</span>}</td>
-                    <td className="py-3 pr-3 text-forest-700">{product.productCode ?? <span className="text-forest-400">—</span>}</td>
+                    <td className="py-3 pr-3 text-forest-700">{product.stock ?? <span className="text-forest-400">-</span>}</td>
+                    <td className="py-3 pr-3 text-forest-700">{product.productCode ?? <span className="text-forest-400">-</span>}</td>
                     <td className="py-3 pr-3 whitespace-nowrap text-forest-600">{timeAgo(product.updatedAt)}</td>
                     <td className="py-3 text-right">
                       <div className="flex justify-end gap-2">

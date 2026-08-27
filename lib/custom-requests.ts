@@ -44,7 +44,7 @@ export type CustomRequestView = {
   images: CustomRequestImageView[];
 };
 
-// The admin list/detail shape — a request plus who sent it. Customer
+// The admin list/detail shape  -  a request plus who sent it. Customer
 // identity is joined in rather than denormalised onto the request, since
 // unlike an order (which snapshots its shipping address because that is a
 // record of what physically happened) a custom request is an ongoing
@@ -69,7 +69,7 @@ const currencySchema = z.enum(currencies as unknown as [CurrencyCode, ...Currenc
 
 // A stored configuration is validated on the way back out, not just on the
 // way in. The column is jsonb, so a row written by an older version of the
-// schema (or by hand during support) could be any shape at all — parsing on
+// schema (or by hand during support) could be any shape at all  -  parsing on
 // read means a malformed row degrades to "unreadable configuration" in one
 // place instead of throwing somewhere deep in a render.
 function parseConfiguration(raw: unknown, productType: string): CustomConfig | null {
@@ -102,7 +102,7 @@ function generateRequestRef(): string {
 // ---------------------------------------------------------------------------
 
 // The lowest active catalogue price per product type, in IDR. This is what
-// anchors every estimate — see lib/custom-pricing.ts for why no base price
+// anchors every estimate  -  see lib/custom-pricing.ts for why no base price
 // is written down in code. A type with no active products yields null and
 // the studio quotes those requests by hand.
 export async function getPricingBasis(): Promise<PricingBasis> {
@@ -124,7 +124,7 @@ export async function getPricingBasis(): Promise<PricingBasis> {
 }
 
 // Real photographed products the live preview can draw on, grouped by type.
-// Only active products with at least one image qualify — a product with no
+// Only active products with at least one image qualify  -  a product with no
 // photograph cannot illustrate anything, and including it would only let the
 // matcher pick a candidate it then can't render.
 export async function getPreviewCatalogue(): Promise<PreviewCatalogue> {
@@ -243,7 +243,7 @@ export type DraftInput = z.infer<typeof draftInputSchema>;
 
 // Recomputed server-side from the submitted configuration rather than
 // trusted from the client, exactly as createOrder recomputes an order total
-// from live catalogue prices — a price the browser sends is a price the
+// from live catalogue prices  -  a price the browser sends is a price the
 // browser can edit.
 async function priceFor(configuration: CustomConfig): Promise<number> {
   const basis = await getPricingBasis();
@@ -335,7 +335,7 @@ export async function submitDraft(userId: string, input: DraftInput): Promise<Cu
   return toView(row, images.get(row.id) ?? []);
 }
 
-// The customer's own history. Drafts are excluded — a draft is the studio
+// The customer's own history. Drafts are excluded  -  a draft is the studio
 // page's saved state, not something the customer thinks of as a request
 // they have made.
 export async function getCustomerRequests(userId: string): Promise<CustomRequestView[]> {
@@ -386,7 +386,7 @@ export async function attachImages(
 }
 
 // Scoped by userId so one customer can never remove another's image by
-// guessing an id — ownership is checked in the query rather than by a
+// guessing an id  -  ownership is checked in the query rather than by a
 // separate read, so there is no window between the check and the delete.
 export async function removeImage(userId: string, requestId: string, imageId: string): Promise<boolean> {
   const [owned] = await db

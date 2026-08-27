@@ -22,7 +22,7 @@ type AdminOrder = {
   items: AdminOrderItem[];
 };
 
-// Color alone never carries the status — every badge pairs a distinct
+// Color alone never carries the status  -  every badge pairs a distinct
 // background with an icon and the text label itself, so status still reads
 // correctly for anyone who can't rely on color.
 const statusBadgeStyles: Record<string, string> = {
@@ -204,8 +204,8 @@ export function ManageOrdersPanel() {
                 <tr key={order.id} className="border-t border-[#e7ddc6] align-top">
                   <td className="py-3 pr-3 font-display text-base text-forest-900">{order.orderRef}</td>
                   <td className="py-3 pr-3 text-forest-700">
-                    <div>{order.customerName ?? "—"}</div>
-                    <div className="text-xs text-forest-500">{order.customerEmail ?? "—"}</div>
+                    <div>{order.customerName ?? "-"}</div>
+                    <div className="text-xs text-forest-500">{order.customerEmail ?? "-"}</div>
                   </td>
                   <td className="py-3 pr-3 text-forest-700">
                     <ul className="space-y-0.5">

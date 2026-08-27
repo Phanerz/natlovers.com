@@ -11,7 +11,7 @@ import {ESTIMATE_DISCLAIMER} from "@/lib/custom-pricing";
 import type {CustomRequestView} from "@/lib/custom-requests";
 
 // The customer's own view of their commissions. It uses
-// customerFacingStatusLabels rather than the studio's internal ones —
+// customerFacingStatusLabels rather than the studio's internal ones  - 
 // "under review" and "needs customer input" are distinct jobs inside the
 // workshop but read as one thing from outside, and a customer should not
 // have to learn the studio's internal vocabulary to understand where their
@@ -67,7 +67,7 @@ export function CustomRequestsHistory({currency}: {currency: CurrencyCode}) {
       {requests.map((request) => {
         const style = customRequestStatusStyle[request.status];
         const rows = summariseConfig(request.configuration);
-        // Once the studio has quoted, that is the number that matters — the
+        // Once the studio has quoted, that is the number that matters  -  the
         // original estimate stops being the headline figure.
         const quoted = request.finalPriceIdr !== null;
 

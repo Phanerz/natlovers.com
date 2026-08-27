@@ -6,7 +6,7 @@ export type DeltaTone = "up" | "down" | "flat" | "none";
 export type Delta = {text: string; tone: DeltaTone};
 
 // A delta is only ever shown as a real comparison when both sides have
-// something to compare — "all time" has no previous period, and a previous
+// something to compare  -  "all time" has no previous period, and a previous
 // value of 0 makes a percentage change undefined, not "infinite growth."
 export function percentDelta(current: number, previous: number | null): Delta | null {
   if (previous === null || previous === 0) {
@@ -50,7 +50,7 @@ export function DeltaLine({delta, loading}: {delta: Delta | null; loading: boole
 // content stacked top-down (not centered as a block) so the alignment
 // discipline holds regardless of label/delta length. Shared between the
 // admin dashboard's own KPI row and the account page's admin overview
-// (and, per-admin, its configurable widgets) — one premium card language
+// (and, per-admin, its configurable widgets)  -  one premium card language
 // for every number-in-a-card surface in the admin experience, not a
 // separate visual style per page.
 export function KpiCard({
@@ -85,7 +85,7 @@ export function KpiCard({
         <Icon className="h-5 w-5" />
       </div>
       <p className="mt-3 text-[11px] font-semibold uppercase leading-tight tracking-[0.16em] text-forest-500">{label}</p>
-      <p className="mt-1 font-display text-2xl text-forest-900 sm:text-[1.7rem]">{loading ? "—" : value}</p>
+      <p className="mt-1 font-display text-2xl text-forest-900 sm:text-[1.7rem]">{loading ? "-" : value}</p>
       {subtext ? <p className="mt-1 text-xs text-forest-500">{loading ? "" : subtext}</p> : null}
       {delta !== undefined ? <DeltaLine delta={delta ?? null} loading={loading} /> : null}
     </>

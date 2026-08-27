@@ -56,7 +56,7 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
 
-  // Only ever a same-origin relative path — anything else falls back to
+  // Only ever a same-origin relative path  -  anything else falls back to
   // "/", same as NextAuth's own default redirect guard would enforce
   // server-side anyway, but this keeps a malformed query param from ever
   // reaching signIn() at all.

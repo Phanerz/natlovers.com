@@ -2,7 +2,7 @@ import {Repeat, UserPlus, Users, UserCheck} from "lucide-react";
 import {CustomerTelemetry} from "@/lib/customers";
 
 // Same card shape as dashboard-home.tsx's StatCard (icon circle, uppercase
-// label, font-display value, top-anchored content) — kept as its own small
+// label, font-display value, top-anchored content)  -  kept as its own small
 // component here rather than importing that one, since this branch and the
 // dashboard rebuild are separate worktrees right now.
 function TelemetryCard({

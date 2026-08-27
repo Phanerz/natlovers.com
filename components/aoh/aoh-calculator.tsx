@@ -33,7 +33,7 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
   const [priceData, setPriceData] = useState<DepthGroup[]>(DEFAULT_PRICE_DATA);
   const [settings, setSettings] = useState<AohSettings>(DEFAULT_SETTINGS);
 
-  // Default to the first group that actually has tebal options — a newly
+  // Default to the first group that actually has tebal options  -  a newly
   // added, still-empty Kedalaman category (like the stock "1mm" entry)
   // shouldn't be what a fresh page load lands on.
   const initialGroup = DEFAULT_PRICE_DATA.find((group) => group.tebalOptions.length > 0) ?? DEFAULT_PRICE_DATA[0];
@@ -54,7 +54,7 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
     let cancelled = false;
 
     // Local cache first so the calculator is usable instantly (and offline);
-    // the server copy — whichever device touched it last — then overrides
+    // the server copy  -  whichever device touched it last  -  then overrides
     // it once the fetch resolves, since that's the source of truth across
     // devices.
     const localData = loadPriceData();
@@ -164,7 +164,7 @@ export function AohCalculator({fontClassName}: {fontClassName?: string}) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // clipboard access denied or unavailable — nothing more we can do here
+      // clipboard access denied or unavailable  -  nothing more we can do here
     }
   }
 

@@ -8,7 +8,7 @@ import type {DashboardStats} from "@/lib/dashboard-stats";
 // for the same metric (Wallet/green for revenue, AlertTriangle/amber for low
 // stock, etc.) so a widget reads as the same number wherever it's pinned,
 // not a re-skinned duplicate. Values are computed from data already fetched
-// live elsewhere (getCustomerTelemetry, getDashboardStats) — no new queries,
+// live elsewhere (getCustomerTelemetry, getDashboardStats)  -  no new queries,
 // no fabricated numbers.
 export const WIDGET_KEYS = [
   "totalCustomers",
@@ -28,7 +28,7 @@ export const WIDGET_KEYS = [
 export type WidgetKey = (typeof WIDGET_KEYS)[number];
 
 // Matches the four cards the account page always showed before this became
-// configurable — an admin who never opens the picker sees the same overview
+// configurable  -  an admin who never opens the picker sees the same overview
 // they always had, not a blank section.
 export const DEFAULT_WIDGETS: WidgetKey[] = ["totalCustomers", "newCustomersThisMonth", "returningCustomers", "repeatPurchaseRate"];
 
@@ -133,7 +133,7 @@ export function isWidgetKey(value: string): value is WidgetKey {
 }
 
 // Used both when saving a new selection (API route) and when rendering a
-// stored one that might predate a catalog change — de-dupes, drops unknown
+// stored one that might predate a catalog change  -  de-dupes, drops unknown
 // keys, caps at MAX_WIDGETS, and falls back to the default set rather than
 // ever rendering an empty overview.
 export function sanitizeWidgetKeys(keys: unknown): WidgetKey[] {

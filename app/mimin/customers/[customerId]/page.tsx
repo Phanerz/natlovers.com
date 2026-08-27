@@ -69,7 +69,7 @@ export default async function AdminCustomerDetailPage({params}: {params: Promise
             )}
           </div>
           <div>
-            <h1 className="font-display text-3xl text-forest-900">{customer.name ?? "—"}</h1>
+            <h1 className="font-display text-3xl text-forest-900">{customer.name ?? "-"}</h1>
             <p className="muted mt-1">
               {customer.firstOrderAt ? `Customer since ${formatMonthYear(customer.firstOrderAt)}` : "No orders yet"}
             </p>
@@ -111,13 +111,13 @@ export default async function AdminCustomerDetailPage({params}: {params: Promise
         <div className="rounded-lg border border-[#d4c5ab] bg-[#fffaf1] p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-forest-500">First Order</p>
           <p className="mt-1 font-display text-2xl text-forest-900">
-            {customer.firstOrderAt ? formatDate(customer.firstOrderAt) : "—"}
+            {customer.firstOrderAt ? formatDate(customer.firstOrderAt) : "-"}
           </p>
         </div>
         <div className="rounded-lg border border-[#d4c5ab] bg-[#fffaf1] p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-forest-500">Last Order</p>
           <p className="mt-1 font-display text-2xl text-forest-900">
-            {customer.lastOrderAt ? formatDate(customer.lastOrderAt) : "—"}
+            {customer.lastOrderAt ? formatDate(customer.lastOrderAt) : "-"}
           </p>
         </div>
       </div>

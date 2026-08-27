@@ -2,7 +2,7 @@ import {and, desc, eq, inArray, sql} from "drizzle-orm";
 import {AddressInput, createAddress, getDefaultAddress, updateAddress} from "@/lib/addresses";
 import {clearCart} from "@/lib/cart";
 import {db, orderItems, orders, products, users} from "@/lib/db";
-import type {CustomConfig} from "@/lib/custom-studio";
+import type {CartConfig} from "@/lib/cart";
 
 export {orderStatusLabels} from "@/lib/order-status";
 
@@ -11,7 +11,7 @@ export type OrderItemView = {
   name: string;
   priceIdr: number;
   quantity: number;
-  config: CustomConfig | null;
+  config: CartConfig | null;
 };
 
 export type OrderView = {
@@ -32,14 +32,14 @@ function generateOrderRef(): string {
 
 // Prices/names are looked up server-side from the live catalogue rather
 // than trusted from the client request, so a tampered request can't submit
-// an arbitrary total — and the result is a snapshot into order_items, so
+// an arbitrary total  -  and the result is a snapshot into order_items, so
 // the order stays accurate even if the product is edited or removed later.
 // The shipping address gets the same snapshot treatment: what's stored on
 // the order is a frozen copy, independent of the reusable `addresses` row
 // it's also saved to below (for next time's checkout to prefill from).
 export async function createOrder(
   userId: string,
-  requestedItems: {slug: string; quantity: number; config?: CustomConfig | null}[],
+  requestedItems: {slug: string; quantity: number; config?: CartConfig | null}[],
   bank: {bankName: string; accountName: string; accountNumber: string},
   address: AddressInput
 ): Promise<OrderView> {
@@ -98,8 +98,8 @@ export async function createOrder(
 
   await db.insert(orderItems).values(lineItems.map((item) => ({...item, orderId: order.id})));
 
-  // Checking out also keeps the customer's saved address current — updates
-  // their existing default in place, or saves this as their first one — so
+  // Checking out also keeps the customer's saved address current  -  updates
+  // their existing default in place, or saves this as their first one  -  so
   // the next checkout (and the admin's view of this customer) reflects
   // where they actually just had something shipped.
   const existingDefault = await getDefaultAddress(userId);
@@ -109,7 +109,7 @@ export async function createOrder(
     await createAddress(userId, address, true);
   }
 
-  // The order is now the record of these items — clear them out of the
+  // The order is now the record of these items  -  clear them out of the
   // active cart so the drawer doesn't show already-ordered pieces.
   await clearCart(userId);
 
@@ -127,7 +127,7 @@ export async function createOrder(
       name: item.productName,
       priceIdr: item.priceIdr,
       quantity: item.quantity,
-      config: item.config as CustomConfig | null
+      config: item.config as CartConfig | null
     }))
   };
 }
@@ -156,7 +156,7 @@ export async function getOrdersForUser(userId: string): Promise<OrderView[]> {
       name: row.productName,
       priceIdr: row.priceIdr,
       quantity: row.quantity,
-      config: row.config as CustomConfig | null
+      config: row.config as CartConfig | null
     });
     itemsByOrder.set(row.orderId, list);
   }
@@ -223,7 +223,7 @@ async function attachItemsForAdmin(
       name: row.productName,
       priceIdr: row.priceIdr,
       quantity: row.quantity,
-      config: row.config as CustomConfig | null
+      config: row.config as CartConfig | null
     });
     itemsByOrder.set(row.orderId, list);
   }
@@ -286,7 +286,7 @@ async function getAdminOrderById(orderId: string): Promise<AdminOrderView | null
 }
 
 // Only touches products that opted into stock tracking (stock IS NOT NULL)
-// — matched by the productSlug snapshotted on the order_item, since that's
+//  -  matched by the productSlug snapshotted on the order_item, since that's
 // the only link back to the catalogue an order keeps. A product renamed,
 // deleted, or with an untracked slug (stock still null) is silently
 // skipped, floored at 0 rather than going negative for oversold items.
@@ -311,7 +311,7 @@ export type MarkOrderPaidResult =
 // The status check and the write happen in a single conditional UPDATE
 // (WHERE id = ? AND status = 'pending_transfer') rather than a separate
 // SELECT-then-UPDATE, so two concurrent "Mark as Paid" clicks on the same
-// order can't both pass the check and both write a confirmation — only one
+// order can't both pass the check and both write a confirmation  -  only one
 // UPDATE can ever match the row, the other affects zero rows and falls
 // through to the idempotent "already paid" path below.
 export async function markOrderPaid(orderId: string, adminEmail: string): Promise<MarkOrderPaidResult> {
@@ -327,7 +327,7 @@ export async function markOrderPaid(orderId: string, adminEmail: string): Promis
     return {ok: true, alreadyPaid: false, order: order!};
   }
 
-  // The conditional update matched nothing — either the order doesn't
+  // The conditional update matched nothing  -  either the order doesn't
   // exist, or it does but wasn't pending_transfer (already paid, or some
   // other status). Figure out which so the caller gets the right response.
   const existing = await getAdminOrderById(orderId);
@@ -345,7 +345,7 @@ export type SetTrackingResult =
   | {ok: false; error: "not_found" | "invalid_status" | "missing_fields"};
 
 // Fulfilling (attaching a courier + tracking number) only makes sense once
-// payment is confirmed — a still-awaiting-transfer order has nothing to
+// payment is confirmed  -  a still-awaiting-transfer order has nothing to
 // ship yet. Re-saving tracking info on an already-fulfilled order (fixing a
 // typo'd tracking number) is allowed and just overwrites the fields.
 export async function setOrderTracking(
@@ -375,7 +375,7 @@ export async function setOrderTracking(
 }
 
 // Permanently removes an order and its line items (order_items cascades on
-// delete) — for clearing out test/junk orders, not something a storefront
+// delete)  -  for clearing out test/junk orders, not something a storefront
 // flow ever calls.
 export async function deleteOrder(orderId: string): Promise<boolean> {
   const [deleted] = await db.delete(orders).where(eq(orders.id, orderId)).returning({id: orders.id});
