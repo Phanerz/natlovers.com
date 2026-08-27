@@ -43,7 +43,7 @@ export default async function ProductPage({params}: {params: Promise<{slug: stri
       <ProductBreadcrumb productType={product.productType as ShopProductType} productName={product.name} />
 
       <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-[34px] xl:gap-[55px]">
-        <ProductGallery images={images} name={product.name} tintHex={tint.bg} />
+        <ProductGallery images={images} name={product.name} tintHex={tint.bg} zoomEnabled={product.imageZoomEnabled} />
         <ProductPurchasePanel product={product} />
       </div>
 

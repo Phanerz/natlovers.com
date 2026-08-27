@@ -14,6 +14,10 @@ import {
 
 export type ColourOption = {label: string; hex: string};
 
+export type ProductStatus = "active" | "draft" | "archived";
+export type ProductVisibility = "public" | "private" | "hidden";
+export type BackorderPolicy = "deny" | "allow";
+
 // Quick-start palette offered in the admin colour editor and used to seed
 // new products  -  colour sections show by default (the admin toggle exists
 // to turn a section off for a product that genuinely has no colour choice,
@@ -30,25 +34,42 @@ export type AdminProduct = {
   slug: string;
   name: string;
   priceIdr: number;
+  compareAtPriceIdr: number | null;
+  costPriceIdr: number | null;
   imageUrl: string;
   images: string[];
+  imageZoomEnabled: boolean;
   description: string | null;
+  shortDescription: string | null;
   productType: ShopProductType;
+  subcategory: string | null;
   materials: ShopMaterial[];
   size: ShopSize | null;
   shape: ShopShape | null;
   handle: ShopHandle | null;
   accessoryCategory: AccessoryCategory | null;
   tags: string[];
+  collections: string[];
   soldOut?: boolean;
   isActive: boolean;
+  status: ProductStatus;
+  visibility: ProductVisibility;
+  publishedAt: string | null;
   stock: number | null;
+  lowStockThreshold: number | null;
+  allowBackorders: BackorderPolicy;
   productCode: string | null;
+  vendor: string | null;
   dimensions: string | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
   hasBaseColour: boolean;
   baseColourOptions: ColourOption[];
   hasHandleColour: boolean;
   handleColourOptions: ColourOption[];
+  hasPersonalisation: boolean;
+  personalisationOptions: string[];
+  createdAt: string;
   updatedAt: string;
 };
 
@@ -61,53 +82,94 @@ export const PRODUCT_CODE_PREFIX = "NAT-";
 export type ProductFormState = {
   name: string;
   priceIdr: string;
+  compareAtPriceIdr: string;
+  costPriceIdr: string;
   description: string;
+  shortDescription: string;
   productType: ShopProductType;
+  subcategory: string;
   size: ShopSize;
   shape: ShopShape;
   handle: ShopHandle;
   accessoryCategory: AccessoryCategory;
   materials: ShopMaterial[];
   tags: string;
+  collections: string[];
   // Already-uploaded URLs, in the admin's chosen display order (index 0 is
   // the main image)  -  see components/admin/image-dropzone.tsx.
   images: string[];
+  imageZoomEnabled: boolean;
   // Empty string means "not tracked"  -  kept as strings (not number | null)
   // since these are plain controlled inputs; buildFormData below is what
   // decides what null/empty actually means when it builds the request.
   stock: string;
+  lowStockThreshold: string;
+  allowBackorders: BackorderPolicy;
   // Just the part after the fixed "NAT-" prefix  -  the prefix itself is
   // rendered read-only in the form and re-joined in buildFormData.
   productCodeSuffix: string;
+  vendor: string;
   // Free text, e.g. "Approx. 30 x 20 x 15 cm". Empty means "not measured
   // yet"  -  kept as a plain string like stock/productCodeSuffix above.
   dimensions: string;
+  status: ProductStatus;
+  visibility: ProductVisibility;
+  // datetime-local input value ("" means "not published yet").
+  publishedAt: string;
+  metaTitle: string;
+  metaDescription: string;
   hasBaseColour: boolean;
   baseColourOptions: ColourOption[];
   hasHandleColour: boolean;
   handleColourOptions: ColourOption[];
+  hasPersonalisation: boolean;
+  personalisationOptions: string[];
 };
+
+function toDatetimeLocal(iso: string | null): string {
+  if (!iso) return "";
+  // datetime-local wants "YYYY-MM-DDTHH:mm" in local time, no seconds/Z.
+  const date = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 export function emptyForm(): ProductFormState {
   return {
     name: "",
     priceIdr: "",
+    compareAtPriceIdr: "",
+    costPriceIdr: "",
     description: "",
+    shortDescription: "",
     productType: shopProductTypes[0],
+    subcategory: "",
     size: shopSizes[0],
     shape: shopShapes[0],
     handle: shopHandles[0],
     accessoryCategory: accessoryCategories[0],
     materials: [],
     tags: "",
+    collections: [],
     images: [],
+    imageZoomEnabled: true,
     stock: "",
+    lowStockThreshold: "",
+    allowBackorders: "deny",
     productCodeSuffix: "",
+    vendor: "",
     dimensions: "",
+    status: "active",
+    visibility: "public",
+    publishedAt: "",
+    metaTitle: "",
+    metaDescription: "",
     hasBaseColour: true,
     baseColourOptions: TEMPLATE_COLOUR_OPTIONS.map((option) => ({...option})),
     hasHandleColour: true,
-    handleColourOptions: TEMPLATE_COLOUR_OPTIONS.map((option) => ({...option}))
+    handleColourOptions: TEMPLATE_COLOUR_OPTIONS.map((option) => ({...option})),
+    hasPersonalisation: false,
+    personalisationOptions: []
   };
 }
 
@@ -115,22 +177,38 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
   return {
     name: product.name,
     priceIdr: String(product.priceIdr),
+    compareAtPriceIdr: product.compareAtPriceIdr !== null ? String(product.compareAtPriceIdr) : "",
+    costPriceIdr: product.costPriceIdr !== null ? String(product.costPriceIdr) : "",
     description: product.description ?? "",
+    shortDescription: product.shortDescription ?? "",
     productType: product.productType,
+    subcategory: product.subcategory ?? "",
     size: product.size ?? shopSizes[0],
     shape: product.shape ?? shopShapes[0],
     handle: product.handle ?? shopHandles[0],
     accessoryCategory: product.accessoryCategory ?? accessoryCategories[0],
     materials: product.materials,
     tags: product.tags.join(", "),
+    collections: product.collections,
     images: product.images,
+    imageZoomEnabled: product.imageZoomEnabled,
     stock: product.stock !== null ? String(product.stock) : "",
+    lowStockThreshold: product.lowStockThreshold !== null ? String(product.lowStockThreshold) : "",
+    allowBackorders: product.allowBackorders,
     productCodeSuffix: product.productCode ? product.productCode.slice(PRODUCT_CODE_PREFIX.length) : "",
+    vendor: product.vendor ?? "",
     dimensions: product.dimensions ?? "",
+    status: product.status,
+    visibility: product.visibility,
+    publishedAt: toDatetimeLocal(product.publishedAt),
+    metaTitle: product.metaTitle ?? "",
+    metaDescription: product.metaDescription ?? "",
     hasBaseColour: product.hasBaseColour,
     baseColourOptions: product.baseColourOptions,
     hasHandleColour: product.hasHandleColour,
-    handleColourOptions: product.handleColourOptions
+    handleColourOptions: product.handleColourOptions,
+    hasPersonalisation: product.hasPersonalisation,
+    personalisationOptions: product.personalisationOptions
   };
 }
 
@@ -143,8 +221,12 @@ export function buildFormData(form: ProductFormState) {
   const formData = new FormData();
   formData.set("name", form.name);
   formData.set("priceIdr", form.priceIdr);
+  formData.set("compareAtPriceIdr", form.compareAtPriceIdr.trim());
+  formData.set("costPriceIdr", form.costPriceIdr.trim());
   formData.set("description", form.description);
+  formData.set("shortDescription", form.shortDescription.trim());
   formData.set("productType", form.productType);
+  formData.set("subcategory", form.subcategory.trim());
 
   if (form.productType === "Bags") {
     formData.set("size", form.size);
@@ -163,16 +245,29 @@ export function buildFormData(form: ProductFormState) {
     .map((tag) => tag.trim())
     .filter(Boolean)
     .forEach((tag) => formData.append("tags", tag));
+  form.collections.forEach((collection) => formData.append("collections", collection));
   form.images.forEach((url) => formData.append("images", url));
+  formData.set("imageZoomEnabled", String(form.imageZoomEnabled));
 
   formData.set("stock", form.stock.trim());
+  formData.set("lowStockThreshold", form.lowStockThreshold.trim());
+  formData.set("allowBackorders", form.allowBackorders);
   formData.set("productCode", form.productCodeSuffix.trim() ? `${PRODUCT_CODE_PREFIX}${form.productCodeSuffix.trim()}` : "");
+  formData.set("vendor", form.vendor.trim());
   formData.set("dimensions", form.dimensions.trim());
+
+  formData.set("status", form.status);
+  formData.set("visibility", form.visibility);
+  formData.set("publishedAt", form.publishedAt);
+  formData.set("metaTitle", form.metaTitle.trim());
+  formData.set("metaDescription", form.metaDescription.trim());
 
   formData.set("hasBaseColour", String(form.hasBaseColour));
   formData.set("baseColourOptions", JSON.stringify(form.baseColourOptions));
   formData.set("hasHandleColour", String(form.hasHandleColour));
   formData.set("handleColourOptions", JSON.stringify(form.handleColourOptions));
+  formData.set("hasPersonalisation", String(form.hasPersonalisation));
+  form.personalisationOptions.forEach((option) => formData.append("personalisationOptions", option));
 
   return formData;
 }

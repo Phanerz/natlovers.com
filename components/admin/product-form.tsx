@@ -1,7 +1,8 @@
 "use client";
 
-import {FormEvent, ReactNode} from "react";
-import {Eye, RotateCcw, Trash2} from "lucide-react";
+import Link from "next/link";
+import {FormEvent, ReactNode, useState} from "react";
+import {ChevronLeft, ChevronRight, Copy, Eye, ExternalLink, RotateCcw, Trash2} from "lucide-react";
 import {
   accessoryCategories,
   accessoryCategoryLabels,
@@ -12,59 +13,21 @@ import {
   shapeLabels,
   shopHandles,
   shopProductTypes,
-  shopShapes,
-  shopSizes,
-  sizeLabels
+  shopShapes
 } from "@/app/catalogue/shop-data";
-import {ColourOptionsEditor} from "./colour-options-editor";
 import {ImageDropzone} from "./image-dropzone";
+import {ProductOptionsCard} from "./product-options-card";
+import {ProductStatusSidebar} from "./product-status-sidebar";
+import {RichTextEditor} from "./rich-text-editor";
 import {PillMultiSelect, PillSingleSelect} from "./pill-select";
-import {AdminProduct, PRODUCT_CODE_PREFIX, ProductFormState} from "./types";
+import {AdminProduct, PRODUCT_CODE_PREFIX, ProductFormState, ProductStatus} from "./types";
 
-function ToggleRow({
-  label,
-  hint,
-  checked,
-  onChange
-}: {
-  label: string;
-  hint: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3">
-      <span>
-        <span className="block text-sm font-medium text-forest-900">{label}</span>
-        <span className="block text-xs text-forest-500">{hint}</span>
-      </span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-150 ${
-          checked ? "bg-forest-700" : "bg-[#d9cfc0]"
-        }`}
-      >
-        <span
-          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-150 ${
-            checked ? "translate-x-[1.375rem]" : "translate-x-0.5"
-          }`}
-        />
-      </button>
-    </label>
-  );
-}
-
-function SectionCard({step, title, children}: {step: number; title: string; children: ReactNode}) {
+function SectionCard({title, action, children}: {title: string; action?: ReactNode; children: ReactNode}) {
   return (
     <div className="card space-y-5 p-6 sm:p-8">
-      <div className="flex items-center gap-3">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sand-200 text-sm font-semibold text-forest-900">
-          {step}
-        </span>
+      <div className="flex items-center justify-between gap-3">
         <h2 className="font-display text-xl text-forest-900">{title}</h2>
+        {action}
       </div>
       {children}
     </div>
@@ -74,22 +37,37 @@ function SectionCard({step, title, children}: {step: number; title: string; chil
 const fieldClass =
   "w-full rounded-lg border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-base text-forest-900 outline-none focus:border-forest-400";
 
-// Each Product Type owns its own attribute set  -  a Doll gets only Size, an
-// Accessory gets only Category, Apparel gets nothing beyond Basic Info/
-// Images. No shared generic block that shows fields irrelevant to the
-// selected type.
+const selectClass = `${fieldClass} appearance-none`;
+
+function CharCount({value, max}: {value: string; max: number}) {
+  return (
+    <p className={`text-right text-xs ${value.length > max ? "text-red-600" : "text-forest-400"}`}>
+      {value.length} / {max}
+    </p>
+  );
+}
+
+const statusPillStyle: Record<ProductStatus, string> = {
+  active: "bg-[#dcecd8] text-[#2b5c2a]",
+  draft: "bg-[#eee1c4] text-forest-800",
+  archived: "bg-[#e6e0d8] text-forest-500"
+};
+
+const statusPillLabel: Record<ProductStatus, string> = {active: "Active", draft: "Draft", archived: "Archived"};
+
+// Fixed physical/taxonomic properties that drive the catalogue's own filter
+// sidebar (Shape, Handle type, Materials, Accessory sub-category)  -  distinct
+// from Product Options (Size/Colour/Personalisation), which is what a
+// customer actively chooses when buying. Size used to live here too; it
+// moved to Product Options since it's a real purchase choice, not a fixed
+// property of the listing. Returns null for types with nothing left to show
+// (Dolls, Apparels) so the card itself can be skipped rather than rendered
+// empty.
 function AttributeFields({form, onChange}: {form: ProductFormState; onChange: (next: ProductFormState) => void}) {
   if (form.productType === "Bags") {
     return (
       <>
         <div className="grid gap-6 sm:grid-cols-2">
-          <PillSingleSelect
-            label="Size"
-            options={shopSizes}
-            getLabel={(option) => sizeLabels[option].en}
-            value={form.size}
-            onChange={(value) => onChange({...form, size: value})}
-          />
           <PillSingleSelect
             label="Shape"
             options={shopShapes}
@@ -116,22 +94,10 @@ function AttributeFields({form, onChange}: {form: ProductFormState; onChange: (n
     );
   }
 
-  if (form.productType === "Dolls") {
-    return (
-      <PillSingleSelect
-        label="Size"
-        options={shopSizes}
-        getLabel={(option) => sizeLabels[option].en}
-        value={form.size}
-        onChange={(value) => onChange({...form, size: value})}
-      />
-    );
-  }
-
   if (form.productType === "Accessories") {
     return (
       <PillSingleSelect
-        label="Category"
+        label="Accessory Category"
         options={accessoryCategories}
         getLabel={(option) => accessoryCategoryLabels[option].en}
         value={form.accessoryCategory}
@@ -140,7 +106,7 @@ function AttributeFields({form, onChange}: {form: ProductFormState; onChange: (n
     );
   }
 
-  return <p className="text-sm text-forest-500">Apparel has no additional attributes yet.</p>;
+  return null;
 }
 
 export function ProductForm({
@@ -155,16 +121,19 @@ export function ProductForm({
   product,
   onDeactivate,
   onActivate,
-  onDelete
+  onDelete,
+  onDuplicate,
+  onNavigate,
+  hasPrev,
+  hasNext
 }: {
   mode: "create" | "edit";
   form: ProductFormState;
   // Also accepts an updater function (same shape as React's own
   // Dispatch<SetStateAction<...>>, which is what admin-dashboard.tsx passes
-  // as setEditForm/setCreateForm)  -  the Colours section's two toggles use
-  // that form below so two fast, back-to-back field updates each read the
-  // latest state instead of both closing over the same stale `form` snapshot
-  // and one silently clobbering the other.
+  // as setEditForm/setCreateForm)  -  several fields below need the latest
+  // state read fresh rather than closing over a stale `form` snapshot from
+  // whichever render scheduled the update.
   onChange: (next: ProductFormState | ((prev: ProductFormState) => ProductFormState)) => void;
   onSubmit: (event: FormEvent) => void;
   submitting: boolean;
@@ -179,204 +148,344 @@ export function ProductForm({
   onDeactivate?: () => void;
   onActivate?: () => void;
   onDelete?: () => void;
+  // Clones the current product into a new, unsaved create-mode draft.
+  onDuplicate?: () => void;
+  // Moves to the previous/next product in the current list order, staying
+  // in the edit form.
+  onNavigate?: (direction: -1 | 1) => void;
+  hasPrev?: boolean;
+  hasNext?: boolean;
 }) {
+  const [moreActionsOpen, setMoreActionsOpen] = useState(false);
+  const showAttributes = form.productType === "Bags" || form.productType === "Accessories";
+  const productUrl = product ? `natlovers.com/catalogue/${product.slug}` : null;
+
   return (
     <form onSubmit={onSubmit} className="space-y-6">
-      <SectionCard step={1} title="Basic Info">
-        <div className="grid gap-5 sm:grid-cols-2">
-          <label className="space-y-2 text-sm text-forest-700">
-            <span className="muted">Name</span>
-            <input
-              value={form.name}
-              onChange={(event) => onChange({...form, name: event.target.value})}
-              required
-              placeholder="Enter product name"
-              className={fieldClass}
-            />
-          </label>
-
-          <label className="space-y-2 text-sm text-forest-700">
-            <span className="muted">Price (IDR)</span>
-            <input
-              type="number"
-              min={1}
-              value={form.priceIdr}
-              onChange={(event) => onChange({...form, priceIdr: event.target.value})}
-              required
-              placeholder="Enter price"
-              className={fieldClass}
-            />
-          </label>
-
-          <label className="space-y-2 text-sm text-forest-700">
-            <span className="muted">Stock (optional)</span>
-            <input
-              type="number"
-              min={0}
-              value={form.stock}
-              onChange={(event) => onChange({...form, stock: event.target.value})}
-              placeholder="Leave blank if not tracked"
-              className={fieldClass}
-            />
-          </label>
-
-          <label className="space-y-2 text-sm text-forest-700">
-            <span className="muted">Product Code (optional)</span>
-            <div className="flex items-center overflow-hidden rounded-lg border border-[#d4c5ab] bg-[#fffdf9] focus-within:border-forest-400">
-              <span className="pl-4 text-base text-forest-500">{PRODUCT_CODE_PREFIX}</span>
-              <input
-                value={form.productCodeSuffix}
-                onChange={(event) => onChange({...form, productCodeSuffix: event.target.value})}
-                placeholder="BAG007"
-                className="w-full bg-transparent py-3 pl-1 pr-4 text-base text-forest-900 outline-none"
-              />
-            </div>
-          </label>
-
-          <label className="space-y-2 text-sm text-forest-700">
-            <span className="muted">Dimensions (optional)</span>
-            <input
-              value={form.dimensions}
-              onChange={(event) => onChange({...form, dimensions: event.target.value})}
-              placeholder="e.g. Approx. 30 x 20 x 15 cm"
-              className={fieldClass}
-            />
-          </label>
-
-          <label className="space-y-2 text-sm text-forest-700 sm:col-span-2">
-            <span className="muted">Description</span>
-            <textarea
-              value={form.description}
-              onChange={(event) => onChange({...form, description: event.target.value})}
-              rows={4}
-              placeholder="Enter product description..."
-              className={fieldClass}
-            />
-          </label>
-        </div>
-      </SectionCard>
-
-      <SectionCard step={2} title="Attributes">
-        <PillSingleSelect
-          label="Product Type"
-          options={shopProductTypes}
-          getLabel={(option) => productTypeLabels[option].en}
-          value={form.productType}
-          onChange={(value) => onChange({...form, productType: value})}
-        />
-
-        <AttributeFields form={form} onChange={onChange} />
-
-        <label className="block space-y-2 text-sm text-forest-700">
-          <span className="muted">Tags (comma separated)</span>
-          <input
-            value={form.tags}
-            onChange={(event) => onChange({...form, tags: event.target.value})}
-            placeholder="e.g. new, bestseller, limited"
-            className={fieldClass}
-          />
-        </label>
-      </SectionCard>
-
-      <SectionCard step={3} title="Images">
-        <ImageDropzone
-          images={form.images}
-          onImagesChange={(images) => onChange({...form, images})}
-          slug={imageSlug}
-        />
-      </SectionCard>
-
-      <SectionCard step={4} title="Colours">
-        <p className="text-sm text-forest-600">
-          Not every piece offers a colour choice. Turn these on only for products that genuinely do, and enter the real
-          hex code for each option.
+      <div>
+        <p className="text-xs text-forest-500">
+          Dashboard <span aria-hidden>&gt;</span> Catalogue <span aria-hidden>&gt;</span> Products{" "}
+          <span aria-hidden>&gt;</span> {mode === "create" ? "Add" : "Edit"}
         </p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <h1 className="font-display text-3xl text-forest-900">{mode === "create" ? "Add Product" : "Edit Product"}</h1>
+            {mode === "edit" ? (
+              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusPillStyle[form.status]}`}>
+                {statusPillLabel[form.status]}
+              </span>
+            ) : null}
+          </div>
 
-        <ToggleRow
-          label="Base colour"
-          hint="Lets a customer pick the colour of the piece itself."
-          checked={form.hasBaseColour}
-          onChange={(checked) => onChange((prev) => ({...prev, hasBaseColour: checked}))}
-        />
-        {form.hasBaseColour ? (
-          <ColourOptionsEditor
-            label="Base colour"
-            options={form.baseColourOptions}
-            onChange={(baseColourOptions) => onChange((prev) => ({...prev, baseColourOptions}))}
-          />
-        ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {mode === "edit" && product ? (
+              <Link
+                href={`/catalogue/${product.slug}`}
+                target="_blank"
+                className="glass-btn-secondary flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-forest-700"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                View product
+              </Link>
+            ) : null}
 
-        <ToggleRow
-          label="Handle colour"
-          hint="Lets a customer pick the colour of the handle or strap."
-          checked={form.hasHandleColour}
-          onChange={(checked) => onChange((prev) => ({...prev, hasHandleColour: checked}))}
-        />
-        {form.hasHandleColour ? (
-          <ColourOptionsEditor
-            label="Handle colour"
-            options={form.handleColourOptions}
-            onChange={(handleColourOptions) => onChange((prev) => ({...prev, handleColourOptions}))}
-          />
-        ) : null}
-      </SectionCard>
+            {onDuplicate ? (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setMoreActionsOpen((open) => !open)}
+                  className="glass-btn-secondary rounded-full px-4 py-2.5 text-sm font-medium text-forest-700"
+                >
+                  More actions
+                </button>
+                {moreActionsOpen ? (
+                  <div className="absolute right-0 top-full z-10 mt-2 w-52 rounded-lg border border-[#d9cfc0] bg-[#f7f4ee] py-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMoreActionsOpen(false);
+                        onDuplicate();
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-forest-700 hover:bg-[#eee7d8]"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      Duplicate product
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {onNavigate ? (
+              <div className="flex items-center overflow-hidden rounded-full border border-[#cdbfa6]">
+                <button
+                  type="button"
+                  onClick={() => onNavigate(-1)}
+                  disabled={!hasPrev}
+                  aria-label="Previous product"
+                  className="flex h-9 w-9 items-center justify-center text-forest-700 hover:bg-[#eee7d8] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <div className="h-5 w-px bg-[#cdbfa6]" />
+                <button
+                  type="button"
+                  onClick={() => onNavigate(1)}
+                  disabled={!hasNext}
+                  aria-label="Next product"
+                  className="flex h-9 w-9 items-center justify-center text-forest-700 hover:bg-[#eee7d8] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="glass-btn-primary rounded-full px-6 py-2.5 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {submitting ? "Saving..." : "Save changes"}
+            </button>
+          </div>
+        </div>
+      </div>
 
       {errorMessage ? <p className="text-sm font-medium text-red-600">{errorMessage}</p> : null}
 
-      {mode === "edit" && product ? (
-        <SectionCard step={5} title="Danger Zone">
-          <p className="text-sm text-forest-600">
-            Same actions as the list view  -  hiding keeps the product's data and history, deleting removes it for good.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            {product.isActive ? (
-              <button
-                type="button"
-                onClick={onDeactivate}
-                className="glass-btn-secondary flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium text-forest-700"
-              >
-                <Eye className="h-4 w-4" />
-                Hide from storefront
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={onActivate}
-                className="glass-btn-secondary flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium text-forest-700"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Unhide
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onDelete}
-              className="button-lift flex items-center gap-2 rounded-full border border-red-300 bg-red-50 px-5 py-3 text-sm font-medium text-red-600"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete permanently
-            </button>
-          </div>
-        </SectionCard>
-      ) : null}
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="space-y-6">
+          <SectionCard title="Basic Information">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <label className="space-y-2 text-sm text-forest-700">
+                <span className="muted">Product Name</span>
+                <input
+                  value={form.name}
+                  onChange={(event) => onChange({...form, name: event.target.value})}
+                  required
+                  placeholder="Enter product name"
+                  className={fieldClass}
+                />
+              </label>
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="submit"
-          disabled={submitting}
-          className="glass-btn-primary flex-1 rounded-full px-6 py-4 text-base font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {submitting ? "Saving..." : mode === "create" ? "Save Product" : "Save changes"}
-        </button>
-        {onCancel ? (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-full border border-[#cdbfa6] bg-[#fffaf1] px-6 py-4 text-base font-medium text-forest-700"
+              <label className="space-y-2 text-sm text-forest-700">
+                <span className="muted">Slug</span>
+                <input
+                  value={product?.slug ?? "Generated automatically on save"}
+                  readOnly
+                  disabled
+                  className={`${fieldClass} cursor-not-allowed text-forest-400`}
+                />
+              </label>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              <label className="space-y-2 text-sm text-forest-700">
+                <span className="muted">Category</span>
+                <select
+                  value={form.productType}
+                  onChange={(event) => onChange({...form, productType: event.target.value as ProductFormState["productType"]})}
+                  className={selectClass}
+                >
+                  {shopProductTypes.map((option) => (
+                    <option key={option} value={option}>
+                      {productTypeLabels[option].en}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="space-y-2 text-sm text-forest-700">
+                <span className="muted">Subcategory (optional)</span>
+                <input
+                  value={form.subcategory}
+                  onChange={(event) => onChange({...form, subcategory: event.target.value})}
+                  placeholder="e.g. Backpacks"
+                  className={fieldClass}
+                />
+              </label>
+
+              <label className="space-y-2 text-sm text-forest-700">
+                <span className="muted">SKU (optional)</span>
+                <div className="flex items-center overflow-hidden rounded-lg border border-[#d4c5ab] bg-[#fffdf9] focus-within:border-forest-400">
+                  <span className="pl-4 text-base text-forest-500">{PRODUCT_CODE_PREFIX}</span>
+                  <input
+                    value={form.productCodeSuffix}
+                    onChange={(event) => onChange({...form, productCodeSuffix: event.target.value})}
+                    placeholder="BAG007"
+                    className="w-full min-w-0 bg-transparent py-3 pl-1 pr-4 text-base text-forest-900 outline-none"
+                  />
+                </div>
+              </label>
+
+              <label className="space-y-2 text-sm text-forest-700">
+                <span className="muted">Dimensions (optional)</span>
+                <input
+                  value={form.dimensions}
+                  onChange={(event) => onChange({...form, dimensions: event.target.value})}
+                  placeholder="e.g. 30 x 20 x 15 cm"
+                  className={fieldClass}
+                />
+              </label>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-3">
+              <label className="space-y-2 text-sm text-forest-700">
+                <span className="muted">Price (IDR)</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={form.priceIdr}
+                  onChange={(event) => onChange({...form, priceIdr: event.target.value})}
+                  required
+                  placeholder="Enter price"
+                  className={fieldClass}
+                />
+              </label>
+
+              <label className="space-y-2 text-sm text-forest-700">
+                <span className="muted">Compare at Price (IDR)</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.compareAtPriceIdr}
+                  onChange={(event) => onChange({...form, compareAtPriceIdr: event.target.value})}
+                  placeholder="Optional"
+                  className={fieldClass}
+                />
+              </label>
+
+              <label className="space-y-2 text-sm text-forest-700">
+                <span className="muted">Cost Price (IDR)</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.costPriceIdr}
+                  onChange={(event) => onChange({...form, costPriceIdr: event.target.value})}
+                  placeholder="Optional, internal only"
+                  className={fieldClass}
+                />
+              </label>
+            </div>
+
+            <label className="block space-y-2 text-sm text-forest-700">
+              <span className="muted">Short Description</span>
+              <textarea
+                value={form.shortDescription}
+                onChange={(event) => onChange({...form, shortDescription: event.target.value.slice(0, 160)})}
+                rows={2}
+                placeholder="A one-line summary shown near the price"
+                className={fieldClass}
+              />
+              <CharCount value={form.shortDescription} max={160} />
+            </label>
+
+            <label className="block space-y-2 text-sm text-forest-700">
+              <span className="muted">Product Description</span>
+              <RichTextEditor
+                value={form.description}
+                onChange={(html) => onChange((prev) => ({...prev, description: html}))}
+                placeholder="Enter product description..."
+                maxLength={2000}
+              />
+            </label>
+          </SectionCard>
+
+          {showAttributes ? (
+            <SectionCard title="Attributes">
+              <AttributeFields form={form} onChange={onChange} />
+            </SectionCard>
+          ) : null}
+
+          <SectionCard
+            title="Product Images & Media"
+            action={
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-forest-700">
+                Enable image zoom
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.imageZoomEnabled}
+                  onClick={() => onChange((prev) => ({...prev, imageZoomEnabled: !prev.imageZoomEnabled}))}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-150 ${
+                    form.imageZoomEnabled ? "bg-forest-700" : "bg-[#d9cfc0]"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-150 ${
+                      form.imageZoomEnabled ? "translate-x-[1.375rem]" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </label>
+            }
           >
-            Cancel
-          </button>
-        ) : null}
+            <p className="text-xs text-forest-500">Arrange images to set display order. Recommended size: 2000 x 2000px (1:1).</p>
+            <ImageDropzone images={form.images} onImagesChange={(images) => onChange({...form, images})} slug={imageSlug} />
+          </SectionCard>
+
+          <SectionCard title="Product Options (Customisation)">
+            <ProductOptionsCard form={form} onChange={onChange} />
+          </SectionCard>
+
+          {mode === "edit" && product ? (
+            <SectionCard title="Danger Zone">
+              <p className="text-sm text-forest-600">
+                Same actions as the list view - hiding keeps the product's data and history, deleting removes it for good.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {product.isActive ? (
+                  <button
+                    type="button"
+                    onClick={onDeactivate}
+                    className="glass-btn-secondary flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium text-forest-700"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Hide from storefront
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onActivate}
+                    className="glass-btn-secondary flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium text-forest-700"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Unhide
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onDelete}
+                  className="button-lift flex items-center gap-2 rounded-full border border-red-300 bg-red-50 px-5 py-3 text-sm font-medium text-red-600"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete permanently
+                </button>
+              </div>
+            </SectionCard>
+          ) : null}
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="glass-btn-primary flex-1 rounded-full px-6 py-4 text-base font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {submitting ? "Saving..." : mode === "create" ? "Save Product" : "Save changes"}
+            </button>
+            {onCancel ? (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="rounded-full border border-[#cdbfa6] bg-[#fffaf1] px-6 py-4 text-base font-medium text-forest-700"
+              >
+                Cancel
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        <ProductStatusSidebar form={form} onChange={onChange} productUrl={productUrl} />
       </div>
     </form>
   );

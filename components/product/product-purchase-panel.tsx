@@ -127,10 +127,17 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
     <div className="lg:sticky lg:top-24">
       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-forest-600">Handcrafted in Indonesia</p>
       <h1 className="mt-2 font-display text-3xl leading-tight text-forest-900 sm:text-4xl">{product.name}</h1>
-      <p className="mt-1 font-display text-2xl text-forest-800">{formatCurrency(product.priceIdr, currency)}</p>
+      <p className="mt-1 flex items-baseline gap-2 font-display text-2xl text-forest-800">
+        {formatCurrency(product.priceIdr, currency)}
+        {product.compareAtPriceIdr && product.compareAtPriceIdr > product.priceIdr ? (
+          <span className="font-body text-base font-normal text-forest-400 line-through">
+            {formatCurrency(product.compareAtPriceIdr, currency)}
+          </span>
+        ) : null}
+      </p>
 
-      {product.description ? (
-        <p className="mt-3 line-clamp-2 text-sm leading-6 text-forest-600">{product.description}</p>
+      {product.shortDescription ? (
+        <p className="mt-3 line-clamp-2 text-sm leading-6 text-forest-600">{product.shortDescription}</p>
       ) : null}
 
       <div className="mt-6">

@@ -32,8 +32,24 @@ export const products = pgTable(
     slug: text("slug").notNull().unique(),
     name: text("name").notNull(),
     priceIdr: integer("price_idr").notNull(),
+    // Optional strike-through reference price and internal cost, both IDR
+    // like priceIdr. Neither is customer-facing beyond compareAtPriceIdr's
+    // strike-through use  -  costPriceIdr is for margin visibility in the
+    // admin only, never sent to any storefront-facing query.
+    compareAtPriceIdr: integer("compare_at_price_idr"),
+    costPriceIdr: integer("cost_price_idr"),
+    // Sanitized HTML (see lib/sanitize-html.ts), written by the admin rich
+    // text editor. Pre-existing rows hold plain text from before that editor
+    // existed  -  safe to render as-is since plain text has no markup to
+    // misinterpret, as long as the render site keeps white-space: pre-wrap.
     description: text("description"),
+    // Short, plain-text summary shown near the price (search-result-style),
+    // distinct from the longer rich `description` above.
+    shortDescription: text("short_description"),
     images: text("images").array().notNull().default([]),
+    // Whether the storefront gallery's click-to-expand/zoom lightbox is
+    // offered for this product  -  see components/product/product-gallery.tsx.
+    imageZoomEnabled: boolean("image_zoom_enabled").notNull().default(true),
     // Bags/Dolls-only.
     size: text("size"),
     materials: text("materials").array().notNull().default([]),
@@ -55,20 +71,60 @@ export const products = pgTable(
     baseColourOptions: jsonb("base_colour_options").$type<{label: string; hex: string}[]>(),
     hasHandleColour: boolean("has_handle_colour").notNull().default(true),
     handleColourOptions: jsonb("handle_colour_options").$type<{label: string; hex: string}[]>(),
+    // A third, simpler options axis alongside base/handle colour  -  free-text
+    // labels (e.g. "Initials (Embroidery)"), not hex swatches, for a product
+    // whose customisation isn't colour-based. Off by default, unlike the
+    // colour axes above, since it doesn't apply to most products.
+    hasPersonalisation: boolean("has_personalisation").notNull().default(false),
+    personalisationOptions: jsonb("personalisation_options").$type<string[]>(),
     // Accessories-only.
     accessoryCategory: text("accessory_category"),
     productType: text("product_type").notNull(),
+    // Free-text refinement under productType (e.g. productType "Bags",
+    // subcategory "Backpacks")  -  not a managed taxonomy, just a label the
+    // admin types, since the real filterable taxonomy is still shape/handle/
+    // materials for Bags and their equivalents for other types.
+    subcategory: text("subcategory"),
     tags: text("tags").array().notNull().default([]),
+    // Same free-text-array pattern as tags  -  a product can belong to
+    // several named collections (e.g. "Spring Collection 2025") with no
+    // separate collections table to manage; existing names just get reused
+    // as the admin types them on other products.
+    collections: text("collections").array().notNull().default([]),
     soldOut: boolean("sold_out").notNull().default(false),
+    // status/visibility together decide storefront exposure; isActive below
+    // stays the single real gate every existing query already filters on
+    // (RLS policy included) and is always kept in sync with the two of
+    // them: isActive = status = 'active' AND visibility != 'hidden'. A
+    // draft or archived product is never active regardless of visibility.
+    status: text("status").notNull().default("active"),
+    // 'public' lists in the catalogue; 'private' is reachable by direct
+    // link but excluded from listing/search (e.g. a preview link before a
+    // launch); 'hidden' is fully suppressed, same practical effect as
+    // isActive = false.
+    visibility: text("visibility").notNull().default("public"),
+    // Set the first time status becomes 'active'; left alone after that
+    // (including if the product is later archived) so it keeps answering
+    // "when did this first go live," not "when did it last change."
+    publishedAt: timestamp("published_at"),
     isActive: boolean("is_active").notNull().default(true),
     // Optional  -  most products don't track a count yet. When set, it's
     // decremented on payment confirmation (see markOrderPaid in lib/orders.ts)
     // and floored at 0 rather than going negative.
     stock: integer("stock"),
+    lowStockThreshold: integer("low_stock_threshold"),
+    // Whether an order can be placed once stock hits 0. Irrelevant while
+    // stock is null (not tracked at all).
+    allowBackorders: text("allow_backorders").notNull().default("deny"),
     // Includes the "NAT-" prefix (e.g. "NAT-BAG007"), stored whole rather than
     // split, so every read site (table, form, order emails) shows the same
     // string without reassembling it. Optional  -  older products have none.
     productCode: text("product_code").unique(),
+    vendor: text("vendor"),
+    // SEO card overrides  -  null falls back to name/shortDescription at
+    // render time, so most products never need these set explicitly.
+    metaTitle: text("meta_title"),
+    metaDescription: text("meta_description"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow()
   },

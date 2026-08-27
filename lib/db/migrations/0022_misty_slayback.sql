@@ -1,0 +1,1 @@
+ALTER TABLE "products" ADD COLUMN "image_zoom_enabled" boolean DEFAULT true NOT NULL;

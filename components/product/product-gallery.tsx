@@ -87,7 +87,17 @@ function Lightbox({
   );
 }
 
-export function ProductGallery({images, name, tintHex}: {images: string[]; name: string; tintHex: string}) {
+export function ProductGallery({
+  images,
+  name,
+  tintHex,
+  zoomEnabled = true
+}: {
+  images: string[];
+  name: string;
+  tintHex: string;
+  zoomEnabled?: boolean;
+}) {
   const [activeImage, setActiveImage] = useState(0);
   const [imgOpacity, setImgOpacity] = useState(1);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -141,32 +151,47 @@ export function ProductGallery({images, name, tintHex}: {images: string[]; name:
         style={{backgroundColor: tintHex}}
       >
         {images[activeImage] ? (
+          zoomEnabled ? (
+            <button
+              type="button"
+              onClick={() => setLightboxOpen(true)}
+              aria-label="Expand image"
+              className="absolute inset-0 h-full w-full cursor-zoom-in"
+              style={{opacity: imgOpacity, transition: "opacity 180ms ease"}}
+            >
+              <ImageWithFallback
+                src={images[activeImage]}
+                alt={name}
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 55vw"
+                className="object-cover"
+              />
+            </button>
+          ) : (
+            <div className="absolute inset-0 h-full w-full" style={{opacity: imgOpacity, transition: "opacity 180ms ease"}}>
+              <ImageWithFallback
+                src={images[activeImage]}
+                alt={name}
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 55vw"
+                className="object-cover"
+              />
+            </div>
+          )
+        ) : null}
+
+        {zoomEnabled ? (
           <button
             type="button"
             onClick={() => setLightboxOpen(true)}
-            aria-label="Expand image"
-            className="absolute inset-0 h-full w-full cursor-zoom-in"
-            style={{opacity: imgOpacity, transition: "opacity 180ms ease"}}
+            aria-label="View full image"
+            className="liquid-glass-on-light icon-button absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full text-forest-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
           >
-            <ImageWithFallback
-              src={images[activeImage]}
-              alt={name}
-              fill
-              priority
-              sizes="(max-width: 1024px) 100vw, 55vw"
-              className="object-cover"
-            />
+            <Maximize2 className="h-4 w-4" />
           </button>
         ) : null}
-
-        <button
-          type="button"
-          onClick={() => setLightboxOpen(true)}
-          aria-label="View full image"
-          className="liquid-glass-on-light icon-button absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full text-forest-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
-        >
-          <Maximize2 className="h-4 w-4" />
-        </button>
       </div>
 
       {lightboxOpen ? (

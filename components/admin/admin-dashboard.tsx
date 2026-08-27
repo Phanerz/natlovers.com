@@ -163,6 +163,28 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
     setTab("add");
   }
 
+  // Clones the product currently being edited into a fresh, unsaved create
+  // draft  -  images/name are left for the admin to change (a literal copy
+  // of both would collide on the unique slug/name-derived-slug anyway), a
+  // useful starting point is enough.
+  function duplicateEditingProduct() {
+    if (!editingProduct) return;
+    setCreateForm({...editForm, name: `${editForm.name} (copy)`});
+    setEditingProduct(null);
+    setEditError(null);
+    setTab("add");
+  }
+
+  const editingIndex = editingProduct ? products.findIndex((product) => product.slug === editingProduct.slug) : -1;
+
+  function navigateEdit(direction: -1 | 1) {
+    if (editingIndex === -1) return;
+    const next = products[editingIndex + direction];
+    if (next) {
+      startEdit(next);
+    }
+  }
+
   function cancelEdit() {
     setEditingProduct(null);
     setEditError(null);
@@ -404,7 +426,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
 
   return (
     <div className="space-y-6">
-      {tab !== "dashboard" ? (
+      {tab !== "dashboard" && tab !== "add" ? (
         <div>
           <p className="muted">Admin, {userEmail}</p>
           <h1 className="mt-2 font-display text-3xl text-forest-900">{pageTitles[tab]}</h1>
@@ -429,6 +451,10 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
               onDeactivate={() => handleDeactivate(editingProduct)}
               onActivate={() => handleActivate(editingProduct)}
               onDelete={() => handleDeleteProduct(editingProduct)}
+              onDuplicate={duplicateEditingProduct}
+              onNavigate={navigateEdit}
+              hasPrev={editingIndex > 0}
+              hasNext={editingIndex !== -1 && editingIndex < products.length - 1}
             />
           ) : (
             <ProductForm

@@ -1,6 +1,7 @@
 import {and, desc, eq} from "drizzle-orm";
 import {z} from "zod";
 import {db, products} from "@/lib/db";
+import {sanitizeDescriptionHtml} from "@/lib/sanitize-html";
 import {
   AccessoryCategory,
   ShopHandle,
@@ -19,18 +20,44 @@ import {
 
 export type ColourOption = {label: string; hex: string};
 
+export const productStatuses = ["active", "draft", "archived"] as const;
+export type ProductStatus = (typeof productStatuses)[number];
+
+export const productVisibilities = ["public", "private", "hidden"] as const;
+export type ProductVisibility = (typeof productVisibilities)[number];
+
+export const backorderPolicies = ["deny", "allow"] as const;
+export type BackorderPolicy = (typeof backorderPolicies)[number];
+
 export type AdminProduct = ShopProduct & {
   images: string[];
+  imageZoomEnabled: boolean;
   description: string | null;
+  shortDescription: string | null;
   tags: string[];
+  collections: string[];
   isActive: boolean;
+  status: ProductStatus;
+  visibility: ProductVisibility;
+  publishedAt: string | null;
   stock: number | null;
+  lowStockThreshold: number | null;
+  allowBackorders: BackorderPolicy;
   productCode: string | null;
+  vendor: string | null;
   dimensions: string | null;
+  subcategory: string | null;
+  compareAtPriceIdr: number | null;
+  costPriceIdr: number | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
   hasBaseColour: boolean;
   baseColourOptions: ColourOption[];
   hasHandleColour: boolean;
   handleColourOptions: ColourOption[];
+  hasPersonalisation: boolean;
+  personalisationOptions: string[];
+  createdAt: string;
   updatedAt: string;
 };
 
@@ -60,7 +87,21 @@ const shopProductInputSchema = z.object({
     z.enum(accessoryCategories as unknown as [string, ...string[]]) as unknown as z.ZodType<AccessoryCategory>
   ).optional(),
   materials: z.array(z.string()).optional(),
-  tags: z.array(z.string().trim().min(1)).optional()
+  tags: z.array(z.string().trim().min(1)).optional(),
+  collections: z.array(z.string().trim().min(1)).optional(),
+  shortDescription: z.string().trim().max(160, "Short description must be 160 characters or fewer.").optional(),
+  subcategory: z.string().trim().optional(),
+  vendor: z.string().trim().optional(),
+  metaTitle: z.string().trim().optional(),
+  metaDescription: z.string().trim().optional(),
+  status: (z.enum(productStatuses as unknown as [string, ...string[]]) as unknown as z.ZodType<ProductStatus>).optional(),
+  visibility: (
+    z.enum(productVisibilities as unknown as [string, ...string[]]) as unknown as z.ZodType<ProductVisibility>
+  ).optional(),
+  allowBackorders: (
+    z.enum(backorderPolicies as unknown as [string, ...string[]]) as unknown as z.ZodType<BackorderPolicy>
+  ).optional(),
+  personalisationOptions: z.array(z.string().trim().min(1)).optional()
 });
 
 // Partial variant for edits: every field optional, only what's present gets
@@ -114,6 +155,36 @@ function parseDimensionsField(formData: FormData): string | null {
   return raw.toString().trim();
 }
 
+// Shared by compareAtPriceIdr/costPriceIdr/lowStockThreshold below - all
+// three are optional positive-or-zero integers that clear to null on an
+// empty input, same convention as stock.
+function parseOptionalIntField(formData: FormData, field: string, label: string): number | null {
+  const raw = formData.get(field);
+  if (raw === null || raw.toString().trim() === "") {
+    return null;
+  }
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`${label} must be a whole number of 0 or more.`);
+  }
+  return value;
+}
+
+// publishedAt travels as an ISO/datetime-local string or is absent
+// entirely; empty clears it back to null (e.g. moving a product back to
+// draft in the same edit).
+function parsePublishedAtField(formData: FormData): Date | null {
+  const raw = formData.get("publishedAt");
+  if (raw === null || raw.toString().trim() === "") {
+    return null;
+  }
+  const date = new Date(raw.toString());
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Published date is invalid.");
+  }
+  return date;
+}
+
 function parseProductCodeField(formData: FormData): string | null {
   const raw = formData.get("productCode");
   if (raw === null || raw.toString().trim() === "") {
@@ -164,27 +235,53 @@ function toAdminProduct(row: typeof products.$inferSelect): AdminProduct {
     slug: row.slug,
     name: row.name,
     priceIdr: row.priceIdr,
+    compareAtPriceIdr: row.compareAtPriceIdr,
+    costPriceIdr: row.costPriceIdr,
     imageUrl: row.images[0] ?? "",
     images: row.images,
+    imageZoomEnabled: row.imageZoomEnabled,
     description: row.description,
+    shortDescription: row.shortDescription,
     productType: row.productType as ShopProductType,
+    subcategory: row.subcategory,
     materials: row.materials as ShopMaterial[],
     size: (row.size as ShopSize) ?? null,
     shape: (row.shape as ShopShape) ?? null,
     handle: (row.handleType as ShopHandle) ?? null,
     accessoryCategory: (row.accessoryCategory as AccessoryCategory) ?? null,
     tags: row.tags,
+    collections: row.collections,
     soldOut: row.soldOut,
     isActive: row.isActive,
+    status: row.status as ProductStatus,
+    visibility: row.visibility as ProductVisibility,
+    publishedAt: row.publishedAt ? row.publishedAt.toISOString() : null,
     stock: row.stock,
+    lowStockThreshold: row.lowStockThreshold,
+    allowBackorders: row.allowBackorders as BackorderPolicy,
     productCode: row.productCode,
+    vendor: row.vendor,
     dimensions: row.dimensions,
+    metaTitle: row.metaTitle,
+    metaDescription: row.metaDescription,
     hasBaseColour: row.hasBaseColour,
     baseColourOptions: (row.baseColourOptions as ColourOption[] | null) ?? [],
     hasHandleColour: row.hasHandleColour,
     handleColourOptions: (row.handleColourOptions as ColourOption[] | null) ?? [],
+    hasPersonalisation: row.hasPersonalisation,
+    personalisationOptions: (row.personalisationOptions as string[] | null) ?? [],
+    createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString()
   };
+}
+
+// isActive is the one column every existing query/RLS policy still filters
+// on; status/visibility are the richer admin-facing fields that must stay
+// in sync with it on every write, computed here rather than trusted from
+// the client. A draft or archived product is never active regardless of
+// visibility; an active-but-hidden one is treated the same as inactive.
+function computeIsActive(status: ProductStatus, visibility: ProductVisibility): boolean {
+  return status === "active" && visibility !== "hidden";
 }
 
 async function assertProductCodeAvailable(code: string, excludeSlug?: string) {
@@ -244,8 +341,17 @@ function attributesForType(
   return {size: null, shape: null, handleType: null, accessoryCategory: null, materials: []};
 }
 
+// Public catalogue feed: isActive gates whether the storefront can serve
+// the product at all, and visibility = 'public' additionally gates whether
+// it's *listed*  -  a 'private' product stays isActive but is excluded here
+// (still reachable directly via getProductBySlug below, e.g. a preview
+// link shared before launch).
 export async function getAllProducts(): Promise<AdminProduct[]> {
-  const rows = await db.select().from(products).where(eq(products.isActive, true)).orderBy(desc(products.createdAt));
+  const rows = await db
+    .select()
+    .from(products)
+    .where(and(eq(products.isActive, true), eq(products.visibility, "public")))
+    .orderBy(desc(products.createdAt));
   return rows.map(toAdminProduct);
 }
 
@@ -279,7 +385,17 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     handle: formData.get("handle") || undefined,
     accessoryCategory: formData.get("accessoryCategory") || undefined,
     materials: formData.getAll("materials").map(String),
-    tags: formData.getAll("tags").map(String)
+    tags: formData.getAll("tags").map(String),
+    collections: formData.getAll("collections").map(String),
+    shortDescription: formData.get("shortDescription") || undefined,
+    subcategory: formData.get("subcategory") || undefined,
+    vendor: formData.get("vendor") || undefined,
+    metaTitle: formData.get("metaTitle") || undefined,
+    metaDescription: formData.get("metaDescription") || undefined,
+    status: formData.get("status") || undefined,
+    visibility: formData.get("visibility") || undefined,
+    allowBackorders: formData.get("allowBackorders") || undefined,
+    personalisationOptions: formData.getAll("personalisationOptions").map(String)
   });
 
   const attributes = attributesForType(parsed.productType, parsed);
@@ -299,6 +415,19 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
   const baseColourOptions = hasBaseColour ? parseColourOptionsField(formData, "baseColourOptions") : [];
   const hasHandleColour = formData.get("hasHandleColour") === "true";
   const handleColourOptions = hasHandleColour ? parseColourOptionsField(formData, "handleColourOptions") : [];
+  const hasPersonalisation = formData.get("hasPersonalisation") === "true";
+  const personalisationOptions = hasPersonalisation ? (parsed.personalisationOptions ?? []) : [];
+
+  const compareAtPriceIdr = parseOptionalIntField(formData, "compareAtPriceIdr", "Compare-at price");
+  const costPriceIdr = parseOptionalIntField(formData, "costPriceIdr", "Cost price");
+  const lowStockThreshold = parseOptionalIntField(formData, "lowStockThreshold", "Low stock threshold");
+
+  const status: ProductStatus = parsed.status ?? "active";
+  const visibility: ProductVisibility = parsed.visibility ?? "public";
+  const publishedAtInput = parsePublishedAtField(formData);
+  const publishedAt = publishedAtInput ?? (status === "active" ? new Date() : null);
+
+  const description = parsed.description ? sanitizeDescriptionHtml(parsed.description) : null;
 
   const slug = await uniqueSlug(slugify(parsed.name));
 
@@ -308,22 +437,39 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       slug,
       name: parsed.name,
       priceIdr: parsed.priceIdr,
-      description: parsed.description ?? null,
+      compareAtPriceIdr,
+      costPriceIdr,
+      description,
+      shortDescription: parsed.shortDescription ?? null,
       images,
+      imageZoomEnabled: formData.get("imageZoomEnabled") !== "false",
       productType: parsed.productType,
+      subcategory: parsed.subcategory ?? null,
       materials: attributes.materials,
       size: attributes.size,
       shape: attributes.shape,
       handleType: attributes.handleType,
       accessoryCategory: attributes.accessoryCategory,
       tags: parsed.tags ?? [],
+      collections: parsed.collections ?? [],
+      status,
+      visibility,
+      publishedAt,
+      isActive: computeIsActive(status, visibility),
       stock,
+      lowStockThreshold,
+      allowBackorders: parsed.allowBackorders ?? "deny",
       productCode,
+      vendor: parsed.vendor ?? null,
+      metaTitle: parsed.metaTitle ?? null,
+      metaDescription: parsed.metaDescription ?? null,
       dimensions,
       hasBaseColour,
       baseColourOptions,
       hasHandleColour,
-      handleColourOptions
+      handleColourOptions,
+      hasPersonalisation,
+      personalisationOptions
     })
     .returning();
 
@@ -347,6 +493,16 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
   if (formData.has("accessoryCategory")) raw.accessoryCategory = formData.get("accessoryCategory") || undefined;
   if (formData.getAll("materials").length) raw.materials = formData.getAll("materials").map(String);
   if (formData.getAll("tags").length) raw.tags = formData.getAll("tags").map(String);
+  if (formData.getAll("collections").length) raw.collections = formData.getAll("collections").map(String);
+  if (formData.has("shortDescription")) raw.shortDescription = formData.get("shortDescription") || undefined;
+  if (formData.has("subcategory")) raw.subcategory = formData.get("subcategory") || undefined;
+  if (formData.has("vendor")) raw.vendor = formData.get("vendor") || undefined;
+  if (formData.has("metaTitle")) raw.metaTitle = formData.get("metaTitle") || undefined;
+  if (formData.has("metaDescription")) raw.metaDescription = formData.get("metaDescription") || undefined;
+  if (formData.has("status")) raw.status = formData.get("status") || undefined;
+  if (formData.has("visibility")) raw.visibility = formData.get("visibility") || undefined;
+  if (formData.has("allowBackorders")) raw.allowBackorders = formData.get("allowBackorders") || undefined;
+  if (formData.has("hasPersonalisation")) raw.personalisationOptions = formData.getAll("personalisationOptions").map(String);
 
   const parsed = shopProductUpdateSchema.parse(raw);
 
@@ -370,6 +526,34 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       ? parseColourOptionsField(formData, "handleColourOptions")
       : ((existing.handleColourOptions as ColourOption[] | null) ?? [])
     : [];
+  const hasPersonalisation = formData.has("hasPersonalisation")
+    ? formData.get("hasPersonalisation") === "true"
+    : existing.hasPersonalisation;
+  const personalisationOptions = hasPersonalisation
+    ? (parsed.personalisationOptions ?? (existing.personalisationOptions as string[] | null) ?? [])
+    : [];
+
+  const compareAtPriceIdr = formData.has("compareAtPriceIdr")
+    ? parseOptionalIntField(formData, "compareAtPriceIdr", "Compare-at price")
+    : existing.compareAtPriceIdr;
+  const costPriceIdr = formData.has("costPriceIdr")
+    ? parseOptionalIntField(formData, "costPriceIdr", "Cost price")
+    : existing.costPriceIdr;
+  const lowStockThreshold = formData.has("lowStockThreshold")
+    ? parseOptionalIntField(formData, "lowStockThreshold", "Low stock threshold")
+    : existing.lowStockThreshold;
+
+  const status: ProductStatus = (parsed.status as ProductStatus | undefined) ?? (existing.status as ProductStatus);
+  const visibility: ProductVisibility =
+    (parsed.visibility as ProductVisibility | undefined) ?? (existing.visibility as ProductVisibility);
+  // publishedAt: an explicit value in the form always wins; otherwise keep
+  // the existing one, except the first time a product transitions into
+  // 'active' with no publishedAt yet, which is treated as a real publish.
+  const publishedAtInput = formData.has("publishedAt") ? parsePublishedAtField(formData) : undefined;
+  const publishedAt =
+    publishedAtInput !== undefined
+      ? publishedAtInput
+      : (existing.publishedAt ?? (status === "active" ? new Date() : null));
 
   // productType may not be changing on this edit  -  attribute validation
   // always runs against whichever type the product actually is (the
@@ -401,22 +585,39 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
     .set({
       ...(parsed.name !== undefined ? {name: parsed.name} : {}),
       ...(parsed.priceIdr !== undefined ? {priceIdr: parsed.priceIdr} : {}),
-      ...(parsed.description !== undefined ? {description: parsed.description} : {}),
+      ...(parsed.description !== undefined ? {description: sanitizeDescriptionHtml(parsed.description)} : {}),
+      ...(parsed.shortDescription !== undefined ? {shortDescription: parsed.shortDescription} : {}),
       ...(parsed.productType !== undefined ? {productType: parsed.productType} : {}),
+      ...(parsed.subcategory !== undefined ? {subcategory: parsed.subcategory} : {}),
+      ...(parsed.vendor !== undefined ? {vendor: parsed.vendor} : {}),
+      ...(parsed.metaTitle !== undefined ? {metaTitle: parsed.metaTitle} : {}),
+      ...(parsed.metaDescription !== undefined ? {metaDescription: parsed.metaDescription} : {}),
       size: attributes.size,
       shape: attributes.shape,
       handleType: attributes.handleType,
       accessoryCategory: attributes.accessoryCategory,
       materials: attributes.materials,
       ...(parsed.tags !== undefined ? {tags: parsed.tags} : {}),
+      ...(parsed.collections !== undefined ? {collections: parsed.collections} : {}),
+      ...(parsed.allowBackorders !== undefined ? {allowBackorders: parsed.allowBackorders} : {}),
+      status,
+      visibility,
+      publishedAt,
+      isActive: computeIsActive(status, visibility),
       ...(images ? {images} : {}),
+      ...(formData.has("imageZoomEnabled") ? {imageZoomEnabled: formData.get("imageZoomEnabled") !== "false"} : {}),
       stock,
+      compareAtPriceIdr,
+      costPriceIdr,
+      lowStockThreshold,
       productCode,
       dimensions,
       hasBaseColour,
       baseColourOptions,
       hasHandleColour,
       handleColourOptions,
+      hasPersonalisation,
+      personalisationOptions,
       updatedAt: new Date()
     })
     .where(eq(products.slug, slug))
@@ -434,10 +635,21 @@ export async function deleteProductPermanently(slug: string): Promise<boolean> {
   return Boolean(deleted);
 }
 
+// The simple list-row Hide/Unhide action. Deliberately only ever moves
+// visibility, never status  -  "hide" here means "took this off the
+// storefront for now," not "this was never really published," which is
+// what the richer status field on the edit form is for. isActive is kept
+// in lockstep the same way createProduct/updateProduct do.
 export async function setProductActive(slug: string, isActive: boolean): Promise<AdminProduct> {
+  const [existing] = await db.select({status: products.status}).from(products).where(eq(products.slug, slug));
+  if (!existing) {
+    throw new Error("Product not found.");
+  }
+  const status = existing.status as ProductStatus;
+  const visibility: ProductVisibility = isActive ? "public" : "hidden";
   const [row] = await db
     .update(products)
-    .set({isActive, updatedAt: new Date()})
+    .set({isActive: computeIsActive(status, visibility), visibility, updatedAt: new Date()})
     .where(eq(products.slug, slug))
     .returning();
   if (!row) {

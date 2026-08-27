@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import {useRef, useState} from "react";
-import {ArrowLeft, ArrowRight, Star, UploadCloud, X} from "lucide-react";
+import {ArrowLeft, ArrowRight, GripVertical, Star, UploadCloud, X} from "lucide-react";
 import {ACCEPTED_IMAGE_LABEL, MAX_IMAGE_MB} from "@/lib/upload-limits";
 
 export const MAX_PRODUCT_IMAGES = 6;
@@ -25,8 +25,21 @@ export function ImageDropzone({
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Which tile is currently being dragged, for reordering via native HTML5
+  // drag-and-drop  -  a real addition alongside the existing move-arrow
+  // buttons (kept for keyboard/mobile access), not a replacement for them.
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const remaining = MAX_PRODUCT_IMAGES - images.length;
+
+  function reorder(from: number, to: number) {
+    if (from === to) return;
+    const next = [...images];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    onImagesChange(next);
+  }
 
   async function addFiles(list: FileList | null) {
     if (!list || !list.length) {
@@ -101,24 +114,49 @@ export function ImageDropzone({
           {images.map((url, index) => (
             <div
               key={url}
-              className="group relative aspect-square overflow-hidden rounded-xl border border-[#d9ccb3] bg-[#f2ecdc]"
+              draggable
+              onDragStart={() => setDraggingIndex(index)}
+              onDragEnter={() => setDragOverIndex(index)}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                if (draggingIndex !== null) {
+                  reorder(draggingIndex, index);
+                }
+                setDraggingIndex(null);
+                setDragOverIndex(null);
+              }}
+              onDragEnd={() => {
+                setDraggingIndex(null);
+                setDragOverIndex(null);
+              }}
+              className={`group relative aspect-square overflow-hidden rounded-xl border bg-[#f2ecdc] transition-[border-color,opacity] duration-150 ${
+                dragOverIndex === index && draggingIndex !== null && draggingIndex !== index
+                  ? "border-forest-500"
+                  : "border-[#d9ccb3]"
+              } ${draggingIndex === index ? "opacity-40" : ""}`}
             >
               <Image src={url} alt={`Product image ${index + 1}`} fill sizes="160px" className="object-cover" />
 
-              {index === 0 ? (
-                <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-forest-900 px-2 py-0.5 text-[10px] font-semibold text-sand-50">
-                  <Star className="h-2.5 w-2.5 fill-sand-50" />
-                  Main
+              <div className="absolute left-1.5 top-1.5 flex items-center gap-1">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black/55 text-[10px] font-semibold text-white">
+                  {index + 1}
                 </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setAsMain(index)}
-                  className="absolute left-1.5 top-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-                >
-                  Set as main
-                </button>
-              )}
+                {index === 0 ? (
+                  <span className="flex items-center gap-1 rounded-full bg-forest-900 px-2 py-0.5 text-[10px] font-semibold text-sand-50">
+                    <Star className="h-2.5 w-2.5 fill-sand-50" />
+                    Main
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAsMain(index)}
+                    className="rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+                  >
+                    Set as main
+                  </button>
+                )}
+              </div>
 
               <button
                 type="button"
@@ -148,6 +186,14 @@ export function ImageDropzone({
                 >
                   <ArrowRight className="h-3.5 w-3.5" />
                 </button>
+              </div>
+
+              <div
+                className="absolute bottom-1.5 right-1.5 flex h-6 w-6 cursor-grab items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition-opacity duration-150 active:cursor-grabbing group-hover:opacity-100"
+                aria-hidden
+                title="Drag to reorder"
+              >
+                <GripVertical className="h-3.5 w-3.5" />
               </div>
             </div>
           ))}
