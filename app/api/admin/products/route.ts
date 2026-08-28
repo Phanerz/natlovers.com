@@ -1,5 +1,13 @@
 import {NextRequest, NextResponse} from "next/server";
-import {createProduct, deleteProductPermanently, getAllProducts, getAllProductsForAdmin, setProductActive, updateProduct} from "@/lib/admin-products";
+import {
+  createProduct,
+  deleteProductPermanently,
+  getAllProducts,
+  getAllProductsForAdmin,
+  saveDraftProduct,
+  setProductActive,
+  updateProduct
+} from "@/lib/admin-products";
 import {getSession, isAdminEmail} from "@/lib/auth";
 
 // Serves live product/price data to the storefront  -  must never be served
@@ -63,6 +71,15 @@ export async function PATCH(request: NextRequest) {
     }
 
     const formData = await request.formData();
+
+    // Stages the edit form's current state for /catalogue/[slug]?preview=1
+    // without publishing it  -  a real publish is any PATCH without
+    // ?action=draft, which still goes through updateProduct below.
+    if (action === "draft") {
+      await saveDraftProduct(slug, formData);
+      return NextResponse.json({ok: true});
+    }
+
     const product = await updateProduct(slug, formData);
     return NextResponse.json(product);
   } catch (error) {

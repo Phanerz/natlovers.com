@@ -139,6 +139,14 @@ export const products = pgTable(
     // render time, so most products never need these set explicitly.
     metaTitle: text("meta_title"),
     metaDescription: text("meta_description"),
+    // An admin's unsaved edit-form state, staged here by the "Preview"
+    // action so /catalogue/[slug]?preview=1 (admin-only, see
+    // getProductForPreview) can render it through the real storefront page
+    // components without touching the live columns above. Cleared back to
+    // null whenever a real "Save changes" publish happens (see
+    // updateProduct), since the live row now supersedes it. Never read by
+    // any public/customer-facing query.
+    draftData: jsonb("draft_data"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow()
   },

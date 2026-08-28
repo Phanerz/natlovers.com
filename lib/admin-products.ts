@@ -688,12 +688,173 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       handleColourOptions,
       hasPersonalisation,
       personalisationOptions,
+      // A real publish supersedes any staged preview draft  -  keeps the
+      // preview route from ever showing edits older than what's now live.
+      draftData: null,
       updatedAt: new Date()
     })
     .where(eq(products.slug, slug))
     .returning();
 
   return toAdminProduct(row);
+}
+
+// The same admin-editable fields AdminProduct exposes, all optional since a
+// draft is a partial overlay  -  identity/lifecycle fields (slug, status,
+// visibility, publishedAt, isActive, createdAt, updatedAt) are deliberately
+// excluded, since previewing a draft should show it as if published,
+// regardless of the row's real current status/visibility.
+type ProductDraftData = Partial<
+  Omit<AdminProduct, "slug" | "status" | "visibility" | "publishedAt" | "isActive" | "createdAt" | "updatedAt">
+>;
+
+// Stages the admin edit form's current state without touching any live
+// column - deliberately NOT the same code path as updateProduct (which
+// writes live columns and is already relied on for real publishes). Reuses
+// the same field parsers/validation so a draft can never hold data that
+// wouldn't also be valid to publish.
+export async function saveDraftProduct(slug: string, formData: FormData): Promise<void> {
+  const [existing] = await db.select().from(products).where(eq(products.slug, slug));
+  if (!existing) {
+    throw new Error("Product not found.");
+  }
+
+  const raw: Record<string, unknown> = {};
+  if (formData.has("name")) raw.name = formData.get("name");
+  if (formData.has("priceIdr")) raw.priceIdr = formData.get("priceIdr");
+  if (formData.has("description")) raw.description = formData.get("description");
+  if (formData.has("productType")) raw.productType = formData.get("productType");
+  if (formData.has("size")) raw.size = formData.get("size") || undefined;
+  if (formData.has("shape")) raw.shape = formData.get("shape") || undefined;
+  if (formData.has("handle")) raw.handle = formData.get("handle") || undefined;
+  if (formData.has("accessoryCategory")) raw.accessoryCategory = formData.get("accessoryCategory") || undefined;
+  if (formData.getAll("materials").length) raw.materials = formData.getAll("materials").map(String);
+  if (formData.getAll("tags").length) raw.tags = formData.getAll("tags").map(String);
+  if (formData.getAll("collections").length) raw.collections = formData.getAll("collections").map(String);
+  if (formData.has("shortDescription")) raw.shortDescription = formData.get("shortDescription") || undefined;
+  if (formData.has("subcategory")) raw.subcategory = formData.get("subcategory") || undefined;
+  if (formData.has("vendor")) raw.vendor = formData.get("vendor") || undefined;
+  if (formData.has("metaTitle")) raw.metaTitle = formData.get("metaTitle") || undefined;
+  if (formData.has("metaDescription")) raw.metaDescription = formData.get("metaDescription") || undefined;
+  if (formData.has("allowBackorders")) raw.allowBackorders = formData.get("allowBackorders") || undefined;
+  if (formData.has("hasPersonalisation")) raw.personalisationOptions = formData.getAll("personalisationOptions").map(String);
+
+  const parsed = shopProductUpdateSchema.parse(raw);
+
+  const stock = formData.has("stock") ? parseStockField(formData) : existing.stock;
+  const productCode = formData.has("productCode") ? parseProductCodeField(formData) : existing.productCode;
+  if (productCode && productCode !== existing.productCode) {
+    await assertProductCodeAvailable(productCode, slug);
+  }
+  const dimensions = formData.has("dimensions") ? parseDimensionsField(formData) : existing.dimensions;
+  const sizeDimensions = formData.has("sizeDimensions")
+    ? parseSizeDimensionsField(formData)
+    : ((existing.sizeDimensions as SizeDimensionOverrides | null) ?? {});
+  const sizePriceDeltaIdr = formData.has("sizePriceDeltaIdr")
+    ? parseSizePriceDeltaField(formData)
+    : ((existing.sizePriceDeltaIdr as Partial<Record<ShopSize, number>> | null) ?? {});
+  const hasBaseColour = formData.has("hasBaseColour") ? formData.get("hasBaseColour") === "true" : existing.hasBaseColour;
+  const baseColourOptions = hasBaseColour
+    ? formData.has("baseColourOptions")
+      ? parseColourOptionsField(formData, "baseColourOptions")
+      : ((existing.baseColourOptions as ColourOption[] | null) ?? [])
+    : [];
+  const hasHandleColour = formData.has("hasHandleColour")
+    ? formData.get("hasHandleColour") === "true"
+    : existing.hasHandleColour;
+  const handleColourOptions = hasHandleColour
+    ? formData.has("handleColourOptions")
+      ? parseColourOptionsField(formData, "handleColourOptions")
+      : ((existing.handleColourOptions as ColourOption[] | null) ?? [])
+    : [];
+  const hasPersonalisation = formData.has("hasPersonalisation")
+    ? formData.get("hasPersonalisation") === "true"
+    : existing.hasPersonalisation;
+  const personalisationOptions = hasPersonalisation
+    ? (parsed.personalisationOptions ?? (existing.personalisationOptions as string[] | null) ?? [])
+    : [];
+
+  const compareAtPriceIdr = formData.has("compareAtPriceIdr")
+    ? parseOptionalIntField(formData, "compareAtPriceIdr", "Compare-at price")
+    : existing.compareAtPriceIdr;
+  const costPriceIdr = formData.has("costPriceIdr")
+    ? parseOptionalIntField(formData, "costPriceIdr", "Cost price")
+    : existing.costPriceIdr;
+  const lowStockThreshold = formData.has("lowStockThreshold")
+    ? parseOptionalIntField(formData, "lowStockThreshold", "Low stock threshold")
+    : existing.lowStockThreshold;
+
+  const effectiveType = parsed.productType ?? (existing.productType as ShopProductType);
+  const attributes = attributesForType(effectiveType, {
+    size: (parsed.size as ShopSize | undefined) ?? (existing.size as ShopSize | undefined) ?? undefined,
+    shape: (parsed.shape as ShopShape | undefined) ?? (existing.shape as ShopShape | undefined) ?? undefined,
+    handle: (parsed.handle as ShopHandle | undefined) ?? (existing.handleType as ShopHandle | undefined) ?? undefined,
+    accessoryCategory:
+      (parsed.accessoryCategory as AccessoryCategory | undefined) ??
+      (existing.accessoryCategory as AccessoryCategory | undefined) ??
+      undefined,
+    materials: parsed.materials ?? existing.materials
+  });
+
+  let images = existing.images;
+  if (formData.has("images")) {
+    images = parseImagesField(formData);
+    if (!images.length) {
+      throw new Error("At least one image is required.");
+    }
+  }
+
+  const draft: ProductDraftData = {
+    name: parsed.name ?? existing.name,
+    priceIdr: parsed.priceIdr ?? existing.priceIdr,
+    compareAtPriceIdr,
+    costPriceIdr,
+    description: parsed.description !== undefined ? sanitizeDescriptionHtml(parsed.description) : existing.description,
+    shortDescription: parsed.shortDescription ?? existing.shortDescription,
+    images,
+    imageZoomEnabled: formData.has("imageZoomEnabled") ? formData.get("imageZoomEnabled") !== "false" : existing.imageZoomEnabled,
+    productType: effectiveType,
+    subcategory: parsed.subcategory ?? existing.subcategory,
+    materials: attributes.materials,
+    size: attributes.size,
+    shape: attributes.shape,
+    handle: attributes.handleType,
+    accessoryCategory: attributes.accessoryCategory,
+    tags: parsed.tags ?? existing.tags,
+    collections: parsed.collections ?? existing.collections,
+    stock,
+    lowStockThreshold,
+    allowBackorders: (parsed.allowBackorders as BackorderPolicy | undefined) ?? (existing.allowBackorders as BackorderPolicy),
+    productCode,
+    vendor: parsed.vendor ?? existing.vendor,
+    dimensions,
+    sizeDimensions,
+    sizePriceDeltaIdr,
+    metaTitle: parsed.metaTitle ?? existing.metaTitle,
+    metaDescription: parsed.metaDescription ?? existing.metaDescription,
+    hasBaseColour,
+    baseColourOptions,
+    hasHandleColour,
+    handleColourOptions,
+    hasPersonalisation,
+    personalisationOptions
+  };
+
+  await db.update(products).set({draftData: draft}).where(eq(products.slug, slug));
+}
+
+// Admin-only: fetches a product regardless of its real isActive/visibility
+// (a draft/archived/hidden product must still be previewable), with any
+// staged draftData overlaid on top so the preview reflects unsaved edits,
+// not just what's already published. Never used by any public route.
+export async function getProductForPreview(slug: string): Promise<AdminProduct | null> {
+  const [row] = await db.select().from(products).where(eq(products.slug, slug));
+  if (!row) {
+    return null;
+  }
+  const base = toAdminProduct(row);
+  const draft = row.draftData as ProductDraftData | null;
+  return draft ? {...base, ...draft} : base;
 }
 
 // order_items snapshot productName/priceIdr at order time with no foreign

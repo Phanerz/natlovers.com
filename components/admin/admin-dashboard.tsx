@@ -185,6 +185,39 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
     }
   }
 
+  const [previewing, setPreviewing] = useState(false);
+
+  // Stages the edit form's current (possibly unsaved) state as a draft,
+  // then opens the admin-only preview route. The tab is opened
+  // synchronously, before the await, and only pointed at the real URL once
+  // the draft save resolves - opening it after an await would make most
+  // browsers treat it as a popup and block it, since by then it's no
+  // longer inside the original click's call stack.
+  async function previewEditingProduct() {
+    if (!editingProduct || previewing) return;
+    const tab = window.open("", "_blank");
+    setPreviewing(true);
+    try {
+      const response = await fetch(`/api/admin/products?slug=${encodeURIComponent(editingProduct.slug)}&action=draft`, {
+        method: "PATCH",
+        body: buildFormData(editForm)
+      });
+      if (!response.ok) {
+        tab?.close();
+        setToast({type: "error", message: "Could not stage the preview."});
+        return;
+      }
+      if (tab) {
+        tab.location.href = `/catalogue/${editingProduct.slug}?preview=1`;
+      }
+    } catch {
+      tab?.close();
+      setToast({type: "error", message: "Could not reach the server. Please check your connection and try again."});
+    } finally {
+      setPreviewing(false);
+    }
+  }
+
   function cancelEdit() {
     setEditingProduct(null);
     setEditError(null);
@@ -455,6 +488,8 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
               onNavigate={navigateEdit}
               hasPrev={editingIndex > 0}
               hasNext={editingIndex !== -1 && editingIndex < products.length - 1}
+              onPreview={() => void previewEditingProduct()}
+              previewing={previewing}
             />
           ) : (
             <ProductForm

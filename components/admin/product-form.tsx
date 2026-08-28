@@ -125,7 +125,9 @@ export function ProductForm({
   onDuplicate,
   onNavigate,
   hasPrev,
-  hasNext
+  hasNext,
+  onPreview,
+  previewing
 }: {
   mode: "create" | "edit";
   form: ProductFormState;
@@ -155,6 +157,11 @@ export function ProductForm({
   onNavigate?: (direction: -1 | 1) => void;
   hasPrev?: boolean;
   hasNext?: boolean;
+  // Stages the current (possibly unsaved) form state as a draft and opens
+  // /catalogue/[slug]?preview=1 in a new tab  -  edit-mode only, since a
+  // create-mode product has no slug/URL yet.
+  onPreview?: () => void;
+  previewing?: boolean;
 }) {
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
   const showAttributes = form.productType === "Bags" || form.productType === "Accessories";
@@ -187,6 +194,19 @@ export function ProductForm({
                 <ExternalLink className="h-3.5 w-3.5" />
                 View product
               </Link>
+            ) : null}
+
+            {mode === "edit" && onPreview ? (
+              <button
+                type="button"
+                onClick={onPreview}
+                disabled={previewing}
+                title="Stage your unsaved edits and open them in a new tab, admin-only, not visible to customers"
+                className="glass-btn-secondary flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-forest-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                {previewing ? "Opening..." : "Preview"}
+              </button>
             ) : null}
 
             {onDuplicate ? (
