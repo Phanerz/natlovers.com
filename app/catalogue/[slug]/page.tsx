@@ -6,6 +6,7 @@ import {ProductBreadcrumb} from "@/components/product/product-breadcrumb";
 import {ProductGallery} from "@/components/product/product-gallery";
 import {ProductPurchasePanel} from "@/components/product/product-purchase-panel";
 import {ProductInfoSection} from "@/components/product/product-info-section";
+import {ProductTrustBadges} from "@/components/product/product-trust-badges";
 import {ReassuranceBar} from "@/components/product/reassurance-bar";
 
 // Live catalogue data (price, stock, images)  -  never served from the Full
@@ -18,9 +19,13 @@ export async function generateMetadata({params}: {params: Promise<{slug: string}
   if (!product) {
     return {title: "Product not found"};
   }
+  // metaTitle/metaDescription are the admin's SEO-card overrides; falling
+  // back to shortDescription (guaranteed plain text) rather than the rich
+  // `description` field, which can hold HTML that has no business landing
+  // in a <meta> tag.
   return {
-    title: `${product.name}  -  Natlovers`,
-    description: product.description?.trim() || `${product.name}, handcrafted in Indonesia.`
+    title: product.metaTitle?.trim() || `${product.name} - Natlovers`,
+    description: product.metaDescription?.trim() || product.shortDescription?.trim() || `${product.name}, handcrafted in Indonesia.`
   };
 }
 
@@ -42,8 +47,11 @@ export default async function ProductPage({params}: {params: Promise<{slug: stri
     <main className="shell page-enter py-10 sm:py-14">
       <ProductBreadcrumb productType={product.productType as ShopProductType} productName={product.name} />
 
-      <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-[34px] xl:gap-[55px]">
-        <ProductGallery images={images} name={product.name} tintHex={tint.bg} zoomEnabled={product.imageZoomEnabled} />
+      <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-[30px] xl:gap-[48px]">
+        <div>
+          <ProductGallery images={images} name={product.name} tintHex={tint.bg} zoomEnabled={product.imageZoomEnabled} />
+          <ProductTrustBadges />
+        </div>
         <ProductPurchasePanel product={product} />
       </div>
 

@@ -2,8 +2,8 @@
 
 import {useState} from "react";
 import {ChevronDown} from "lucide-react";
-import {shopSizes, sizeLabels} from "@/app/catalogue/shop-data";
-import {SIZE_DIMENSIONS_CM, formatSizeDimensions} from "@/lib/size-dimensions";
+import {ShopSize, shopSizes, sizeLabels} from "@/app/catalogue/shop-data";
+import {resolveSizeDimensions, formatSizeDimensions} from "@/lib/size-dimensions";
 import {ColourOptionsEditor} from "./colour-options-editor";
 import {PersonalisationOptionsEditor} from "./personalisation-options-editor";
 import {ProductFormState} from "./types";
@@ -86,38 +86,83 @@ export function ProductOptionsCard({
     setOpenRow((current) => (current === key ? null : key));
   }
 
+  function updateSizeDimension(size: ShopSize, field: "L" | "W" | "H", value: number) {
+    onChange((prev) => {
+      const current = resolveSizeDimensions(size, prev.sizeDimensions);
+      return {...prev, sizeDimensions: {...prev.sizeDimensions, [size]: {...current, [field]: value}}};
+    });
+  }
+
+  function updateSizePriceDelta(size: ShopSize, value: number) {
+    onChange((prev) => ({...prev, sizePriceDeltaIdr: {...prev.sizePriceDeltaIdr, [size]: value}}));
+  }
+
   return (
     <div className="space-y-3">
       {showSize ? (
         <OptionRow
           label="Size"
           badge="Required"
-          summary={`${sizeLabels[form.size].en}: ${formatSizeDimensions(form.size)}`}
+          summary={`${sizeLabels[form.size].en}: ${formatSizeDimensions(form.size, form.sizeDimensions)}`}
           open={openRow === "size"}
           onToggle={() => toggleRow("size")}
         >
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-3">
             {shopSizes.map((option) => {
-              const dims = SIZE_DIMENSIONS_CM[option];
+              const dims = resolveSizeDimensions(option, form.sizeDimensions);
+              const delta = form.sizePriceDeltaIdr[option] ?? 0;
               const active = option === form.size;
               return (
-                <button
-                  type="button"
+                <div
                   key={option}
-                  onClick={() => onChange((prev) => ({...prev, size: option}))}
-                  aria-pressed={active}
-                  className={`rounded-lg border p-3 text-left transition-colors duration-150 ${
-                    active ? "border-forest-700 bg-white" : "border-[#ddd5c4] bg-[#fffdf9] hover:border-forest-400"
+                  className={`rounded-lg border p-3 transition-colors duration-150 ${
+                    active ? "border-forest-700 bg-white" : "border-[#ddd5c4] bg-[#fffdf9]"
                   }`}
                 >
-                  <p className="text-sm font-semibold text-forest-900">{sizeLabels[option].en}</p>
-                  <p className="mt-1 text-[11px] leading-relaxed text-forest-500">
-                    L: {dims.L} cm, W: {dims.W} cm, H: {dims.H} cm
-                  </p>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => onChange((prev) => ({...prev, size: option}))}
+                    aria-pressed={active}
+                    className="mb-2 flex w-full items-center justify-between text-left"
+                  >
+                    <span className="text-sm font-semibold text-forest-900">{sizeLabels[option].en}</span>
+                    <span className={`text-[10px] font-semibold uppercase ${active ? "text-forest-700" : "text-forest-400"}`}>
+                      {active ? "Default" : "Set as default"}
+                    </span>
+                  </button>
+
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {(["L", "W", "H"] as const).map((field) => (
+                      <label key={field} className="block">
+                        <span className="mb-0.5 block text-[10px] font-semibold uppercase text-forest-500">{field} (cm)</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={dims[field]}
+                          onChange={(event) => updateSizeDimension(option, field, Number(event.target.value) || 0)}
+                          className="w-full rounded-md border border-[#d4c5ab] bg-white px-2 py-1.5 text-sm text-forest-900 outline-none focus:border-forest-400"
+                        />
+                      </label>
+                    ))}
+                  </div>
+
+                  <label className="mt-1.5 block">
+                    <span className="mb-0.5 block text-[10px] font-semibold uppercase text-forest-500">Price delta (IDR)</span>
+                    <input
+                      type="number"
+                      value={delta}
+                      onChange={(event) => updateSizePriceDelta(option, Number(event.target.value) || 0)}
+                      placeholder="0"
+                      className="w-full rounded-md border border-[#d4c5ab] bg-white px-2 py-1.5 text-sm text-forest-900 outline-none focus:border-forest-400"
+                    />
+                  </label>
+                </div>
               );
             })}
           </div>
+          <p className="mt-2 text-xs text-forest-500">
+            Price deltas default to 0, so size never changes the total until real figures are entered here.
+          </p>
         </OptionRow>
       ) : null}
 

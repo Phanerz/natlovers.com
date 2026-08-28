@@ -3,7 +3,7 @@
 import {useMemo, useState} from "react";
 import {useRouter} from "next/navigation";
 import {useSession} from "next-auth/react";
-import {Heart, Share2} from "lucide-react";
+import {Heart, Share2, Sparkles} from "lucide-react";
 import {Toast, ToastState} from "@/components/admin/toast";
 import {useStorefront} from "@/components/storefront-provider";
 import {useWishlist} from "@/components/use-wishlist";
@@ -28,6 +28,13 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
   const [size, setSize] = useState<ShopSize>(product.size ?? "Medium");
   const [baseColour, setBaseColour] = useState<string | null>(product.baseColourOptions[0]?.label ?? null);
   const [handleColour, setHandleColour] = useState<string | null>(product.handleColourOptions[0]?.label ?? null);
+
+  // TODO(pricing): sizePriceDeltaIdr is 0 for every size until a real
+  // figure is entered in the admin  -  see the matching comment on
+  // products.sizePriceDeltaIdr in lib/db/schema.ts. Colour doesn't affect
+  // price yet; only size does, so this is the whole estimate for now.
+  const sizeDelta = showSize ? (product.sizePriceDeltaIdr[size] ?? 0) : 0;
+  const estimatedTotal = product.priceIdr + sizeDelta;
 
   const hasSelection = showSize || product.hasBaseColour || product.hasHandleColour;
   const selection: ProductSelection | undefined = hasSelection
@@ -125,8 +132,11 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
 
   return (
     <div className="lg:sticky lg:top-24">
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-forest-600">Handcrafted in Indonesia</p>
-      <h1 className="mt-2 font-display text-3xl leading-tight text-forest-900 sm:text-4xl">{product.name}</h1>
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-forest-600">
+        Handcrafted in Indonesia
+        <Sparkles className="h-3 w-3 text-sand-500" aria-hidden />
+      </p>
+      <h1 className="mt-2 font-display text-4xl leading-[1.05] tracking-tight text-forest-900 sm:text-5xl">{product.name}</h1>
       <p className="mt-1 flex items-baseline gap-2 font-display text-2xl text-forest-800">
         {formatCurrency(product.priceIdr, currency)}
         {product.compareAtPriceIdr && product.compareAtPriceIdr > product.priceIdr ? (
@@ -140,11 +150,12 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
         <p className="mt-3 line-clamp-2 text-sm leading-6 text-forest-600">{product.shortDescription}</p>
       ) : null}
 
-      <div className="mt-6">
+      <div className="mt-5">
         <ProductCustomizer
           showSize={showSize}
           size={size}
           onSizeChange={setSize}
+          sizeDimensions={product.sizeDimensions}
           hasBaseColour={product.hasBaseColour}
           baseColourOptions={product.baseColourOptions}
           baseColour={baseColour}
@@ -156,9 +167,16 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
         />
       </div>
 
-      <hr className="mt-6 border-forest-100" />
+      <hr className="mt-5 border-forest-100" />
 
-      <div className="mt-6 flex flex-col gap-3">
+      {showSize ? (
+        <div className="mt-4 flex items-center justify-between text-sm">
+          <span className="font-medium text-forest-700">Estimated total</span>
+          <span className="font-display text-lg text-forest-900">{formatCurrency(estimatedTotal, currency)}</span>
+        </div>
+      ) : null}
+
+      <div className="mt-4 flex flex-col gap-3">
         {customStudioBase ? (
           <button
             type="button"
@@ -191,10 +209,11 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
           type="button"
           onClick={() => toggleWishlist(product.slug)}
           aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          className="flex items-center gap-2 text-sm text-forest-700 transition-colors duration-200 hover:text-forest-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
+          aria-pressed={wishlisted}
+          title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+          className="glass-btn-secondary flex h-9 w-9 items-center justify-center rounded-full text-forest-700 transition-colors duration-200 hover:text-forest-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
         >
           <Heart className={`h-4 w-4 transition-colors duration-200 ${wishlisted ? "fill-forest-900 text-forest-900" : "text-forest-500"}`} />
-          {wishlisted ? "Wishlisted" : "Add to Wishlist"}
         </button>
         <button
           type="button"

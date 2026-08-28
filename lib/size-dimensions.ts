@@ -2,18 +2,25 @@ import type {ShopSize} from "@/app/catalogue/shop-data";
 
 export type SizeDimensions = {L: number; W: number; H: number};
 
-// Placeholder figures, not real measurements yet - every product currently
-// shows the same numbers regardless of its actual size. Kept as one
-// exported constant, keyed by the real ShopSize enum, so replacing them
-// with real per-size (or eventually per-product) measurements later is a
-// one-place edit, not a hunt through the customiser's markup.
+export type SizeDimensionOverrides = Partial<Record<ShopSize, SizeDimensions>>;
+
+// Fallback figures, used for any size a product hasn't set real
+// measurements for - see products.sizeDimensions in lib/db/schema.ts for
+// the real per-product data these are a placeholder for.
 export const SIZE_DIMENSIONS_CM: Record<ShopSize, SizeDimensions> = {
   Small: {L: 1, W: 1, H: 1},
   Medium: {L: 2, W: 2, H: 2},
   Large: {L: 3, W: 3, H: 3}
 };
 
-export function formatSizeDimensions(size: ShopSize): string {
-  const {L, W, H} = SIZE_DIMENSIONS_CM[size];
+// A product's own measurement for `size`, if it has one, otherwise the
+// shared placeholder  -  the one place every read site (admin summary,
+// storefront customiser) resolves this, so they can never disagree.
+export function resolveSizeDimensions(size: ShopSize, overrides?: SizeDimensionOverrides | null): SizeDimensions {
+  return overrides?.[size] ?? SIZE_DIMENSIONS_CM[size];
+}
+
+export function formatSizeDimensions(size: ShopSize, overrides?: SizeDimensionOverrides | null): string {
+  const {L, W, H} = resolveSizeDimensions(size, overrides);
   return `L: ${L} cm, W: ${W} cm, H: ${H} cm`;
 }

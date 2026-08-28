@@ -11,6 +11,7 @@ import {
   shopShapes,
   shopSizes
 } from "@/app/catalogue/shop-data";
+import type {SizeDimensionOverrides} from "@/lib/size-dimensions";
 
 export type ColourOption = {label: string; hex: string};
 
@@ -61,6 +62,8 @@ export type AdminProduct = {
   productCode: string | null;
   vendor: string | null;
   dimensions: string | null;
+  sizeDimensions: SizeDimensionOverrides;
+  sizePriceDeltaIdr: Partial<Record<ShopSize, number>>;
   metaTitle: string | null;
   metaDescription: string | null;
   hasBaseColour: boolean;
@@ -112,6 +115,12 @@ export type ProductFormState = {
   // Free text, e.g. "Approx. 30 x 20 x 15 cm". Empty means "not measured
   // yet"  -  kept as a plain string like stock/productCodeSuffix above.
   dimensions: string;
+  // Real per-size L/W/H overrides, keyed by ShopSize  -  a size missing here
+  // falls back to lib/size-dimensions.ts's shared placeholder.
+  sizeDimensions: SizeDimensionOverrides;
+  // TODO(pricing): every value here is 0 by default  -  see the matching
+  // comment on products.sizePriceDeltaIdr in lib/db/schema.ts.
+  sizePriceDeltaIdr: Partial<Record<ShopSize, number>>;
   status: ProductStatus;
   visibility: ProductVisibility;
   // datetime-local input value ("" means "not published yet").
@@ -159,6 +168,8 @@ export function emptyForm(): ProductFormState {
     productCodeSuffix: "",
     vendor: "",
     dimensions: "",
+    sizeDimensions: {},
+    sizePriceDeltaIdr: {},
     status: "active",
     visibility: "public",
     publishedAt: "",
@@ -198,6 +209,8 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     productCodeSuffix: product.productCode ? product.productCode.slice(PRODUCT_CODE_PREFIX.length) : "",
     vendor: product.vendor ?? "",
     dimensions: product.dimensions ?? "",
+    sizeDimensions: product.sizeDimensions,
+    sizePriceDeltaIdr: product.sizePriceDeltaIdr,
     status: product.status,
     visibility: product.visibility,
     publishedAt: toDatetimeLocal(product.publishedAt),
@@ -255,6 +268,8 @@ export function buildFormData(form: ProductFormState) {
   formData.set("productCode", form.productCodeSuffix.trim() ? `${PRODUCT_CODE_PREFIX}${form.productCodeSuffix.trim()}` : "");
   formData.set("vendor", form.vendor.trim());
   formData.set("dimensions", form.dimensions.trim());
+  formData.set("sizeDimensions", JSON.stringify(form.sizeDimensions));
+  formData.set("sizePriceDeltaIdr", JSON.stringify(form.sizePriceDeltaIdr));
 
   formData.set("status", form.status);
   formData.set("visibility", form.visibility);

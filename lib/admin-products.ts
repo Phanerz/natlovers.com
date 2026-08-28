@@ -2,6 +2,7 @@ import {and, desc, eq} from "drizzle-orm";
 import {z} from "zod";
 import {db, products} from "@/lib/db";
 import {sanitizeDescriptionHtml} from "@/lib/sanitize-html";
+import type {SizeDimensionOverrides} from "@/lib/size-dimensions";
 import {
   AccessoryCategory,
   ShopHandle,
@@ -46,6 +47,8 @@ export type AdminProduct = ShopProduct & {
   productCode: string | null;
   vendor: string | null;
   dimensions: string | null;
+  sizeDimensions: SizeDimensionOverrides;
+  sizePriceDeltaIdr: Partial<Record<ShopSize, number>>;
   subcategory: string | null;
   compareAtPriceIdr: number | null;
   costPriceIdr: number | null;
@@ -71,6 +74,17 @@ const colourOptionSchema = z.object({
   label: z.string().trim().min(1, "Every colour option needs a name."),
   hex: z.string().trim().regex(HEX_COLOUR_PATTERN, "Colour must be a valid hex code, e.g. #B7924B or #FFF.")
 });
+
+const sizeDimensionsSchema = z.record(
+  z.enum(shopSizes as unknown as [string, ...string[]]),
+  z.object({
+    L: z.number().nonnegative("Length must be 0 or more."),
+    W: z.number().nonnegative("Width must be 0 or more."),
+    H: z.number().nonnegative("Height must be 0 or more.")
+  })
+);
+
+const sizePriceDeltaSchema = z.record(z.enum(shopSizes as unknown as [string, ...string[]]), z.number());
 
 // Every per-type attribute is optional at the schema level  -  which fields
 // are actually required is enforced per productType below, not here, since
@@ -230,6 +244,48 @@ function parseColourOptionsField(formData: FormData, field: string): ColourOptio
   return result.data;
 }
 
+// Same JSON-string-in-a-form-field travel as colour options above. Absent
+// entirely means "no overrides for any size" (falls back to the shared
+// placeholder for all three), not an error  -  most products won't have
+// real measurements entered yet.
+function parseSizeDimensionsField(formData: FormData): SizeDimensionOverrides {
+  const raw = formData.get("sizeDimensions");
+  if (raw === null || raw.toString().trim() === "") {
+    return {};
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw.toString());
+  } catch {
+    throw new Error("Size dimensions were malformed.");
+  }
+  const result = sizeDimensionsSchema.safeParse(parsed);
+  if (!result.success) {
+    throw new Error(result.error.issues[0]?.message ?? "Invalid size dimensions.");
+  }
+  return result.data as SizeDimensionOverrides;
+}
+
+// Same shape/travel as size dimensions above  -  absent means "no size
+// affects price," which is every product today (all deltas are 0).
+function parseSizePriceDeltaField(formData: FormData): Partial<Record<ShopSize, number>> {
+  const raw = formData.get("sizePriceDeltaIdr");
+  if (raw === null || raw.toString().trim() === "") {
+    return {};
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw.toString());
+  } catch {
+    throw new Error("Size price deltas were malformed.");
+  }
+  const result = sizePriceDeltaSchema.safeParse(parsed);
+  if (!result.success) {
+    throw new Error(result.error.issues[0]?.message ?? "Invalid size price delta.");
+  }
+  return result.data as Partial<Record<ShopSize, number>>;
+}
+
 function toAdminProduct(row: typeof products.$inferSelect): AdminProduct {
   return {
     slug: row.slug,
@@ -262,6 +318,8 @@ function toAdminProduct(row: typeof products.$inferSelect): AdminProduct {
     productCode: row.productCode,
     vendor: row.vendor,
     dimensions: row.dimensions,
+    sizeDimensions: (row.sizeDimensions as SizeDimensionOverrides | null) ?? {},
+    sizePriceDeltaIdr: (row.sizePriceDeltaIdr as Partial<Record<ShopSize, number>> | null) ?? {},
     metaTitle: row.metaTitle,
     metaDescription: row.metaDescription,
     hasBaseColour: row.hasBaseColour,
@@ -411,6 +469,8 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     await assertProductCodeAvailable(productCode);
   }
   const dimensions = parseDimensionsField(formData);
+  const sizeDimensions = parseSizeDimensionsField(formData);
+  const sizePriceDeltaIdr = parseSizePriceDeltaField(formData);
   const hasBaseColour = formData.get("hasBaseColour") === "true";
   const baseColourOptions = hasBaseColour ? parseColourOptionsField(formData, "baseColourOptions") : [];
   const hasHandleColour = formData.get("hasHandleColour") === "true";
@@ -464,6 +524,8 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       metaTitle: parsed.metaTitle ?? null,
       metaDescription: parsed.metaDescription ?? null,
       dimensions,
+      sizeDimensions,
+      sizePriceDeltaIdr,
       hasBaseColour,
       baseColourOptions,
       hasHandleColour,
@@ -512,6 +574,12 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
     await assertProductCodeAvailable(productCode, slug);
   }
   const dimensions = formData.has("dimensions") ? parseDimensionsField(formData) : existing.dimensions;
+  const sizeDimensions = formData.has("sizeDimensions")
+    ? parseSizeDimensionsField(formData)
+    : ((existing.sizeDimensions as SizeDimensionOverrides | null) ?? {});
+  const sizePriceDeltaIdr = formData.has("sizePriceDeltaIdr")
+    ? parseSizePriceDeltaField(formData)
+    : ((existing.sizePriceDeltaIdr as Partial<Record<ShopSize, number>> | null) ?? {});
   const hasBaseColour = formData.has("hasBaseColour") ? formData.get("hasBaseColour") === "true" : existing.hasBaseColour;
   const baseColourOptions = hasBaseColour
     ? formData.has("baseColourOptions")
@@ -612,6 +680,8 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       lowStockThreshold,
       productCode,
       dimensions,
+      sizeDimensions,
+      sizePriceDeltaIdr,
       hasBaseColour,
       baseColourOptions,
       hasHandleColour,

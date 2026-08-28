@@ -59,6 +59,20 @@ export const products = pgTable(
     // fills it in when they have the real measurement; the product page
     // falls back to showing the Small/Medium/Large size instead when null.
     dimensions: text("dimensions"),
+    // Real per-product, per-size L/W/H in cm, keyed by ShopSize. Every one
+    // of the three sizes stays customer-pickable on the storefront
+    // regardless of the product's own default `size` above (see
+    // ProductCustomizer), so this can hold up to all three, not just the
+    // selected one. A size missing from this object falls back to
+    // lib/size-dimensions.ts's shared placeholder for that size  -  the
+    // admin only needs to fill in the ones that have real measurements.
+    sizeDimensions: jsonb("size_dimensions").$type<Partial<Record<string, {L: number; W: number; H: number}>>>(),
+    // TODO(pricing): every delta here defaults to 0, same honesty principle
+    // as lib/custom-pricing.ts's modifiers  -  real per-size surcharges
+    // haven't been decided yet, so the customiser's "Estimated total" is
+    // just the base price until an admin fills these in. A size missing
+    // from this object is treated as 0, not an error.
+    sizePriceDeltaIdr: jsonb("size_price_delta_idr").$type<Partial<Record<string, number>>>(),
     // Bags-only.
     shape: text("shape"),
     handleType: text("handle_type"),
