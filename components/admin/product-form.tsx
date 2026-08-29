@@ -15,6 +15,7 @@ import {
   shopProductTypes,
   shopShapes
 } from "@/app/catalogue/shop-data";
+import {GlassToggle} from "./glass-toggle";
 import {ImageDropzone} from "./image-dropzone";
 import {ProductOptionsCard} from "./product-options-card";
 import {ProductStatusSidebar} from "./product-status-sidebar";
@@ -299,34 +300,46 @@ export function ProductForm({
               </label>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              <label className="space-y-2 text-sm text-forest-700">
+            <div className="grid gap-5 sm:grid-cols-3">
+              <div className="space-y-2 text-sm text-forest-700">
                 <span className="muted">Category</span>
-                <select
-                  value={form.productType}
-                  onChange={(event) => onChange({...form, productType: event.target.value as ProductFormState["productType"]})}
-                  className={selectClass}
-                >
-                  {shopProductTypes.map((option) => (
-                    <option key={option} value={option}>
-                      {productTypeLabels[option].en}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                <div className="flex items-center overflow-hidden rounded-lg border border-[#d4c5ab] bg-[#fffdf9] focus-within:border-forest-400">
+                  <select
+                    value={form.productType}
+                    onChange={(event) => onChange({...form, productType: event.target.value as ProductFormState["productType"]})}
+                    className="shrink-0 border-none bg-transparent py-3 pl-4 pr-1 text-base text-forest-900 outline-none"
+                  >
+                    {shopProductTypes.map((option) => (
+                      <option key={option} value={option}>
+                        {productTypeLabels[option].en}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-forest-300">›</span>
+                  <input
+                    value={form.subcategory}
+                    onChange={(event) => onChange({...form, subcategory: event.target.value})}
+                    placeholder="Subcategory"
+                    className="w-full min-w-0 bg-transparent py-3 pl-2 pr-4 text-base text-forest-900 outline-none placeholder:text-forest-400"
+                  />
+                </div>
+              </div>
 
               <label className="space-y-2 text-sm text-forest-700">
-                <span className="muted">Subcategory (optional)</span>
+                <span className="muted">Collection</span>
                 <input
-                  value={form.subcategory}
-                  onChange={(event) => onChange({...form, subcategory: event.target.value})}
-                  placeholder="e.g. Backpacks"
+                  value={form.collections[0] ?? ""}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    onChange((prev) => ({...prev, collections: value ? [value, ...prev.collections.slice(1)] : prev.collections.slice(1)}));
+                  }}
+                  placeholder="e.g. Spring Collection 2025"
                   className={fieldClass}
                 />
               </label>
 
               <label className="space-y-2 text-sm text-forest-700">
-                <span className="muted">SKU (optional)</span>
+                <span className="muted">SKU</span>
                 <div className="flex items-center overflow-hidden rounded-lg border border-[#d4c5ab] bg-[#fffdf9] focus-within:border-forest-400">
                   <span className="pl-4 text-base text-forest-500">{PRODUCT_CODE_PREFIX}</span>
                   <input
@@ -336,16 +349,6 @@ export function ProductForm({
                     className="w-full min-w-0 bg-transparent py-3 pl-1 pr-4 text-base text-forest-900 outline-none"
                   />
                 </div>
-              </label>
-
-              <label className="space-y-2 text-sm text-forest-700">
-                <span className="muted">Dimensions (optional)</span>
-                <input
-                  value={form.dimensions}
-                  onChange={(event) => onChange({...form, dimensions: event.target.value})}
-                  placeholder="e.g. 30 x 20 x 15 cm"
-                  className={fieldClass}
-                />
               </label>
             </div>
 
@@ -420,23 +423,13 @@ export function ProductForm({
           <SectionCard
             title="Product Images & Media"
             action={
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-forest-700">
+              <label className="flex cursor-pointer items-center gap-2.5 text-sm text-forest-700">
                 Enable image zoom
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={form.imageZoomEnabled}
-                  onClick={() => onChange((prev) => ({...prev, imageZoomEnabled: !prev.imageZoomEnabled}))}
-                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-150 ${
-                    form.imageZoomEnabled ? "bg-forest-700" : "bg-[#d9cfc0]"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-150 ${
-                      form.imageZoomEnabled ? "translate-x-[1.375rem]" : "translate-x-0.5"
-                    }`}
-                  />
-                </button>
+                <GlassToggle
+                  checked={form.imageZoomEnabled}
+                  onChange={(checked) => onChange((prev) => ({...prev, imageZoomEnabled: checked}))}
+                  label="Enable image zoom"
+                />
               </label>
             }
           >

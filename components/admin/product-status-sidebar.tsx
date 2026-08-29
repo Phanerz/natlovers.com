@@ -3,10 +3,11 @@
 import {useState} from "react";
 import {Pencil} from "lucide-react";
 import {ChipInput} from "./chip-input";
+import {GlassToggle} from "./glass-toggle";
 import {BackorderPolicy, ProductFormState, ProductStatus, ProductVisibility} from "./types";
 
 const fieldClass =
-  "w-full rounded-lg border border-[#d4c5ab] bg-[#fffdf9] px-3.5 py-2.5 text-sm text-forest-900 outline-none focus:border-forest-400";
+  "w-full rounded-lg border border-[#d4c5ab] bg-[#fffdf9] px-3.5 py-2.5 text-sm text-forest-900 outline-none focus:border-forest-400 disabled:cursor-not-allowed disabled:opacity-50";
 
 const selectClass = `${fieldClass} appearance-none bg-[right_0.75rem_center] bg-no-repeat pr-9`;
 
@@ -16,10 +17,10 @@ const statusOptions: {value: ProductStatus; label: string}[] = [
   {value: "archived", label: "Archived"}
 ];
 
-const visibilityOptions: {value: ProductVisibility; label: string; hint: string}[] = [
-  {value: "public", label: "Public", hint: "Listed in the catalogue and reachable by direct link."},
-  {value: "private", label: "Private", hint: "Reachable by direct link only, not listed."},
-  {value: "hidden", label: "Hidden", hint: "Not reachable at all, same as deactivated."}
+const visibilityOptions: {value: ProductVisibility; label: string}[] = [
+  {value: "public", label: "Public"},
+  {value: "private", label: "Private"},
+  {value: "hidden", label: "Hidden"}
 ];
 
 const backorderOptions: {value: BackorderPolicy; label: string}[] = [
@@ -27,21 +28,23 @@ const backorderOptions: {value: BackorderPolicy; label: string}[] = [
   {value: "allow", label: "Allow"}
 ];
 
-function SidebarCard({title, children}: {title: string; children: React.ReactNode}) {
+function SidebarCard({title, action, children}: {title: string; action?: React.ReactNode; children: React.ReactNode}) {
   return (
     <div className="card space-y-4 p-5">
-      <h2 className="font-display text-lg text-forest-900">{title}</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-display text-lg text-forest-900">{title}</h2>
+        {action}
+      </div>
       {children}
     </div>
   );
 }
 
-function Field({label, hint, children}: {label: string; hint?: string; children: React.ReactNode}) {
+function Field({label, children}: {label: string; children: React.ReactNode}) {
   return (
     <label className="block space-y-1.5 text-sm text-forest-700">
       <span className="muted">{label}</span>
       {children}
-      {hint ? <span className="block text-xs text-forest-500">{hint}</span> : null}
     </label>
   );
 }
@@ -81,7 +84,7 @@ export function ProductStatusSidebar({
           </select>
         </Field>
 
-        <Field label="Visibility" hint={visibilityOptions.find((option) => option.value === form.visibility)?.hint}>
+        <Field label="Visibility">
           <select
             value={form.visibility}
             onChange={(event) => onChange((prev) => ({...prev, visibility: event.target.value as ProductVisibility}))}
@@ -106,69 +109,53 @@ export function ProductStatusSidebar({
       </SidebarCard>
 
       <SidebarCard title="Inventory">
-        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3">
-          <span>
-            <span className="block text-sm font-medium text-forest-900">Track inventory</span>
-            <span className="block text-xs text-forest-500">
-              {tracksInventory ? "Stock quantity is enforced at checkout." : "Stock is not tracked for this product."}
-            </span>
-          </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={tracksInventory}
-            onClick={() => onChange((prev) => ({...prev, stock: tracksInventory ? "" : "0"}))}
-            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-150 ${
-              tracksInventory ? "bg-forest-700" : "bg-[#d9cfc0]"
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-150 ${
-                tracksInventory ? "translate-x-[1.375rem]" : "translate-x-0.5"
-              }`}
-            />
-          </button>
+        <label className="flex cursor-pointer items-center justify-between gap-4">
+          <span className="text-sm font-medium text-forest-900">Track inventory</span>
+          <GlassToggle
+            checked={tracksInventory}
+            onChange={(checked) => onChange((prev) => ({...prev, stock: checked ? "0" : ""}))}
+            label="Track inventory"
+          />
         </label>
 
-        {tracksInventory ? (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Stock quantity">
-                <input
-                  type="number"
-                  min={0}
-                  value={form.stock}
-                  onChange={(event) => onChange((prev) => ({...prev, stock: event.target.value}))}
-                  className={fieldClass}
-                />
-              </Field>
-              <Field label="Low stock threshold">
-                <input
-                  type="number"
-                  min={0}
-                  value={form.lowStockThreshold}
-                  onChange={(event) => onChange((prev) => ({...prev, lowStockThreshold: event.target.value}))}
-                  placeholder="Optional"
-                  className={fieldClass}
-                />
-              </Field>
-            </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Stock quantity">
+            <input
+              type="number"
+              min={0}
+              value={form.stock}
+              disabled={!tracksInventory}
+              onChange={(event) => onChange((prev) => ({...prev, stock: event.target.value}))}
+              className={fieldClass}
+            />
+          </Field>
+          <Field label="Low stock threshold">
+            <input
+              type="number"
+              min={0}
+              value={form.lowStockThreshold}
+              disabled={!tracksInventory}
+              onChange={(event) => onChange((prev) => ({...prev, lowStockThreshold: event.target.value}))}
+              placeholder="Optional"
+              className={fieldClass}
+            />
+          </Field>
+        </div>
 
-            <Field label="Allow backorders">
-              <select
-                value={form.allowBackorders}
-                onChange={(event) => onChange((prev) => ({...prev, allowBackorders: event.target.value as BackorderPolicy}))}
-                className={selectClass}
-              >
-                {backorderOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </>
-        ) : null}
+        <Field label="Allow backorders">
+          <select
+            value={form.allowBackorders}
+            disabled={!tracksInventory}
+            onChange={(event) => onChange((prev) => ({...prev, allowBackorders: event.target.value as BackorderPolicy}))}
+            className={selectClass}
+          >
+            {backorderOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </Field>
       </SidebarCard>
 
       <SidebarCard title="Organisation">
@@ -183,14 +170,24 @@ export function ProductStatusSidebar({
           />
         </Field>
 
-        <Field label="Vendor / Brand">
-          <input
-            value={form.vendor}
-            onChange={(event) => onChange((prev) => ({...prev, vendor: event.target.value}))}
-            placeholder="Natlovers"
-            className={fieldClass}
-          />
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Product Type">
+            {/* Every Natlovers listing is a physical, handmade piece  -  there is
+                no digital-goods path in this store, so this is a real, honest
+                constant rather than a live-but-pointless choice. */}
+            <select disabled value="Physical" className={selectClass}>
+              <option value="Physical">Physical</option>
+            </select>
+          </Field>
+          <Field label="Vendor / Brand">
+            <input
+              value={form.vendor}
+              onChange={(event) => onChange((prev) => ({...prev, vendor: event.target.value}))}
+              placeholder="Natlovers"
+              className={fieldClass}
+            />
+          </Field>
+        </div>
 
         <Field label="Collections">
           <ChipInput
@@ -201,25 +198,29 @@ export function ProductStatusSidebar({
         </Field>
       </SidebarCard>
 
-      <SidebarCard title="SEO Preview">
+      <SidebarCard
+        title="SEO Preview"
+        action={
+          <button
+            type="button"
+            onClick={() => setEditingSeo((open) => !open)}
+            className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-forest-700 hover:text-forest-900"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit SEO
+          </button>
+        }
+      >
+        <p className="muted -mt-2">Search engine listing preview</p>
         <div className="rounded-lg border border-[#d4c5ab] bg-white p-3">
           <p className="truncate text-xs text-[#1a0dab]">{productUrl ?? "natlovers.com/catalogue/..."}</p>
           <p className="mt-0.5 truncate text-base text-[#1a0dab]">{previewTitle}</p>
           <p className="mt-0.5 line-clamp-2 text-sm text-[#4d5156]">{previewDescription}</p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setEditingSeo((open) => !open)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-forest-700 hover:text-forest-900"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-          {editingSeo ? "Hide SEO fields" : "Edit SEO"}
-        </button>
-
         {editingSeo ? (
           <>
-            <Field label="Meta title" hint="Falls back to the product name when empty.">
+            <Field label="Meta title">
               <input
                 value={form.metaTitle}
                 onChange={(event) => onChange((prev) => ({...prev, metaTitle: event.target.value}))}
@@ -227,7 +228,7 @@ export function ProductStatusSidebar({
                 className={fieldClass}
               />
             </Field>
-            <Field label="Meta description" hint="Falls back to the short description when empty.">
+            <Field label="Meta description">
               <textarea
                 value={form.metaDescription}
                 onChange={(event) => onChange((prev) => ({...prev, metaDescription: event.target.value}))}

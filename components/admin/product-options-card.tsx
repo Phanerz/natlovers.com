@@ -5,6 +5,7 @@ import {ChevronDown} from "lucide-react";
 import {ShopSize, shopSizes, sizeLabels} from "@/app/catalogue/shop-data";
 import {resolveSizeDimensions, formatSizeDimensions} from "@/lib/size-dimensions";
 import {ColourOptionsEditor} from "./colour-options-editor";
+import {GlassToggle} from "./glass-toggle";
 import {PersonalisationOptionsEditor} from "./personalisation-options-editor";
 import {ProductFormState} from "./types";
 
@@ -47,24 +48,6 @@ function OptionRow({
   );
 }
 
-function ToggleSwitch({checked, onChange}: {checked: boolean; onChange: (checked: boolean) => void}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-150 ${checked ? "bg-forest-700" : "bg-[#d9cfc0]"}`}
-    >
-      <span
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-150 ${
-          checked ? "translate-x-[1.375rem]" : "translate-x-0.5"
-        }`}
-      />
-    </button>
-  );
-}
-
 // The reference's "Product Options (Customisation)" card: what a customer
 // actively chooses when buying (Size, Base/Handle Colour, Personalisation),
 // distinct from the Attributes card's fixed physical/taxonomic properties
@@ -80,10 +63,26 @@ export function ProductOptionsCard({
   onChange: (next: ProductFormState | ((prev: ProductFormState) => ProductFormState)) => void;
 }) {
   const showSize = form.productType === "Bags" || form.productType === "Dolls";
-  const [openRow, setOpenRow] = useState<string | null>(null);
+  const [openRows, setOpenRows] = useState<Set<string>>(new Set());
+  const allRowKeys = [showSize ? "size" : null, "base", "handle", "personalisation"].filter(
+    (key): key is string => key !== null
+  );
+  const allOpen = allRowKeys.every((key) => openRows.has(key));
 
   function toggleRow(key: string) {
-    setOpenRow((current) => (current === key ? null : key));
+    setOpenRows((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  function toggleAllRows() {
+    setOpenRows(allOpen ? new Set() : new Set(allRowKeys));
   }
 
   function updateSizeDimension(size: ShopSize, field: "L" | "W" | "H", value: number) {
@@ -99,12 +98,18 @@ export function ProductOptionsCard({
 
   return (
     <div className="space-y-3">
+      <div className="flex justify-end">
+        <button type="button" onClick={toggleAllRows} className="text-xs font-semibold text-forest-700 hover:text-forest-900">
+          {allOpen ? "Collapse options" : "Manage options"}
+        </button>
+      </div>
+
       {showSize ? (
         <OptionRow
           label="Size"
           badge="Required"
           summary={`${sizeLabels[form.size].en}: ${formatSizeDimensions(form.size, form.sizeDimensions)}`}
-          open={openRow === "size"}
+          open={openRows.has("size")}
           onToggle={() => toggleRow("size")}
         >
           <div className="grid gap-3 sm:grid-cols-3">
@@ -163,6 +168,16 @@ export function ProductOptionsCard({
           <p className="mt-2 text-xs text-forest-500">
             Price deltas default to 0, so size never changes the total until real figures are entered here.
           </p>
+
+          <label className="mt-3 block">
+            <span className="muted">Dimensions override (optional)</span>
+            <input
+              value={form.dimensions}
+              onChange={(event) => onChange((prev) => ({...prev, dimensions: event.target.value}))}
+              placeholder="e.g. Approx. 30 x 20 x 15 cm  -  for irregular pieces the L/W/H fields above can't express"
+              className="mt-1.5 w-full rounded-lg border border-[#d4c5ab] bg-[#fffdf9] px-3.5 py-2.5 text-sm text-forest-900 outline-none focus:border-forest-400"
+            />
+          </label>
         </OptionRow>
       ) : null}
 
@@ -174,12 +189,16 @@ export function ProductOptionsCard({
             ? form.baseColourOptions.map((option) => option.label).join(", ") || "No colours added yet"
             : "Off"
         }
-        open={openRow === "base"}
+        open={openRows.has("base")}
         onToggle={() => toggleRow("base")}
       >
         <div className="mb-3 flex items-center justify-between">
           <span className="text-sm text-forest-700">Offer a base colour choice for this product</span>
-          <ToggleSwitch checked={form.hasBaseColour} onChange={(checked) => onChange((prev) => ({...prev, hasBaseColour: checked}))} />
+          <GlassToggle
+            checked={form.hasBaseColour}
+            onChange={(checked) => onChange((prev) => ({...prev, hasBaseColour: checked}))}
+            label="Offer a base colour choice"
+          />
         </div>
         {form.hasBaseColour ? (
           <ColourOptionsEditor
@@ -198,14 +217,15 @@ export function ProductOptionsCard({
             ? form.handleColourOptions.map((option) => option.label).join(", ") || "No colours added yet"
             : "Off"
         }
-        open={openRow === "handle"}
+        open={openRows.has("handle")}
         onToggle={() => toggleRow("handle")}
       >
         <div className="mb-3 flex items-center justify-between">
           <span className="text-sm text-forest-700">Offer a handle colour choice for this product</span>
-          <ToggleSwitch
+          <GlassToggle
             checked={form.hasHandleColour}
             onChange={(checked) => onChange((prev) => ({...prev, hasHandleColour: checked}))}
+            label="Offer a handle colour choice"
           />
         </div>
         {form.hasHandleColour ? (
@@ -221,14 +241,15 @@ export function ProductOptionsCard({
         label="Personalisation"
         badge="Optional"
         summary={form.hasPersonalisation ? form.personalisationOptions.join(" • ") || "No options added yet" : "Off"}
-        open={openRow === "personalisation"}
+        open={openRows.has("personalisation")}
         onToggle={() => toggleRow("personalisation")}
       >
         <div className="mb-3 flex items-center justify-between">
           <span className="text-sm text-forest-700">Offer personalisation for this product</span>
-          <ToggleSwitch
+          <GlassToggle
             checked={form.hasPersonalisation}
             onChange={(checked) => onChange((prev) => ({...prev, hasPersonalisation: checked}))}
+            label="Offer personalisation"
           />
         </div>
         {form.hasPersonalisation ? (

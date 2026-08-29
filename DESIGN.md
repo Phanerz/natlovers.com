@@ -15,8 +15,9 @@ Scale: 13 / 15 / 17 / 20 / 26 / 36 / 52. Avoid weights above 600.
 Liquid glass (blur, refraction, soft continuous radius) applies ONLY to:
 - Primary buttons / CTAs (`.glass-btn-primary` and equivalent)
 - Featured/highlight cards explicitly marked as such (e.g. hero product cards, custom-studio preview cards)  -  NOT every card, NOT list/grid cards, NOT form containers
+- Toggle switches (`.glass-toggle`, see components/admin/glass-toggle.tsx)  -  matched directly against Apple's own iOS/WWDC25 Liquid Glass switches (real backdrop-filter, frosted glass thumb, tinted-not-flat on state). The one exception carved out of "inputs stay flat" below, because a toggle is a small, discrete control, not a text-entry surface.
 
-Everything else  -  nav, inputs, standard product cards, containers, tables, footers  -  stays flat warm-editorial: 1px border, `--surface` fill, radius 8–12, no blur, subtle shadow only where noted in section 6.
+Everything else  -  nav, other inputs, standard product cards, containers, tables, footers  -  stays flat warm-editorial: 1px border, `--surface` fill, radius 8–12, no blur, subtle shadow only where noted in section 6.
 
 **Glass elements themselves**
 - Radius: continuous/superellipse curve, larger than the flat-editorial scale (16–24 range is fine here  -  glass needs room to read as glass)
