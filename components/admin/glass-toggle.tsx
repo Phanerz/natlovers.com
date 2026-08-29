@@ -1,10 +1,7 @@
 "use client";
 
-// Real Apple-style Liquid Glass toggle (see .glass-toggle in globals.css) -
-// the one deliberate exception to the admin panel's flat-inputs rule,
-// matched against iOS Control Center's own switches: translucent frosted
-// glass off, tinted glass (not flat colour) on, a glossy frosted thumb that
-// slides and briefly stretches on press the way a real glass control does.
+// A literal iOS-style switch: solid colour track, plain white thumb, one
+// small shadow. See .glass-toggle in globals.css.
 export function GlassToggle({
   checked,
   onChange,
@@ -26,11 +23,11 @@ export function GlassToggle({
       aria-label={label}
       data-on={checked}
       onClick={() => onChange(!checked)}
-      className="glass-toggle shrink-0 rounded-full backdrop-blur-md backdrop-saturate-150"
-      style={{width: dims.w, height: dims.h, "--glass-toggle-travel": `${dims.travel}px`} as React.CSSProperties}
+      className="glass-toggle shrink-0 rounded-full"
+      style={{width: dims.w, height: dims.h}}
     >
       <span
-        className="glass-toggle-thumb block rounded-full backdrop-blur-sm backdrop-saturate-150"
+        className="glass-toggle-thumb block rounded-full"
         style={{
           width: dims.thumb,
           height: dims.thumb,

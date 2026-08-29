@@ -24,7 +24,10 @@ export function ProductCustomizer({
   hasHandleColour,
   handleColourOptions,
   handleColour,
-  onHandleColourChange
+  onHandleColourChange,
+  hasPersonalisation,
+  personalisationNote,
+  onPersonalisationNoteChange
 }: {
   showSize: boolean;
   size: ShopSize;
@@ -40,6 +43,9 @@ export function ProductCustomizer({
   handleColourOptions: ColourOption[];
   handleColour: string | null;
   onHandleColourChange: (label: string) => void;
+  hasPersonalisation: boolean;
+  personalisationNote: string;
+  onPersonalisationNoteChange: (note: string) => void;
 }) {
   let step = 0;
   if (showSize) step += 1;
@@ -48,8 +54,10 @@ export function ProductCustomizer({
   const baseColourStep = hasBaseColour ? step : null;
   if (hasHandleColour) step += 1;
   const handleColourStep = hasHandleColour ? step : null;
+  if (hasPersonalisation) step += 1;
+  const personalisationStep = hasPersonalisation ? step : null;
 
-  if (!showSize && !hasBaseColour && !hasHandleColour) {
+  if (!showSize && !hasBaseColour && !hasHandleColour && !hasPersonalisation) {
     return null;
   }
 
@@ -145,6 +153,23 @@ export function ProductCustomizer({
               );
             })}
           </div>
+        </div>
+      ) : null}
+
+      {hasPersonalisation ? (
+        <div>
+          <div className="flex items-baseline justify-between">
+            <p className="text-sm font-semibold text-forest-900">{personalisationStep}. Add a note</p>
+            <span className="text-[11px] text-forest-400">Optional</span>
+          </div>
+          <textarea
+            value={personalisationNote}
+            onChange={(event) => onPersonalisationNoteChange(event.target.value.slice(0, 500))}
+            rows={2}
+            placeholder="A message or request for this piece..."
+            className="mt-2 w-full rounded-lg border border-[#ddd5c4] bg-[#fffdf9] px-3 py-2 text-sm text-forest-900 outline-none focus:border-forest-400"
+          />
+          <p className="mt-1 text-[11px] text-forest-500">This note cannot be changed once your order is placed.</p>
         </div>
       ) : null}
     </div>

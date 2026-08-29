@@ -6,7 +6,6 @@ import {ShopSize, shopSizes, sizeLabels} from "@/app/catalogue/shop-data";
 import {resolveSizeDimensions, formatSizeDimensions} from "@/lib/size-dimensions";
 import {ColourOptionsEditor} from "./colour-options-editor";
 import {GlassToggle} from "./glass-toggle";
-import {PersonalisationOptionsEditor} from "./personalisation-options-editor";
 import {ProductFormState} from "./types";
 
 function OptionRow({
@@ -240,24 +239,20 @@ export function ProductOptionsCard({
       <OptionRow
         label="Personalisation"
         badge="Optional"
-        summary={form.hasPersonalisation ? form.personalisationOptions.join(" • ") || "No options added yet" : "Off"}
+        summary={form.hasPersonalisation ? "On - customers can add a note" : "Off"}
         open={openRows.has("personalisation")}
         onToggle={() => toggleRow("personalisation")}
       >
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-sm text-forest-700">Offer personalisation for this product</span>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-forest-700">
+            Let customers add a short personal note when they buy this product (e.g. a message or request).
+          </span>
           <GlassToggle
             checked={form.hasPersonalisation}
             onChange={(checked) => onChange((prev) => ({...prev, hasPersonalisation: checked}))}
             label="Offer personalisation"
           />
         </div>
-        {form.hasPersonalisation ? (
-          <PersonalisationOptionsEditor
-            options={form.personalisationOptions}
-            onChange={(personalisationOptions) => onChange((prev) => ({...prev, personalisationOptions}))}
-          />
-        ) : null}
       </OptionRow>
     </div>
   );

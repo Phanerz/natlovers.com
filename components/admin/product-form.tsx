@@ -20,6 +20,7 @@ import {ImageDropzone} from "./image-dropzone";
 import {ProductOptionsCard} from "./product-options-card";
 import {ProductStatusSidebar} from "./product-status-sidebar";
 import {RichTextEditor} from "./rich-text-editor";
+import {SelectField} from "./select-field";
 import {PillMultiSelect, PillSingleSelect} from "./pill-select";
 import {AdminProduct, PRODUCT_CODE_PREFIX, ProductFormState, ProductStatus} from "./types";
 
@@ -37,8 +38,6 @@ function SectionCard({title, action, children}: {title: string; action?: ReactNo
 
 const fieldClass =
   "w-full rounded-lg border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-base text-forest-900 outline-none focus:border-forest-400";
-
-const selectClass = `${fieldClass} appearance-none`;
 
 function CharCount({value, max}: {value: string; max: number}) {
   return (
@@ -301,29 +300,19 @@ export function ProductForm({
             </div>
 
             <div className="grid gap-5 sm:grid-cols-3">
-              <div className="space-y-2 text-sm text-forest-700">
+              <label className="space-y-2 text-sm text-forest-700">
                 <span className="muted">Category</span>
-                <div className="flex items-center overflow-hidden rounded-lg border border-[#d4c5ab] bg-[#fffdf9] focus-within:border-forest-400">
-                  <select
-                    value={form.productType}
-                    onChange={(event) => onChange({...form, productType: event.target.value as ProductFormState["productType"]})}
-                    className="shrink-0 border-none bg-transparent py-3 pl-4 pr-1 text-base text-forest-900 outline-none"
-                  >
-                    {shopProductTypes.map((option) => (
-                      <option key={option} value={option}>
-                        {productTypeLabels[option].en}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="text-forest-300">›</span>
-                  <input
-                    value={form.subcategory}
-                    onChange={(event) => onChange({...form, subcategory: event.target.value})}
-                    placeholder="Subcategory"
-                    className="w-full min-w-0 bg-transparent py-3 pl-2 pr-4 text-base text-forest-900 outline-none placeholder:text-forest-400"
-                  />
-                </div>
-              </div>
+                <SelectField
+                  value={form.productType}
+                  onChange={(value) => onChange({...form, productType: value as ProductFormState["productType"]})}
+                >
+                  {shopProductTypes.map((option) => (
+                    <option key={option} value={option}>
+                      {productTypeLabels[option].en}
+                    </option>
+                  ))}
+                </SelectField>
+              </label>
 
               <label className="space-y-2 text-sm text-forest-700">
                 <span className="muted">Collection</span>
@@ -352,9 +341,10 @@ export function ProductForm({
               </label>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-3">
-              <label className="space-y-2 text-sm text-forest-700">
-                <span className="muted">Price (IDR)</span>
+            <label className="block max-w-xs space-y-2 text-sm text-forest-700">
+              <span className="muted">Price</span>
+              <div className="flex items-center overflow-hidden rounded-lg border border-[#d4c5ab] bg-[#fffdf9] focus-within:border-forest-400">
+                <span className="pl-4 text-base text-forest-500">Rp</span>
                 <input
                   type="number"
                   min={1}
@@ -362,37 +352,13 @@ export function ProductForm({
                   onChange={(event) => onChange({...form, priceIdr: event.target.value})}
                   required
                   placeholder="Enter price"
-                  className={fieldClass}
+                  className="w-full min-w-0 bg-transparent py-3 pl-1 pr-4 text-base text-forest-900 outline-none"
                 />
-              </label>
-
-              <label className="space-y-2 text-sm text-forest-700">
-                <span className="muted">Compare at Price (IDR)</span>
-                <input
-                  type="number"
-                  min={0}
-                  value={form.compareAtPriceIdr}
-                  onChange={(event) => onChange({...form, compareAtPriceIdr: event.target.value})}
-                  placeholder="Optional"
-                  className={fieldClass}
-                />
-              </label>
-
-              <label className="space-y-2 text-sm text-forest-700">
-                <span className="muted">Cost Price (IDR)</span>
-                <input
-                  type="number"
-                  min={0}
-                  value={form.costPriceIdr}
-                  onChange={(event) => onChange({...form, costPriceIdr: event.target.value})}
-                  placeholder="Optional, internal only"
-                  className={fieldClass}
-                />
-              </label>
-            </div>
+              </div>
+            </label>
 
             <label className="block space-y-2 text-sm text-forest-700">
-              <span className="muted">Short Description</span>
+              <span className="muted">Short Description (optional)</span>
               <textarea
                 value={form.shortDescription}
                 onChange={(event) => onChange({...form, shortDescription: event.target.value.slice(0, 160)})}
@@ -404,7 +370,7 @@ export function ProductForm({
             </label>
 
             <label className="block space-y-2 text-sm text-forest-700">
-              <span className="muted">Product Description</span>
+              <span className="muted">Product Description (optional)</span>
               <RichTextEditor
                 value={form.description}
                 onChange={(html) => onChange((prev) => ({...prev, description: html}))}
@@ -498,7 +464,7 @@ export function ProductForm({
           </div>
         </div>
 
-        <ProductStatusSidebar form={form} onChange={onChange} productUrl={productUrl} />
+        <ProductStatusSidebar form={form} onChange={onChange} product={product} productUrl={productUrl} />
       </div>
     </form>
   );

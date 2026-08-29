@@ -15,7 +15,12 @@ export const productSelectionSchema = z.object({
   kind: z.literal("productSelection"),
   size: z.string().trim().max(60).optional(),
   baseColour: z.string().trim().max(120).optional(),
-  handleColour: z.string().trim().max(120).optional()
+  handleColour: z.string().trim().max(120).optional(),
+  // A free-text note the customer writes for a product with Personalisation
+  // turned on (see products.hasPersonalisation) - frozen into the order at
+  // checkout the same as every other config field, so it can't be changed
+  // after purchase.
+  personalisationNote: z.string().trim().max(500).optional()
 });
 
 export type ProductSelection = z.infer<typeof productSelectionSchema>;

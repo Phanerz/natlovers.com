@@ -2,14 +2,12 @@
 
 import {useState} from "react";
 import {Pencil} from "lucide-react";
-import {ChipInput} from "./chip-input";
 import {GlassToggle} from "./glass-toggle";
-import {BackorderPolicy, ProductFormState, ProductStatus, ProductVisibility} from "./types";
+import {SelectField} from "./select-field";
+import {AdminProduct, ProductFormState, ProductStatus, ProductVisibility} from "./types";
 
 const fieldClass =
   "w-full rounded-lg border border-[#d4c5ab] bg-[#fffdf9] px-3.5 py-2.5 text-sm text-forest-900 outline-none focus:border-forest-400 disabled:cursor-not-allowed disabled:opacity-50";
-
-const selectClass = `${fieldClass} appearance-none bg-[right_0.75rem_center] bg-no-repeat pr-9`;
 
 const statusOptions: {value: ProductStatus; label: string}[] = [
   {value: "active", label: "Active"},
@@ -21,11 +19,6 @@ const visibilityOptions: {value: ProductVisibility; label: string}[] = [
   {value: "public", label: "Public"},
   {value: "private", label: "Private"},
   {value: "hidden", label: "Hidden"}
-];
-
-const backorderOptions: {value: BackorderPolicy; label: string}[] = [
-  {value: "deny", label: "Do not allow"},
-  {value: "allow", label: "Allow"}
 ];
 
 function SidebarCard({title, action, children}: {title: string; action?: React.ReactNode; children: React.ReactNode}) {
@@ -49,13 +42,23 @@ function Field({label, children}: {label: string; children: React.ReactNode}) {
   );
 }
 
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "Not published yet";
+  return new Date(iso).toLocaleString(undefined, {dateStyle: "medium", timeStyle: "short"});
+}
+
 export function ProductStatusSidebar({
   form,
   onChange,
+  product,
   productUrl
 }: {
   form: ProductFormState;
   onChange: (next: ProductFormState | ((prev: ProductFormState) => ProductFormState)) => void;
+  // Undefined for a not-yet-created product  -  Published on/Last edited
+  // read directly from it rather than the form, since both are set
+  // automatically, never typed in.
+  product?: AdminProduct;
   // Full canonical storefront URL, used only for the SEO preview  -  null
   // for a not-yet-created product (no slug exists until the first save).
   productUrl: string | null;
@@ -71,40 +74,38 @@ export function ProductStatusSidebar({
     <div className="space-y-6">
       <SidebarCard title="Product Status & Visibility">
         <Field label="Status">
-          <select
-            value={form.status}
-            onChange={(event) => onChange((prev) => ({...prev, status: event.target.value as ProductStatus}))}
-            className={selectClass}
-          >
+          <SelectField value={form.status} onChange={(value) => onChange((prev) => ({...prev, status: value as ProductStatus}))}>
             {statusOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
-          </select>
+          </SelectField>
         </Field>
 
         <Field label="Visibility">
-          <select
+          <SelectField
             value={form.visibility}
-            onChange={(event) => onChange((prev) => ({...prev, visibility: event.target.value as ProductVisibility}))}
-            className={selectClass}
+            onChange={(value) => onChange((prev) => ({...prev, visibility: value as ProductVisibility}))}
           >
             {visibilityOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
-          </select>
+          </SelectField>
         </Field>
 
         <Field label="Published on">
-          <input
-            type="datetime-local"
-            value={form.publishedAt}
-            onChange={(event) => onChange((prev) => ({...prev, publishedAt: event.target.value}))}
-            className={fieldClass}
-          />
+          <p className="rounded-lg border border-[#d4c5ab] bg-[#f2ecdc] px-3.5 py-2.5 text-sm text-forest-600">
+            {formatDate(product?.publishedAt)}
+          </p>
+        </Field>
+
+        <Field label="Last edited">
+          <p className="rounded-lg border border-[#d4c5ab] bg-[#f2ecdc] px-3.5 py-2.5 text-sm text-forest-600">
+            {product ? formatDate(product.updatedAt) : "Not saved yet"}
+          </p>
         </Field>
       </SidebarCard>
 
@@ -141,61 +142,6 @@ export function ProductStatusSidebar({
             />
           </Field>
         </div>
-
-        <Field label="Allow backorders">
-          <select
-            value={form.allowBackorders}
-            disabled={!tracksInventory}
-            onChange={(event) => onChange((prev) => ({...prev, allowBackorders: event.target.value as BackorderPolicy}))}
-            className={selectClass}
-          >
-            {backorderOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-      </SidebarCard>
-
-      <SidebarCard title="Organisation">
-        <Field label="Tags">
-          <ChipInput
-            values={form.tags
-              .split(",")
-              .map((tag) => tag.trim())
-              .filter(Boolean)}
-            onChange={(next) => onChange((prev) => ({...prev, tags: next.join(", ")}))}
-            placeholder="Add a tag..."
-          />
-        </Field>
-
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Product Type">
-            {/* Every Natlovers listing is a physical, handmade piece  -  there is
-                no digital-goods path in this store, so this is a real, honest
-                constant rather than a live-but-pointless choice. */}
-            <select disabled value="Physical" className={selectClass}>
-              <option value="Physical">Physical</option>
-            </select>
-          </Field>
-          <Field label="Vendor / Brand">
-            <input
-              value={form.vendor}
-              onChange={(event) => onChange((prev) => ({...prev, vendor: event.target.value}))}
-              placeholder="Natlovers"
-              className={fieldClass}
-            />
-          </Field>
-        </div>
-
-        <Field label="Collections">
-          <ChipInput
-            values={form.collections}
-            onChange={(next) => onChange((prev) => ({...prev, collections: next}))}
-            placeholder="Add a collection..."
-          />
-        </Field>
       </SidebarCard>
 
       <SidebarCard

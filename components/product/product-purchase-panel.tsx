@@ -28,6 +28,7 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
   const [size, setSize] = useState<ShopSize>(product.size ?? "Medium");
   const [baseColour, setBaseColour] = useState<string | null>(product.baseColourOptions[0]?.label ?? null);
   const [handleColour, setHandleColour] = useState<string | null>(product.handleColourOptions[0]?.label ?? null);
+  const [personalisationNote, setPersonalisationNote] = useState("");
 
   // TODO(pricing): sizePriceDeltaIdr is 0 for every size until a real
   // figure is entered in the admin  -  see the matching comment on
@@ -36,13 +37,14 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
   const sizeDelta = showSize ? (product.sizePriceDeltaIdr[size] ?? 0) : 0;
   const estimatedTotal = product.priceIdr + sizeDelta;
 
-  const hasSelection = showSize || product.hasBaseColour || product.hasHandleColour;
+  const hasSelection = showSize || product.hasBaseColour || product.hasHandleColour || product.hasPersonalisation;
   const selection: ProductSelection | undefined = hasSelection
     ? {
         kind: "productSelection",
         ...(showSize ? {size} : {}),
         ...(product.hasBaseColour && baseColour ? {baseColour} : {}),
-        ...(product.hasHandleColour && handleColour ? {handleColour} : {})
+        ...(product.hasHandleColour && handleColour ? {handleColour} : {}),
+        ...(product.hasPersonalisation && personalisationNote.trim() ? {personalisationNote: personalisationNote.trim()} : {})
       }
     : undefined;
 
@@ -164,6 +166,9 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
           handleColourOptions={product.handleColourOptions}
           handleColour={handleColour}
           onHandleColourChange={setHandleColour}
+          hasPersonalisation={product.hasPersonalisation}
+          personalisationNote={personalisationNote}
+          onPersonalisationNoteChange={setPersonalisationNote}
         />
       </div>
 
