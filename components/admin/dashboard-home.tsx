@@ -390,7 +390,7 @@ export function DashboardHome({userName, onNavigate}: {userName?: string | null;
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm text-forest-600">
-            {greeting}, {userName?.split(" ")[0] ?? "Admin"} 👋
+            {greeting}, {userName?.split(" ")[0] ?? "Admin"}
           </p>
           <h1 className="mt-1 font-display text-3xl text-forest-900">Dashboard</h1>
           <p className="mt-1 text-sm text-forest-500">A live overview of your store&rsquo;s sales, orders, and inventory.</p>

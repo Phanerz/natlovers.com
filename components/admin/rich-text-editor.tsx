@@ -118,7 +118,12 @@ function ToolbarButton({label, onClick, children}: {label: string; onClick: () =
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="flex h-7 w-7 items-center justify-center rounded-md text-forest-700 transition-colors duration-150 hover:bg-[#eee1c4] hover:text-forest-900"
+      // Explicit bg-transparent/border-none at rest, with focus-visible
+      // (not focus) carrying the only "selected-looking" state  -  otherwise
+      // the first toolbar button (Bold) picks up the browser's default
+      // :focus ring/background as soon as the page loads focus into it,
+      // which reads as "stuck on" even though nothing has been clicked.
+      className="flex h-7 w-7 items-center justify-center rounded-md border-none bg-transparent text-forest-700 outline-none transition-colors duration-150 hover:bg-[#eee1c4] hover:text-forest-900 focus-visible:ring-2 focus-visible:ring-forest-400"
     >
       {children}
     </button>

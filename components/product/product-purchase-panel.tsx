@@ -3,7 +3,7 @@
 import {useMemo, useState} from "react";
 import {useRouter} from "next/navigation";
 import {useSession} from "next-auth/react";
-import {Heart, Share2, Sparkles} from "lucide-react";
+import {Heart, Share2} from "lucide-react";
 import {Toast, ToastState} from "@/components/admin/toast";
 import {useStorefront} from "@/components/storefront-provider";
 import {useWishlist} from "@/components/use-wishlist";
@@ -134,10 +134,7 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
 
   return (
     <div className="lg:sticky lg:top-24">
-      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-forest-600">
-        Handcrafted in Indonesia
-        <Sparkles className="h-3 w-3 text-sand-500" aria-hidden />
-      </p>
+      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-forest-600">Handcrafted in Indonesia</p>
       <h1 className="mt-2 font-display text-4xl leading-[1.05] tracking-tight text-forest-900 sm:text-5xl">{product.name}</h1>
       <p className="mt-1 flex items-baseline gap-2 font-display text-2xl text-forest-800">
         {formatCurrency(product.priceIdr, currency)}
