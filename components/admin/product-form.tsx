@@ -72,15 +72,32 @@ function BodyShapeField({
   onChange: (value: string) => void;
 }) {
   const active = bodyShapes.filter((shape) => !shape.isArchived || shape.id === bodyShapeId);
+
+  if (!active.length) {
+    return (
+      <div className="space-y-2 text-sm text-forest-700">
+        <span className="muted">Body</span>
+        <div className="rounded-lg border border-dashed border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-sm text-forest-500">
+          No body shapes in the catalog yet.{" "}
+          <Link href="/mimin?tab=add-body-shape" className="font-semibold text-forest-700 underline underline-offset-2">
+            Add one
+          </Link>{" "}
+          before saving this product.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <label className="space-y-2 text-sm text-forest-700">
       <span className="muted">Body</span>
       <SelectField value={bodyShapeId} onChange={onChange}>
-        {!bodyShapeId ? <option value="">— Unassigned  -  pick a body —</option> : null}
+        {!bodyShapeId ? <option value="">— Unassigned, pick a body —</option> : null}
         {active.map((shape) => (
           <option key={shape.id} value={shape.id}>
-            {shape.name} ({summarizeBodyShapeDimensions(shape)}){shape.inStock ? "" : " — out of stock"}
-            {shape.isArchived ? " — archived" : ""}
+            {shape.name} · {summarizeBodyShapeDimensions(shape)}
+            {shape.inStock ? "" : " · out of stock"}
+            {shape.isArchived ? " · archived" : ""}
           </option>
         ))}
       </SelectField>
