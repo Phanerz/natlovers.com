@@ -18,6 +18,7 @@ export type PreviewProduct = {
   shape: string | null;
   handleType: string | null;
   materials: string[];
+  size: string | null;
 };
 
 export type PreviewCatalogue = Record<CustomProductType, PreviewProduct[]>;
@@ -45,12 +46,12 @@ const noMatch: PreviewMatch = {product: null, quality: "none", matched: [], unma
 
 // Attributes the catalogue actually records, in the order they most affect
 // what a bag looks like in a photograph. Colour comes from the materials
-// array (natural fibre is undyed, so the fibre is the colour); shape and
-// handle come from their own columns. Size is not one of these: a real
-// product's size is now the Body Shapes catalog (see lib/body-shapes.ts),
-// a physical measurement unrelated to Custom Studio's own Small/Medium/
-// Large commission sizing, so it plays no part in matching a reference
-// photograph.
+// array (natural fibre is undyed, so the fibre is the colour); shape,
+// handle, and size come from their own columns. Size here is the product's
+// coarse Small/Medium/Large browsing tag (see the comment on products.size
+// in lib/db/schema.ts), which happens to share Custom Studio's own sizing
+// vocabulary  -  not the real measurements on the product's assigned body
+// (see lib/body-shapes.ts), which has no equivalent in Custom Studio.
 function scoreBag(product: PreviewProduct, config: Extract<CustomConfig, {productType: "Bags"}>) {
   const matched: string[] = [];
   const unmatched: string[] = [];
@@ -66,13 +67,17 @@ function scoreBag(product: PreviewProduct, config: Extract<CustomConfig, {produc
   if (product.materials.includes(config.colour)) matched.push("base colour");
   else unmatched.push("base colour");
 
+  if (product.size === config.size) matched.push("size");
+  else unmatched.push("size");
+
   // Shape and handle dominate the silhouette, so they are weighted above
-  // colour  -  a photograph of the right silhouette in the wrong fibre is a
-  // far more useful reference than the reverse.
+  // colour and size  -  a photograph of the right silhouette in the wrong
+  // fibre is a far more useful reference than the reverse.
   const score =
     (product.shape === config.shape ? 8 : 0) +
     (config.handle && product.handleType === config.handle ? 6 : 0) +
-    (product.materials.includes(config.colour) ? 3 : 0);
+    (product.materials.includes(config.colour) ? 3 : 0) +
+    (product.size === config.size ? 1 : 0);
 
   return {score, matched, unmatched};
 }
@@ -81,11 +86,15 @@ function scoreGeneric(product: PreviewProduct, config: CustomConfig) {
   const matched: string[] = [];
   const unmatched: string[] = [];
 
+  const wantedSize = "size" in config ? String(config.size) : null;
+  if (wantedSize && product.size === wantedSize) matched.push("size");
+  else if (wantedSize) unmatched.push("size");
+
   const wantedColour = "colour" in config ? String(config.colour) : null;
   if (wantedColour && product.materials.includes(wantedColour)) matched.push("base colour");
   else if (wantedColour) unmatched.push("base colour");
 
-  const score = matched.includes("base colour") ? 3 : 0;
+  const score = (matched.includes("size") ? 2 : 0) + (matched.includes("base colour") ? 3 : 0);
 
   return {score, matched, unmatched};
 }

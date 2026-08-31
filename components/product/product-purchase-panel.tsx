@@ -70,13 +70,12 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
     if (!customStudioBase || customising) return;
     setCustomising(true);
     try {
-      // Custom Studio keeps its own independent Small/Medium/Large sizing
-      // (see lib/custom-studio.ts), unrelated to this product's own
-      // assigned body, so there's nothing to carry over here beyond
-      // defaultConfigForProduct's own shape/handle/materials seeding. Base/
-      // handle colour have no equivalent there either (Custom Studio's
-      // colour is a fixed five-material enum, not a per-product hex
-      // swatch), so they aren't part of this handoff.
+      // defaultConfigForProduct already seeds shape/handle/materials and
+      // this product's own Size tag (Custom Studio's config happens to
+      // share that Small/Medium/Large vocabulary  -  see the comment there).
+      // Base/handle colour have no equivalent in Custom Studio (its colour
+      // is a fixed five-material enum, not a per-product hex swatch), so
+      // they aren't part of this handoff.
       const config = customStudioBase;
       const draft: LocalCustomDraft = {productType: config.productType, config, notes: ""};
       try {

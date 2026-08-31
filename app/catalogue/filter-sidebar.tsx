@@ -10,6 +10,7 @@ import {
   ShopProduct,
   ShopProductType,
   ShopShape,
+  ShopSize,
   accessoryCategories,
   accessoryCategoryLabels,
   bagMaterials,
@@ -18,7 +19,9 @@ import {
   productTypeLabels,
   shapeLabels,
   shopHandles,
-  shopShapes
+  shopShapes,
+  shopSizes,
+  sizeLabels
 } from "./shop-data";
 
 type FilterSidebarProps = {
@@ -26,10 +29,12 @@ type FilterSidebarProps = {
   productType: ShopProductType;
   products: ShopProduct[];
   selectedMaterials: ShopMaterial[];
+  selectedSizes: ShopSize[];
   selectedShapes: ShopShape[];
   selectedHandles: ShopHandle[];
   selectedAccessoryCategories: AccessoryCategory[];
   onToggleMaterial: (value: ShopMaterial) => void;
+  onToggleSize: (value: ShopSize) => void;
   onToggleShape: (value: ShopShape) => void;
   onToggleHandle: (value: ShopHandle) => void;
   onToggleAccessoryCategory: (value: AccessoryCategory) => void;
@@ -39,19 +44,19 @@ type FilterSidebarProps = {
 const copy = {
   en: {
     material: "Material",
+    size: "Size",
     shape: "Shape",
     handle: "Handle",
     category: "Category",
-    apparelComingSoon: "Our apparel collection is being handwoven right now. New pieces are coming soon.",
-    dollsNoFilters: "Browse all of our dolls below."
+    apparelComingSoon: "Our apparel collection is being handwoven right now. New pieces are coming soon."
   },
   id: {
     material: "Bahan",
+    size: "Ukuran",
     shape: "Bentuk",
     handle: "Pegangan",
     category: "Kategori",
-    apparelComingSoon: "Koleksi pakaian kami sedang ditenun. Karya baru akan segera hadir.",
-    dollsNoFilters: "Lihat semua boneka kami di bawah ini."
+    apparelComingSoon: "Koleksi pakaian kami sedang ditenun. Karya baru akan segera hadir."
   }
 };
 
@@ -165,10 +170,12 @@ export function FilterSidebar({
   productType,
   products,
   selectedMaterials,
+  selectedSizes,
   selectedShapes,
   selectedHandles,
   selectedAccessoryCategories,
   onToggleMaterial,
+  onToggleSize,
   onToggleShape,
   onToggleHandle,
   onToggleAccessoryCategory,
@@ -235,11 +242,24 @@ export function FilterSidebar({
   }
 
   if (productType === "Dolls") {
+    const sizeCounts = countBy(products, shopSizes, (product) => product.size);
     return (
-      <aside className="relative flex h-full w-full min-w-0 flex-col overflow-hidden">
+      <aside className="relative w-full min-w-0 overflow-hidden">
         {header}
-        <div className="mt-8 flex flex-1 items-center justify-center text-center">
-          <p className="max-w-[22ch] text-sm leading-6 text-[#6b6b5f]">{t.dollsNoFilters}</p>
+        <div className="mt-4 space-y-3">
+          <FilterSection title={t.size}>
+            <div className="flex flex-col">
+              {shopSizes.map((size) => (
+                <FilterRow
+                  key={size}
+                  active={selectedSizes.includes(size)}
+                  label={sizeLabels[size][locale]}
+                  count={sizeCounts[size] ?? 0}
+                  onClick={() => onToggleSize(size)}
+                />
+              ))}
+            </div>
+          </FilterSection>
         </div>
         <SidebarVine />
       </aside>
@@ -248,6 +268,7 @@ export function FilterSidebar({
 
   // Bags.
   const materialCounts = countBy(products, bagMaterials, (product) => product.materials);
+  const sizeCounts = countBy(products, shopSizes, (product) => product.size);
   const shapeCounts = countBy(products, shopShapes, (product) => product.shape);
   const handleCounts = countBy(products, shopHandles, (product) => product.handle);
 
@@ -264,6 +285,20 @@ export function FilterSidebar({
                 label={materialLabels[material][locale]}
                 count={materialCounts[material] ?? 0}
                 onClick={() => onToggleMaterial(material)}
+              />
+            ))}
+          </div>
+        </FilterSection>
+
+        <FilterSection title={t.size}>
+          <div className="flex flex-col">
+            {shopSizes.map((size) => (
+              <FilterRow
+                key={size}
+                active={selectedSizes.includes(size)}
+                label={sizeLabels[size][locale]}
+                count={sizeCounts[size] ?? 0}
+                onClick={() => onToggleSize(size)}
               />
             ))}
           </div>

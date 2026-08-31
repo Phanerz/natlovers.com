@@ -10,11 +10,13 @@ import {
   ShopProduct,
   ShopProductType,
   ShopShape,
+  ShopSize,
   accessoryCategories,
   bagMaterials,
   shopHandles,
   shopProductTypes,
-  shopShapes
+  shopShapes,
+  shopSizes
 } from "@/app/catalogue/shop-data";
 
 export type ColourOption = {label: string; hex: string};
@@ -88,6 +90,7 @@ const shopProductInputSchema = z.object({
   description: z.string().trim().optional(),
   productType: z.enum(shopProductTypes as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopProductType>,
   bodyShapeId: z.string().trim().min(1).optional(),
+  size: (z.enum(shopSizes as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopSize>).optional(),
   shape: (z.enum(shopShapes as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopShape>).optional(),
   handle: (z.enum(shopHandles as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopHandle>).optional(),
   accessoryCategory: (
@@ -252,6 +255,7 @@ function toAdminProduct(row: typeof products.$inferSelect, bodyShape: AdminBodyS
     productType: row.productType as ShopProductType,
     subcategory: row.subcategory,
     materials: row.materials as ShopMaterial[],
+    size: (row.size as ShopSize) ?? null,
     shape: (row.shape as ShopShape) ?? null,
     handle: (row.handleType as ShopHandle) ?? null,
     accessoryCategory: (row.accessoryCategory as AccessoryCategory) ?? null,
@@ -313,14 +317,16 @@ function attributesForType(
   productType: ShopProductType,
   parsed: {
     bodyShapeId?: string;
+    size?: ShopSize;
     shape?: ShopShape;
     handle?: ShopHandle;
     accessoryCategory?: AccessoryCategory;
     materials?: string[];
   },
-  options: {requireBody: boolean}
+  options: {requireBody: boolean; requireSize: boolean}
 ): {
   bodyShapeId: string | null;
+  size: ShopSize | null;
   shape: ShopShape | null;
   handleType: ShopHandle | null;
   accessoryCategory: AccessoryCategory | null;
@@ -333,31 +339,51 @@ function attributesForType(
     if (options.requireBody && !parsed.bodyShapeId) {
       throw new Error("Body is required for bags.");
     }
+    if (options.requireSize && !parsed.size) {
+      throw new Error("Size is required for bags.");
+    }
     const materials = (parsed.materials ?? []).filter((value): value is ShopMaterial =>
       bagMaterials.includes(value as ShopMaterial)
     );
     if (!materials.length) {
       throw new Error("Pick at least one material.");
     }
-    return {bodyShapeId: parsed.bodyShapeId ?? null, shape: parsed.shape, handleType: parsed.handle, accessoryCategory: null, materials};
+    return {
+      bodyShapeId: parsed.bodyShapeId ?? null,
+      size: parsed.size ?? null,
+      shape: parsed.shape,
+      handleType: parsed.handle,
+      accessoryCategory: null,
+      materials
+    };
   }
 
   if (productType === "Dolls") {
     if (options.requireBody && !parsed.bodyShapeId) {
       throw new Error("Body is required for dolls.");
     }
-    return {bodyShapeId: parsed.bodyShapeId ?? null, shape: null, handleType: null, accessoryCategory: null, materials: []};
+    if (options.requireSize && !parsed.size) {
+      throw new Error("Size is required for dolls.");
+    }
+    return {
+      bodyShapeId: parsed.bodyShapeId ?? null,
+      size: parsed.size ?? null,
+      shape: null,
+      handleType: null,
+      accessoryCategory: null,
+      materials: []
+    };
   }
 
   if (productType === "Accessories") {
     if (!parsed.accessoryCategory) {
       throw new Error("Category is required for accessories.");
     }
-    return {bodyShapeId: null, shape: null, handleType: null, accessoryCategory: parsed.accessoryCategory, materials: []};
+    return {bodyShapeId: null, size: null, shape: null, handleType: null, accessoryCategory: parsed.accessoryCategory, materials: []};
   }
 
   // Apparel: no per-type attributes at all.
-  return {bodyShapeId: null, shape: null, handleType: null, accessoryCategory: null, materials: []};
+  return {bodyShapeId: null, size: null, shape: null, handleType: null, accessoryCategory: null, materials: []};
 }
 
 function toAdminBodyShapeRow(row: typeof bodyShapes.$inferSelect | null): AdminBodyShape | null {
@@ -428,6 +454,7 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     description: formData.get("description") ?? undefined,
     productType: formData.get("productType"),
     bodyShapeId: formData.get("bodyShapeId") || undefined,
+    size: formData.get("size") || undefined,
     shape: formData.get("shape") || undefined,
     handle: formData.get("handle") || undefined,
     accessoryCategory: formData.get("accessoryCategory") || undefined,
@@ -445,7 +472,7 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     personalisationOptions: formData.getAll("personalisationOptions").map(String)
   });
 
-  const attributes = attributesForType(parsed.productType, parsed, {requireBody: true});
+  const attributes = attributesForType(parsed.productType, parsed, {requireBody: true, requireSize: true});
   if (attributes.bodyShapeId) {
     await assertBodyShapeExists(attributes.bodyShapeId);
   }
@@ -497,6 +524,7 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       subcategory: parsed.subcategory ?? null,
       materials: attributes.materials,
       bodyShapeId: attributes.bodyShapeId,
+      size: attributes.size,
       shape: attributes.shape,
       handleType: attributes.handleType,
       accessoryCategory: attributes.accessoryCategory,
@@ -538,6 +566,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
   if (formData.has("description")) raw.description = formData.get("description");
   if (formData.has("productType")) raw.productType = formData.get("productType");
   if (formData.has("bodyShapeId")) raw.bodyShapeId = formData.get("bodyShapeId") || undefined;
+  if (formData.has("size")) raw.size = formData.get("size") || undefined;
   if (formData.has("shape")) raw.shape = formData.get("shape") || undefined;
   if (formData.has("handle")) raw.handle = formData.get("handle") || undefined;
   if (formData.has("accessoryCategory")) raw.accessoryCategory = formData.get("accessoryCategory") || undefined;
@@ -618,6 +647,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
     effectiveType,
     {
       bodyShapeId: parsed.bodyShapeId ?? existing.bodyShapeId ?? undefined,
+      size: (parsed.size as ShopSize | undefined) ?? (existing.size as ShopSize | undefined) ?? undefined,
       shape: (parsed.shape as ShopShape | undefined) ?? (existing.shape as ShopShape | undefined) ?? undefined,
       handle: (parsed.handle as ShopHandle | undefined) ?? (existing.handleType as ShopHandle | undefined) ?? undefined,
       accessoryCategory:
@@ -626,7 +656,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
         undefined,
       materials: parsed.materials ?? existing.materials
     },
-    {requireBody: false}
+    {requireBody: false, requireSize: false}
   );
 
   let images: string[] | undefined;
@@ -650,6 +680,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       ...(parsed.metaTitle !== undefined ? {metaTitle: parsed.metaTitle} : {}),
       ...(parsed.metaDescription !== undefined ? {metaDescription: parsed.metaDescription} : {}),
       bodyShapeId: attributes.bodyShapeId,
+      size: attributes.size,
       shape: attributes.shape,
       handleType: attributes.handleType,
       accessoryCategory: attributes.accessoryCategory,
@@ -712,6 +743,7 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
   if (formData.has("description")) raw.description = formData.get("description");
   if (formData.has("productType")) raw.productType = formData.get("productType");
   if (formData.has("bodyShapeId")) raw.bodyShapeId = formData.get("bodyShapeId") || undefined;
+  if (formData.has("size")) raw.size = formData.get("size") || undefined;
   if (formData.has("shape")) raw.shape = formData.get("shape") || undefined;
   if (formData.has("handle")) raw.handle = formData.get("handle") || undefined;
   if (formData.has("accessoryCategory")) raw.accessoryCategory = formData.get("accessoryCategory") || undefined;
@@ -773,6 +805,7 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
     effectiveType,
     {
       bodyShapeId: parsed.bodyShapeId ?? existing.bodyShapeId ?? undefined,
+      size: (parsed.size as ShopSize | undefined) ?? (existing.size as ShopSize | undefined) ?? undefined,
       shape: (parsed.shape as ShopShape | undefined) ?? (existing.shape as ShopShape | undefined) ?? undefined,
       handle: (parsed.handle as ShopHandle | undefined) ?? (existing.handleType as ShopHandle | undefined) ?? undefined,
       accessoryCategory:
@@ -781,7 +814,7 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
         undefined,
       materials: parsed.materials ?? existing.materials
     },
-    {requireBody: false}
+    {requireBody: false, requireSize: false}
   );
 
   let images = existing.images;
@@ -804,6 +837,7 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
     productType: effectiveType,
     subcategory: parsed.subcategory ?? existing.subcategory,
     materials: attributes.materials,
+    size: attributes.size,
     shape: attributes.shape,
     handle: attributes.handleType,
     accessoryCategory: attributes.accessoryCategory,

@@ -4,10 +4,12 @@ import {
   ShopMaterial,
   ShopProductType,
   ShopShape,
+  ShopSize,
   accessoryCategories,
   shopHandles,
   shopProductTypes,
-  shopShapes
+  shopShapes,
+  shopSizes
 } from "@/app/catalogue/shop-data";
 import type {AdminBodyShape} from "./body-shape-types";
 
@@ -43,6 +45,7 @@ export type AdminProduct = {
   productType: ShopProductType;
   subcategory: string | null;
   materials: ShopMaterial[];
+  size: ShopSize | null;
   shape: ShopShape | null;
   handle: ShopHandle | null;
   accessoryCategory: AccessoryCategory | null;
@@ -93,6 +96,9 @@ export type ProductFormState = {
   // (see attributesForType in lib/admin-products.ts). A new product must
   // pick a real one from the Body Shapes catalog before it can be created.
   bodyShapeId: string;
+  // A coarse Small/Medium/Large browsing tag, independent of bodyShapeId
+  // above  -  see the comment on products.size in lib/db/schema.ts.
+  size: ShopSize;
   shape: ShopShape;
   handle: ShopHandle;
   accessoryCategory: AccessoryCategory;
@@ -151,6 +157,7 @@ export function emptyForm(): ProductFormState {
     productType: shopProductTypes[0],
     subcategory: "",
     bodyShapeId: "",
+    size: shopSizes[0],
     shape: shopShapes[0],
     handle: shopHandles[0],
     accessoryCategory: accessoryCategories[0],
@@ -190,6 +197,7 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     productType: product.productType,
     subcategory: product.subcategory ?? "",
     bodyShapeId: product.bodyShapeId ?? "",
+    size: product.size ?? shopSizes[0],
     shape: product.shape ?? shopShapes[0],
     handle: product.handle ?? shopHandles[0],
     accessoryCategory: product.accessoryCategory ?? accessoryCategories[0],
@@ -236,11 +244,13 @@ export function buildFormData(form: ProductFormState) {
 
   if (form.productType === "Bags") {
     if (form.bodyShapeId) formData.set("bodyShapeId", form.bodyShapeId);
+    formData.set("size", form.size);
     formData.set("shape", form.shape);
     formData.set("handle", form.handle);
     form.materials.forEach((material) => formData.append("materials", material));
   } else if (form.productType === "Dolls") {
     if (form.bodyShapeId) formData.set("bodyShapeId", form.bodyShapeId);
+    formData.set("size", form.size);
   } else if (form.productType === "Accessories") {
     formData.set("accessoryCategory", form.accessoryCategory);
   }

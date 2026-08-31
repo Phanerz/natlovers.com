@@ -14,8 +14,30 @@ import {
   categoryPillStyle,
   handleLabels,
   handlePillStyle,
-  materialImageStyle
+  materialImageStyle,
+  shapeLabels,
+  shapePillStyle,
+  sizeLabels,
+  sizePillStyle
 } from "./shop-data";
+
+type TagStyle = {bg: string; border: string; text: string};
+
+// Shared shrink-0/pill styling for every tag row below, so Size/Shape/
+// Handle/Category always render as visually identical pills that only
+// differ in colour  -  this is what a shopper actually confirms a filter
+// against (e.g. picking "House Shaped" in the sidebar and then seeing that
+// exact tag on the resulting cards).
+function Pill({style, children}: {style: TagStyle; children: React.ReactNode}) {
+  return (
+    <span
+      className="shrink-0 rounded-full border px-2.5 py-1 text-[13px] leading-none sm:px-3 sm:text-[14px]"
+      style={{backgroundColor: style.bg, borderColor: style.border, color: style.text}}
+    >
+      {children}
+    </span>
+  );
+}
 
 export function ShopProductCard({
   product,
@@ -149,29 +171,11 @@ export function ShopProductCard({
           {formatCurrency(product.priceIdr, currency)}
         </p>
         <div className="scrollbar-hide pointer-events-auto mt-2 flex flex-nowrap gap-1.5 overflow-x-auto">
-          {product.handle ? (
-            <span
-              className="shrink-0 rounded-full border px-2.5 py-1 text-[13px] leading-none sm:px-3 sm:text-[14px]"
-              style={{
-                backgroundColor: handlePillStyle.bg,
-                borderColor: handlePillStyle.border,
-                color: handlePillStyle.text
-              }}
-            >
-              {handleLabels[product.handle][locale]}
-            </span>
-          ) : null}
+          {product.size ? <Pill style={sizePillStyle}>{sizeLabels[product.size][locale]}</Pill> : null}
+          {product.shape ? <Pill style={shapePillStyle}>{shapeLabels[product.shape][locale]}</Pill> : null}
+          {product.handle ? <Pill style={handlePillStyle}>{handleLabels[product.handle][locale]}</Pill> : null}
           {product.accessoryCategory ? (
-            <span
-              className="shrink-0 rounded-full border px-2.5 py-1 text-[13px] leading-none sm:px-3 sm:text-[14px]"
-              style={{
-                backgroundColor: categoryPillStyle.bg,
-                borderColor: categoryPillStyle.border,
-                color: categoryPillStyle.text
-              }}
-            >
-              {accessoryCategoryLabels[product.accessoryCategory][locale]}
-            </span>
+            <Pill style={categoryPillStyle}>{accessoryCategoryLabels[product.accessoryCategory][locale]}</Pill>
           ) : null}
         </div>
       </div>

@@ -6,7 +6,7 @@ import type {Route} from "next";
 import {usePathname, useRouter, useSearchParams} from "next/navigation";
 import {useEffect, useMemo, useState} from "react";
 import {Eye, Filter, Pencil, RotateCcw, Search, Trash2} from "lucide-react";
-import {ShopProductType, productTypeLabels, shopProductTypes} from "@/app/catalogue/shop-data";
+import {ShopProductType, productTypeLabels, shopProductTypes, sizeLabels} from "@/app/catalogue/shop-data";
 import {AdminProduct} from "./types";
 
 const PAGE_SIZE = 8;
@@ -258,7 +258,7 @@ export function ManageProductsPanel({
       ) : pageItems.length ? (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1080px] border-collapse text-sm">
+            <table className="w-full min-w-[1180px] border-collapse text-sm">
               <thead>
                 <tr className="text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-500">
                   <th className="w-8 pb-3 pr-3">
@@ -272,6 +272,7 @@ export function ManageProductsPanel({
                   </th>
                   <th className="pb-3 pr-3">Product</th>
                   <th className="pb-3 pr-3">Type</th>
+                  <th className="pb-3 pr-3">Size</th>
                   <th className="pb-3 pr-3">Body</th>
                   <th className="pb-3 pr-3">Price (IDR)</th>
                   <th className="pb-3 pr-3">Status</th>
@@ -305,6 +306,17 @@ export function ManageProductsPanel({
                       </div>
                     </td>
                     <td className="py-3 pr-3 text-forest-700">{productTypeLabels[product.productType].en}</td>
+                    <td className="py-3 pr-3">
+                      {product.size ? (
+                        <span className="text-forest-700">{sizeLabels[product.size].en}</span>
+                      ) : product.productType === "Bags" || product.productType === "Dolls" ? (
+                        <span className="inline-flex rounded-full bg-[#f6ddc9] px-3 py-1 text-xs font-medium text-[#8a4a1f]">
+                          Untagged
+                        </span>
+                      ) : (
+                        <span className="text-forest-400">—</span>
+                      )}
+                    </td>
                     <td className="py-3 pr-3">
                       {product.bodyShape ? (
                         <span className="text-forest-700">{product.bodyShape.name}</span>

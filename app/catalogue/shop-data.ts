@@ -2,11 +2,12 @@ import {Locale} from "@/lib/site";
 
 export type ShopMaterial = "Agel" | "Water Hyacinth" | "Gajih" | "Woven Fabric" | "Patchwork";
 
-// Custom Studio's own commission-intake sizing (Small/Medium/Large), kept
-// here since it's the catalogue's own vocabulary that Custom Studio reuses
-// (see lib/custom-studio.ts)  -  no longer connected to a real product's own
-// size, which is now the Body Shapes catalog (see lib/body-shapes.ts and
-// products.bodyShapeId in lib/db/schema.ts).
+// A coarse, admin-assigned browsing tag for Bags/Dolls  -  independent of a
+// product's real dimensions, which live on its assigned body (see
+// lib/body-shapes.ts and products.bodyShapeId in lib/db/schema.ts). Also
+// reused as-is by Custom Studio's own commission-intake sizing (see
+// lib/custom-studio.ts), an unrelated system that happens to share the same
+// three-value vocabulary.
 export type ShopSize = "Small" | "Medium" | "Large";
 
 export type ShopShape = "Rectangle" | "Round" | "House Shaped";
@@ -27,6 +28,7 @@ export type ShopProduct = {
   priceIdr: number;
   imageUrl: string;
   productType: ShopProductType;
+  size: ShopSize | null;
   shape: ShopShape | null;
   handle: ShopHandle | null;
   materials: ShopMaterial[];
@@ -89,6 +91,8 @@ export const productTypeLabels: Record<ShopProductType, BilingualLabel> = {
 
 type TagStyle = {bg: string; border: string; text: string};
 
+export const sizePillStyle: TagStyle = {bg: "#DCE6EA", border: "#B8CDD4", text: "#2A3D42"};
+export const shapePillStyle: TagStyle = {bg: "#E3E8D4", border: "#C4CDAA", text: "#3A4526"};
 export const handlePillStyle: TagStyle = {bg: "#F3E2D6", border: "#DEBBA3", text: "#5A3A22"};
 export const categoryPillStyle: TagStyle = {bg: "#EDE3EF", border: "#D2BCD8", text: "#4A2E52"};
 

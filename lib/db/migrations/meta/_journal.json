@@ -190,6 +190,13 @@
       "when": 1788173730000,
       "tag": "0026_body_shapes",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1788177046975,
+      "tag": "0027_short_the_liberteens",
+      "breakpoints": true
     }
   ]
 }

@@ -16,6 +16,7 @@ import {
   ShopProduct,
   ShopProductType,
   ShopShape,
+  ShopSize,
   productTypeLabels,
   shopProductTypes
 } from "./shop-data";
@@ -150,6 +151,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
       : "Bags";
   });
   const [selectedMaterials, setSelectedMaterials] = useState<ShopMaterial[]>([]);
+  const [selectedSizes, setSelectedSizes] = useState<ShopSize[]>([]);
   const [selectedShapes, setSelectedShapes] = useState<ShopShape[]>([]);
   const [selectedHandles, setSelectedHandles] = useState<ShopHandle[]>([]);
   const [selectedAccessoryCategories, setSelectedAccessoryCategories] = useState<AccessoryCategory[]>([]);
@@ -222,6 +224,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
 
     setSelectedProductType(type);
     setSelectedMaterials([]);
+    setSelectedSizes([]);
     setSelectedShapes([]);
     setSelectedHandles([]);
     setSelectedAccessoryCategories([]);
@@ -416,6 +419,12 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
     );
   }
 
+  function toggleSize(value: ShopSize) {
+    setSelectedSizes((current) =>
+      current.includes(value) ? current.filter((item) => item !== value) : [...current, value]
+    );
+  }
+
   function toggleShape(value: ShopShape) {
     setSelectedShapes((current) =>
       current.includes(value) ? current.filter((item) => item !== value) : [...current, value]
@@ -441,11 +450,15 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
 
   const filteredProducts = useMemo(() => {
     const filtered = typeProducts.filter((product) => {
-      // Materials apply to Bags only; shape/handle to Bags only; category to
-      // Accessories only  -  each guard only ever runs against the type it
-      // belongs to, since the other types' selection state stays empty
-      // (reset on type switch).
+      // Materials apply to Bags only; size to Bags and Dolls; shape/handle
+      // to Bags only; category to Accessories only  -  each guard only ever
+      // runs against the type it belongs to, since the other types'
+      // selection state stays empty (reset on type switch).
       if (selectedMaterials.length && !product.materials.some((material) => selectedMaterials.includes(material))) {
+        return false;
+      }
+
+      if (selectedSizes.length && (!product.size || !selectedSizes.includes(product.size))) {
         return false;
       }
 
@@ -481,6 +494,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   }, [
     typeProducts,
     selectedMaterials,
+    selectedSizes,
     selectedShapes,
     selectedHandles,
     selectedAccessoryCategories,
@@ -541,6 +555,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   useEffect(resetScroll, [
     selectedProductType,
     selectedMaterials,
+    selectedSizes,
     selectedShapes,
     selectedHandles,
     selectedAccessoryCategories,
@@ -931,10 +946,12 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
                 productType={selectedProductType}
                 products={typeProducts}
                 selectedMaterials={selectedMaterials}
+                selectedSizes={selectedSizes}
                 selectedShapes={selectedShapes}
                 selectedHandles={selectedHandles}
                 selectedAccessoryCategories={selectedAccessoryCategories}
                 onToggleMaterial={toggleMaterial}
+                onToggleSize={toggleSize}
                 onToggleShape={toggleShape}
                 onToggleHandle={toggleHandle}
                 onToggleAccessoryCategory={toggleAccessoryCategory}
@@ -965,10 +982,12 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
                 productType={selectedProductType}
                 products={typeProducts}
                 selectedMaterials={selectedMaterials}
+                selectedSizes={selectedSizes}
                 selectedShapes={selectedShapes}
                 selectedHandles={selectedHandles}
                 selectedAccessoryCategories={selectedAccessoryCategories}
                 onToggleMaterial={toggleMaterial}
+                onToggleSize={toggleSize}
                 onToggleShape={toggleShape}
                 onToggleHandle={toggleHandle}
                 onToggleAccessoryCategory={toggleAccessoryCategory}

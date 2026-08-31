@@ -106,6 +106,14 @@ export const products = pgTable(
     // body from the catalog un-assigns it from any product rather than
     // failing or cascading.
     bodyShapeId: text("body_shape_id").references(() => bodyShapes.id, {onDelete: "set null"}),
+    // Bags/Dolls-only. A coarse, admin-assigned Small/Medium/Large browsing
+    // tag  -  independent of bodyShapeId above, which carries the product's
+    // real dimensions. This is purely for catalogue filtering/labelling
+    // (an admin picks whichever bucket best fits the body they assigned),
+    // not a customer purchase choice and not tied to any real measurement
+    // or price delta  -  both of those were the old size system, which this
+    // does not bring back.
+    size: text("size"),
     materials: text("materials").array().notNull().default([]),
     // Free text rather than a structured column, so it can honestly express
     // handmade variance ("Approx. 30 x 20 x 15 cm") or an irregular piece

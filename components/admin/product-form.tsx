@@ -13,7 +13,9 @@ import {
   shapeLabels,
   shopHandles,
   shopProductTypes,
-  shopShapes
+  shopShapes,
+  shopSizes,
+  sizeLabels
 } from "@/app/catalogue/shop-data";
 import {summarizeBodyShapeDimensions} from "@/lib/body-shapes";
 import {AdminBodyShape} from "./body-shape-types";
@@ -120,11 +122,13 @@ function DimensionsOverrideField({form, onChange}: {form: ProductFormState; onCh
 }
 
 // Fixed physical/taxonomic properties that drive the catalogue's own filter
-// sidebar (Shape, Handle type, Materials, Accessory sub-category) and the
-// storefront's Dimensions accordion (Body)  -  distinct from Product Options
-// (Colour/Personalisation), which is what a customer actively chooses when
-// buying. Returns null for types with nothing left to show (Apparels) so
-// the card itself can be skipped rather than rendered empty.
+// sidebar (Size, Shape, Handle type, Materials, Accessory sub-category) and
+// the storefront's Dimensions accordion (Body)  -  distinct from Product
+// Options (Colour/Personalisation), which is what a customer actively
+// chooses when buying. Size is a coarse admin-assigned browsing tag, not
+// tied to Body's real measurements  -  see the comment on products.size in
+// lib/db/schema.ts. Returns null for types with nothing left to show
+// (Apparels) so the card itself can be skipped rather than rendered empty.
 function AttributeFields({
   form,
   onChange,
@@ -137,11 +141,18 @@ function AttributeFields({
   if (form.productType === "Bags") {
     return (
       <>
-        <div className="grid gap-6 sm:grid-cols-2">
-          <BodyShapeField
-            bodyShapeId={form.bodyShapeId}
-            bodyShapes={bodyShapes}
-            onChange={(value) => onChange({...form, bodyShapeId: value})}
+        <BodyShapeField
+          bodyShapeId={form.bodyShapeId}
+          bodyShapes={bodyShapes}
+          onChange={(value) => onChange({...form, bodyShapeId: value})}
+        />
+        <div className="grid gap-6 sm:grid-cols-3">
+          <PillSingleSelect
+            label="Size"
+            options={shopSizes}
+            getLabel={(option) => sizeLabels[option].en}
+            value={form.size}
+            onChange={(value) => onChange({...form, size: value})}
           />
           <PillSingleSelect
             label="Shape"
@@ -150,14 +161,14 @@ function AttributeFields({
             value={form.shape}
             onChange={(value) => onChange({...form, shape: value})}
           />
+          <PillSingleSelect
+            label="Handle"
+            options={shopHandles}
+            getLabel={(option) => handleLabels[option].en}
+            value={form.handle}
+            onChange={(value) => onChange({...form, handle: value})}
+          />
         </div>
-        <PillSingleSelect
-          label="Handle"
-          options={shopHandles}
-          getLabel={(option) => handleLabels[option].en}
-          value={form.handle}
-          onChange={(value) => onChange({...form, handle: value})}
-        />
         <PillMultiSelect
           label="Materials"
           options={bagMaterials}
@@ -173,11 +184,20 @@ function AttributeFields({
   if (form.productType === "Dolls") {
     return (
       <>
-        <BodyShapeField
-          bodyShapeId={form.bodyShapeId}
-          bodyShapes={bodyShapes}
-          onChange={(value) => onChange({...form, bodyShapeId: value})}
-        />
+        <div className="grid gap-6 sm:grid-cols-2">
+          <BodyShapeField
+            bodyShapeId={form.bodyShapeId}
+            bodyShapes={bodyShapes}
+            onChange={(value) => onChange({...form, bodyShapeId: value})}
+          />
+          <PillSingleSelect
+            label="Size"
+            options={shopSizes}
+            getLabel={(option) => sizeLabels[option].en}
+            value={form.size}
+            onChange={(value) => onChange({...form, size: value})}
+          />
+        </div>
         <DimensionsOverrideField form={form} onChange={onChange} />
       </>
     );

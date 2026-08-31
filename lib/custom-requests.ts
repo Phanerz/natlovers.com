@@ -136,7 +136,8 @@ export async function getPreviewCatalogue(): Promise<PreviewCatalogue> {
       productType: products.productType,
       shape: products.shape,
       handleType: products.handleType,
-      materials: products.materials
+      materials: products.materials,
+      size: products.size
     })
     .from(products)
     .where(and(eq(products.isActive, true), inArray(products.productType, [...customProductTypes])))
@@ -155,7 +156,8 @@ export async function getPreviewCatalogue(): Promise<PreviewCatalogue> {
       productType: row.productType,
       shape: row.shape,
       handleType: row.handleType,
-      materials: row.materials
+      materials: row.materials,
+      size: row.size
     };
     catalogue[row.productType].push(product);
   }
