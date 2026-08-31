@@ -3,19 +3,39 @@
 import {FormEvent, useEffect, useState} from "react";
 import {useRouter, useSearchParams} from "next/navigation";
 import {submitFormData} from "@/lib/xhr-form-submit";
+import {AdminBodyShape, BodyShapeFormState, buildBodyShapeFormData, emptyBodyShapeForm, formFromBodyShape} from "./body-shape-types";
+import {BodyShapeForm} from "./body-shape-form";
 import {isValidHex} from "./colour-options-editor";
 import {DashboardHome} from "./dashboard-home";
 import {AdminHeroCard, HeroCardFormState, buildHeroCardFormData, emptyHeroCardForm} from "./hero-card-types";
 import {HeroCardForm} from "./hero-card-form";
+import {ManageBodyShapesPanel} from "./manage-body-shapes-panel";
 import {ManageHeroCardsPanel} from "./manage-hero-cards-panel";
 import {ManageProductsPanel} from "./manage-products-panel";
 import {ProductForm} from "./product-form";
 import {Toast, ToastState} from "./toast";
 import {AdminProduct, ProductFormState, buildFormData, emptyForm, formFromProduct} from "./types";
 
-type Tab = "dashboard" | "add" | "manage" | "add-hero-card" | "manage-hero-cards";
+type Tab =
+  | "dashboard"
+  | "add"
+  | "manage"
+  | "add-hero-card"
+  | "manage-hero-cards"
+  | "add-body-shape"
+  | "manage-body-shapes"
+  | "edit-body-shape";
 
-const validTabs: Tab[] = ["dashboard", "add", "manage", "add-hero-card", "manage-hero-cards"];
+const validTabs: Tab[] = [
+  "dashboard",
+  "add",
+  "manage",
+  "add-hero-card",
+  "manage-hero-cards",
+  "add-body-shape",
+  "manage-body-shapes",
+  "edit-body-shape"
+];
 
 function tabFromParam(value: string | null): Tab {
   return validTabs.includes(value as Tab) ? (value as Tab) : "dashboard";
@@ -80,6 +100,19 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
   const [createHeroCardProgress, setCreateHeroCardProgress] = useState<number | null>(null);
   const [createHeroCardError, setCreateHeroCardError] = useState<string | null>(null);
 
+  const [bodyShapes, setBodyShapes] = useState<AdminBodyShape[]>([]);
+  const [loadingBodyShapes, setLoadingBodyShapes] = useState(true);
+  const [busyBodyShapeId, setBusyBodyShapeId] = useState<string | null>(null);
+
+  const [createBodyShapeForm, setCreateBodyShapeForm] = useState<BodyShapeFormState>(emptyBodyShapeForm());
+  const [creatingBodyShape, setCreatingBodyShape] = useState(false);
+  const [createBodyShapeError, setCreateBodyShapeError] = useState<string | null>(null);
+
+  const [editingBodyShape, setEditingBodyShape] = useState<AdminBodyShape | null>(null);
+  const [editBodyShapeForm, setEditBodyShapeForm] = useState<BodyShapeFormState>(emptyBodyShapeForm());
+  const [editBodyShapeSubmitting, setEditBodyShapeSubmitting] = useState(false);
+  const [editBodyShapeError, setEditBodyShapeError] = useState<string | null>(null);
+
   async function loadProducts() {
     setLoadingList(true);
     try {
@@ -102,9 +135,21 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
     }
   }
 
+  async function loadBodyShapes() {
+    setLoadingBodyShapes(true);
+    try {
+      const response = await fetch("/api/admin/body-shapes", {cache: "no-store"});
+      const data: unknown = response.ok ? await response.json().catch(() => []) : [];
+      setBodyShapes(Array.isArray(data) ? (data as AdminBodyShape[]) : []);
+    } finally {
+      setLoadingBodyShapes(false);
+    }
+  }
+
   useEffect(() => {
     loadProducts();
     loadHeroCards();
+    loadBodyShapes();
   }, []);
 
   useEffect(() => {
@@ -447,6 +492,103 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
     }
   }
 
+  async function handleCreateBodyShape(event: FormEvent) {
+    event.preventDefault();
+    setCreateBodyShapeError(null);
+
+    if (!createBodyShapeForm.name.trim()) {
+      setCreateBodyShapeError("Name is required.");
+      return;
+    }
+
+    setCreatingBodyShape(true);
+    try {
+      const response = await fetch("/api/admin/body-shapes", {
+        method: "POST",
+        body: buildBodyShapeFormData(createBodyShapeForm)
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        setCreateBodyShapeError(data?.error ?? "Could not save body shape.");
+        return;
+      }
+      setCreateBodyShapeForm(emptyBodyShapeForm());
+      setToast({type: "success", message: `"${data?.name ?? "Body shape"}" was added.`});
+      await loadBodyShapes();
+      setTab("manage-body-shapes");
+    } catch {
+      setCreateBodyShapeError("Could not reach the server. Please check your connection and try again.");
+    } finally {
+      setCreatingBodyShape(false);
+    }
+  }
+
+  function startEditBodyShape(shape: AdminBodyShape) {
+    setEditingBodyShape(shape);
+    setEditBodyShapeForm(formFromBodyShape(shape));
+    setEditBodyShapeError(null);
+    setTab("edit-body-shape");
+  }
+
+  function cancelEditBodyShape() {
+    setEditingBodyShape(null);
+    setEditBodyShapeError(null);
+    setTab("manage-body-shapes");
+  }
+
+  async function handleEditBodyShapeSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!editingBodyShape) {
+      return;
+    }
+    setEditBodyShapeError(null);
+
+    if (!editBodyShapeForm.name.trim()) {
+      setEditBodyShapeError("Name is required.");
+      return;
+    }
+
+    setEditBodyShapeSubmitting(true);
+    try {
+      const response = await fetch(`/api/admin/body-shapes?id=${encodeURIComponent(editingBodyShape.id)}`, {
+        method: "PATCH",
+        body: buildBodyShapeFormData(editBodyShapeForm)
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        setEditBodyShapeError(data?.error ?? "Could not update body shape.");
+        return;
+      }
+      setToast({type: "success", message: `"${data?.name ?? editingBodyShape.name}" was updated.`});
+      setEditingBodyShape(null);
+      await loadBodyShapes();
+      await loadProducts();
+      setTab("manage-body-shapes");
+    } catch {
+      setEditBodyShapeError("Could not reach the server. Please check your connection and try again.");
+    } finally {
+      setEditBodyShapeSubmitting(false);
+    }
+  }
+
+  async function setBodyShapeArchived(shape: AdminBodyShape, archived: boolean) {
+    setBusyBodyShapeId(shape.id);
+    try {
+      const response = await fetch(
+        `/api/admin/body-shapes?id=${encodeURIComponent(shape.id)}&action=${archived ? "archive" : "unarchive"}`,
+        {method: "PATCH"}
+      );
+      if (!response.ok) {
+        setToast({type: "error", message: `Could not ${archived ? "archive" : "unarchive"} "${shape.name}".`});
+        return;
+      }
+      setToast({type: "success", message: `"${shape.name}" was ${archived ? "archived" : "unarchived"}.`});
+      await loadBodyShapes();
+    } finally {
+      setBusyBodyShapeId(null);
+    }
+  }
+
   const isEditing = Boolean(editingProduct);
 
   const pageTitles: Record<Tab, string> = {
@@ -454,7 +596,10 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
     add: isEditing ? "Edit Product" : "Add Product",
     manage: "Manage Products",
     "add-hero-card": "Add Hero Card",
-    "manage-hero-cards": "Manage Hero Cards"
+    "manage-hero-cards": "Manage Hero Cards",
+    "add-body-shape": "Add Body Shape",
+    "manage-body-shapes": "Manage Body Shapes",
+    "edit-body-shape": "Edit Body Shape"
   };
 
   return (
@@ -478,6 +623,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
               onSubmit={handleEditSubmit}
               submitting={editSubmitting}
               errorMessage={editError}
+              bodyShapes={bodyShapes}
               imageSlug={editingProduct.slug}
               onCancel={cancelEdit}
               product={editingProduct}
@@ -499,6 +645,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
               onSubmit={handleCreate}
               submitting={creating}
               errorMessage={createError}
+              bodyShapes={bodyShapes}
               imageSlug={createForm.name || "new-product"}
             />
           )
@@ -536,6 +683,40 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
             onDelete={handleDeleteHeroCard}
             onReorder={handleReorderHeroCards}
             busyId={busyHeroCardId}
+          />
+        ) : null}
+
+        {tab === "add-body-shape" ? (
+          <BodyShapeForm
+            mode="create"
+            form={createBodyShapeForm}
+            onChange={setCreateBodyShapeForm}
+            onSubmit={handleCreateBodyShape}
+            submitting={creatingBodyShape}
+            errorMessage={createBodyShapeError}
+          />
+        ) : null}
+
+        {tab === "manage-body-shapes" ? (
+          <ManageBodyShapesPanel
+            shapes={bodyShapes}
+            loading={loadingBodyShapes}
+            onEdit={startEditBodyShape}
+            onArchive={(shape) => setBodyShapeArchived(shape, true)}
+            onUnarchive={(shape) => setBodyShapeArchived(shape, false)}
+            busyId={busyBodyShapeId}
+          />
+        ) : null}
+
+        {tab === "edit-body-shape" && editingBodyShape ? (
+          <BodyShapeForm
+            mode="edit"
+            form={editBodyShapeForm}
+            onChange={setEditBodyShapeForm}
+            onSubmit={handleEditBodyShapeSubmit}
+            submitting={editBodyShapeSubmitting}
+            errorMessage={editBodyShapeError}
+            onCancel={cancelEditBodyShape}
           />
         ) : null}
       </div>

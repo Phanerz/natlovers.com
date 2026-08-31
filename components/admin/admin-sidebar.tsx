@@ -5,7 +5,19 @@ import type {Route} from "next";
 import {usePathname, useSearchParams} from "next/navigation";
 import {useEffect, useState} from "react";
 import {signOut} from "next-auth/react";
-import {ChevronUp, GalleryHorizontal, LayoutDashboard, LogOut, Palette, PlusCircle, Receipt, ShoppingBag, Users, Warehouse} from "lucide-react";
+import {
+  Boxes,
+  ChevronUp,
+  GalleryHorizontal,
+  LayoutDashboard,
+  LogOut,
+  Palette,
+  PlusCircle,
+  Receipt,
+  ShoppingBag,
+  Users,
+  Warehouse
+} from "lucide-react";
 import {ShopProductType, productTypeLabels, shopProductTypes} from "@/app/catalogue/shop-data";
 
 // Typography/spacing/interaction lifted directly from app/catalogue/
@@ -115,6 +127,8 @@ export function AdminSidebar() {
   const isAdd = onDashboardRoute && tab === "add";
   const isManageHero = onDashboardRoute && tab === "manage-hero-cards";
   const isAddHero = onDashboardRoute && tab === "add-hero-card";
+  const isManageBodyShapes = onDashboardRoute && (tab === "manage-body-shapes" || tab === "edit-body-shape");
+  const isAddBodyShape = onDashboardRoute && tab === "add-body-shape";
 
   return (
     <aside className="w-full shrink-0 rounded-xl border border-[#d4c5ab] bg-[#fffaf1] p-4 lg:w-64">
@@ -183,6 +197,15 @@ export function AdminSidebar() {
               </NavLink>
             </div>
             <AddLink href="/mimin?tab=add-hero-card" active={isAddHero} label="Add hero card" />
+          </div>
+
+          <div className="flex items-center gap-1">
+            <div className="min-w-0 flex-1">
+              <NavLink href="/mimin?tab=manage-body-shapes" active={isManageBodyShapes} icon={Boxes}>
+                Body Shapes
+              </NavLink>
+            </div>
+            <AddLink href="/mimin?tab=add-body-shape" active={isAddBodyShape} label="Add body shape" />
           </div>
         </div>
       </div>

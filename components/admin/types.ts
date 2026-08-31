@@ -4,14 +4,12 @@ import {
   ShopMaterial,
   ShopProductType,
   ShopShape,
-  ShopSize,
   accessoryCategories,
   shopHandles,
   shopProductTypes,
-  shopShapes,
-  shopSizes
+  shopShapes
 } from "@/app/catalogue/shop-data";
-import type {SizeDimensionOverrides} from "@/lib/size-dimensions";
+import type {AdminBodyShape} from "./body-shape-types";
 
 export type ColourOption = {label: string; hex: string};
 
@@ -45,7 +43,6 @@ export type AdminProduct = {
   productType: ShopProductType;
   subcategory: string | null;
   materials: ShopMaterial[];
-  size: ShopSize | null;
   shape: ShopShape | null;
   handle: ShopHandle | null;
   accessoryCategory: AccessoryCategory | null;
@@ -62,8 +59,8 @@ export type AdminProduct = {
   productCode: string | null;
   vendor: string | null;
   dimensions: string | null;
-  sizeDimensions: SizeDimensionOverrides;
-  sizePriceDeltaIdr: Partial<Record<ShopSize, number>>;
+  bodyShapeId: string | null;
+  bodyShape: AdminBodyShape | null;
   metaTitle: string | null;
   metaDescription: string | null;
   hasBaseColour: boolean;
@@ -91,7 +88,11 @@ export type ProductFormState = {
   shortDescription: string;
   productType: ShopProductType;
   subcategory: string;
-  size: ShopSize;
+  // Empty string means "unassigned"  -  the grandfathered state every
+  // product migrated from the old Small/Medium/Large size system starts in
+  // (see attributesForType in lib/admin-products.ts). A new product must
+  // pick a real one from the Body Shapes catalog before it can be created.
+  bodyShapeId: string;
   shape: ShopShape;
   handle: ShopHandle;
   accessoryCategory: AccessoryCategory;
@@ -112,15 +113,11 @@ export type ProductFormState = {
   // rendered read-only in the form and re-joined in buildFormData.
   productCodeSuffix: string;
   vendor: string;
-  // Free text, e.g. "Approx. 30 x 20 x 15 cm". Empty means "not measured
-  // yet"  -  kept as a plain string like stock/productCodeSuffix above.
+  // Free text, e.g. "Approx. 30 x 20 x 15 cm" or an override for an
+  // irregular piece the assigned body's own L/W/H can't express. Empty
+  // means "use the assigned body's real dimensions"  -  kept as a plain
+  // string like stock/productCodeSuffix above.
   dimensions: string;
-  // Real per-size L/W/H overrides, keyed by ShopSize  -  a size missing here
-  // falls back to lib/size-dimensions.ts's shared placeholder.
-  sizeDimensions: SizeDimensionOverrides;
-  // TODO(pricing): every value here is 0 by default  -  see the matching
-  // comment on products.sizePriceDeltaIdr in lib/db/schema.ts.
-  sizePriceDeltaIdr: Partial<Record<ShopSize, number>>;
   status: ProductStatus;
   visibility: ProductVisibility;
   // datetime-local input value ("" means "not published yet").
@@ -153,7 +150,7 @@ export function emptyForm(): ProductFormState {
     shortDescription: "",
     productType: shopProductTypes[0],
     subcategory: "",
-    size: shopSizes[0],
+    bodyShapeId: "",
     shape: shopShapes[0],
     handle: shopHandles[0],
     accessoryCategory: accessoryCategories[0],
@@ -168,8 +165,6 @@ export function emptyForm(): ProductFormState {
     productCodeSuffix: "",
     vendor: "",
     dimensions: "",
-    sizeDimensions: {},
-    sizePriceDeltaIdr: {},
     status: "active",
     visibility: "public",
     publishedAt: "",
@@ -194,7 +189,7 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     shortDescription: product.shortDescription ?? "",
     productType: product.productType,
     subcategory: product.subcategory ?? "",
-    size: product.size ?? shopSizes[0],
+    bodyShapeId: product.bodyShapeId ?? "",
     shape: product.shape ?? shopShapes[0],
     handle: product.handle ?? shopHandles[0],
     accessoryCategory: product.accessoryCategory ?? accessoryCategories[0],
@@ -209,8 +204,6 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     productCodeSuffix: product.productCode ? product.productCode.slice(PRODUCT_CODE_PREFIX.length) : "",
     vendor: product.vendor ?? "",
     dimensions: product.dimensions ?? "",
-    sizeDimensions: product.sizeDimensions,
-    sizePriceDeltaIdr: product.sizePriceDeltaIdr,
     status: product.status,
     visibility: product.visibility,
     publishedAt: toDatetimeLocal(product.publishedAt),
@@ -242,12 +235,12 @@ export function buildFormData(form: ProductFormState) {
   formData.set("subcategory", form.subcategory.trim());
 
   if (form.productType === "Bags") {
-    formData.set("size", form.size);
+    if (form.bodyShapeId) formData.set("bodyShapeId", form.bodyShapeId);
     formData.set("shape", form.shape);
     formData.set("handle", form.handle);
     form.materials.forEach((material) => formData.append("materials", material));
   } else if (form.productType === "Dolls") {
-    formData.set("size", form.size);
+    if (form.bodyShapeId) formData.set("bodyShapeId", form.bodyShapeId);
   } else if (form.productType === "Accessories") {
     formData.set("accessoryCategory", form.accessoryCategory);
   }
@@ -268,8 +261,6 @@ export function buildFormData(form: ProductFormState) {
   formData.set("productCode", form.productCodeSuffix.trim() ? `${PRODUCT_CODE_PREFIX}${form.productCodeSuffix.trim()}` : "");
   formData.set("vendor", form.vendor.trim());
   formData.set("dimensions", form.dimensions.trim());
-  formData.set("sizeDimensions", JSON.stringify(form.sizeDimensions));
-  formData.set("sizePriceDeltaIdr", JSON.stringify(form.sizePriceDeltaIdr));
 
   formData.set("status", form.status);
   formData.set("visibility", form.visibility);

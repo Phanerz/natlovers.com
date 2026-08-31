@@ -15,6 +15,8 @@ import {
   shopProductTypes,
   shopShapes
 } from "@/app/catalogue/shop-data";
+import {summarizeBodyShapeDimensions} from "@/lib/body-shapes";
+import {AdminBodyShape} from "./body-shape-types";
 import {GlassToggle} from "./glass-toggle";
 import {ImageDropzone} from "./image-dropzone";
 import {ProductOptionsCard} from "./product-options-card";
@@ -55,19 +57,75 @@ const statusPillStyle: Record<ProductStatus, string> = {
 
 const statusPillLabel: Record<ProductStatus, string> = {active: "Active", draft: "Draft", archived: "Archived"};
 
+// A body is required for a brand new Bag/Doll (enforced server-side in
+// attributesForType), but an existing product migrated from the old
+// Small/Medium/Large size system may still be unassigned  -  that option is
+// only ever shown for a product that's already in that state, so a fresh
+// create-mode form never lets an admin pick it back into "unassigned."
+function BodyShapeField({
+  bodyShapeId,
+  bodyShapes,
+  onChange
+}: {
+  bodyShapeId: string;
+  bodyShapes: AdminBodyShape[];
+  onChange: (value: string) => void;
+}) {
+  const active = bodyShapes.filter((shape) => !shape.isArchived || shape.id === bodyShapeId);
+  return (
+    <label className="space-y-2 text-sm text-forest-700">
+      <span className="muted">Body</span>
+      <SelectField value={bodyShapeId} onChange={onChange}>
+        {!bodyShapeId ? <option value="">— Unassigned  -  pick a body —</option> : null}
+        {active.map((shape) => (
+          <option key={shape.id} value={shape.id}>
+            {shape.name} ({summarizeBodyShapeDimensions(shape)}){shape.inStock ? "" : " — out of stock"}
+            {shape.isArchived ? " — archived" : ""}
+          </option>
+        ))}
+      </SelectField>
+    </label>
+  );
+}
+
+function DimensionsOverrideField({form, onChange}: {form: ProductFormState; onChange: (next: ProductFormState) => void}) {
+  return (
+    <label className="block space-y-2 text-sm text-forest-700">
+      <span className="muted">Dimensions override (optional)</span>
+      <input
+        value={form.dimensions}
+        onChange={(event) => onChange({...form, dimensions: event.target.value})}
+        placeholder="e.g. Approx. 30 x 20 x 15 cm  -  for an irregular piece the assigned body's own dimensions can't express"
+        className={fieldClass}
+      />
+    </label>
+  );
+}
+
 // Fixed physical/taxonomic properties that drive the catalogue's own filter
-// sidebar (Shape, Handle type, Materials, Accessory sub-category)  -  distinct
-// from Product Options (Size/Colour/Personalisation), which is what a
-// customer actively chooses when buying. Size used to live here too; it
-// moved to Product Options since it's a real purchase choice, not a fixed
-// property of the listing. Returns null for types with nothing left to show
-// (Dolls, Apparels) so the card itself can be skipped rather than rendered
-// empty.
-function AttributeFields({form, onChange}: {form: ProductFormState; onChange: (next: ProductFormState) => void}) {
+// sidebar (Shape, Handle type, Materials, Accessory sub-category) and the
+// storefront's Dimensions accordion (Body)  -  distinct from Product Options
+// (Colour/Personalisation), which is what a customer actively chooses when
+// buying. Returns null for types with nothing left to show (Apparels) so
+// the card itself can be skipped rather than rendered empty.
+function AttributeFields({
+  form,
+  onChange,
+  bodyShapes
+}: {
+  form: ProductFormState;
+  onChange: (next: ProductFormState) => void;
+  bodyShapes: AdminBodyShape[];
+}) {
   if (form.productType === "Bags") {
     return (
       <>
         <div className="grid gap-6 sm:grid-cols-2">
+          <BodyShapeField
+            bodyShapeId={form.bodyShapeId}
+            bodyShapes={bodyShapes}
+            onChange={(value) => onChange({...form, bodyShapeId: value})}
+          />
           <PillSingleSelect
             label="Shape"
             options={shopShapes}
@@ -75,14 +133,14 @@ function AttributeFields({form, onChange}: {form: ProductFormState; onChange: (n
             value={form.shape}
             onChange={(value) => onChange({...form, shape: value})}
           />
-          <PillSingleSelect
-            label="Handle"
-            options={shopHandles}
-            getLabel={(option) => handleLabels[option].en}
-            value={form.handle}
-            onChange={(value) => onChange({...form, handle: value})}
-          />
         </div>
+        <PillSingleSelect
+          label="Handle"
+          options={shopHandles}
+          getLabel={(option) => handleLabels[option].en}
+          value={form.handle}
+          onChange={(value) => onChange({...form, handle: value})}
+        />
         <PillMultiSelect
           label="Materials"
           options={bagMaterials}
@@ -90,6 +148,20 @@ function AttributeFields({form, onChange}: {form: ProductFormState; onChange: (n
           value={form.materials}
           onChange={(value) => onChange({...form, materials: value})}
         />
+        <DimensionsOverrideField form={form} onChange={onChange} />
+      </>
+    );
+  }
+
+  if (form.productType === "Dolls") {
+    return (
+      <>
+        <BodyShapeField
+          bodyShapeId={form.bodyShapeId}
+          bodyShapes={bodyShapes}
+          onChange={(value) => onChange({...form, bodyShapeId: value})}
+        />
+        <DimensionsOverrideField form={form} onChange={onChange} />
       </>
     );
   }
@@ -127,7 +199,8 @@ export function ProductForm({
   hasPrev,
   hasNext,
   onPreview,
-  previewing
+  previewing,
+  bodyShapes
 }: {
   mode: "create" | "edit";
   form: ProductFormState;
@@ -162,9 +235,11 @@ export function ProductForm({
   // create-mode product has no slug/URL yet.
   onPreview?: () => void;
   previewing?: boolean;
+  bodyShapes: AdminBodyShape[];
 }) {
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
-  const showAttributes = form.productType === "Bags" || form.productType === "Accessories";
+  const showAttributes =
+    form.productType === "Bags" || form.productType === "Dolls" || form.productType === "Accessories";
   const productUrl = product ? `natlovers.com/catalogue/${product.slug}` : null;
 
   return (
@@ -382,7 +457,7 @@ export function ProductForm({
 
           {showAttributes ? (
             <SectionCard title="Attributes">
-              <AttributeFields form={form} onChange={onChange} />
+              <AttributeFields form={form} onChange={onChange} bodyShapes={bodyShapes} />
             </SectionCard>
           ) : null}
 

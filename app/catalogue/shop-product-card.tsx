@@ -14,9 +14,7 @@ import {
   categoryPillStyle,
   handleLabels,
   handlePillStyle,
-  materialImageStyle,
-  sizeLabels,
-  sizePillStyle
+  materialImageStyle
 } from "./shop-data";
 
 export function ShopProductCard({
@@ -151,14 +149,6 @@ export function ShopProductCard({
           {formatCurrency(product.priceIdr, currency)}
         </p>
         <div className="scrollbar-hide pointer-events-auto mt-2 flex flex-nowrap gap-1.5 overflow-x-auto">
-          {product.size ? (
-            <span
-              className="shrink-0 rounded-full border px-2.5 py-1 text-[13px] leading-none sm:px-3 sm:text-[14px]"
-              style={{backgroundColor: sizePillStyle.bg, borderColor: sizePillStyle.border, color: sizePillStyle.text}}
-            >
-              {sizeLabels[product.size][locale]}
-            </span>
-          ) : null}
           {product.handle ? (
             <span
               className="shrink-0 rounded-full border px-2.5 py-1 text-[13px] leading-none sm:px-3 sm:text-[14px]"

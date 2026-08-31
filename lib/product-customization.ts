@@ -1,4 +1,4 @@
-import type {ShopHandle, ShopMaterial, ShopShape, ShopSize} from "@/app/catalogue/shop-data";
+import type {ShopHandle, ShopMaterial, ShopShape} from "@/app/catalogue/shop-data";
 import {
   type BagConfig,
   type CustomConfig,
@@ -13,10 +13,12 @@ import {
 
 // Seeds the product page's customiser from the actual product being viewed,
 // not the Custom Studio's generic defaults  -  a customer configuring "this
-// bag" should start from what they're looking at (its real shape/colour/
-// size) and can change any of it from there, not restart from a
-// Rectangle/Agel/Medium that has nothing to do with the product open in
-// front of them.
+// bag" should start from what they're looking at (its real shape/colour)
+// and can change any of it from there, not restart from a Rectangle/Agel
+// that has nothing to do with the product open in front of them. Size is
+// not seeded: Custom Studio keeps its own independent Small/Medium/Large
+// sizing, unrelated to this product's own assigned body (see
+// lib/body-shapes.ts).
 //
 // Returns null for a product type Custom Studio doesn't cover at all  - 
 // Accessories are made to fixed designs and were never offered as
@@ -26,7 +28,6 @@ export function defaultConfigForProduct(product: {
   productType: string;
   shape: ShopShape | null;
   handle: ShopHandle | null;
-  size: ShopSize | null;
   materials: ShopMaterial[];
 }): CustomConfig | null {
   if (!isCustomProductType(product.productType)) {
@@ -48,14 +49,12 @@ export function defaultConfigForProduct(product: {
       // still real and still priced/persisted end to end  -  the product page
       // is what sets it, seeded from the actual product's handle type.
       handle:
-        product.handle && (customBagHandles as string[]).includes(product.handle) ? product.handle : customBagHandles[0],
-      size: product.size ?? base.size
+        product.handle && (customBagHandles as string[]).includes(product.handle) ? product.handle : customBagHandles[0]
     };
   }
 
   if (productType === "Dolls") {
-    const base = defaultConfigFor("Dolls") as DollConfig;
-    return {...base, size: product.size ?? base.size};
+    return defaultConfigFor("Dolls") as DollConfig;
   }
 
   // Apparels: the catalogue schema carries none of a garment/size/colour/

@@ -1,5 +1,17 @@
 import {sql} from "drizzle-orm";
-import {boolean, index, integer, jsonb, pgPolicy, pgTable, primaryKey, text, timestamp, uniqueIndex} from "drizzle-orm/pg-core";
+import {
+  boolean,
+  doublePrecision,
+  index,
+  integer,
+  jsonb,
+  pgPolicy,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex
+} from "drizzle-orm/pg-core";
 
 type ProviderType = "oauth" | "email" | "credentials";
 
@@ -23,6 +35,43 @@ type ProviderType = "oauth" | "email" | "credentials";
 // Only genuinely public storefront data (products, hero cards) gets a real
 // anon-readable policy, since that data is meant to be public regardless of
 // which door it's read through.
+// Admin-managed catalog of real bag/doll bodies (e.g. "Oval Mdg INBB",
+// "Cowak L")  -  a product picks exactly one, via products.bodyShapeId below,
+// replacing the old Small/Medium/Large size system with the workshop's own
+// real named bodies and their real measurements. Two dimension vocabularies
+// share one row rather than two tables, since a body is only ever one or
+// the other: `shapeType: "box"` uses width/height/depth (widthBottomCm is
+// for a tapered body whose rim and base widths differ, e.g. an oval basket
+// quoted as "40/27"); `shapeType: "round"` uses diameter/thickness, with
+// height only when the body is tall enough to have one distinct from its
+// thickness (e.g. Bumbung) rather than a flat drum shape (e.g. Rebana).
+// Every dimension column is nullable  -  a real body can exist in the
+// catalog before its measurements are known (e.g. "Palit lodong/bucket",
+// out of stock with no measurement yet), and the admin fills them in once
+// they have the piece in hand.
+export const bodyShapes = pgTable("body_shapes", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  shapeType: text("shape_type").notNull(),
+  widthCm: doublePrecision("width_cm"),
+  widthBottomCm: doublePrecision("width_bottom_cm"),
+  heightCm: doublePrecision("height_cm"),
+  depthCm: doublePrecision("depth_cm"),
+  diameterCm: doublePrecision("diameter_cm"),
+  thicknessCm: doublePrecision("thickness_cm"),
+  // "Body habis"  -  the workshop is temporarily out of this body, but it
+  // stays in the catalog (existing products keep it assigned, its real
+  // dimensions keep showing) rather than being archived, which is for a
+  // body that's been retired from the catalog entirely.
+  inStock: boolean("in_stock").notNull().default(true),
+  notes: text("notes"),
+  isArchived: boolean("is_archived").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}).enableRLS();
+
 export const products = pgTable(
   "products",
   {
@@ -50,29 +99,20 @@ export const products = pgTable(
     // Whether the storefront gallery's click-to-expand/zoom lightbox is
     // offered for this product  -  see components/product/product-gallery.tsx.
     imageZoomEnabled: boolean("image_zoom_enabled").notNull().default(true),
-    // Bags/Dolls-only.
-    size: text("size"),
+    // Bags/Dolls-only. References bodyShapes above  -  null means
+    // "unassigned," the grandfathered state every product migrated from the
+    // old Small/Medium/Large size system starts in (see the body-shapes
+    // migration), not an error state. onDelete: "set null" so removing a
+    // body from the catalog un-assigns it from any product rather than
+    // failing or cascading.
+    bodyShapeId: text("body_shape_id").references(() => bodyShapes.id, {onDelete: "set null"}),
     materials: text("materials").array().notNull().default([]),
-    // Free text rather than separate height/width/depth columns, so it can
-    // honestly express handmade variance ("Approx. 30 x 20 x 15 cm") instead
-    // of implying a precision the product doesn't have. Optional  -  an admin
-    // fills it in when they have the real measurement; the product page
-    // falls back to showing the Small/Medium/Large size instead when null.
+    // Free text rather than a structured column, so it can honestly express
+    // handmade variance ("Approx. 30 x 20 x 15 cm") or an irregular piece
+    // the assigned body's own L/W/H can't express. Optional  -  when null,
+    // the product page's Dimensions accordion falls back to the assigned
+    // body's real measurements instead.
     dimensions: text("dimensions"),
-    // Real per-product, per-size L/W/H in cm, keyed by ShopSize. Every one
-    // of the three sizes stays customer-pickable on the storefront
-    // regardless of the product's own default `size` above (see
-    // ProductCustomizer), so this can hold up to all three, not just the
-    // selected one. A size missing from this object falls back to
-    // lib/size-dimensions.ts's shared placeholder for that size  -  the
-    // admin only needs to fill in the ones that have real measurements.
-    sizeDimensions: jsonb("size_dimensions").$type<Partial<Record<string, {L: number; W: number; H: number}>>>(),
-    // TODO(pricing): every delta here defaults to 0, same honesty principle
-    // as lib/custom-pricing.ts's modifiers  -  real per-size surcharges
-    // haven't been decided yet, so the customiser's "Estimated total" is
-    // just the base price until an admin fills these in. A size missing
-    // from this object is treated as 0, not an error.
-    sizePriceDeltaIdr: jsonb("size_price_delta_idr").$type<Partial<Record<string, number>>>(),
     // Bags-only.
     shape: text("shape"),
     handleType: text("handle_type"),

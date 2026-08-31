@@ -13,7 +13,6 @@ import {LOCAL_CUSTOM_DRAFT_KEY, type LocalCustomDraft} from "@/lib/custom-studio
 import {defaultConfigForProduct} from "@/lib/product-customization";
 import type {ProductSelection} from "@/lib/product-selection";
 import type {AdminProduct} from "@/lib/admin-products";
-import {ShopSize} from "@/app/catalogue/shop-data";
 import {ProductCustomizer} from "@/components/product/product-customizer";
 
 export function ProductPurchasePanel({product}: {product: AdminProduct}) {
@@ -24,24 +23,14 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
   const {addToCart} = useStorefront();
   const {isWishlisted, toggle: toggleWishlist} = useWishlist();
 
-  const showSize = product.size !== null;
-  const [size, setSize] = useState<ShopSize>(product.size ?? "Medium");
   const [baseColour, setBaseColour] = useState<string | null>(product.baseColourOptions[0]?.label ?? null);
   const [handleColour, setHandleColour] = useState<string | null>(product.handleColourOptions[0]?.label ?? null);
   const [personalisationNote, setPersonalisationNote] = useState("");
 
-  // TODO(pricing): sizePriceDeltaIdr is 0 for every size until a real
-  // figure is entered in the admin  -  see the matching comment on
-  // products.sizePriceDeltaIdr in lib/db/schema.ts. Colour doesn't affect
-  // price yet; only size does, so this is the whole estimate for now.
-  const sizeDelta = showSize ? (product.sizePriceDeltaIdr[size] ?? 0) : 0;
-  const estimatedTotal = product.priceIdr + sizeDelta;
-
-  const hasSelection = showSize || product.hasBaseColour || product.hasHandleColour || product.hasPersonalisation;
+  const hasSelection = product.hasBaseColour || product.hasHandleColour || product.hasPersonalisation;
   const selection: ProductSelection | undefined = hasSelection
     ? {
         kind: "productSelection",
-        ...(showSize ? {size} : {}),
         ...(product.hasBaseColour && baseColour ? {baseColour} : {}),
         ...(product.hasHandleColour && handleColour ? {handleColour} : {}),
         ...(product.hasPersonalisation && personalisationNote.trim() ? {personalisationNote: personalisationNote.trim()} : {})
@@ -81,17 +70,14 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
     if (!customStudioBase || customising) return;
     setCustomising(true);
     try {
-      // Size is the one axis that maps cleanly onto Custom Studio's own
-      // config shape (same Small/Medium/Large domain for Bags and Dolls,
-      // the only types that show a size picker here)  -  carried over so the
-      // studio opens already reflecting what was chosen. Base/handle colour
-      // have no equivalent there (Custom Studio's colour is a fixed
-      // five-material enum, not a per-product hex swatch), so they aren't
-      // part of this handoff.
-      const config =
-        showSize && (customStudioBase.productType === "Bags" || customStudioBase.productType === "Dolls")
-          ? {...customStudioBase, size}
-          : customStudioBase;
+      // Custom Studio keeps its own independent Small/Medium/Large sizing
+      // (see lib/custom-studio.ts), unrelated to this product's own
+      // assigned body, so there's nothing to carry over here beyond
+      // defaultConfigForProduct's own shape/handle/materials seeding. Base/
+      // handle colour have no equivalent there either (Custom Studio's
+      // colour is a fixed five-material enum, not a per-product hex
+      // swatch), so they aren't part of this handoff.
+      const config = customStudioBase;
       const draft: LocalCustomDraft = {productType: config.productType, config, notes: ""};
       try {
         window.localStorage.setItem(LOCAL_CUSTOM_DRAFT_KEY, JSON.stringify(draft));
@@ -151,10 +137,6 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
 
       <div className="mt-5">
         <ProductCustomizer
-          showSize={showSize}
-          size={size}
-          onSizeChange={setSize}
-          sizeDimensions={product.sizeDimensions}
           hasBaseColour={product.hasBaseColour}
           baseColourOptions={product.baseColourOptions}
           baseColour={baseColour}
@@ -170,13 +152,6 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
       </div>
 
       <hr className="mt-5 border-forest-100" />
-
-      {showSize ? (
-        <div className="mt-4 flex items-center justify-between text-sm">
-          <span className="font-medium text-forest-700">Estimated total</span>
-          <span className="font-display text-lg text-forest-900">{formatCurrency(estimatedTotal, currency)}</span>
-        </div>
-      ) : null}
 
       <div className="mt-4 flex flex-col gap-3">
         {customStudioBase ? (

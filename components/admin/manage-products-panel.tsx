@@ -258,7 +258,7 @@ export function ManageProductsPanel({
       ) : pageItems.length ? (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[960px] border-collapse text-sm">
+            <table className="w-full min-w-[1080px] border-collapse text-sm">
               <thead>
                 <tr className="text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-500">
                   <th className="w-8 pb-3 pr-3">
@@ -272,6 +272,7 @@ export function ManageProductsPanel({
                   </th>
                   <th className="pb-3 pr-3">Product</th>
                   <th className="pb-3 pr-3">Type</th>
+                  <th className="pb-3 pr-3">Body</th>
                   <th className="pb-3 pr-3">Price (IDR)</th>
                   <th className="pb-3 pr-3">Status</th>
                   <th className="pb-3 pr-3">Visibility</th>
@@ -304,6 +305,17 @@ export function ManageProductsPanel({
                       </div>
                     </td>
                     <td className="py-3 pr-3 text-forest-700">{productTypeLabels[product.productType].en}</td>
+                    <td className="py-3 pr-3">
+                      {product.bodyShape ? (
+                        <span className="text-forest-700">{product.bodyShape.name}</span>
+                      ) : product.productType === "Bags" || product.productType === "Dolls" ? (
+                        <span className="inline-flex rounded-full bg-[#f6ddc9] px-3 py-1 text-xs font-medium text-[#8a4a1f]">
+                          Unassigned
+                        </span>
+                      ) : (
+                        <span className="text-forest-400">—</span>
+                      )}
+                    </td>
                     <td className="py-3 pr-3 text-forest-700">Rp{product.priceIdr.toLocaleString("id-ID")}</td>
                     <td className="py-3 pr-3">
                       <span

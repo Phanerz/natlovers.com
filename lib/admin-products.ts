@@ -1,8 +1,8 @@
 import {and, desc, eq} from "drizzle-orm";
 import {z} from "zod";
-import {db, products} from "@/lib/db";
+import {AdminBodyShape, assertBodyShapeExists, getBodyShapeById} from "@/lib/admin-body-shapes";
+import {db, bodyShapes, products} from "@/lib/db";
 import {sanitizeDescriptionHtml} from "@/lib/sanitize-html";
-import type {SizeDimensionOverrides} from "@/lib/size-dimensions";
 import {
   AccessoryCategory,
   ShopHandle,
@@ -10,13 +10,11 @@ import {
   ShopProduct,
   ShopProductType,
   ShopShape,
-  ShopSize,
   accessoryCategories,
   bagMaterials,
   shopHandles,
   shopProductTypes,
-  shopShapes,
-  shopSizes
+  shopShapes
 } from "@/app/catalogue/shop-data";
 
 export type ColourOption = {label: string; hex: string};
@@ -47,8 +45,14 @@ export type AdminProduct = ShopProduct & {
   productCode: string | null;
   vendor: string | null;
   dimensions: string | null;
-  sizeDimensions: SizeDimensionOverrides;
-  sizePriceDeltaIdr: Partial<Record<ShopSize, number>>;
+  bodyShapeId: string | null;
+  // Denormalized here (not just the id) so every read site  -  storefront
+  // Dimensions accordion, admin list/form  -  has the real measurements
+  // without a second fetch. Null means "unassigned," not "no body exists":
+  // every product migrated from the old Small/Medium/Large size system
+  // starts here until an admin picks the real body (see the body-shapes
+  // migration notes).
+  bodyShape: AdminBodyShape | null;
   subcategory: string | null;
   compareAtPriceIdr: number | null;
   costPriceIdr: number | null;
@@ -75,17 +79,6 @@ const colourOptionSchema = z.object({
   hex: z.string().trim().regex(HEX_COLOUR_PATTERN, "Colour must be a valid hex code, e.g. #B7924B or #FFF.")
 });
 
-const sizeDimensionsSchema = z.record(
-  z.enum(shopSizes as unknown as [string, ...string[]]),
-  z.object({
-    L: z.number().nonnegative("Length must be 0 or more."),
-    W: z.number().nonnegative("Width must be 0 or more."),
-    H: z.number().nonnegative("Height must be 0 or more.")
-  })
-);
-
-const sizePriceDeltaSchema = z.record(z.enum(shopSizes as unknown as [string, ...string[]]), z.number());
-
 // Every per-type attribute is optional at the schema level  -  which fields
 // are actually required is enforced per productType below, not here, since
 // a Doll requiring "shape" (a Bags-only field) would be nonsensical.
@@ -94,7 +87,7 @@ const shopProductInputSchema = z.object({
   priceIdr: z.coerce.number().int().positive("Price must be a positive number."),
   description: z.string().trim().optional(),
   productType: z.enum(shopProductTypes as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopProductType>,
-  size: (z.enum(shopSizes as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopSize>).optional(),
+  bodyShapeId: z.string().trim().min(1).optional(),
   shape: (z.enum(shopShapes as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopShape>).optional(),
   handle: (z.enum(shopHandles as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopHandle>).optional(),
   accessoryCategory: (
@@ -244,49 +237,7 @@ function parseColourOptionsField(formData: FormData, field: string): ColourOptio
   return result.data;
 }
 
-// Same JSON-string-in-a-form-field travel as colour options above. Absent
-// entirely means "no overrides for any size" (falls back to the shared
-// placeholder for all three), not an error  -  most products won't have
-// real measurements entered yet.
-function parseSizeDimensionsField(formData: FormData): SizeDimensionOverrides {
-  const raw = formData.get("sizeDimensions");
-  if (raw === null || raw.toString().trim() === "") {
-    return {};
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw.toString());
-  } catch {
-    throw new Error("Size dimensions were malformed.");
-  }
-  const result = sizeDimensionsSchema.safeParse(parsed);
-  if (!result.success) {
-    throw new Error(result.error.issues[0]?.message ?? "Invalid size dimensions.");
-  }
-  return result.data as SizeDimensionOverrides;
-}
-
-// Same shape/travel as size dimensions above  -  absent means "no size
-// affects price," which is every product today (all deltas are 0).
-function parseSizePriceDeltaField(formData: FormData): Partial<Record<ShopSize, number>> {
-  const raw = formData.get("sizePriceDeltaIdr");
-  if (raw === null || raw.toString().trim() === "") {
-    return {};
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw.toString());
-  } catch {
-    throw new Error("Size price deltas were malformed.");
-  }
-  const result = sizePriceDeltaSchema.safeParse(parsed);
-  if (!result.success) {
-    throw new Error(result.error.issues[0]?.message ?? "Invalid size price delta.");
-  }
-  return result.data as Partial<Record<ShopSize, number>>;
-}
-
-function toAdminProduct(row: typeof products.$inferSelect): AdminProduct {
+function toAdminProduct(row: typeof products.$inferSelect, bodyShape: AdminBodyShape | null): AdminProduct {
   return {
     slug: row.slug,
     name: row.name,
@@ -301,7 +252,6 @@ function toAdminProduct(row: typeof products.$inferSelect): AdminProduct {
     productType: row.productType as ShopProductType,
     subcategory: row.subcategory,
     materials: row.materials as ShopMaterial[],
-    size: (row.size as ShopSize) ?? null,
     shape: (row.shape as ShopShape) ?? null,
     handle: (row.handleType as ShopHandle) ?? null,
     accessoryCategory: (row.accessoryCategory as AccessoryCategory) ?? null,
@@ -318,8 +268,8 @@ function toAdminProduct(row: typeof products.$inferSelect): AdminProduct {
     productCode: row.productCode,
     vendor: row.vendor,
     dimensions: row.dimensions,
-    sizeDimensions: (row.sizeDimensions as SizeDimensionOverrides | null) ?? {},
-    sizePriceDeltaIdr: (row.sizePriceDeltaIdr as Partial<Record<ShopSize, number>> | null) ?? {},
+    bodyShapeId: row.bodyShapeId,
+    bodyShape,
     metaTitle: row.metaTitle,
     metaDescription: row.metaDescription,
     hasBaseColour: row.hasBaseColour,
@@ -351,26 +301,37 @@ async function assertProductCodeAvailable(code: string, excludeSlug?: string) {
 
 // Each product type owns its own required-field set and its own valid
 // materials list  -  a Bag can only carry bagMaterials, Dolls/Accessories/
-// Apparel carry none.
+// Apparel carry none. `requireBody` is only true on creation: a brand new
+// Bag/Doll must pick a real body from the catalog (see the product form's
+// Body dropdown), but an existing product migrated from the old Small/
+// Medium/Large size system starts with no body assigned at all (see the
+// body-shapes migration), and every other edit to that product (price,
+// stock, hiding it, etc.) must keep working without forcing the admin to
+// assign a body first  -  that's a deliberate, gradual, admin-driven
+// migration, not a blocking requirement.
 function attributesForType(
   productType: ShopProductType,
   parsed: {
-    size?: ShopSize;
+    bodyShapeId?: string;
     shape?: ShopShape;
     handle?: ShopHandle;
     accessoryCategory?: AccessoryCategory;
     materials?: string[];
-  }
+  },
+  options: {requireBody: boolean}
 ): {
-  size: ShopSize | null;
+  bodyShapeId: string | null;
   shape: ShopShape | null;
   handleType: ShopHandle | null;
   accessoryCategory: AccessoryCategory | null;
   materials: ShopMaterial[];
 } {
   if (productType === "Bags") {
-    if (!parsed.size || !parsed.shape || !parsed.handle) {
-      throw new Error("Size, shape, and handle are required for bags.");
+    if (!parsed.shape || !parsed.handle) {
+      throw new Error("Shape and handle are required for bags.");
+    }
+    if (options.requireBody && !parsed.bodyShapeId) {
+      throw new Error("Body is required for bags.");
     }
     const materials = (parsed.materials ?? []).filter((value): value is ShopMaterial =>
       bagMaterials.includes(value as ShopMaterial)
@@ -378,25 +339,47 @@ function attributesForType(
     if (!materials.length) {
       throw new Error("Pick at least one material.");
     }
-    return {size: parsed.size, shape: parsed.shape, handleType: parsed.handle, accessoryCategory: null, materials};
+    return {bodyShapeId: parsed.bodyShapeId ?? null, shape: parsed.shape, handleType: parsed.handle, accessoryCategory: null, materials};
   }
 
   if (productType === "Dolls") {
-    if (!parsed.size) {
-      throw new Error("Size is required for dolls.");
+    if (options.requireBody && !parsed.bodyShapeId) {
+      throw new Error("Body is required for dolls.");
     }
-    return {size: parsed.size, shape: null, handleType: null, accessoryCategory: null, materials: []};
+    return {bodyShapeId: parsed.bodyShapeId ?? null, shape: null, handleType: null, accessoryCategory: null, materials: []};
   }
 
   if (productType === "Accessories") {
     if (!parsed.accessoryCategory) {
       throw new Error("Category is required for accessories.");
     }
-    return {size: null, shape: null, handleType: null, accessoryCategory: parsed.accessoryCategory, materials: []};
+    return {bodyShapeId: null, shape: null, handleType: null, accessoryCategory: parsed.accessoryCategory, materials: []};
   }
 
   // Apparel: no per-type attributes at all.
-  return {size: null, shape: null, handleType: null, accessoryCategory: null, materials: []};
+  return {bodyShapeId: null, shape: null, handleType: null, accessoryCategory: null, materials: []};
+}
+
+function toAdminBodyShapeRow(row: typeof bodyShapes.$inferSelect | null): AdminBodyShape | null {
+  if (!row) {
+    return null;
+  }
+  return {
+    id: row.id,
+    name: row.name,
+    shapeType: row.shapeType as AdminBodyShape["shapeType"],
+    widthCm: row.widthCm,
+    widthBottomCm: row.widthBottomCm,
+    heightCm: row.heightCm,
+    depthCm: row.depthCm,
+    diameterCm: row.diameterCm,
+    thicknessCm: row.thicknessCm,
+    inStock: row.inStock,
+    notes: row.notes,
+    isArchived: row.isArchived,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString()
+  };
 }
 
 // Public catalogue feed: isActive gates whether the storefront can serve
@@ -406,11 +389,12 @@ function attributesForType(
 // link shared before launch).
 export async function getAllProducts(): Promise<AdminProduct[]> {
   const rows = await db
-    .select()
+    .select({product: products, body: bodyShapes})
     .from(products)
+    .leftJoin(bodyShapes, eq(products.bodyShapeId, bodyShapes.id))
     .where(and(eq(products.isActive, true), eq(products.visibility, "public")))
     .orderBy(desc(products.createdAt));
-  return rows.map(toAdminProduct);
+  return rows.map((row) => toAdminProduct(row.product, toAdminBodyShapeRow(row.body)));
 }
 
 // Public: the product detail page's single source of truth for one product.
@@ -419,17 +403,22 @@ export async function getAllProducts(): Promise<AdminProduct[]> {
 // invisible in the catalogue grid, not just hidden from listings.
 export async function getProductBySlug(slug: string): Promise<AdminProduct | null> {
   const [row] = await db
-    .select()
+    .select({product: products, body: bodyShapes})
     .from(products)
+    .leftJoin(bodyShapes, eq(products.bodyShapeId, bodyShapes.id))
     .where(and(eq(products.slug, slug), eq(products.isActive, true)));
-  return row ? toAdminProduct(row) : null;
+  return row ? toAdminProduct(row.product, toAdminBodyShapeRow(row.body)) : null;
 }
 
 // Admin-only: includes deactivated products so the Manage Products view can
 // still find and reactivate them, unlike the public catalogue feed above.
 export async function getAllProductsForAdmin(): Promise<AdminProduct[]> {
-  const rows = await db.select().from(products).orderBy(desc(products.createdAt));
-  return rows.map(toAdminProduct);
+  const rows = await db
+    .select({product: products, body: bodyShapes})
+    .from(products)
+    .leftJoin(bodyShapes, eq(products.bodyShapeId, bodyShapes.id))
+    .orderBy(desc(products.createdAt));
+  return rows.map((row) => toAdminProduct(row.product, toAdminBodyShapeRow(row.body)));
 }
 
 export async function createProduct(formData: FormData): Promise<AdminProduct> {
@@ -438,7 +427,7 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     priceIdr: formData.get("priceIdr"),
     description: formData.get("description") ?? undefined,
     productType: formData.get("productType"),
-    size: formData.get("size") || undefined,
+    bodyShapeId: formData.get("bodyShapeId") || undefined,
     shape: formData.get("shape") || undefined,
     handle: formData.get("handle") || undefined,
     accessoryCategory: formData.get("accessoryCategory") || undefined,
@@ -456,7 +445,10 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     personalisationOptions: formData.getAll("personalisationOptions").map(String)
   });
 
-  const attributes = attributesForType(parsed.productType, parsed);
+  const attributes = attributesForType(parsed.productType, parsed, {requireBody: true});
+  if (attributes.bodyShapeId) {
+    await assertBodyShapeExists(attributes.bodyShapeId);
+  }
 
   const images = parseImagesField(formData);
   if (!images.length) {
@@ -469,8 +461,6 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     await assertProductCodeAvailable(productCode);
   }
   const dimensions = parseDimensionsField(formData);
-  const sizeDimensions = parseSizeDimensionsField(formData);
-  const sizePriceDeltaIdr = parseSizePriceDeltaField(formData);
   const hasBaseColour = formData.get("hasBaseColour") === "true";
   const baseColourOptions = hasBaseColour ? parseColourOptionsField(formData, "baseColourOptions") : [];
   const hasHandleColour = formData.get("hasHandleColour") === "true";
@@ -506,7 +496,7 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       productType: parsed.productType,
       subcategory: parsed.subcategory ?? null,
       materials: attributes.materials,
-      size: attributes.size,
+      bodyShapeId: attributes.bodyShapeId,
       shape: attributes.shape,
       handleType: attributes.handleType,
       accessoryCategory: attributes.accessoryCategory,
@@ -524,8 +514,6 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       metaTitle: parsed.metaTitle ?? null,
       metaDescription: parsed.metaDescription ?? null,
       dimensions,
-      sizeDimensions,
-      sizePriceDeltaIdr,
       hasBaseColour,
       baseColourOptions,
       hasHandleColour,
@@ -535,7 +523,7 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     })
     .returning();
 
-  return toAdminProduct(row);
+  return toAdminProduct(row, await getBodyShapeById(row.bodyShapeId));
 }
 
 export async function updateProduct(slug: string, formData: FormData): Promise<AdminProduct> {
@@ -549,7 +537,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
   if (formData.has("priceIdr")) raw.priceIdr = formData.get("priceIdr");
   if (formData.has("description")) raw.description = formData.get("description");
   if (formData.has("productType")) raw.productType = formData.get("productType");
-  if (formData.has("size")) raw.size = formData.get("size") || undefined;
+  if (formData.has("bodyShapeId")) raw.bodyShapeId = formData.get("bodyShapeId") || undefined;
   if (formData.has("shape")) raw.shape = formData.get("shape") || undefined;
   if (formData.has("handle")) raw.handle = formData.get("handle") || undefined;
   if (formData.has("accessoryCategory")) raw.accessoryCategory = formData.get("accessoryCategory") || undefined;
@@ -567,6 +555,9 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
   if (formData.has("hasPersonalisation")) raw.personalisationOptions = formData.getAll("personalisationOptions").map(String);
 
   const parsed = shopProductUpdateSchema.parse(raw);
+  if (parsed.bodyShapeId) {
+    await assertBodyShapeExists(parsed.bodyShapeId);
+  }
 
   const stock = formData.has("stock") ? parseStockField(formData) : existing.stock;
   const productCode = formData.has("productCode") ? parseProductCodeField(formData) : existing.productCode;
@@ -574,12 +565,6 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
     await assertProductCodeAvailable(productCode, slug);
   }
   const dimensions = formData.has("dimensions") ? parseDimensionsField(formData) : existing.dimensions;
-  const sizeDimensions = formData.has("sizeDimensions")
-    ? parseSizeDimensionsField(formData)
-    : ((existing.sizeDimensions as SizeDimensionOverrides | null) ?? {});
-  const sizePriceDeltaIdr = formData.has("sizePriceDeltaIdr")
-    ? parseSizePriceDeltaField(formData)
-    : ((existing.sizePriceDeltaIdr as Partial<Record<ShopSize, number>> | null) ?? {});
   const hasBaseColour = formData.has("hasBaseColour") ? formData.get("hasBaseColour") === "true" : existing.hasBaseColour;
   const baseColourOptions = hasBaseColour
     ? formData.has("baseColourOptions")
@@ -629,16 +614,20 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
   // a merge of new + existing values so an edit that only touches, say,
   // price doesn't spuriously fail attribute validation.
   const effectiveType = parsed.productType ?? (existing.productType as ShopProductType);
-  const attributes = attributesForType(effectiveType, {
-    size: (parsed.size as ShopSize | undefined) ?? (existing.size as ShopSize | undefined) ?? undefined,
-    shape: (parsed.shape as ShopShape | undefined) ?? (existing.shape as ShopShape | undefined) ?? undefined,
-    handle: (parsed.handle as ShopHandle | undefined) ?? (existing.handleType as ShopHandle | undefined) ?? undefined,
-    accessoryCategory:
-      (parsed.accessoryCategory as AccessoryCategory | undefined) ??
-      (existing.accessoryCategory as AccessoryCategory | undefined) ??
-      undefined,
-    materials: parsed.materials ?? existing.materials
-  });
+  const attributes = attributesForType(
+    effectiveType,
+    {
+      bodyShapeId: parsed.bodyShapeId ?? existing.bodyShapeId ?? undefined,
+      shape: (parsed.shape as ShopShape | undefined) ?? (existing.shape as ShopShape | undefined) ?? undefined,
+      handle: (parsed.handle as ShopHandle | undefined) ?? (existing.handleType as ShopHandle | undefined) ?? undefined,
+      accessoryCategory:
+        (parsed.accessoryCategory as AccessoryCategory | undefined) ??
+        (existing.accessoryCategory as AccessoryCategory | undefined) ??
+        undefined,
+      materials: parsed.materials ?? existing.materials
+    },
+    {requireBody: false}
+  );
 
   let images: string[] | undefined;
   if (formData.has("images")) {
@@ -660,7 +649,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       ...(parsed.vendor !== undefined ? {vendor: parsed.vendor} : {}),
       ...(parsed.metaTitle !== undefined ? {metaTitle: parsed.metaTitle} : {}),
       ...(parsed.metaDescription !== undefined ? {metaDescription: parsed.metaDescription} : {}),
-      size: attributes.size,
+      bodyShapeId: attributes.bodyShapeId,
       shape: attributes.shape,
       handleType: attributes.handleType,
       accessoryCategory: attributes.accessoryCategory,
@@ -680,8 +669,6 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       lowStockThreshold,
       productCode,
       dimensions,
-      sizeDimensions,
-      sizePriceDeltaIdr,
       hasBaseColour,
       baseColourOptions,
       hasHandleColour,
@@ -696,7 +683,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
     .where(eq(products.slug, slug))
     .returning();
 
-  return toAdminProduct(row);
+  return toAdminProduct(row, await getBodyShapeById(row.bodyShapeId));
 }
 
 // The same admin-editable fields AdminProduct exposes, all optional since a
@@ -724,7 +711,7 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
   if (formData.has("priceIdr")) raw.priceIdr = formData.get("priceIdr");
   if (formData.has("description")) raw.description = formData.get("description");
   if (formData.has("productType")) raw.productType = formData.get("productType");
-  if (formData.has("size")) raw.size = formData.get("size") || undefined;
+  if (formData.has("bodyShapeId")) raw.bodyShapeId = formData.get("bodyShapeId") || undefined;
   if (formData.has("shape")) raw.shape = formData.get("shape") || undefined;
   if (formData.has("handle")) raw.handle = formData.get("handle") || undefined;
   if (formData.has("accessoryCategory")) raw.accessoryCategory = formData.get("accessoryCategory") || undefined;
@@ -740,6 +727,9 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
   if (formData.has("hasPersonalisation")) raw.personalisationOptions = formData.getAll("personalisationOptions").map(String);
 
   const parsed = shopProductUpdateSchema.parse(raw);
+  if (parsed.bodyShapeId) {
+    await assertBodyShapeExists(parsed.bodyShapeId);
+  }
 
   const stock = formData.has("stock") ? parseStockField(formData) : existing.stock;
   const productCode = formData.has("productCode") ? parseProductCodeField(formData) : existing.productCode;
@@ -747,12 +737,6 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
     await assertProductCodeAvailable(productCode, slug);
   }
   const dimensions = formData.has("dimensions") ? parseDimensionsField(formData) : existing.dimensions;
-  const sizeDimensions = formData.has("sizeDimensions")
-    ? parseSizeDimensionsField(formData)
-    : ((existing.sizeDimensions as SizeDimensionOverrides | null) ?? {});
-  const sizePriceDeltaIdr = formData.has("sizePriceDeltaIdr")
-    ? parseSizePriceDeltaField(formData)
-    : ((existing.sizePriceDeltaIdr as Partial<Record<ShopSize, number>> | null) ?? {});
   const hasBaseColour = formData.has("hasBaseColour") ? formData.get("hasBaseColour") === "true" : existing.hasBaseColour;
   const baseColourOptions = hasBaseColour
     ? formData.has("baseColourOptions")
@@ -785,16 +769,20 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
     : existing.lowStockThreshold;
 
   const effectiveType = parsed.productType ?? (existing.productType as ShopProductType);
-  const attributes = attributesForType(effectiveType, {
-    size: (parsed.size as ShopSize | undefined) ?? (existing.size as ShopSize | undefined) ?? undefined,
-    shape: (parsed.shape as ShopShape | undefined) ?? (existing.shape as ShopShape | undefined) ?? undefined,
-    handle: (parsed.handle as ShopHandle | undefined) ?? (existing.handleType as ShopHandle | undefined) ?? undefined,
-    accessoryCategory:
-      (parsed.accessoryCategory as AccessoryCategory | undefined) ??
-      (existing.accessoryCategory as AccessoryCategory | undefined) ??
-      undefined,
-    materials: parsed.materials ?? existing.materials
-  });
+  const attributes = attributesForType(
+    effectiveType,
+    {
+      bodyShapeId: parsed.bodyShapeId ?? existing.bodyShapeId ?? undefined,
+      shape: (parsed.shape as ShopShape | undefined) ?? (existing.shape as ShopShape | undefined) ?? undefined,
+      handle: (parsed.handle as ShopHandle | undefined) ?? (existing.handleType as ShopHandle | undefined) ?? undefined,
+      accessoryCategory:
+        (parsed.accessoryCategory as AccessoryCategory | undefined) ??
+        (existing.accessoryCategory as AccessoryCategory | undefined) ??
+        undefined,
+      materials: parsed.materials ?? existing.materials
+    },
+    {requireBody: false}
+  );
 
   let images = existing.images;
   if (formData.has("images")) {
@@ -816,7 +804,6 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
     productType: effectiveType,
     subcategory: parsed.subcategory ?? existing.subcategory,
     materials: attributes.materials,
-    size: attributes.size,
     shape: attributes.shape,
     handle: attributes.handleType,
     accessoryCategory: attributes.accessoryCategory,
@@ -828,8 +815,8 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
     productCode,
     vendor: parsed.vendor ?? existing.vendor,
     dimensions,
-    sizeDimensions,
-    sizePriceDeltaIdr,
+    bodyShapeId: attributes.bodyShapeId,
+    bodyShape: await getBodyShapeById(attributes.bodyShapeId),
     metaTitle: parsed.metaTitle ?? existing.metaTitle,
     metaDescription: parsed.metaDescription ?? existing.metaDescription,
     hasBaseColour,
@@ -852,7 +839,7 @@ export async function getProductForPreview(slug: string): Promise<AdminProduct |
   if (!row) {
     return null;
   }
-  const base = toAdminProduct(row);
+  const base = toAdminProduct(row, await getBodyShapeById(row.bodyShapeId));
   const draft = row.draftData as ProductDraftData | null;
   return draft ? {...base, ...draft} : base;
 }
@@ -886,5 +873,5 @@ export async function setProductActive(slug: string, isActive: boolean): Promise
   if (!row) {
     throw new Error("Product not found.");
   }
-  return toAdminProduct(row);
+  return toAdminProduct(row, await getBodyShapeById(row.bodyShapeId));
 }
