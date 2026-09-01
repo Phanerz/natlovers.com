@@ -3,22 +3,51 @@
 import Image from "next/image";
 import Link from "next/link";
 import {useEffect, useState} from "react";
-import {ArrowLeft, Loader2, Mail, MessageCircle, Send, X} from "lucide-react";
+import {ArrowLeft, Check, Loader2, Mail, MessageCircle, Send, X} from "lucide-react";
 import {formatCurrency} from "@/lib/format";
-import {toMailtoLink, toWhatsAppLink} from "@/lib/contact";
+import {toWhatsAppLink} from "@/lib/contact";
 import {
   adminSettableStatuses,
   customRequestStatusLabels,
+  customRequestStatusStepDescriptions,
+  customRequestStatusSteps,
   summariseConfig,
   type CustomRequestStatus
 } from "@/lib/custom-studio";
 import {ESTIMATE_DISCLAIMER} from "@/lib/custom-pricing";
 import type {AdminCustomRequestView} from "@/lib/custom-requests";
+import {PillDropdown} from "./pill-dropdown";
 import {StatusBadge} from "./custom-requests-panel";
 import {Toast, ToastState} from "./toast";
 
+// Mirrors customRequestStatusStyle's colours (lib/custom-studio.ts) as
+// static Tailwind arbitrary-value classes  -  PillDropdown takes a
+// className, not a style object, and Tailwind's build-time scanner needs
+// the literal class strings in source to generate them, not a value
+// computed at runtime from the same palette.
+const statusDropdownPillClassName: Record<CustomRequestStatus, string> = {
+  draft: "bg-[#EFEDE6] text-[#4B4A42] hover:brightness-95",
+  submitted: "bg-[#DCE6EA] text-[#2A3D42] hover:brightness-95",
+  under_review: "bg-[#DCE6EA] text-[#2A3D42] hover:brightness-95",
+  approved: "bg-[#DDE8DA] text-[#2F4A2C] hover:brightness-95",
+  completed: "bg-[#DDE8DA] text-[#2F4A2C] hover:brightness-95",
+  cancelled: "bg-[#F0DEE0] text-[#5C2E33] hover:brightness-95"
+};
+
 function formatDateTime(value: string | null) {
   return value ? new Date(value).toLocaleString(undefined, {dateStyle: "medium", timeStyle: "short"}) : "-";
+}
+
+function Card({title, action, children}: {title: string; action?: React.ReactNode; children: React.ReactNode}) {
+  return (
+    <div className="card space-y-4 p-6">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-display text-xl text-forest-900">{title}</h2>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
 }
 
 // Full-size viewing for inspiration photos. The studio needs to actually see
@@ -55,16 +84,68 @@ function Lightbox({url, onClose}: {url: string; onClose: () => void}) {
   );
 }
 
-function MessageComposer({
+// A compact 4-stage progress tracker for the main happy path (see
+// customRequestStatusSteps in lib/custom-studio.ts). Cancelled isn't a step
+// on this line  -  a request doesn't pass through it on the way to
+// Completed  -  so it gets its own banner instead of pretending to be a
+// fifth stop.
+function StatusStepper({status}: {status: CustomRequestStatus}) {
+  if (status === "cancelled") {
+    return (
+      <div className="rounded-xl border border-[#DEBBBF] bg-[#F0DEE0] px-4 py-3 text-sm font-medium text-[#5C2E33]">
+        This request was cancelled and is no longer active.
+      </div>
+    );
+  }
+
+  const steps = customRequestStatusSteps;
+  const currentIndex = Math.max(0, steps.indexOf(status as (typeof steps)[number]));
+  const progressPercent = (currentIndex / (steps.length - 1)) * 100;
+
+  return (
+    <div className="relative flex items-start justify-between pt-1">
+      <div className="absolute left-[12.5%] right-[12.5%] top-3.5 h-0.5 bg-[#e7ddc6]" />
+      <div
+        className="absolute left-[12.5%] top-3.5 h-0.5 bg-forest-700 transition-all duration-300"
+        style={{width: `${progressPercent * 0.75}%`}}
+      />
+      {steps.map((step, index) => {
+        const isComplete = index < currentIndex;
+        const isCurrent = index === currentIndex;
+        return (
+          <div key={step} className="relative z-10 flex flex-col items-center gap-1.5" style={{width: `${100 / steps.length}%`}}>
+            <div
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold ${
+                isComplete
+                  ? "border-forest-700 bg-forest-700 text-sand-50"
+                  : isCurrent
+                    ? "border-forest-700 bg-white text-forest-700"
+                    : "border-[#d9cfc0] bg-[#fffdf9] text-forest-400"
+              }`}
+            >
+              {isComplete ? <Check className="h-3.5 w-3.5" /> : index + 1}
+            </div>
+            <span className={`text-center text-[10.5px] font-medium leading-tight ${isCurrent || isComplete ? "text-forest-800" : "text-forest-400"}`}>
+              {customRequestStatusLabels[step]}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function EmailComposeForm({
   request,
   onSent,
-  onError
+  onError,
+  onClose
 }: {
   request: AdminCustomRequestView;
   onSent: () => void;
   onError: (message: string) => void;
+  onClose: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [subject, setSubject] = useState(`About your custom request ${request.requestRef ?? ""}`);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -82,28 +163,13 @@ function MessageComposer({
         onError(typeof payload?.error === "string" ? payload.error : "Could not send the message.");
         return;
       }
-      setMessage("");
-      setOpen(false);
       onSent();
+      onClose();
     } catch {
       onError("Could not reach the mail service.");
     } finally {
       setSending(false);
     }
-  }
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        disabled={!request.customer.email}
-        className="button-lift flex items-center justify-center gap-2 rounded-full bg-forest-900 px-4 py-2.5 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <Mail className="h-4 w-4" />
-        Email customer
-      </button>
-    );
   }
 
   return (
@@ -133,13 +199,72 @@ function MessageComposer({
         </button>
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={onClose}
           disabled={sending}
           className="rounded-full border border-[#d4c5ab] px-4 py-2.5 text-sm font-medium text-forest-700 disabled:opacity-50"
         >
           Cancel
         </button>
       </div>
+    </div>
+  );
+}
+
+// Email and WhatsApp are the studio's two real contact channels, given
+// equal visual weight side by side  -  a customer's preferred channel isn't
+// implied by which button happens to look more important. No mailto
+// fallback: the email side already opens a real send-from-the-app
+// composer, so a second "or open in your own mail app" link was just a
+// second way to do the same thing with none of the delivery tracking.
+function ContactActions({
+  request,
+  onSent,
+  onError
+}: {
+  request: AdminCustomRequestView;
+  onSent: () => void;
+  onError: (message: string) => void;
+}) {
+  const [composerOpen, setComposerOpen] = useState(false);
+  const whatsapp = request.customer.phone ? toWhatsAppLink(request.customer.phone) : null;
+
+  if (composerOpen) {
+    return (
+      <EmailComposeForm
+        request={request}
+        onSent={onSent}
+        onError={onError}
+        onClose={() => setComposerOpen(false)}
+      />
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-2.5">
+      <button
+        type="button"
+        onClick={() => setComposerOpen(true)}
+        disabled={!request.customer.email}
+        className="button-lift flex h-11 items-center justify-center gap-2 rounded-full bg-forest-900 px-3 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <Mail className="h-4 w-4" />
+        Email
+      </button>
+      {whatsapp ? (
+        <a
+          href={whatsapp}
+          target="_blank"
+          rel="noreferrer"
+          className="button-lift flex h-11 items-center justify-center gap-2 rounded-full border border-[#d4c5ab] bg-[#fffdf9] px-3 text-sm font-semibold text-forest-800"
+        >
+          <MessageCircle className="h-4 w-4" />
+          WhatsApp
+        </a>
+      ) : (
+        <span className="flex h-11 items-center justify-center rounded-full border border-dashed border-[#d4c5ab] px-3 text-center text-xs text-forest-400">
+          No phone on file
+        </span>
+      )}
     </div>
   );
 }
@@ -203,7 +328,7 @@ export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}
   }
 
   const rows = summariseConfig(request.configuration);
-  const whatsapp = request.customer.phone ? toWhatsAppLink(request.customer.phone) : null;
+  const statusOptions = adminSettableStatuses.map((status) => ({value: status, label: customRequestStatusLabels[status]}));
 
   return (
     <div className="space-y-6">
@@ -225,176 +350,139 @@ export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="space-y-6">
-          <div className="card space-y-4 p-6 sm:p-8">
-            <h2 className="font-display text-xl text-forest-900">Configuration</h2>
-            <dl className="divide-y divide-[#eee7d8] rounded-xl border border-[#e7ddc6] bg-[#fffdf9]">
-              {rows.map((row) => (
-                <div key={row.label} className="flex items-baseline justify-between gap-4 px-4 py-3">
-                  <dt className="text-sm text-forest-500">{row.label}</dt>
-                  <dd className="text-right text-sm font-medium text-forest-900">{row.value}</dd>
-                </div>
-              ))}
-            </dl>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card title="Customer">
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-forest-900">{request.customer.name ?? "-"}</p>
+            <p className="text-sm text-forest-600">{request.customer.email ?? "No email on file"}</p>
+            <p className="text-sm text-forest-600">{request.customer.phone ?? "No phone on file"}</p>
           </div>
+          <ContactActions
+            request={request}
+            onSent={() => setToast({type: "success", message: "Email sent to the customer."})}
+            onError={(message) => setToast({type: "error", message})}
+          />
+        </Card>
 
-          <div className="card space-y-4 p-6 sm:p-8">
-            <h2 className="font-display text-xl text-forest-900">
-              Inspiration photos {request.images.length ? `(${request.images.length})` : ""}
-            </h2>
-            {request.images.length ? (
-              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-                {request.images.map((image) => (
-                  <button
-                    key={image.id}
-                    type="button"
-                    onClick={() => setLightbox(image.url)}
-                    className="relative aspect-square overflow-hidden rounded-xl border border-[#d9ccb3] bg-[#f2ecdc] transition-transform duration-200 hover:scale-[1.02]"
-                  >
-                    <Image src={image.url} alt="Inspiration" fill sizes="200px" className="object-cover" />
-                  </button>
-                ))}
+        <Card title="Design Summary">
+          <dl className="divide-y divide-[#eee7d8] rounded-xl border border-[#e7ddc6] bg-[#fffdf9]">
+            {rows.map((row) => (
+              <div key={row.label} className="flex items-baseline justify-between gap-4 px-4 py-2.5">
+                <dt className="text-sm text-forest-500">{row.label}</dt>
+                <dd className="text-right text-sm font-medium text-forest-900">{row.value}</dd>
               </div>
-            ) : (
-              <p className="text-sm text-forest-500">The customer didn&apos;t attach any photos.</p>
-            )}
-          </div>
+            ))}
+          </dl>
+        </Card>
 
-          <div className="card space-y-3 p-6 sm:p-8">
-            <h2 className="font-display text-xl text-forest-900">Customer notes</h2>
-            {request.notes?.trim() ? (
-              <p className="whitespace-pre-wrap rounded-xl border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3 text-sm leading-relaxed text-forest-800">
-                {request.notes}
-              </p>
-            ) : (
-              <p className="text-sm text-forest-500">No notes were left.</p>
-            )}
-          </div>
-
-          <div className="card space-y-3 p-6 sm:p-8">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="font-display text-xl text-forest-900">Internal notes</h2>
-              <span className="text-xs text-forest-400">Never shown to the customer</span>
-            </div>
-            <textarea
-              value={adminNotes}
-              onChange={(event) => setAdminNotes(event.target.value)}
-              rows={5}
-              placeholder="Notes for the studio: materials on hand, who's making it, what was agreed on the phone..."
-              className="w-full resize-none rounded-lg border border-[#d4c5ab] bg-white px-4 py-3 text-sm leading-relaxed text-forest-900 outline-none focus:border-forest-400"
+        <Card
+          title="Request Status"
+          action={
+            <PillDropdown
+              value={request.status === "draft" ? "submitted" : request.status}
+              options={statusOptions}
+              pillClassName={statusDropdownPillClassName[request.status]}
+              disabled={savingStatus}
+              align="right"
+              onChange={(value) => void changeStatus(value)}
             />
-            <button
-              type="button"
-              onClick={() => void saveNotes()}
-              disabled={savingNotes || adminNotes === (request.adminNotes ?? "")}
-              className="button-lift rounded-full bg-forest-900 px-4 py-2 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {savingNotes ? "Saving..." : "Save notes"}
-            </button>
-          </div>
-        </div>
+          }
+        >
+          <StatusStepper status={request.status} />
+          <p className="text-xs leading-relaxed text-forest-500">{customRequestStatusStepDescriptions[request.status]}</p>
+        </Card>
+      </div>
 
-        <div className="space-y-6">
-          <div className="card space-y-4 p-6">
-            <h2 className="font-display text-xl text-forest-900">Customer</h2>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-forest-900">{request.customer.name ?? "-"}</p>
-              <p className="text-sm text-forest-600">{request.customer.email ?? "No email on file"}</p>
-              <p className="text-sm text-forest-600">{request.customer.phone ?? "No phone on file"}</p>
-            </div>
-
-            <div className="space-y-2">
-              <MessageComposer
-                request={request}
-                onSent={() => setToast({type: "success", message: "Email sent to the customer."})}
-                onError={(message) => setToast({type: "error", message})}
-              />
-
-              {/* WhatsApp is how this studio actually talks to most of its
-                  customers, so it sits alongside email rather than behind it.
-                  A deep link, not an integration  -  no message is sent on the
-                  admin's behalf. */}
-              {whatsapp ? (
-                <a
-                  href={whatsapp}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="button-lift flex items-center justify-center gap-2 rounded-full border border-[#d4c5ab] bg-[#fffdf9] px-4 py-2.5 text-sm font-medium text-forest-800"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Open WhatsApp
-                </a>
-              ) : null}
-
-              {request.customer.email ? (
-                <a
-                  href={toMailtoLink(request.customer.email, `About your custom request ${request.requestRef ?? ""}`)}
-                  className="block text-center text-xs text-forest-500 hover:text-forest-800"
-                >
-                  or open in your own mail app
-                </a>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="card space-y-3 p-6">
-            <h2 className="font-display text-xl text-forest-900">Status</h2>
-            <div className="flex flex-wrap gap-1.5">
-              {adminSettableStatuses.map((status) => (
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <Card title={`Inspiration Photos${request.images.length ? ` (${request.images.length})` : ""}`}>
+          {request.images.length ? (
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+              {request.images.map((image) => (
                 <button
-                  key={status}
+                  key={image.id}
                   type="button"
-                  onClick={() => void changeStatus(status)}
-                  disabled={savingStatus || status === request.status}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed ${
-                    status === request.status
-                      ? "border-forest-900 bg-forest-900 text-sand-50 opacity-100"
-                      : "border-[#d4c5ab] bg-[#fffdf9] text-forest-700 hover:border-forest-400 disabled:opacity-50"
-                  }`}
+                  onClick={() => setLightbox(image.url)}
+                  className="relative aspect-square overflow-hidden rounded-xl border border-[#d9ccb3] bg-[#f2ecdc] transition-transform duration-200 hover:scale-[1.02]"
                 >
-                  {customRequestStatusLabels[status]}
+                  <Image src={image.url} alt="Inspiration" fill sizes="200px" className="object-cover" />
                 </button>
               ))}
             </div>
+          ) : (
+            <p className="text-sm text-forest-500">The customer didn&apos;t attach any photos.</p>
+          )}
+        </Card>
+
+        <Card title="Pricing">
+          <div className="rounded-xl border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-500">Estimate shown to customer</p>
+            <p className="mt-1 font-display text-lg text-forest-900">
+              {request.estimatedPriceIdr > 0 ? formatCurrency(request.estimatedPriceIdr, "IDR") : "Not priced"}
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-forest-500">{ESTIMATE_DISCLAIMER}</p>
           </div>
 
-          <div className="card space-y-3 p-6">
-            <h2 className="font-display text-xl text-forest-900">Pricing</h2>
+          <div className="rounded-xl bg-forest-900 px-4 py-3.5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sand-200/80">Final price</p>
+            <p className="mt-1 font-display text-2xl text-sand-50">
+              {request.finalPriceIdr !== null ? formatCurrency(request.finalPriceIdr, "IDR") : "Not yet quoted"}
+            </p>
+          </div>
 
-            <div className="rounded-xl border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-500">
-                Estimate shown to customer
-              </p>
-              <p className="mt-1 font-display text-lg text-forest-900">
-                {request.estimatedPriceIdr > 0 ? formatCurrency(request.estimatedPriceIdr, "IDR") : "Not priced"}
-              </p>
-              <p className="mt-1 text-[11px] leading-relaxed text-forest-500">{ESTIMATE_DISCLAIMER}</p>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-500" htmlFor="final-price">
-                Final price (IDR)
-              </label>
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-500" htmlFor="final-price">
+              Set final price (IDR)
+            </label>
+            <div className="flex gap-2">
               <input
                 id="final-price"
                 value={finalPrice}
                 inputMode="numeric"
                 onChange={(event) => setFinalPrice(event.target.value)}
                 placeholder="Leave blank until quoted"
-                className="w-full rounded-full border border-[#d4c5ab] bg-white px-4 py-2 text-sm text-forest-900 outline-none focus:border-forest-400"
+                className="w-full min-w-0 rounded-full border border-[#d4c5ab] bg-white px-4 py-2 text-sm text-forest-900 outline-none focus:border-forest-400"
               />
               <button
                 type="button"
                 onClick={() => void saveFinalPrice()}
                 disabled={savingPrice || finalPrice.trim() === (request.finalPriceIdr !== null ? String(request.finalPriceIdr) : "")}
-                className="button-lift w-full rounded-full bg-forest-900 px-4 py-2 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="button-lift shrink-0 rounded-full bg-forest-900 px-5 py-2 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {savingPrice ? "Saving..." : "Save final price"}
+                {savingPrice ? "Saving..." : "Save"}
               </button>
             </div>
           </div>
-        </div>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card title="Customer Notes">
+          {request.notes?.trim() ? (
+            <p className="whitespace-pre-wrap rounded-xl border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3 text-sm leading-relaxed text-forest-800">
+              {request.notes}
+            </p>
+          ) : (
+            <p className="text-sm text-forest-500">No notes were left.</p>
+          )}
+        </Card>
+
+        <Card title="Internal Notes" action={<span className="text-xs text-forest-400">Never shown to the customer</span>}>
+          <textarea
+            value={adminNotes}
+            onChange={(event) => setAdminNotes(event.target.value)}
+            rows={4}
+            placeholder="Notes for the studio: materials on hand, who's making it, what was agreed on the phone..."
+            className="w-full resize-none rounded-lg border border-[#d4c5ab] bg-white px-4 py-3 text-sm leading-relaxed text-forest-900 outline-none focus:border-forest-400"
+          />
+          <button
+            type="button"
+            onClick={() => void saveNotes()}
+            disabled={savingNotes || adminNotes === (request.adminNotes ?? "")}
+            className="button-lift rounded-full bg-forest-900 px-4 py-2 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {savingNotes ? "Saving..." : "Save notes"}
+          </button>
+        </Card>
       </div>
 
       {lightbox ? <Lightbox url={lightbox} onClose={() => setLightbox(null)} /> : null}

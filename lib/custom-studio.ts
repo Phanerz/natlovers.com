@@ -280,22 +280,13 @@ export function summariseConfig(config: CustomConfig): Array<{label: string; val
 // Status lifecycle
 // ---------------------------------------------------------------------------
 
-// The real lifecycle a commission goes through, built in full now even
-// though the customer-facing view collapses several of these into plainer
-// language  -  retrofitting intermediate states onto rows that were only ever
-// stored as "open" or "closed" would mean guessing, later, which of them a
-// historical request had actually reached.
-export const customRequestStatuses = [
-  "draft",
-  "submitted",
-  "under_review",
-  "needs_customer_input",
-  "quoted",
-  "approved",
-  "in_production",
-  "completed",
-  "cancelled"
-] as const;
+// The commission lifecycle, kept deliberately short: a request is
+// Submitted, the studio has it Under review, the customer has Approved
+// the quote, and it's eventually Completed  -  with Cancelled as the one
+// exception path out of that line. Pricing is its own concern (see the
+// Pricing card) rather than a status of its own, so there's no separate
+// "Quoted" stage to track here.
+export const customRequestStatuses = ["draft", "submitted", "under_review", "approved", "completed", "cancelled"] as const;
 
 export type CustomRequestStatus = (typeof customRequestStatuses)[number];
 
@@ -313,25 +304,19 @@ export const customRequestStatusLabels: Record<CustomRequestStatus, string> = {
   draft: "Draft",
   submitted: "Submitted",
   under_review: "Under review",
-  needs_customer_input: "Needs customer input",
-  quoted: "Quoted",
   approved: "Approved",
-  in_production: "In production",
   completed: "Completed",
   cancelled: "Cancelled"
 };
 
-// What the customer sees in their own request history. Several internal
-// states read as one thing from the outside  -  "under review" and "needs
-// customer input" are both, to the customer, the studio still looking at it.
+// What the customer sees in their own request history  -  "Under review" is
+// internal shorthand for "the studio is still looking at it," which reads
+// more plainly from the outside as "with the studio."
 export const customerFacingStatusLabels: Record<CustomRequestStatus, string> = {
   draft: "Draft",
   submitted: "With the studio",
   under_review: "With the studio",
-  needs_customer_input: "Waiting on you",
-  quoted: "Quote ready",
   approved: "Confirmed",
-  in_production: "Being made",
   completed: "Completed",
   cancelled: "Cancelled"
 };
@@ -342,21 +327,34 @@ export const customRequestStatusStyle: Record<CustomRequestStatus, {bg: string; 
   draft: {bg: "#EFEDE6", border: "#D6D2C6", text: "#4B4A42"},
   submitted: {bg: "#DCE6EA", border: "#B8CDD4", text: "#2A3D42"},
   under_review: {bg: "#DCE6EA", border: "#B8CDD4", text: "#2A3D42"},
-  needs_customer_input: {bg: "#F7E7CF", border: "#E3C79A", text: "#6B4C1B"},
-  quoted: {bg: "#EDE3EF", border: "#D2BCD8", text: "#4A2E52"},
   approved: {bg: "#DDE8DA", border: "#B6CCB1", text: "#2F4A2C"},
-  in_production: {bg: "#F3E2D6", border: "#DEBBA3", text: "#5A3A22"},
   completed: {bg: "#DDE8DA", border: "#B6CCB1", text: "#2F4A2C"},
   cancelled: {bg: "#F0DEE0", border: "#DEBBBF", text: "#5C2E33"}
 };
 
 // Statuses that still want someone at the studio to do something. Drives the
 // dashboard's Needs Attention count.
-export const openCustomRequestStatuses: CustomRequestStatus[] = [
-  "submitted",
-  "under_review",
-  "needs_customer_input"
-];
+export const openCustomRequestStatuses: CustomRequestStatus[] = ["submitted", "under_review"];
+
+// The main, linear happy path a request is expected to travel  -  used to
+// draw the Request Status stepper. Cancelled is a real status but isn't a
+// "step" on this line (a request doesn't pass through Cancelled on its way
+// to Completed), so it's handled as a separate banner state instead of a
+// fifth step that would never light up in sequence.
+export const customRequestStatusSteps = ["submitted", "under_review", "approved", "completed"] as const;
+
+// One plain sentence per status, shown under the stepper so "what does this
+// status actually mean" never requires asking someone who's used the tool
+// longer  -  a draft is never shown here (drafts aren't admin-visible), but
+// the type stays exhaustive for safety.
+export const customRequestStatusStepDescriptions: Record<CustomRequestStatus, string> = {
+  draft: "The customer hasn't submitted this request yet.",
+  submitted: "Waiting for the studio to start reviewing this request.",
+  under_review: "The studio is reviewing the request and preparing a quote.",
+  approved: "The customer has confirmed. Production can begin.",
+  completed: "This commission is finished.",
+  cancelled: "This request was cancelled and is no longer active."
+};
 
 // ---------------------------------------------------------------------------
 // Intake pause

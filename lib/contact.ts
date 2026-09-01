@@ -14,10 +14,3 @@ export function toWhatsAppLink(phone: string, message?: string): string {
   return message ? `${base}?text=${encodeURIComponent(message)}` : base;
 }
 
-export function toMailtoLink(email: string, subject?: string, body?: string): string {
-  const params = new URLSearchParams();
-  if (subject) params.set("subject", subject);
-  if (body) params.set("body", body);
-  const query = params.toString();
-  return query ? `mailto:${email}?${query}` : `mailto:${email}`;
-}
