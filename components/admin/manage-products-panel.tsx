@@ -5,9 +5,22 @@ import Link from "next/link";
 import type {Route} from "next";
 import {usePathname, useRouter, useSearchParams} from "next/navigation";
 import {useEffect, useMemo, useState} from "react";
-import {Eye, Filter, Pencil, RotateCcw, Search, Trash2} from "lucide-react";
+import {Eye, Filter, Pencil, Search, Trash2} from "lucide-react";
 import {ShopProductType, productTypeLabels, shopProductTypes, sizeLabels} from "@/app/catalogue/shop-data";
+import {PillDropdown} from "./pill-dropdown";
 import {AdminProduct} from "./types";
+
+type ActiveState = "active" | "inactive";
+
+const activeStateOptions: {value: ActiveState; label: string}[] = [
+  {value: "active", label: "Active"},
+  {value: "inactive", label: "Inactive"}
+];
+
+const activeStatePillClassName: Record<ActiveState, string> = {
+  active: "bg-[#dcecd8] text-[#2b5c2a] hover:bg-[#cfe6ca]",
+  inactive: "bg-[#f6ddc9] text-[#8a4a1f] hover:bg-[#f0cdb0]"
+};
 
 const PAGE_SIZE = 8;
 type StatusFilter = "all" | "active" | "inactive";
@@ -37,6 +50,7 @@ export function ManageProductsPanel({
   onEdit,
   onDeactivate,
   onActivate,
+  onDelete,
   busySlug,
   onBulkDeactivate,
   onBulkActivate,
@@ -46,6 +60,7 @@ export function ManageProductsPanel({
   loading: boolean;
   onEdit: (product: AdminProduct) => void;
   onDeactivate: (product: AdminProduct) => void;
+  onDelete: (product: AdminProduct) => void;
   onActivate: (product: AdminProduct) => void;
   busySlug: string | null;
   onBulkDeactivate: (slugs: string[]) => Promise<void>;
@@ -233,14 +248,14 @@ export function ManageProductsPanel({
               onClick={() => runBulk(onBulkDeactivate)}
               className="button-lift rounded-full border border-sand-200/40 px-4 py-1.5 text-sm font-medium text-sand-50 hover:bg-white/10"
             >
-              Hide Selected
+              Deactivate Selected
             </button>
             <button
               type="button"
               onClick={() => runBulk(onBulkActivate)}
               className="button-lift rounded-full border border-sand-200/40 px-4 py-1.5 text-sm font-medium text-sand-50 hover:bg-white/10"
             >
-              Unhide Selected
+              Activate Selected
             </button>
             <button
               type="button"
@@ -258,7 +273,7 @@ export function ManageProductsPanel({
       ) : pageItems.length ? (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1180px] border-collapse text-sm">
+            <table className="w-full min-w-[1080px] border-collapse text-sm">
               <thead>
                 <tr className="text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-500">
                   <th className="w-8 pb-3 pr-3">
@@ -276,7 +291,6 @@ export function ManageProductsPanel({
                   <th className="pb-3 pr-3">Body</th>
                   <th className="pb-3 pr-3">Price (IDR)</th>
                   <th className="pb-3 pr-3">Status</th>
-                  <th className="pb-3 pr-3">Visibility</th>
                   <th className="pb-3 pr-3">Stock</th>
                   <th className="pb-3 pr-3">Code</th>
                   <th className="pb-3 pr-3">Updated</th>
@@ -330,19 +344,13 @@ export function ManageProductsPanel({
                     </td>
                     <td className="py-3 pr-3 text-forest-700">Rp{product.priceIdr.toLocaleString("id-ID")}</td>
                     <td className="py-3 pr-3">
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
-                          product.isActive ? "bg-[#dcead0] text-[#2f5b2b]" : "bg-[#f6ddc9] text-[#8a4a1f]"
-                        }`}
-                      >
-                        {product.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-3">
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-forest-600">
-                        <Eye className="h-3.5 w-3.5" />
-                        {product.isActive ? "Visible" : "Hidden"}
-                      </span>
+                      <PillDropdown
+                        value={product.isActive ? "active" : "inactive"}
+                        options={activeStateOptions}
+                        pillClassName={activeStatePillClassName[product.isActive ? "active" : "inactive"]}
+                        disabled={busySlug === product.slug}
+                        onChange={(value) => (value === "active" ? onActivate(product) : onDeactivate(product))}
+                      />
                     </td>
                     <td className="py-3 pr-3 text-forest-700">{product.stock ?? <span className="text-forest-400">-</span>}</td>
                     <td className="py-3 pr-3 text-forest-700">{product.productCode ?? <span className="text-forest-400">-</span>}</td>
@@ -365,27 +373,15 @@ export function ManageProductsPanel({
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
-                        {product.isActive ? (
-                          <button
-                            type="button"
-                            disabled={busySlug === product.slug}
-                            onClick={() => onDeactivate(product)}
-                            aria-label={`Deactivate ${product.name}`}
-                            className="glass-icon-btn is-danger flex h-9 w-9 items-center justify-center rounded-full text-red-600 disabled:opacity-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={busySlug === product.slug}
-                            onClick={() => onActivate(product)}
-                            aria-label={`Reactivate ${product.name}`}
-                            className="glass-icon-btn flex h-9 w-9 items-center justify-center rounded-full text-forest-700 disabled:opacity-50"
-                          >
-                            <RotateCcw className="h-4 w-4" />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          disabled={busySlug === product.slug}
+                          onClick={() => onDelete(product)}
+                          aria-label={`Delete ${product.name} permanently`}
+                          className="glass-icon-btn is-danger flex h-9 w-9 items-center justify-center rounded-full text-red-600 disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>

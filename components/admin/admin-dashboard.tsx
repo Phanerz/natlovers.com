@@ -15,6 +15,7 @@ import {ManageProductsPanel} from "./manage-products-panel";
 import {ProductForm} from "./product-form";
 import {Toast, ToastState} from "./toast";
 import {AdminProduct, ProductFormState, buildFormData, emptyForm, formFromProduct} from "./types";
+import {useConfirm} from "./use-confirm";
 
 type Tab =
   | "dashboard"
@@ -70,6 +71,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = tabFromParam(searchParams.get("tab"));
+  const {confirm, dialog: confirmDialog} = useConfirm();
 
   function setTab(next: Tab) {
     router.replace(next === "dashboard" ? "/mimin" : `/mimin?tab=${next}`, {scroll: false});
@@ -312,7 +314,13 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
   }
 
   async function handleDeactivate(product: AdminProduct) {
-    if (!window.confirm(`Deactivate "${product.name}"? It will be hidden from the storefront until reactivated.`)) {
+    if (
+      !(await confirm({
+        title: `Deactivate "${product.name}"?`,
+        description: "It will no longer show on the storefront until you reactivate it.",
+        confirmLabel: "Deactivate"
+      }))
+    ) {
       return;
     }
     setBusySlug(product.slug);
@@ -354,7 +362,11 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
   async function handleBulkDeactivate(slugs: string[]) {
     if (!slugs.length) return;
     if (
-      !window.confirm(`Hide ${slugs.length} product${slugs.length === 1 ? "" : "s"}? They'll be hidden from the storefront until unhidden.`)
+      !(await confirm({
+        title: `Deactivate ${slugs.length} product${slugs.length === 1 ? "" : "s"}?`,
+        description: "They'll no longer show on the storefront until reactivated.",
+        confirmLabel: "Deactivate"
+      }))
     ) {
       return;
     }
@@ -363,7 +375,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
       await Promise.all(
         slugs.map((slug) => fetch(`/api/admin/products?slug=${encodeURIComponent(slug)}&action=deactivate`, {method: "PATCH"}))
       );
-      setToast({type: "success", message: `${slugs.length} product${slugs.length === 1 ? "" : "s"} hidden.`});
+      setToast({type: "success", message: `${slugs.length} product${slugs.length === 1 ? "" : "s"} deactivated.`});
       await loadProducts();
     } finally {
       setBusySlug(null);
@@ -377,7 +389,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
       await Promise.all(
         slugs.map((slug) => fetch(`/api/admin/products?slug=${encodeURIComponent(slug)}&action=activate`, {method: "PATCH"}))
       );
-      setToast({type: "success", message: `${slugs.length} product${slugs.length === 1 ? "" : "s"} unhidden.`});
+      setToast({type: "success", message: `${slugs.length} product${slugs.length === 1 ? "" : "s"} activated.`});
       await loadProducts();
     } finally {
       setBusySlug(null);
@@ -386,7 +398,14 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
 
   async function handleBulkDelete(slugs: string[]) {
     if (!slugs.length) return;
-    if (!window.confirm(`Permanently delete ${slugs.length} product${slugs.length === 1 ? "" : "s"}? This cannot be undone.`)) {
+    if (
+      !(await confirm({
+        title: `Delete ${slugs.length} product${slugs.length === 1 ? "" : "s"}?`,
+        description: "This permanently removes them from the catalogue. This cannot be undone.",
+        confirmLabel: "Delete",
+        tone: "danger"
+      }))
+    ) {
       return;
     }
     setBusySlug("bulk");
@@ -400,7 +419,14 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
   }
 
   async function handleDeleteProduct(product: AdminProduct) {
-    if (!window.confirm(`Permanently delete "${product.name}"? This cannot be undone.`)) {
+    if (
+      !(await confirm({
+        title: `Delete "${product.name}"?`,
+        description: "This permanently removes it from the catalogue. This cannot be undone.",
+        confirmLabel: "Delete",
+        tone: "danger"
+      }))
+    ) {
       return;
     }
     setBusySlug(product.slug);
@@ -456,7 +482,14 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
   }
 
   async function handleDeleteHeroCard(card: AdminHeroCard) {
-    if (!window.confirm("Permanently delete this hero card? This cannot be undone.")) {
+    if (
+      !(await confirm({
+        title: "Delete this hero card?",
+        description: "This permanently removes it. This cannot be undone.",
+        confirmLabel: "Delete",
+        tone: "danger"
+      }))
+    ) {
       return;
     }
     setBusyHeroCardId(card.id);
@@ -658,6 +691,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
             onEdit={startEdit}
             onDeactivate={handleDeactivate}
             onActivate={handleActivate}
+            onDelete={handleDeleteProduct}
             busySlug={busySlug}
             onBulkDeactivate={handleBulkDeactivate}
             onBulkActivate={handleBulkActivate}
@@ -722,6 +756,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
       </div>
 
       <Toast toast={toast} onDismiss={() => setToast(null)} />
+      {confirmDialog}
     </div>
   );
 }

@@ -26,7 +26,7 @@ export default async function StockPage() {
         <h2 className="font-display text-2xl text-forest-900">Inventory tracking isn&rsquo;t built yet</h2>
         <p className="max-w-md text-sm leading-6 text-forest-600">
           Raw materials, finished stock, and consignment tracking don&rsquo;t have a database schema yet, so this page
-          can&rsquo;t honestly show any numbers. Product listings and their Visibility status are already live in{" "}
+          can&rsquo;t honestly show any numbers. Product listings and their Active/Inactive status are already live in{" "}
           <span className="font-medium text-forest-800">Manage Products</span>  -  stock levels and reorder thresholds will
           land here once that schema is built.
         </p>

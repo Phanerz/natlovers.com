@@ -16,7 +16,6 @@ import type {AdminBodyShape} from "./body-shape-types";
 export type ColourOption = {label: string; hex: string};
 
 export type ProductStatus = "active" | "draft" | "archived";
-export type ProductVisibility = "public" | "private" | "hidden";
 export type BackorderPolicy = "deny" | "allow";
 
 // Quick-start palette offered in the admin colour editor and used to seed
@@ -54,7 +53,6 @@ export type AdminProduct = {
   soldOut?: boolean;
   isActive: boolean;
   status: ProductStatus;
-  visibility: ProductVisibility;
   publishedAt: string | null;
   stock: number | null;
   lowStockThreshold: number | null;
@@ -125,7 +123,6 @@ export type ProductFormState = {
   // string like stock/productCodeSuffix above.
   dimensions: string;
   status: ProductStatus;
-  visibility: ProductVisibility;
   // datetime-local input value ("" means "not published yet").
   publishedAt: string;
   metaTitle: string;
@@ -173,7 +170,6 @@ export function emptyForm(): ProductFormState {
     vendor: "",
     dimensions: "",
     status: "active",
-    visibility: "public",
     publishedAt: "",
     metaTitle: "",
     metaDescription: "",
@@ -213,7 +209,6 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     vendor: product.vendor ?? "",
     dimensions: product.dimensions ?? "",
     status: product.status,
-    visibility: product.visibility,
     publishedAt: toDatetimeLocal(product.publishedAt),
     metaTitle: product.metaTitle ?? "",
     metaDescription: product.metaDescription ?? "",
@@ -273,7 +268,6 @@ export function buildFormData(form: ProductFormState) {
   formData.set("dimensions", form.dimensions.trim());
 
   formData.set("status", form.status);
-  formData.set("visibility", form.visibility);
   formData.set("publishedAt", form.publishedAt);
   formData.set("metaTitle", form.metaTitle.trim());
   formData.set("metaDescription", form.metaDescription.trim());

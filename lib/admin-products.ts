@@ -24,9 +24,6 @@ export type ColourOption = {label: string; hex: string};
 export const productStatuses = ["active", "draft", "archived"] as const;
 export type ProductStatus = (typeof productStatuses)[number];
 
-export const productVisibilities = ["public", "private", "hidden"] as const;
-export type ProductVisibility = (typeof productVisibilities)[number];
-
 export const backorderPolicies = ["deny", "allow"] as const;
 export type BackorderPolicy = (typeof backorderPolicies)[number];
 
@@ -39,7 +36,6 @@ export type AdminProduct = ShopProduct & {
   collections: string[];
   isActive: boolean;
   status: ProductStatus;
-  visibility: ProductVisibility;
   publishedAt: string | null;
   stock: number | null;
   lowStockThreshold: number | null;
@@ -105,9 +101,6 @@ const shopProductInputSchema = z.object({
   metaTitle: z.string().trim().optional(),
   metaDescription: z.string().trim().optional(),
   status: (z.enum(productStatuses as unknown as [string, ...string[]]) as unknown as z.ZodType<ProductStatus>).optional(),
-  visibility: (
-    z.enum(productVisibilities as unknown as [string, ...string[]]) as unknown as z.ZodType<ProductVisibility>
-  ).optional(),
   allowBackorders: (
     z.enum(backorderPolicies as unknown as [string, ...string[]]) as unknown as z.ZodType<BackorderPolicy>
   ).optional(),
@@ -264,7 +257,6 @@ function toAdminProduct(row: typeof products.$inferSelect, bodyShape: AdminBodyS
     soldOut: row.soldOut,
     isActive: row.isActive,
     status: row.status as ProductStatus,
-    visibility: row.visibility as ProductVisibility,
     publishedAt: row.publishedAt ? row.publishedAt.toISOString() : null,
     stock: row.stock,
     lowStockThreshold: row.lowStockThreshold,
@@ -288,12 +280,10 @@ function toAdminProduct(row: typeof products.$inferSelect, bodyShape: AdminBodyS
 }
 
 // isActive is the one column every existing query/RLS policy still filters
-// on; status/visibility are the richer admin-facing fields that must stay
-// in sync with it on every write, computed here rather than trusted from
-// the client. A draft or archived product is never active regardless of
-// visibility; an active-but-hidden one is treated the same as inactive.
-function computeIsActive(status: ProductStatus, visibility: ProductVisibility): boolean {
-  return status === "active" && visibility !== "hidden";
+// on; status is the richer admin-facing field that must stay in sync with
+// it on every write, computed here rather than trusted from the client.
+function computeIsActive(status: ProductStatus): boolean {
+  return status === "active";
 }
 
 async function assertProductCodeAvailable(code: string, excludeSlug?: string) {
@@ -409,16 +399,13 @@ function toAdminBodyShapeRow(row: typeof bodyShapes.$inferSelect | null): AdminB
 }
 
 // Public catalogue feed: isActive gates whether the storefront can serve
-// the product at all, and visibility = 'public' additionally gates whether
-// it's *listed*  -  a 'private' product stays isActive but is excluded here
-// (still reachable directly via getProductBySlug below, e.g. a preview
-// link shared before launch).
+// the product at all.
 export async function getAllProducts(): Promise<AdminProduct[]> {
   const rows = await db
     .select({product: products, body: bodyShapes})
     .from(products)
     .leftJoin(bodyShapes, eq(products.bodyShapeId, bodyShapes.id))
-    .where(and(eq(products.isActive, true), eq(products.visibility, "public")))
+    .where(eq(products.isActive, true))
     .orderBy(desc(products.createdAt));
   return rows.map((row) => toAdminProduct(row.product, toAdminBodyShapeRow(row.body)));
 }
@@ -467,7 +454,6 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     metaTitle: formData.get("metaTitle") || undefined,
     metaDescription: formData.get("metaDescription") || undefined,
     status: formData.get("status") || undefined,
-    visibility: formData.get("visibility") || undefined,
     allowBackorders: formData.get("allowBackorders") || undefined,
     personalisationOptions: formData.getAll("personalisationOptions").map(String)
   });
@@ -500,7 +486,6 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
   const lowStockThreshold = parseOptionalIntField(formData, "lowStockThreshold", "Low stock threshold");
 
   const status: ProductStatus = parsed.status ?? "active";
-  const visibility: ProductVisibility = parsed.visibility ?? "public";
   const publishedAtInput = parsePublishedAtField(formData);
   const publishedAt = publishedAtInput ?? (status === "active" ? new Date() : null);
 
@@ -531,9 +516,8 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       tags: parsed.tags ?? [],
       collections: parsed.collections ?? [],
       status,
-      visibility,
       publishedAt,
-      isActive: computeIsActive(status, visibility),
+      isActive: computeIsActive(status),
       stock,
       lowStockThreshold,
       allowBackorders: parsed.allowBackorders ?? "deny",
@@ -579,7 +563,6 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
   if (formData.has("metaTitle")) raw.metaTitle = formData.get("metaTitle") || undefined;
   if (formData.has("metaDescription")) raw.metaDescription = formData.get("metaDescription") || undefined;
   if (formData.has("status")) raw.status = formData.get("status") || undefined;
-  if (formData.has("visibility")) raw.visibility = formData.get("visibility") || undefined;
   if (formData.has("allowBackorders")) raw.allowBackorders = formData.get("allowBackorders") || undefined;
   if (formData.has("hasPersonalisation")) raw.personalisationOptions = formData.getAll("personalisationOptions").map(String);
 
@@ -626,8 +609,6 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
     : existing.lowStockThreshold;
 
   const status: ProductStatus = (parsed.status as ProductStatus | undefined) ?? (existing.status as ProductStatus);
-  const visibility: ProductVisibility =
-    (parsed.visibility as ProductVisibility | undefined) ?? (existing.visibility as ProductVisibility);
   // publishedAt: an explicit value in the form always wins; otherwise keep
   // the existing one, except the first time a product transitions into
   // 'active' with no publishedAt yet, which is treated as a real publish.
@@ -689,9 +670,8 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       ...(parsed.collections !== undefined ? {collections: parsed.collections} : {}),
       ...(parsed.allowBackorders !== undefined ? {allowBackorders: parsed.allowBackorders} : {}),
       status,
-      visibility,
       publishedAt,
-      isActive: computeIsActive(status, visibility),
+      isActive: computeIsActive(status),
       ...(images ? {images} : {}),
       ...(formData.has("imageZoomEnabled") ? {imageZoomEnabled: formData.get("imageZoomEnabled") !== "false"} : {}),
       stock,
@@ -719,11 +699,11 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
 
 // The same admin-editable fields AdminProduct exposes, all optional since a
 // draft is a partial overlay  -  identity/lifecycle fields (slug, status,
-// visibility, publishedAt, isActive, createdAt, updatedAt) are deliberately
-// excluded, since previewing a draft should show it as if published,
-// regardless of the row's real current status/visibility.
+// publishedAt, isActive, createdAt, updatedAt) are deliberately excluded,
+// since previewing a draft should show it as if published, regardless of
+// the row's real current status.
 type ProductDraftData = Partial<
-  Omit<AdminProduct, "slug" | "status" | "visibility" | "publishedAt" | "isActive" | "createdAt" | "updatedAt">
+  Omit<AdminProduct, "slug" | "status" | "publishedAt" | "isActive" | "createdAt" | "updatedAt">
 >;
 
 // Stages the admin edit form's current state without touching any live
@@ -864,8 +844,8 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
   await db.update(products).set({draftData: draft}).where(eq(products.slug, slug));
 }
 
-// Admin-only: fetches a product regardless of its real isActive/visibility
-// (a draft/archived/hidden product must still be previewable), with any
+// Admin-only: fetches a product regardless of its real isActive status
+// (a draft/archived product must still be previewable), with any
 // staged draftData overlaid on top so the preview reflects unsaved edits,
 // not just what's already published. Never used by any public route.
 export async function getProductForPreview(slug: string): Promise<AdminProduct | null> {
@@ -887,21 +867,17 @@ export async function deleteProductPermanently(slug: string): Promise<boolean> {
   return Boolean(deleted);
 }
 
-// The simple list-row Hide/Unhide action. Deliberately only ever moves
-// visibility, never status  -  "hide" here means "took this off the
-// storefront for now," not "this was never really published," which is
-// what the richer status field on the edit form is for. isActive is kept
-// in lockstep the same way createProduct/updateProduct do.
+// The simple list-row Activate/Deactivate action  -  a quick toggle that
+// doesn't require opening the full edit form's Status field. Deactivating
+// this way always lands on 'archived' (the closest existing status to
+// "turned off, not currently for sale"); reactivating always lands back on
+// 'active'. A product that genuinely needs the finer-grained 'draft'
+// status still gets there via the edit form.
 export async function setProductActive(slug: string, isActive: boolean): Promise<AdminProduct> {
-  const [existing] = await db.select({status: products.status}).from(products).where(eq(products.slug, slug));
-  if (!existing) {
-    throw new Error("Product not found.");
-  }
-  const status = existing.status as ProductStatus;
-  const visibility: ProductVisibility = isActive ? "public" : "hidden";
+  const status: ProductStatus = isActive ? "active" : "archived";
   const [row] = await db
     .update(products)
-    .set({isActive: computeIsActive(status, visibility), visibility, updatedAt: new Date()})
+    .set({isActive: computeIsActive(status), status, updatedAt: new Date()})
     .where(eq(products.slug, slug))
     .returning();
   if (!row) {

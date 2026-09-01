@@ -60,8 +60,8 @@ export default async function ProductPage({
   const {slug} = await params;
   const {preview} = await searchParams;
 
-  // ?preview=1 is admin-only - it bypasses the isActive/visibility gate
-  // below (so a draft/archived/hidden product is still previewable) and
+  // ?preview=1 is admin-only - it bypasses the isActive gate below (so a
+  // draft/archived product is still previewable) and
   // overlays any staged draftData, so it must never be reachable by a
   // signed-out visitor or a non-admin account. A non-admin hitting this
   // URL just gets the normal public lookup, not an error that would

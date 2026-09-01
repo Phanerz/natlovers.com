@@ -3,8 +3,8 @@
 import {useState} from "react";
 import {Pencil} from "lucide-react";
 import {GlassToggle} from "./glass-toggle";
-import {SelectField} from "./select-field";
-import {AdminProduct, ProductFormState, ProductStatus, ProductVisibility} from "./types";
+import {PillDropdown} from "./pill-dropdown";
+import {AdminProduct, ProductFormState, ProductStatus} from "./types";
 
 const fieldClass =
   "w-full rounded-lg border border-[#d4c5ab] bg-[#fffdf9] px-3.5 py-2.5 text-sm text-forest-900 outline-none focus:border-forest-400 disabled:cursor-not-allowed disabled:opacity-50";
@@ -15,11 +15,11 @@ const statusOptions: {value: ProductStatus; label: string}[] = [
   {value: "archived", label: "Archived"}
 ];
 
-const visibilityOptions: {value: ProductVisibility; label: string}[] = [
-  {value: "public", label: "Public"},
-  {value: "private", label: "Private"},
-  {value: "hidden", label: "Hidden"}
-];
+const statusPillClassName: Record<ProductStatus, string> = {
+  active: "bg-[#dcecd8] text-[#2b5c2a] hover:bg-[#cfe6ca]",
+  draft: "bg-[#eee1c4] text-forest-800 hover:bg-[#e6d6ac]",
+  archived: "bg-[#e6e0d8] text-forest-500 hover:bg-[#dcd4c8]"
+};
 
 function SidebarCard({title, action, children}: {title: string; action?: React.ReactNode; children: React.ReactNode}) {
   return (
@@ -72,28 +72,14 @@ export function ProductStatusSidebar({
 
   return (
     <div className="space-y-6">
-      <SidebarCard title="Product Status & Visibility">
+      <SidebarCard title="Product Status">
         <Field label="Status">
-          <SelectField value={form.status} onChange={(value) => onChange((prev) => ({...prev, status: value as ProductStatus}))}>
-            {statusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </SelectField>
-        </Field>
-
-        <Field label="Visibility">
-          <SelectField
-            value={form.visibility}
-            onChange={(value) => onChange((prev) => ({...prev, visibility: value as ProductVisibility}))}
-          >
-            {visibilityOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </SelectField>
+          <PillDropdown
+            value={form.status}
+            options={statusOptions}
+            pillClassName={statusPillClassName[form.status]}
+            onChange={(value) => onChange((prev) => ({...prev, status: value}))}
+          />
         </Field>
 
         <Field label="Published on">

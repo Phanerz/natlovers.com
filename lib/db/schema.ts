@@ -154,17 +154,14 @@ export const products = pgTable(
     // as the admin types them on other products.
     collections: text("collections").array().notNull().default([]),
     soldOut: boolean("sold_out").notNull().default(false),
-    // status/visibility together decide storefront exposure; isActive below
-    // stays the single real gate every existing query already filters on
-    // (RLS policy included) and is always kept in sync with the two of
-    // them: isActive = status = 'active' AND visibility != 'hidden'. A
-    // draft or archived product is never active regardless of visibility.
+    // status decides storefront exposure; isActive below stays the single
+    // real gate every existing query already filters on (RLS policy
+    // included) and is always kept in sync with it: isActive = status =
+    // 'active'. There used to be a separate visibility axis (public/
+    // private/hidden) layered on top of status, but that was one dial too
+    // many for what admins actually needed  -  a product is either live
+    // (active) or it isn't (draft/archived), full stop.
     status: text("status").notNull().default("active"),
-    // 'public' lists in the catalogue; 'private' is reachable by direct
-    // link but excluded from listing/search (e.g. a preview link before a
-    // launch); 'hidden' is fully suppressed, same practical effect as
-    // isActive = false.
-    visibility: text("visibility").notNull().default("public"),
     // Set the first time status becomes 'active'; left alone after that
     // (including if the product is later archived) so it keeps answering
     // "when did this first go live," not "when did it last change."
