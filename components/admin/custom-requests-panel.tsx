@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import {ArrowUpRight, Loader2, PauseCircle, PlayCircle} from "lucide-react";
 import {formatCurrency} from "@/lib/format";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/lib/custom-studio";
 import type {AdminCustomRequestView} from "@/lib/custom-requests";
 import type {StoreSettings} from "@/lib/store-settings";
+import {DEFAULT_PAGE_SIZE, PageSize, PaginationBar} from "./pagination-bar";
 import {Toast, ToastState} from "./toast";
 
 // Reuses the Orders panel's table shape and the catalogue's pill styling so
@@ -140,6 +141,8 @@ export function CustomRequestsPanel() {
   const [filter, setFilter] = useState<CustomRequestStatus | "all">("all");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<ToastState>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -162,6 +165,17 @@ export function CustomRequestsPanel() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(requests.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageItems = useMemo(
+    () => requests.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [requests, currentPage, pageSize]
+  );
 
   // Counts come from the loaded rows when showing everything. Under a filter
   // the panel only holds that one status, so the tabs show no counts rather
@@ -230,7 +244,7 @@ export function CustomRequestsPanel() {
                 </tr>
               </thead>
               <tbody>
-                {requests.map((request) => (
+                {pageItems.map((request) => (
                   <tr key={request.id} className="border-t border-[#e7ddc6]">
                     <td className="py-3 pr-3">
                       <Link
@@ -287,6 +301,17 @@ export function CustomRequestsPanel() {
                 : `No requests with status "${customRequestStatusLabels[filter]}".`}
           </p>
         )}
+
+        {requests.length ? (
+          <PaginationBar
+            page={currentPage}
+            totalPages={totalPages}
+            totalItems={requests.length}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        ) : null}
       </div>
 
       <Toast toast={toast} onDismiss={() => setToast(null)} />

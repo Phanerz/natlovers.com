@@ -1,9 +1,11 @@
 "use client";
 
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import {CheckCircle2, Clock, Truck} from "lucide-react";
 import {orderStatusLabels} from "@/lib/order-status";
+import {DEFAULT_PAGE_SIZE, PageSize, PaginationBar} from "./pagination-bar";
 import {Toast, ToastState} from "./toast";
+import {useConfirm} from "./use-confirm";
 
 type AdminOrderItem = {slug: string; name: string; priceIdr: number; quantity: number};
 
@@ -92,6 +94,9 @@ export function ManageOrdersPanel() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [trackingOpenId, setTrackingOpenId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
+  const {confirm, dialog: confirmDialog} = useConfirm();
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -159,7 +164,14 @@ export function ManageOrdersPanel() {
   }
 
   async function removeOrder(order: AdminOrder) {
-    if (!window.confirm(`Permanently delete order ${order.orderRef}? This cannot be undone.`)) {
+    if (
+      !(await confirm({
+        title: `Delete order ${order.orderRef}?`,
+        description: "This permanently removes the order. This cannot be undone.",
+        confirmLabel: "Delete",
+        tone: "danger"
+      }))
+    ) {
       return;
     }
     setBusyId(order.id);
@@ -179,13 +191,25 @@ export function ManageOrdersPanel() {
     }
   }
 
+  const totalPages = Math.max(1, Math.ceil(orders.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageItems = useMemo(
+    () => orders.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [orders, currentPage, pageSize]
+  );
+
+  function updatePageSize(size: PageSize) {
+    setPageSize(size);
+    setPage(1);
+  }
+
   return (
     <div className="card space-y-5 p-6 sm:p-8">
       <h2 className="font-display text-2xl text-forest-900">Orders ({orders.length})</h2>
 
       {loading ? (
         <p className="py-10 text-center text-sm text-forest-600">Loading orders...</p>
-      ) : orders.length ? (
+      ) : pageItems.length ? (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] border-collapse text-sm">
             <thead>
@@ -200,7 +224,7 @@ export function ManageOrdersPanel() {
               </tr>
             </thead>
             <tbody>
-              {orders.map((order) => (
+              {pageItems.map((order) => (
                 <tr key={order.id} className="border-t border-[#e7ddc6] align-top">
                   <td className="py-3 pr-3 font-display text-base text-forest-900">{order.orderRef}</td>
                   <td className="py-3 pr-3 text-forest-700">
@@ -280,11 +304,25 @@ export function ManageOrdersPanel() {
             </tbody>
           </table>
         </div>
+      ) : orders.length ? (
+        <p className="py-10 text-center text-sm text-forest-600">No orders on this page.</p>
       ) : (
         <p className="py-10 text-center text-sm text-forest-600">No orders yet.</p>
       )}
 
+      {orders.length ? (
+        <PaginationBar
+          page={currentPage}
+          totalPages={totalPages}
+          totalItems={orders.length}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={updatePageSize}
+        />
+      ) : null}
+
       <Toast toast={toast} onDismiss={() => setToast(null)} />
+      {confirmDialog}
     </div>
   );
 }

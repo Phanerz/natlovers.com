@@ -209,7 +209,35 @@ function SalesOverviewChart({series}: {series: SalesSeriesPoint[]}) {
   );
 }
 
-function NeedsAttentionCard({stats}: {stats: Stats}) {
+// Shown in place of the real list while `stats` hasn't arrived yet, so
+// this card never just pops into existence out of nowhere once the slower
+// parts of the dashboard-stats fetch resolve  -  it occupies the same
+// space and reads as "loading" the whole time, the same story every KPI
+// tile already tells via its own "-" placeholder.
+function NeedsAttentionSkeletonRow() {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-[#e7ddc6] bg-[#fffdf9] px-4 py-3">
+      <span className="flex items-center gap-3">
+        <span className="h-4 w-4 shrink-0 animate-pulse rounded-full bg-[#e7ddc6]" />
+        <span className="h-3.5 w-40 animate-pulse rounded-full bg-[#e7ddc6]" />
+      </span>
+    </div>
+  );
+}
+
+function NeedsAttentionCard({stats, loading}: {stats: Stats | null; loading: boolean}) {
+  if (loading || !stats) {
+    return (
+      <div className="card space-y-4 p-6 sm:p-8">
+        <h2 className="font-display text-xl text-forest-900">Needs Attention</h2>
+        <div className="space-y-2">
+          <NeedsAttentionSkeletonRow />
+          <NeedsAttentionSkeletonRow />
+        </div>
+      </div>
+    );
+  }
+
   const items: {key: string; icon: typeof AlertTriangle; label: string; count: number; href: Route}[] = [];
 
   if (stats.outOfStockCount) {
@@ -461,7 +489,7 @@ export function DashboardHome({userName, onNavigate}: {userName?: string | null;
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <SalesOverviewChart series={stats?.salesSeries ?? []} />
-        {stats ? <NeedsAttentionCard stats={stats} /> : null}
+        <NeedsAttentionCard stats={stats} loading={loading} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

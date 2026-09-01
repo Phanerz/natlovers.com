@@ -2,6 +2,7 @@ import {and, count, desc, eq, gte, inArray, isNotNull, lt, sql} from "drizzle-or
 import {db, heroCards, orderItems, orders, products, users} from "@/lib/db";
 import {getCustomerCount} from "@/lib/customers";
 import {countOpenCustomRequests} from "@/lib/custom-requests";
+import {withTtlCache} from "@/lib/ttl-cache";
 
 // A product only counts toward stock KPIs once it's opted into tracking
 // (stock IS NOT NULL)  -  most of the catalogue hasn't yet, so these stay
@@ -21,12 +22,19 @@ export type DateRangeKey = "today" | "7d" | "month" | "year" | "all";
 // the other ~9 fields (revenue, sales series, best sellers, etc.) it never
 // reads.
 export async function getSidebarBadgeCounts(): Promise<{ordersAwaitingTransfer: number; openCustomRequests: number}> {
-  const [[awaitingRow], openCustomRequests] = await Promise.all([
-    db.select({value: count()}).from(orders).where(eq(orders.status, "pending_transfer")),
-    countOpenCustomRequests()
-  ]);
+  // Cached briefly: every admin page nav re-mounts the sidebar, which
+  // re-fires this fetch  -  without a cache, clicking between Manage
+  // Products/Orders/Custom Requests re-runs these two counts on every
+  // single click for no reason, right alongside whatever that page's own
+  // load is already asking of the same connection pool.
+  return withTtlCache("sidebar-badges", 10_000, async () => {
+    const [[awaitingRow], openCustomRequests] = await Promise.all([
+      db.select({value: count()}).from(orders).where(eq(orders.status, "pending_transfer")),
+      countOpenCustomRequests()
+    ]);
 
-  return {ordersAwaitingTransfer: awaitingRow.value, openCustomRequests};
+    return {ordersAwaitingTransfer: awaitingRow.value, openCustomRequests};
+  });
 }
 
 // Orders in either of these statuses represent money actually received  - 
@@ -142,6 +150,16 @@ export type DashboardStats = {
 };
 
 export async function getDashboardStats(range: DateRangeKey): Promise<DashboardStats> {
+  // Cached briefly per range: this fans out ~9 queries across several
+  // helper functions (see the pool-ceiling comment below), so repeat loads
+  // of the same range within the window  -  switching admin tabs and coming
+  // back, a second admin device, a page refresh  -  return instantly instead
+  // of re-running the whole pipeline and re-competing for the same
+  // connection pool every single time.
+  return withTtlCache(`dashboard-stats:${range}`, 15_000, () => computeDashboardStats(range));
+}
+
+async function computeDashboardStats(range: DateRangeKey): Promise<DashboardStats> {
   const resolved = resolveDateRange(range);
 
   const [current, previous, [productsRow], [heroRow], [awaitingRow], customerCount, [stockRow]] = await Promise.all([

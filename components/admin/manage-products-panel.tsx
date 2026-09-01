@@ -7,6 +7,7 @@ import {usePathname, useRouter, useSearchParams} from "next/navigation";
 import {useEffect, useMemo, useState} from "react";
 import {Eye, Filter, Pencil, Search, Trash2} from "lucide-react";
 import {ShopProductType, productTypeLabels, shopProductTypes, sizeLabels} from "@/app/catalogue/shop-data";
+import {DEFAULT_PAGE_SIZE, PageSize, PaginationBar} from "./pagination-bar";
 import {PillDropdown} from "./pill-dropdown";
 import {AdminProduct} from "./types";
 
@@ -22,7 +23,6 @@ const activeStatePillClassName: Record<ActiveState, string> = {
   inactive: "bg-[#f6ddc9] text-[#8a4a1f] hover:bg-[#f0cdb0]"
 };
 
-const PAGE_SIZE = 8;
 type StatusFilter = "all" | "active" | "inactive";
 type TypeFilter = "all" | ShopProductType;
 
@@ -86,6 +86,7 @@ export function ManageProductsPanel({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -109,16 +110,21 @@ export function ManageProductsPanel({
     });
   }, [products, query, statusFilter, typeFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageItems = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  function updatePageSize(size: PageSize) {
+    setPageSize(size);
+    setPage(1);
+  }
 
   // Selection is scoped to what's visible on the current page  -  switching
   // page or filters starts fresh rather than silently carrying a selection
   // the admin can no longer see.
   useEffect(() => {
     setSelected(new Set());
-  }, [currentPage, query, statusFilter, typeFilter]);
+  }, [currentPage, query, statusFilter, typeFilter, pageSize]);
 
   function updateQuery(value: string) {
     setQuery(value);
@@ -390,29 +396,14 @@ export function ManageProductsPanel({
             </table>
           </div>
 
-          {totalPages > 1 ? (
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <button
-                type="button"
-                disabled={currentPage === 1}
-                onClick={() => setPage((value) => Math.max(1, value - 1))}
-                className="rounded-full border border-[#d4c5ab] px-4 py-2 text-sm text-forest-700 disabled:opacity-40"
-              >
-                Prev
-              </button>
-              <span className="text-sm text-forest-600">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                type="button"
-                disabled={currentPage === totalPages}
-                onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-                className="rounded-full border border-[#d4c5ab] px-4 py-2 text-sm text-forest-700 disabled:opacity-40"
-              >
-                Next
-              </button>
-            </div>
-          ) : null}
+          <PaginationBar
+            page={currentPage}
+            totalPages={totalPages}
+            totalItems={filtered.length}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={updatePageSize}
+          />
         </>
       ) : (
         <p className="py-10 text-center text-sm text-forest-600">No products match.</p>

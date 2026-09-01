@@ -3,6 +3,7 @@ import {z} from "zod";
 import {AdminBodyShape, assertBodyShapeExists, getBodyShapeById} from "@/lib/admin-body-shapes";
 import {db, bodyShapes, products} from "@/lib/db";
 import {sanitizeDescriptionHtml} from "@/lib/sanitize-html";
+import {invalidateTtlCache} from "@/lib/ttl-cache";
 import {
   AccessoryCategory,
   ShopHandle,
@@ -535,6 +536,7 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     })
     .returning();
 
+  invalidateTtlCache("dashboard-stats");
   return toAdminProduct(row, await getBodyShapeById(row.bodyShapeId));
 }
 
@@ -694,6 +696,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
     .where(eq(products.slug, slug))
     .returning();
 
+  invalidateTtlCache("dashboard-stats");
   return toAdminProduct(row, await getBodyShapeById(row.bodyShapeId));
 }
 
@@ -864,6 +867,7 @@ export async function getProductForPreview(slug: string): Promise<AdminProduct |
 // before. Safe to call unconditionally.
 export async function deleteProductPermanently(slug: string): Promise<boolean> {
   const [deleted] = await db.delete(products).where(eq(products.slug, slug)).returning({slug: products.slug});
+  invalidateTtlCache("dashboard-stats");
   return Boolean(deleted);
 }
 
@@ -883,5 +887,6 @@ export async function setProductActive(slug: string, isActive: boolean): Promise
   if (!row) {
     throw new Error("Product not found.");
   }
+  invalidateTtlCache("dashboard-stats");
   return toAdminProduct(row, await getBodyShapeById(row.bodyShapeId));
 }
