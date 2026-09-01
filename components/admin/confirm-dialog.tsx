@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect} from "react";
+import {useEffect, useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
 
 export type ConfirmDialogState = {
@@ -8,6 +8,12 @@ export type ConfirmDialogState = {
   description: string;
   confirmLabel?: string;
   tone?: "danger" | "default";
+  // When set, the confirm button stays disabled until the admin types this
+  // exact string  -  the higher bar the permanent-delete flows need (see
+  // handleDeleteProduct/handleBulkDelete), versus the plain confirm/cancel
+  // every other destructive action here still uses.
+  requireText?: string;
+  requireTextLabel?: string;
 } | null;
 
 // A real dialog, not window.confirm() - blurred/dimmed backdrop, the card
@@ -25,6 +31,12 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const [typedValue, setTypedValue] = useState("");
+
+  useEffect(() => {
+    setTypedValue("");
+  }, [state]);
+
   useEffect(() => {
     if (!state) return;
     function handleKeyDown(event: KeyboardEvent) {
@@ -33,6 +45,9 @@ export function ConfirmDialog({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [state, onCancel]);
+
+  const requiresTypedMatch = Boolean(state?.requireText);
+  const canConfirm = !requiresTypedMatch || typedValue === state?.requireText;
 
   return (
     <AnimatePresence>
@@ -64,6 +79,26 @@ export function ConfirmDialog({
               </h2>
               <p className="text-sm leading-relaxed text-forest-600">{state.description}</p>
             </div>
+            {state.requireText ? (
+              <div className="space-y-1.5">
+                <label htmlFor="confirm-dialog-typed-value" className="text-xs font-medium text-forest-500">
+                  {state.requireTextLabel ?? `Type "${state.requireText}" to confirm`}
+                </label>
+                <input
+                  id="confirm-dialog-typed-value"
+                  type="text"
+                  autoFocus
+                  autoComplete="off"
+                  value={typedValue}
+                  onChange={(event) => setTypedValue(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && canConfirm) onConfirm();
+                  }}
+                  placeholder={state.requireText}
+                  className="w-full rounded-lg border border-[#cdbfa6] bg-[#fffaf1] px-3.5 py-2.5 text-sm text-forest-900 outline-none transition-colors duration-150 focus:border-forest-500"
+                />
+              </div>
+            ) : null}
             <div className="flex justify-end gap-3">
               <button
                 type="button"
@@ -75,10 +110,11 @@ export function ConfirmDialog({
               <button
                 type="button"
                 onClick={onConfirm}
+                disabled={!canConfirm}
                 className={
                   state.tone === "danger"
-                    ? "rounded-full bg-[#a4402b] px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#8f3624]"
-                    : "glass-btn-primary rounded-full px-5 py-2.5 text-sm font-semibold text-sand-50"
+                    ? "rounded-full bg-[#a4402b] px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#8f3624] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-[#a4402b]"
+                    : "glass-btn-primary rounded-full px-5 py-2.5 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-40"
                 }
               >
                 {state.confirmLabel ?? "Confirm"}

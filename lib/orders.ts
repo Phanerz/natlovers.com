@@ -1,7 +1,7 @@
 import {and, desc, eq, inArray, sql} from "drizzle-orm";
 import {AddressInput, createAddress, getDefaultAddress, updateAddress} from "@/lib/addresses";
 import {clearCart} from "@/lib/cart";
-import {db, orderItems, orders, products, users} from "@/lib/db";
+import {auditLog, db, orderItems, orders, products, users} from "@/lib/db";
 import type {CartConfig} from "@/lib/cart";
 
 export {orderStatusLabels} from "@/lib/order-status";
@@ -374,11 +374,33 @@ export async function setOrderTracking(
   return {ok: true, order: order!};
 }
 
+export type DeleteOrderResult = {ok: true} | {ok: false; error: "not_found" | "confirmation_mismatch"};
+
 // Permanently removes an order and its line items (order_items cascades on
 // delete)  -  for clearing out test/junk orders, not something a storefront
 // flow ever calls.
-export async function deleteOrder(orderId: string): Promise<boolean> {
-  const [deleted] = await db.delete(orders).where(eq(orders.id, orderId)).returning({id: orders.id});
-  return Boolean(deleted);
+//
+// confirmRef must match the order's orderRef exactly, the server-side half
+// of the typed-confirmation gate the admin UI requires (see removeOrder in
+// manage-orders-panel.tsx). Same pattern as deleteProductPermanently: the
+// delete and its audit_log row are written in one transaction.
+export async function deleteOrder(orderId: string, confirmRef: string, performedBy: string): Promise<DeleteOrderResult> {
+  return db.transaction(async (tx) => {
+    const [existing] = await tx.select({id: orders.id, orderRef: orders.orderRef}).from(orders).where(eq(orders.id, orderId));
+    if (!existing) {
+      return {ok: false, error: "not_found"};
+    }
+    if (existing.orderRef !== confirmRef) {
+      return {ok: false, error: "confirmation_mismatch"};
+    }
+    await tx.delete(orders).where(eq(orders.id, orderId));
+    await tx.insert(auditLog).values({
+      action: "order_permanent_delete",
+      targetId: existing.id,
+      targetLabel: existing.orderRef,
+      performedBy
+    });
+    return {ok: true};
+  });
 }
 

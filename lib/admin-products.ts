@@ -1,7 +1,7 @@
-import {and, desc, eq} from "drizzle-orm";
+import {and, desc, eq, inArray} from "drizzle-orm";
 import {z} from "zod";
 import {AdminBodyShape, assertBodyShapeExists, getBodyShapeById} from "@/lib/admin-body-shapes";
-import {db, bodyShapes, products} from "@/lib/db";
+import {db, auditLog, bodyShapes, products} from "@/lib/db";
 import {sanitizeDescriptionHtml} from "@/lib/sanitize-html";
 import {invalidateTtlCache} from "@/lib/ttl-cache";
 import {
@@ -861,14 +861,81 @@ export async function getProductForPreview(slug: string): Promise<AdminProduct |
   return draft ? {...base, ...draft} : base;
 }
 
+export type DeleteProductResult = {ok: true} | {ok: false; error: "not_found" | "confirmation_mismatch"};
+
 // order_items snapshot productName/priceIdr at order time with no foreign
 // key back to `products`  -  so a hard delete here can never orphan or
 // corrupt existing order history, even for a product that's been ordered
 // before. Safe to call unconditionally.
-export async function deleteProductPermanently(slug: string): Promise<boolean> {
-  const [deleted] = await db.delete(products).where(eq(products.slug, slug)).returning({slug: products.slug});
-  invalidateTtlCache("dashboard-stats");
-  return Boolean(deleted);
+//
+// confirmName must match the product's current name exactly  -  this is the
+// server-side half of the typed-confirmation the admin UI requires before
+// its delete button even activates (see handleDeleteProduct). The UI gate
+// alone is not a real boundary, same reasoning as every other admin check
+// here being re-verified server-side. The delete and its audit_log row are
+// written in one transaction so a permanent delete can never go unlogged.
+export async function deleteProductPermanently(
+  slug: string,
+  confirmName: string,
+  performedBy: string
+): Promise<DeleteProductResult> {
+  return db.transaction(async (tx) => {
+    const [existing] = await tx.select({id: products.id, name: products.name}).from(products).where(eq(products.slug, slug));
+    if (!existing) {
+      return {ok: false, error: "not_found"};
+    }
+    if (existing.name !== confirmName) {
+      return {ok: false, error: "confirmation_mismatch"};
+    }
+    await tx.delete(products).where(eq(products.slug, slug));
+    await tx.insert(auditLog).values({
+      action: "product_permanent_delete",
+      targetId: existing.id,
+      targetLabel: `${existing.name} (${slug})`,
+      performedBy
+    });
+    invalidateTtlCache("dashboard-stats");
+    return {ok: true};
+  });
+}
+
+export type BulkDeleteProductsResult = {ok: true; deletedCount: number} | {ok: false; error: "count_mismatch"};
+
+// Bulk counterpart of deleteProductPermanently  -  one transaction covering
+// every row plus one audit_log entry per product, rather than the caller
+// firing N separate DELETE requests (which is how 56 rows went in one
+// action previously: no server-side count check, and only a generic "Are
+// you sure?" gate). confirmCount must equal slugs.length, matching what
+// the admin typed in the bulk-delete dialog.
+export async function bulkDeleteProductsPermanently(
+  slugs: string[],
+  confirmCount: number,
+  performedBy: string
+): Promise<BulkDeleteProductsResult> {
+  if (confirmCount !== slugs.length) {
+    return {ok: false, error: "count_mismatch"};
+  }
+  if (!slugs.length) {
+    return {ok: true, deletedCount: 0};
+  }
+
+  return db.transaction(async (tx) => {
+    const existing = await tx.select({id: products.id, slug: products.slug, name: products.name}).from(products).where(inArray(products.slug, slugs));
+    if (!existing.length) {
+      return {ok: true, deletedCount: 0};
+    }
+    await tx.delete(products).where(inArray(products.slug, existing.map((row) => row.slug)));
+    await tx.insert(auditLog).values(
+      existing.map((row) => ({
+        action: "product_permanent_delete",
+        targetId: row.id,
+        targetLabel: `${row.name} (${row.slug})`,
+        performedBy
+      }))
+    );
+    invalidateTtlCache("dashboard-stats");
+    return {ok: true, deletedCount: existing.length};
+  });
 }
 
 // The simple list-row Activate/Deactivate action  -  a quick toggle that

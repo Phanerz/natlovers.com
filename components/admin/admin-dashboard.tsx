@@ -403,14 +403,25 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
         title: `Delete ${slugs.length} product${slugs.length === 1 ? "" : "s"}?`,
         description: "This permanently removes them from the catalogue. This cannot be undone.",
         confirmLabel: "Delete",
-        tone: "danger"
+        tone: "danger",
+        requireText: String(slugs.length),
+        requireTextLabel: `Type ${slugs.length} to confirm`
       }))
     ) {
       return;
     }
     setBusySlug("bulk");
     try {
-      await Promise.all(slugs.map((slug) => fetch(`/api/admin/products?slug=${encodeURIComponent(slug)}`, {method: "DELETE"})));
+      const response = await fetch("/api/admin/products/bulk-delete", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({slugs, confirmCount: slugs.length})
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setToast({type: "error", message: data?.error ?? "Could not delete the selected products."});
+        return;
+      }
       setToast({type: "success", message: `${slugs.length} product${slugs.length === 1 ? "" : "s"} deleted.`});
       await loadProducts();
     } finally {
@@ -424,16 +435,22 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
         title: `Delete "${product.name}"?`,
         description: "This permanently removes it from the catalogue. This cannot be undone.",
         confirmLabel: "Delete",
-        tone: "danger"
+        tone: "danger",
+        requireText: product.name,
+        requireTextLabel: `Type "${product.name}" to confirm`
       }))
     ) {
       return;
     }
     setBusySlug(product.slug);
     try {
-      const response = await fetch(`/api/admin/products?slug=${encodeURIComponent(product.slug)}`, {method: "DELETE"});
+      const response = await fetch(
+        `/api/admin/products?slug=${encodeURIComponent(product.slug)}&confirm=${encodeURIComponent(product.name)}`,
+        {method: "DELETE"}
+      );
       if (!response.ok) {
-        setToast({type: "error", message: "Could not delete the product."});
+        const data = await response.json().catch(() => ({}));
+        setToast({type: "error", message: data?.error ?? "Could not delete the product."});
         return;
       }
       setToast({type: "success", message: `"${product.name}" was deleted.`});

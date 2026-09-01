@@ -8,6 +8,8 @@ type ConfirmOptions = {
   description: string;
   confirmLabel?: string;
   tone?: "danger" | "default";
+  requireText?: string;
+  requireTextLabel?: string;
 };
 
 // Promise-based replacement for window.confirm() - `await confirm({...})`

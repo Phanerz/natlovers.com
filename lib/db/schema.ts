@@ -539,3 +539,21 @@ export const storeSettings = pgTable("store_settings", {
   updatedByEmail: text("updated_by_email"),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }).enableRLS();
+
+// Minimal audit trail for admin actions that permanently remove data. A
+// permanent delete (products, orders) writes one row here in the same
+// transaction as the delete itself, so the removal is never silently
+// unrecorded. targetLabel freezes a human-readable name/reference at
+// delete time, since the deleted row won't exist to look it up afterward.
+// No public policy: only the server's own bypassing role ever reads or
+// writes this table.
+export const auditLog = pgTable("audit_log", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  action: text("action").notNull(),
+  targetId: text("target_id").notNull(),
+  targetLabel: text("target_label").notNull(),
+  performedBy: text("performed_by").notNull(),
+  performedAt: timestamp("performed_at").notNull().defaultNow()
+}).enableRLS();

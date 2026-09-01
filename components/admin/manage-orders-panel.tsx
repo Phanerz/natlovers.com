@@ -169,14 +169,20 @@ export function ManageOrdersPanel() {
         title: `Delete order ${order.orderRef}?`,
         description: "This permanently removes the order. This cannot be undone.",
         confirmLabel: "Delete",
-        tone: "danger"
+        tone: "danger",
+        requireText: order.orderRef,
+        requireTextLabel: `Type "${order.orderRef}" to confirm`
       }))
     ) {
       return;
     }
     setBusyId(order.id);
     try {
-      const response = await fetch(`/api/admin/orders/${order.id}`, {method: "DELETE"});
+      const response = await fetch(`/api/admin/orders/${order.id}`, {
+        method: "DELETE",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({confirm: order.orderRef})
+      });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         setToast({type: "error", message: data?.error ?? "Could not delete the order."});

@@ -52,20 +52,30 @@ export async function PATCH(request: Request, {params}: {params: Promise<{id: st
   }
 }
 
-// Permanent delete, for clearing test/junk orders out of the admin list  - 
-// re-verifies admin server-side same as PATCH.
-export async function DELETE(_request: Request, {params}: {params: Promise<{id: string}>}) {
+// Permanent delete, for clearing test/junk orders out of the admin list  -
+// re-verifies admin server-side same as PATCH. `confirm` must equal the
+// order's orderRef, the server-side half of the typed-confirmation gate in
+// the admin UI (see removeOrder in manage-orders-panel.tsx).
+export async function DELETE(request: Request, {params}: {params: Promise<{id: string}>}) {
   const adminEmail = await requireAdminEmail();
   if (!adminEmail) {
     return NextResponse.json({error: "Unauthorized."}, {status: 401});
   }
 
   const {id} = await params;
+  const body = await request.json().catch(() => null);
+  const confirm = typeof body?.confirm === "string" ? body.confirm : null;
+  if (!confirm) {
+    return NextResponse.json({error: "Missing confirmation."}, {status: 400});
+  }
 
   try {
-    const deleted = await deleteOrder(id);
-    if (!deleted) {
-      return NextResponse.json({error: "Order not found."}, {status: 404});
+    const result = await deleteOrder(id, confirm, adminEmail);
+    if (!result.ok) {
+      if (result.error === "not_found") {
+        return NextResponse.json({error: "Order not found."}, {status: 404});
+      }
+      return NextResponse.json({error: "Confirmation text did not match the order reference."}, {status: 400});
     }
     return NextResponse.json({ok: true});
   } catch (error) {

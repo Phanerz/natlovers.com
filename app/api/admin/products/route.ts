@@ -19,6 +19,12 @@ async function requireAdmin() {
   return isAdminEmail(session?.user?.email);
 }
 
+async function requireAdminEmail(): Promise<string | null> {
+  const session = await getSession();
+  const email = session?.user?.email;
+  return isAdminEmail(email) && email ? email : null;
+}
+
 // Public: the catalogue page fetches this on every visit. It's now the
 // single source for the whole product catalogue (no static array merge),
 // so admin edits/deactivations show up immediately without a redeploy.
@@ -93,19 +99,30 @@ export async function PATCH(request: NextRequest) {
 // referencing products by foreign key (see the comment on
 // deleteProductPermanently). Hiding a product without deleting it is the
 // deactivate/activate pair above (PATCH ?action=deactivate|activate).
+//
+// `confirm` must equal the product's current name  -  the server-side half
+// of the typed-confirmation gate in the admin UI, re-checked here the same
+// way every other admin mutation on this route re-verifies the session
+// rather than trusting the client.
 export async function DELETE(request: NextRequest) {
-  if (!(await requireAdmin())) {
+  const adminEmail = await requireAdminEmail();
+  if (!adminEmail) {
     return NextResponse.json({error: "Unauthorized."}, {status: 401});
   }
 
-  const slug = new URL(request.url).searchParams.get("slug");
-  if (!slug) {
-    return NextResponse.json({error: "Missing slug."}, {status: 400});
+  const url = new URL(request.url);
+  const slug = url.searchParams.get("slug");
+  const confirm = url.searchParams.get("confirm");
+  if (!slug || !confirm) {
+    return NextResponse.json({error: "Missing slug or confirmation."}, {status: 400});
   }
 
-  const deleted = await deleteProductPermanently(slug);
-  if (!deleted) {
-    return NextResponse.json({error: "Product not found."}, {status: 404});
+  const result = await deleteProductPermanently(slug, confirm, adminEmail);
+  if (!result.ok) {
+    if (result.error === "not_found") {
+      return NextResponse.json({error: "Product not found."}, {status: 404});
+    }
+    return NextResponse.json({error: "Confirmation text did not match the product name."}, {status: 400});
   }
   return NextResponse.json({ok: true});
 }
