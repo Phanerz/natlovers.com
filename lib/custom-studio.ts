@@ -343,6 +343,23 @@ export const openCustomRequestStatuses: CustomRequestStatus[] = ["submitted", "u
 // fifth step that would never light up in sequence.
 export const customRequestStatusSteps = ["submitted", "under_review", "approved", "completed"] as const;
 
+// The same happy path, collapsed to what a customer actually needs to
+// track: "Submitted" and "Under review" are both, from outside, just "the
+// studio has it" (see customerFacingStatusLabels)  -  a 3-stage version
+// avoids two adjacent circles reading the same label.
+export const customerFacingStatusSteps: {label: string; statuses: CustomRequestStatus[]}[] = [
+  {label: "With the studio", statuses: ["submitted", "under_review"]},
+  {label: "Confirmed", statuses: ["approved"]},
+  {label: "Completed", statuses: ["completed"]}
+];
+
+// -1 for a status with no place on the customer's collapsed happy path
+// (draft, cancelled)  -  the caller is expected to handle those as its own
+// state rather than pass them to the stepper at all.
+export function customerFacingStepIndex(status: CustomRequestStatus): number {
+  return customerFacingStatusSteps.findIndex((step) => step.statuses.includes(status));
+}
+
 // One plain sentence per status, shown under the stepper so "what does this
 // status actually mean" never requires asking someone who's used the tool
 // longer  -  a draft is never shown here (drafts aren't admin-visible), but

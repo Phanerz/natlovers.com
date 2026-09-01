@@ -525,6 +525,16 @@ export async function updateCustomRequest(id: string, input: AdminUpdateInput): 
   return getCustomRequest(id);
 }
 
+// customRequestImages has an onDelete: cascade FK back to this table (see
+// lib/db/schema.ts), so removing the request row alone is enough to also
+// remove its image rows  -  no separate cleanup query needed. Matches the
+// same "DB row only, no blob-storage cleanup" precedent as
+// deleteProductPermanently in lib/admin-products.ts.
+export async function deleteCustomRequest(id: string): Promise<boolean> {
+  const [deleted] = await db.delete(customRequests).where(eq(customRequests.id, id)).returning({id: customRequests.id});
+  return Boolean(deleted);
+}
+
 // Feeds the dashboard's Needs Attention list. Counts only the statuses that
 // are genuinely waiting on someone at the studio, so the number means
 // "things to do" rather than "requests that exist".

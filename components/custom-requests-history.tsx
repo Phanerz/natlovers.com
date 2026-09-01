@@ -6,9 +6,16 @@ import {useEffect, useState} from "react";
 import {ArrowRight} from "lucide-react";
 import {formatCurrency} from "@/lib/format";
 import type {CurrencyCode} from "@/lib/site";
-import {customerFacingStatusLabels, customRequestStatusStyle, summariseConfig} from "@/lib/custom-studio";
+import {
+  customerFacingStatusLabels,
+  customerFacingStatusSteps,
+  customerFacingStepIndex,
+  customRequestStatusStyle,
+  summariseConfig
+} from "@/lib/custom-studio";
 import {ESTIMATE_DISCLAIMER} from "@/lib/custom-pricing";
 import type {CustomRequestView} from "@/lib/custom-requests";
+import {StatusStepper} from "@/components/status-stepper";
 
 // The customer's own view of their commissions. It uses
 // customerFacingStatusLabels rather than the studio's internal ones  - 
@@ -70,6 +77,7 @@ export function CustomRequestsHistory({currency}: {currency: CurrencyCode}) {
         // Once the studio has quoted, that is the number that matters  -  the
         // original estimate stops being the headline figure.
         const quoted = request.finalPriceIdr !== null;
+        const stepIndex = customerFacingStepIndex(request.status);
 
         return (
           <div key={request.id} className="rounded-xl border border-[#e4d9c1] bg-white/70 p-5">
@@ -89,7 +97,20 @@ export function CustomRequestsHistory({currency}: {currency: CurrencyCode}) {
                 : ""}
             </p>
 
-            <div className="mt-3 space-y-1.5 border-t border-[#e4d9c1] pt-3">
+            <div className="mt-4 border-t border-[#e4d9c1] pt-4">
+              {request.status === "cancelled" ? (
+                <p className="rounded-xl border border-[#DEBBBF] bg-[#F0DEE0] px-4 py-3 text-sm font-medium text-[#5C2E33]">
+                  This request was cancelled.
+                </p>
+              ) : (
+                <StatusStepper
+                  steps={customerFacingStatusSteps.map((step) => step.label)}
+                  currentIndex={stepIndex}
+                />
+              )}
+            </div>
+
+            <div className="mt-4 space-y-1.5 border-t border-[#e4d9c1] pt-4">
               {rows.map((row) => (
                 <div key={row.label} className="flex items-baseline justify-between gap-4 text-sm">
                   <span className="text-forest-500">{row.label}</span>
@@ -99,7 +120,7 @@ export function CustomRequestsHistory({currency}: {currency: CurrencyCode}) {
             </div>
 
             {request.images.length ? (
-              <div className="mt-3 flex flex-wrap gap-2 border-t border-[#e4d9c1] pt-3">
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-[#e4d9c1] pt-4">
                 {request.images.map((image) => (
                   <div key={image.id} className="relative h-14 w-14 overflow-hidden rounded-xl border border-[#e4d9c1]">
                     <Image src={image.url} alt="Inspiration" fill sizes="56px" className="object-cover" />
@@ -109,23 +130,27 @@ export function CustomRequestsHistory({currency}: {currency: CurrencyCode}) {
             ) : null}
 
             {request.notes?.trim() ? (
-              <p className="mt-3 whitespace-pre-wrap border-t border-[#e4d9c1] pt-3 text-sm leading-relaxed text-forest-700">
-                {request.notes}
-              </p>
+              <div className="mt-4 border-t border-[#e4d9c1] pt-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-500">Your notes</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-forest-700">{request.notes}</p>
+              </div>
             ) : null}
 
-            <div className="mt-3 flex items-center justify-between border-t border-[#e4d9c1] pt-3 text-sm font-semibold text-forest-900">
-              <span>{quoted ? "Quoted price" : "Estimated total"}</span>
-              <span>
-                {quoted
-                  ? formatCurrency(request.finalPriceIdr!, currency)
-                  : request.estimatedPriceIdr > 0
-                    ? formatCurrency(request.estimatedPriceIdr, currency)
-                    : "To be quoted"}
-              </span>
+            <div className="mt-4 border-t border-[#e4d9c1] pt-4">
+              <div className={`rounded-xl px-4 py-3.5 ${quoted ? "bg-forest-900" : "border border-[#e4d9c1] bg-[#fffdf9]"}`}>
+                <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${quoted ? "text-sand-200/80" : "text-forest-500"}`}>
+                  {quoted ? "Quoted price" : "Estimated total"}
+                </p>
+                <p className={`mt-1 font-display text-xl ${quoted ? "text-sand-50" : "text-forest-900"}`}>
+                  {quoted
+                    ? formatCurrency(request.finalPriceIdr!, currency)
+                    : request.estimatedPriceIdr > 0
+                      ? formatCurrency(request.estimatedPriceIdr, currency)
+                      : "To be quoted"}
+                </p>
+              </div>
+              {!quoted ? <p className="mt-1.5 text-[11px] leading-relaxed text-forest-500">{ESTIMATE_DISCLAIMER}</p> : null}
             </div>
-
-            {!quoted ? <p className="mt-1.5 text-[11px] leading-relaxed text-forest-500">{ESTIMATE_DISCLAIMER}</p> : null}
           </div>
         );
       })}

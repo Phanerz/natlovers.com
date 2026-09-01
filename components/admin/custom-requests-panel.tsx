@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {useCallback, useEffect, useMemo, useState} from "react";
-import {ArrowUpRight, Loader2, PauseCircle, PlayCircle} from "lucide-react";
+import {ArrowUpRight, Loader2, PauseCircle, PlayCircle, Trash2} from "lucide-react";
 import {formatCurrency} from "@/lib/format";
 import {
   customRequestStatusLabels,
@@ -14,6 +14,7 @@ import type {AdminCustomRequestView} from "@/lib/custom-requests";
 import type {StoreSettings} from "@/lib/store-settings";
 import {DEFAULT_PAGE_SIZE, PageSize, PaginationBar} from "./pagination-bar";
 import {Toast, ToastState} from "./toast";
+import {useConfirm} from "./use-confirm";
 
 // Reuses the Orders panel's table shape and the catalogue's pill styling so
 // the studio queue reads like the rest of the admin panel rather than a
@@ -143,6 +144,8 @@ export function CustomRequestsPanel() {
   const [toast, setToast] = useState<ToastState>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const {confirm, dialog: confirmDialog} = useConfirm();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -169,6 +172,34 @@ export function CustomRequestsPanel() {
   useEffect(() => {
     setPage(1);
   }, [filter, pageSize]);
+
+  async function removeRequest(request: AdminCustomRequestView) {
+    if (
+      !(await confirm({
+        title: `Delete ${request.requestRef}?`,
+        description: "This permanently removes the request and its attached photos. This cannot be undone.",
+        confirmLabel: "Delete",
+        tone: "danger"
+      }))
+    ) {
+      return;
+    }
+    setBusyId(request.id);
+    try {
+      const response = await fetch(`/api/admin/custom-requests/${request.id}`, {method: "DELETE"});
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setToast({type: "error", message: data?.error ?? "Could not delete the request."});
+        return;
+      }
+      setToast({type: "success", message: `${request.requestRef} was deleted.`});
+      await load();
+    } catch {
+      setToast({type: "error", message: "Could not reach the server. Please try again."});
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   const totalPages = Math.max(1, Math.ceil(requests.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -279,13 +310,24 @@ export function CustomRequestsPanel() {
                       <StatusBadge status={request.status} />
                     </td>
                     <td className="py-3 text-right">
-                      <Link
-                        href={`/mimin/custom-requests/${request.id}`}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-forest-700 hover:text-forest-900"
-                      >
-                        Open
-                        <ArrowUpRight className="h-3.5 w-3.5" />
-                      </Link>
+                      <div className="flex items-center justify-end gap-3">
+                        <Link
+                          href={`/mimin/custom-requests/${request.id}`}
+                          className="inline-flex items-center gap-1 text-xs font-medium text-forest-700 hover:text-forest-900"
+                        >
+                          Open
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                        </Link>
+                        <button
+                          type="button"
+                          disabled={busyId === request.id}
+                          onClick={() => void removeRequest(request)}
+                          aria-label={`Delete ${request.requestRef} permanently`}
+                          className="glass-icon-btn is-danger flex h-8 w-8 items-center justify-center rounded-full text-red-600 disabled:opacity-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -315,6 +357,7 @@ export function CustomRequestsPanel() {
       </div>
 
       <Toast toast={toast} onDismiss={() => setToast(null)} />
+      {confirmDialog}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import {NextResponse} from "next/server";
 import {getSession, isAdminEmail} from "@/lib/auth";
-import {adminUpdateSchema, getCustomRequest, updateCustomRequest} from "@/lib/custom-requests";
+import {adminUpdateSchema, deleteCustomRequest, getCustomRequest, updateCustomRequest} from "@/lib/custom-requests";
 import {sendCustomRequestMessage} from "@/lib/custom-notifications";
 
 export const dynamic = "force-dynamic";
@@ -94,4 +94,17 @@ export async function POST(request: Request, {params}: {params: Promise<{id: str
     const detail = error instanceof Error ? error.message : "Could not send the message.";
     return NextResponse.json({error: detail}, {status: 500});
   }
+}
+
+export async function DELETE(_request: Request, {params}: {params: Promise<{id: string}>}) {
+  if (!(await requireAdminEmail())) {
+    return NextResponse.json({error: "Unauthorized."}, {status: 401});
+  }
+
+  const {id} = await params;
+  const deleted = await deleteCustomRequest(id);
+  if (!deleted) {
+    return NextResponse.json({error: "Not found."}, {status: 404});
+  }
+  return NextResponse.json({ok: true});
 }

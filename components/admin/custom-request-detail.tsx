@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import {useRouter} from "next/navigation";
 import {useEffect, useState} from "react";
-import {ArrowLeft, Check, Loader2, Mail, MessageCircle, Send, X} from "lucide-react";
+import {ArrowLeft, Loader2, Mail, MessageCircle, Send, Trash2, X} from "lucide-react";
 import {formatCurrency} from "@/lib/format";
 import {toWhatsAppLink} from "@/lib/contact";
 import {
@@ -16,9 +17,11 @@ import {
 } from "@/lib/custom-studio";
 import {ESTIMATE_DISCLAIMER} from "@/lib/custom-pricing";
 import type {AdminCustomRequestView} from "@/lib/custom-requests";
+import {StatusStepper} from "@/components/status-stepper";
 import {PillDropdown} from "./pill-dropdown";
 import {StatusBadge} from "./custom-requests-panel";
 import {Toast, ToastState} from "./toast";
+import {useConfirm} from "./use-confirm";
 
 // Mirrors customRequestStatusStyle's colours (lib/custom-studio.ts) as
 // static Tailwind arbitrary-value classes  -  PillDropdown takes a
@@ -84,12 +87,11 @@ function Lightbox({url, onClose}: {url: string; onClose: () => void}) {
   );
 }
 
-// A compact 4-stage progress tracker for the main happy path (see
-// customRequestStatusSteps in lib/custom-studio.ts). Cancelled isn't a step
-// on this line  -  a request doesn't pass through it on the way to
-// Completed  -  so it gets its own banner instead of pretending to be a
-// fifth stop.
-function StatusStepper({status}: {status: CustomRequestStatus}) {
+// Cancelled isn't a step on the main happy path (see customRequestStatusSteps
+// in lib/custom-studio.ts)  -  a request doesn't pass through it on the way
+// to Completed  -  so it gets its own banner instead of pretending to be a
+// fifth stop the shared StatusStepper would need to know about.
+function RequestStatusTracker({status}: {status: CustomRequestStatus}) {
   if (status === "cancelled") {
     return (
       <div className="rounded-xl border border-[#DEBBBF] bg-[#F0DEE0] px-4 py-3 text-sm font-medium text-[#5C2E33]">
@@ -98,41 +100,8 @@ function StatusStepper({status}: {status: CustomRequestStatus}) {
     );
   }
 
-  const steps = customRequestStatusSteps;
-  const currentIndex = Math.max(0, steps.indexOf(status as (typeof steps)[number]));
-  const progressPercent = (currentIndex / (steps.length - 1)) * 100;
-
-  return (
-    <div className="relative flex items-start justify-between pt-1">
-      <div className="absolute left-[12.5%] right-[12.5%] top-3.5 h-0.5 bg-[#e7ddc6]" />
-      <div
-        className="absolute left-[12.5%] top-3.5 h-0.5 bg-forest-700 transition-all duration-300"
-        style={{width: `${progressPercent * 0.75}%`}}
-      />
-      {steps.map((step, index) => {
-        const isComplete = index < currentIndex;
-        const isCurrent = index === currentIndex;
-        return (
-          <div key={step} className="relative z-10 flex flex-col items-center gap-1.5" style={{width: `${100 / steps.length}%`}}>
-            <div
-              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold ${
-                isComplete
-                  ? "border-forest-700 bg-forest-700 text-sand-50"
-                  : isCurrent
-                    ? "border-forest-700 bg-white text-forest-700"
-                    : "border-[#d9cfc0] bg-[#fffdf9] text-forest-400"
-              }`}
-            >
-              {isComplete ? <Check className="h-3.5 w-3.5" /> : index + 1}
-            </div>
-            <span className={`text-center text-[10.5px] font-medium leading-tight ${isCurrent || isComplete ? "text-forest-800" : "text-forest-400"}`}>
-              {customRequestStatusLabels[step]}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
+  const currentIndex = Math.max(0, customRequestStatusSteps.indexOf(status as (typeof customRequestStatusSteps)[number]));
+  return <StatusStepper steps={customRequestStatusSteps.map((step) => customRequestStatusLabels[step])} currentIndex={currentIndex} />;
 }
 
 function EmailComposeForm({
@@ -270,10 +239,13 @@ function ContactActions({
 }
 
 export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}) {
+  const router = useRouter();
   const [request, setRequest] = useState(initial);
   const [toast, setToast] = useState<ToastState>(null);
   const [savingStatus, setSavingStatus] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const {confirm, dialog: confirmDialog} = useConfirm();
 
   const [finalPrice, setFinalPrice] = useState(request.finalPriceIdr !== null ? String(request.finalPriceIdr) : "");
   const [adminNotes, setAdminNotes] = useState(request.adminNotes ?? "");
@@ -300,6 +272,33 @@ export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}
     const ok = await patch({status});
     if (ok) setToast({type: "success", message: `Status set to ${customRequestStatusLabels[status]}.`});
     setSavingStatus(false);
+  }
+
+  async function deleteRequest() {
+    if (
+      !(await confirm({
+        title: `Delete ${request.requestRef}?`,
+        description: "This permanently removes the request and its attached photos. This cannot be undone.",
+        confirmLabel: "Delete",
+        tone: "danger"
+      }))
+    ) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/admin/custom-requests/${request.id}`, {method: "DELETE"});
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setToast({type: "error", message: data?.error ?? "Could not delete the request."});
+        setDeleting(false);
+        return;
+      }
+      router.push("/mimin/custom-requests");
+    } catch {
+      setToast({type: "error", message: "Could not reach the server. Please try again."});
+      setDeleting(false);
+    }
   }
 
   async function saveFinalPrice() {
@@ -333,13 +332,24 @@ export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href="/mimin/custom-requests"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-forest-600 hover:text-forest-900"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          All custom requests
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href="/mimin/custom-requests"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-forest-600 hover:text-forest-900"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            All custom requests
+          </Link>
+          <button
+            type="button"
+            onClick={() => void deleteRequest()}
+            disabled={deleting}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 hover:text-red-900 disabled:opacity-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {deleting ? "Deleting..." : "Delete permanently"}
+          </button>
+        </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <h1 className="font-display text-3xl text-forest-900">{request.requestRef}</h1>
           <StatusBadge status={request.status} />
@@ -388,7 +398,7 @@ export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}
             />
           }
         >
-          <StatusStepper status={request.status} />
+          <RequestStatusTracker status={request.status} />
           <p className="text-xs leading-relaxed text-forest-500">{customRequestStatusStepDescriptions[request.status]}</p>
         </Card>
       </div>
@@ -487,6 +497,7 @@ export function CustomRequestDetail({initial}: {initial: AdminCustomRequestView}
 
       {lightbox ? <Lightbox url={lightbox} onClose={() => setLightbox(null)} /> : null}
       <Toast toast={toast} onDismiss={() => setToast(null)} />
+      {confirmDialog}
     </div>
   );
 }

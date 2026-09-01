@@ -180,9 +180,36 @@ body {
   @apply bg-paper font-body antialiased;
   color: #112319;
   overflow-x: clip;
-  background:
-    radial-gradient(circle at top left, rgba(226, 215, 188, 0.42), transparent 28%),
-    linear-gradient(180deg, #f5f0e5 0%, #efe7d7 100%);
+  /* Solid fallback only  -  the actual photo lives on .site-background
+     below, not here. Putting it on body directly would size background-
+     size: cover against the full scrollable page height (which can run to
+     several viewport-heights on a long page), zooming the image in far
+     past what's ever visible instead of framing it against the screen. */
+  background-color: #f2ead9;
+}
+
+/* Site-wide background photo, rendered here only. Every page/section that
+   already paints its own background (the home hero, product photography,
+   admin cards, etc.) sits in normal DOM flow above this fixed layer and is
+   completely unaffected  -  this is purely what shows through wherever
+   nothing more specific is drawn. A real position: fixed element (not
+   background-attachment: fixed on body, which is a known source of jank/
+   repaint bugs on mobile Safari) sized to inset: 0 is always exactly the
+   viewport, so background-size: cover frames it against the actual screen
+   on every device and scroll position  -  the photo always fully fills the
+   frame with no edge ever visible, at the cost of cropping into it rather
+   than ever letterboxing or tiling.
+   negative z-index keeps it behind all real content without needing every
+   page's own containers to be explicitly transparent. */
+.site-background {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("/images/natlovers-background.webp");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 a {

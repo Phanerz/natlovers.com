@@ -17,6 +17,7 @@ export default function RootLayout({children}: {children: ReactNode}) {
   return (
     <html lang="en">
       <body suppressHydrationWarning>
+        <div aria-hidden className="site-background" />
         <AuthSessionProvider>
           <SitePreferencesProvider>
             <StorefrontProvider>
