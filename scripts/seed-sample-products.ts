@@ -74,11 +74,12 @@ async function main() {
       throw new Error(`Body shape "${sample.bodyShapeName}" not found, aborting.`);
     }
 
-    const {bodyShapeName, ...rest} = sample;
+    const {bodyShapeName, images, materials, tags, ...rest} = sample;
     await db.insert(products).values({
       ...rest,
-      materials: [...sample.materials],
-      tags: [...sample.tags],
+      images: [...images],
+      materials: [...materials],
+      tags: [...tags],
       bodyShapeId: body.id,
       hasBaseColour: false,
       hasHandleColour: false,
