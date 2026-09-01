@@ -5,6 +5,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgPolicy,
   pgTable,
   primaryKey,
@@ -539,3 +540,39 @@ export const storeSettings = pgTable("store_settings", {
   updatedByEmail: text("updated_by_email"),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }).enableRLS();
+
+// The public /outlets page's studio + stockist list. type and icon are
+// plain text rather than a Postgres enum, matching bodyShapes.shapeType's
+// own pattern elsewhere in this file  -  the fixed set of allowed values is
+// enforced with zod at the admin write path (see lib/admin-locations.ts),
+// so the admin picker stays a dropdown without a migration every time the
+// icon set grows. displayOrder controls both the numbered list order and
+// the matching map pin number, so the two can never drift apart.
+export const locations = pgTable(
+  "locations",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    type: text("type").notNull(),
+    icon: text("icon").notNull(),
+    addressLine1: text("address_line_1").notNull(),
+    addressLine2: text("address_line_2"),
+    latitude: numeric("latitude", {precision: 9, scale: 6, mode: "number"}).notNull(),
+    longitude: numeric("longitude", {precision: 9, scale: 6, mode: "number"}).notNull(),
+    hoursDisplay: text("hours_display"),
+    displayOrder: integer("display_order").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow()
+  },
+  (table) => [
+    pgPolicy("Public can view active locations", {
+      as: "permissive",
+      for: "select",
+      to: "anon",
+      using: sql`${table.isActive} = true`
+    })
+  ]
+).enableRLS();
