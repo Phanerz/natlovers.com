@@ -1,5 +1,6 @@
 import {MapPin, Clock, MessageCircle} from "lucide-react";
 import {SectionHeading} from "@/components/section-heading";
+import {OutletsMap} from "@/components/outlets/outlets-map";
 
 type Outlet = {
   name: string;
@@ -7,6 +8,12 @@ type Outlet = {
   address: string;
   hours: string;
   contact: string;
+  // Geocoded against the actual street (Jalan Tata Bumi Selatan) via
+  // Nominatim/OpenStreetMap. OSM has no data for the exact house number
+  // ("No.107"), so this is the real street this address sits on, not a
+  // city-center placeholder.
+  latitude: number;
+  longitude: number;
 };
 
 const outlets: Outlet[] = [
@@ -15,9 +22,13 @@ const outlets: Outlet[] = [
     kind: "Flagship",
     address: "Jl. Tata Bumi Selatan No.107, Banyuraden, Gamping, Sleman, Yogyakarta",
     hours: "Mon–Sat, 09:00–17:00 WIB",
-    contact: "+62 812-2697-007"
+    contact: "+62 812-2697-007",
+    latitude: -7.7859895,
+    longitude: 110.3416997
   }
 ];
+
+const studio = outlets[0];
 
 export function OutletsContent() {
   return (
@@ -28,32 +39,38 @@ export function OutletsContent() {
         body="Our workshop and showroom in Yogyakarta is open to visitors by appointment. We're steadily growing our list of stockist partners across Indonesia and beyond, and this page will keep expanding as new locations come online."
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {outlets.map((outlet) => (
-          <div key={outlet.name} className="card motion-card p-8 text-sm leading-7 text-forest-700">
-            <p className="muted">{outlet.kind}</p>
-            <h3 className="mt-2 font-display text-2xl text-forest-900">{outlet.name}</h3>
-            <div className="mt-5 space-y-3">
-              <p className="flex items-start gap-2">
-                <MapPin className="mt-1 h-4 w-4 shrink-0" /> {outlet.address}
-              </p>
-              <p className="flex items-center gap-2">
-                <Clock className="h-4 w-4 shrink-0" /> {outlet.hours}
-              </p>
-              <p className="flex items-center gap-2">
-                <MessageCircle className="h-4 w-4 shrink-0" /> {outlet.contact}
-              </p>
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        <div className="space-y-6">
+          {outlets.map((outlet) => (
+            <div key={outlet.name} className="card motion-card p-8 text-sm leading-7 text-forest-700">
+              <p className="muted">{outlet.kind}</p>
+              <h3 className="mt-2 font-display text-2xl text-forest-900">{outlet.name}</h3>
+              <div className="mt-5 space-y-3">
+                <p className="flex items-start gap-2">
+                  <MapPin className="mt-1 h-4 w-4 shrink-0" /> {outlet.address}
+                </p>
+                <p className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 shrink-0" /> {outlet.hours}
+                </p>
+                <p className="flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4 shrink-0" /> {outlet.contact}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        <div className="card motion-card flex flex-col justify-center p-8 text-center text-sm leading-7 text-forest-700">
-          <p className="muted">Stockist Partners</p>
-          <p className="mt-3 font-display text-xl text-forest-900">More locations coming soon</p>
-          <p className="mt-3">
-            Interested in carrying Natlovers pieces at your store? Reach out through our socials and we'll follow up about
-            wholesale and stockist partnerships.
-          </p>
+          <div className="card motion-card flex flex-col justify-center p-8 text-center text-sm leading-7 text-forest-700">
+            <p className="muted">Stockist Partners</p>
+            <p className="mt-3 font-display text-xl text-forest-900">More locations coming soon</p>
+            <p className="mt-3">
+              Interested in carrying Natlovers pieces at your store? Reach out through our socials and we&apos;ll follow up
+              about wholesale and stockist partnerships.
+            </p>
+          </div>
+        </div>
+
+        <div className="card h-[360px] overflow-hidden p-0 lg:sticky lg:top-6 lg:h-[520px]">
+          <OutletsMap name={studio.name} address={studio.address} latitude={studio.latitude} longitude={studio.longitude} />
         </div>
       </div>
     </div>
