@@ -16,13 +16,15 @@ const OutletsMapInner = dynamic(() => import("./outlets-map-inner").then((mod) =
 export function OutletsMap({
   name,
   address,
+  type,
   latitude,
   longitude
 }: {
   name: string;
   address: string;
+  type: "main_studio" | "stockist";
   latitude: number;
   longitude: number;
 }) {
-  return <OutletsMapInner name={name} address={address} latitude={latitude} longitude={longitude} />;
+  return <OutletsMapInner name={name} address={address} type={type} latitude={latitude} longitude={longitude} />;
 }
