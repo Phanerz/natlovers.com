@@ -8,6 +8,7 @@ type Outlet = {
   address: string;
   hours: string;
   contact: string;
+  type: "main_studio" | "stockist";
   // Geocoded against the actual street (Jalan Tata Bumi Selatan) via
   // Nominatim/OpenStreetMap. OSM has no data for the exact house number
   // ("No.107"), so this is the real street this address sits on, not a
@@ -23,12 +24,19 @@ const outlets: Outlet[] = [
     address: "Jl. Tata Bumi Selatan No.107, Banyuraden, Gamping, Sleman, Yogyakarta",
     hours: "Mon–Sat, 09:00–17:00 WIB",
     contact: "+62 812-2697-007",
+    type: "main_studio",
     latitude: -7.7859895,
     longitude: 110.3416997
   }
 ];
 
 const studio = outlets[0];
+
+// Plain deep link, not the Maps JS/Embed API - no key, no billing risk.
+// Reused for every outlet card, including any future stockist entries.
+function googleMapsUrl(address: string) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+}
 
 export function OutletsContent() {
   return (
@@ -47,7 +55,15 @@ export function OutletsContent() {
               <h3 className="mt-2 font-display text-2xl text-forest-900">{outlet.name}</h3>
               <div className="mt-5 space-y-3">
                 <p className="flex items-start gap-2">
-                  <MapPin className="mt-1 h-4 w-4 shrink-0" /> {outlet.address}
+                  <MapPin className="mt-1 h-4 w-4 shrink-0" />
+                  <a
+                    href={googleMapsUrl(outlet.address)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline decoration-[#cdbfa6] underline-offset-2 transition-colors duration-150 hover:text-forest-900"
+                  >
+                    {outlet.address}
+                  </a>
                 </p>
                 <p className="flex items-center gap-2">
                   <Clock className="h-4 w-4 shrink-0" /> {outlet.hours}
@@ -70,7 +86,13 @@ export function OutletsContent() {
         </div>
 
         <div className="card h-[360px] overflow-hidden p-0 lg:sticky lg:top-6 lg:h-[520px]">
-          <OutletsMap name={studio.name} address={studio.address} latitude={studio.latitude} longitude={studio.longitude} />
+          <OutletsMap
+            name={studio.name}
+            address={studio.address}
+            type={studio.type}
+            latitude={studio.latitude}
+            longitude={studio.longitude}
+          />
         </div>
       </div>
     </div>
