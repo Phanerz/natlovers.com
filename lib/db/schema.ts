@@ -5,6 +5,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgPolicy,
   pgTable,
   primaryKey,
@@ -539,3 +540,41 @@ export const storeSettings = pgTable("store_settings", {
   updatedByEmail: text("updated_by_email"),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }).enableRLS();
+
+// The public /outlets page's studio + stockist list. type is plain text
+// rather than a Postgres enum, matching bodyShapes.shapeType's own pattern
+// elsewhere in this file  -  the fixed set of allowed values is enforced
+// with zod at the admin write path (see lib/admin-locations.ts). No icon
+// column: every marker is the same house pictogram, sized by type
+// (main_studio vs stockist) rather than admin-picked, so there's nothing
+// to store beyond type itself. contact is optional (studio has a WhatsApp
+// number, a stockist may not). displayOrder controls the list order; the
+// map itself no longer numbers pins, so this is purely a sort key now.
+export const locations = pgTable(
+  "locations",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    type: text("type").notNull(),
+    addressLine1: text("address_line_1").notNull(),
+    addressLine2: text("address_line_2"),
+    latitude: numeric("latitude", {precision: 9, scale: 6, mode: "number"}).notNull(),
+    longitude: numeric("longitude", {precision: 9, scale: 6, mode: "number"}).notNull(),
+    hoursDisplay: text("hours_display"),
+    contact: text("contact"),
+    displayOrder: integer("display_order").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow()
+  },
+  (table) => [
+    pgPolicy("Public can view active locations", {
+      as: "permissive",
+      for: "select",
+      to: "anon",
+      using: sql`${table.isActive} = true`
+    })
+  ]
+).enableRLS();

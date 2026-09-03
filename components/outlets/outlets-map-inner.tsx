@@ -1,11 +1,12 @@
 "use client";
 
-import {useState} from "react";
-import {MapContainer, Marker, Popup, TileLayer} from "react-leaflet";
+import {useEffect, useMemo, useState} from "react";
+import {MapContainer, Marker, Popup, TileLayer, useMap} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import type {PublicLocation} from "@/lib/locations";
 
-// Root cause of the "crosshair" marker this replaces: the old icon was five
+// Root cause of the "crosshair" marker this replaced: the old icon was five
 // same-size, same-color circles in a plus-sign layout (center + N/S/E/W).
 // At 32px that reads as a targeting reticle, not a flower - confirmed by
 // inspecting the live DOM, only one marker element existed and it matched
@@ -13,12 +14,13 @@ import "leaflet/dist/leaflet.css";
 // house-silhouette pictogram (roof + walls + a door notch), the brand's
 // dark forest green (#172015, same shade already used for glass-btn-primary
 // and every existing pin) on a cream badge, at two sizes so HQ reads bigger
-// than a stockist pin at a glance.
+// than a stockist pin at a glance. Every marker is this same house shape now,
+// sized by type  -  no per-location icon choice.
 const HOUSE_PATH = "M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z";
 
-function houseIcon(size: "hq" | "stockist") {
-  const outer = size === "hq" ? 36 : 26;
-  const glyph = size === "hq" ? 20 : 14;
+function houseIcon(type: "main_studio" | "stockist") {
+  const outer = type === "main_studio" ? 36 : 26;
+  const glyph = type === "main_studio" ? 20 : 14;
   return L.divIcon({
     className: "",
     html: `
@@ -61,10 +63,10 @@ const TILE_LAYERS: Record<TileMode, {url: string; attribution: string}> = {
 };
 
 // Flat two-segment pill, styled to match the rest of the site's toggle-pill
-// pattern (e.g. the type/icon pickers in the admin location form) instead
-// of Leaflet's default boxy layer-list control. Positioned as a plain
-// absolutely-placed sibling over the map, DESIGN.md keeps map controls
-// flat, no glass, so this is a solid cream surface with a 1px border.
+// pattern instead of Leaflet's default boxy layer-list control. Positioned
+// as a plain absolutely-placed sibling over the map, DESIGN.md keeps map
+// controls flat, no glass, so this is a solid cream surface with a 1px
+// border.
 function TileToggle({mode, onChange}: {mode: TileMode; onChange: (mode: TileMode) => void}) {
   return (
     <div className="leaflet-top leaflet-left" style={{marginTop: "10px", marginLeft: "50px"}}>
@@ -86,32 +88,47 @@ function TileToggle({mode, onChange}: {mode: TileMode; onChange: (mode: TileMode
   );
 }
 
-export function OutletsMapInner({
-  name,
-  address,
-  type,
-  latitude,
-  longitude
-}: {
-  name: string;
-  address: string;
-  type: "main_studio" | "stockist";
-  latitude: number;
-  longitude: number;
-}) {
+// A single location gets a fixed close-in zoom (there's nothing to fit
+// bounds against); multiple locations fit the map to all of them, the same
+// pattern the earlier multi-location build used, biased toward however the
+// real coordinates cluster rather than a hardcoded center/zoom.
+function FitBounds({locationList}: {locationList: PublicLocation[]}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (locationList.length < 2) return;
+    const bounds = L.latLngBounds(locationList.map((location) => [location.latitude, location.longitude]));
+    map.fitBounds(bounds, {padding: [48, 48], maxZoom: 14});
+  }, [map, locationList]);
+
+  return null;
+}
+
+export function OutletsMapInner({locationList}: {locationList: PublicLocation[]}) {
   const [tileMode, setTileMode] = useState<TileMode>("map");
   const tile = TILE_LAYERS[tileMode];
 
+  const center = useMemo<[number, number]>(() => {
+    const first = locationList[0];
+    return first ? [first.latitude, first.longitude] : [-2.5, 118];
+  }, [locationList]);
+
   return (
-    <MapContainer center={[latitude, longitude]} zoom={15} scrollWheelZoom={false} className="h-full w-full">
+    <MapContainer center={center} zoom={15} scrollWheelZoom={false} className="h-full w-full">
       <TileLayer key={tileMode} attribution={tile.attribution} url={tile.url} />
       <TileToggle mode={tileMode} onChange={setTileMode} />
-      <Marker position={[latitude, longitude]} icon={houseIcon(type === "main_studio" ? "hq" : "stockist")}>
-        <Popup>
-          <p style={{fontWeight: 600, margin: 0}}>{name}</p>
-          <p style={{margin: "2px 0 0", fontSize: "12px", color: "#5c5c50"}}>{address}</p>
-        </Popup>
-      </Marker>
+      <FitBounds locationList={locationList} />
+      {locationList.map((location) => (
+        <Marker key={location.id} position={[location.latitude, location.longitude]} icon={houseIcon(location.type)}>
+          <Popup>
+            <p style={{fontWeight: 600, margin: 0}}>{location.name}</p>
+            <p style={{margin: "2px 0 0", fontSize: "12px", color: "#5c5c50"}}>
+              {location.addressLine1}
+              {location.addressLine2 ? `, ${location.addressLine2}` : ""}
+            </p>
+          </Popup>
+        </Marker>
+      ))}
     </MapContainer>
   );
 }
