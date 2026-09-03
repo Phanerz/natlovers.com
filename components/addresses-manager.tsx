@@ -1,5 +1,6 @@
 "use client";
 
+import {AnimatePresence, motion} from "framer-motion";
 import {FormEvent, useEffect, useState} from "react";
 import {Check, MapPin, Pencil, Plus, Trash2} from "lucide-react";
 import {PhoneInput} from "@/components/phone-input";
@@ -132,103 +133,113 @@ export function AddressesManager() {
         </button>
       </div>
 
-      {formOpen ? (
-        <form onSubmit={handleSubmit} className="mt-5 space-y-3 rounded-xl border border-[#e4d9c1] bg-white/70 p-5">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="space-y-1.5 text-sm text-forest-700">
-              <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Label</span>
-              <input
-                value={form.label}
-                onChange={(event) => setForm((current) => ({...current, label: event.target.value}))}
-                placeholder="Home, Work, ..."
-                className={fieldClass}
-              />
-            </label>
-            <label className="space-y-1.5 text-sm text-forest-700">
-              <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Recipient name</span>
-              <input
-                value={form.recipientName}
-                onChange={(event) => setForm((current) => ({...current, recipientName: event.target.value}))}
-                required
-                className={fieldClass}
-              />
-            </label>
-            <label htmlFor="address-phone" className="space-y-1.5 text-sm text-forest-700">
-              <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Phone</span>
-              <PhoneInput
-                id="address-phone"
-                value={form.phone}
-                onChange={(value) => setForm((current) => ({...current, phone: value}))}
-                required
-                compact
-              />
-            </label>
-            <label className="space-y-1.5 text-sm text-forest-700 sm:col-span-2">
-              <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Street address</span>
-              <input
-                value={form.street}
-                onChange={(event) => setForm((current) => ({...current, street: event.target.value}))}
-                required
-                className={fieldClass}
-              />
-            </label>
-            <label className="space-y-1.5 text-sm text-forest-700">
-              <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">City</span>
-              <input
-                value={form.city}
-                onChange={(event) => setForm((current) => ({...current, city: event.target.value}))}
-                required
-                className={fieldClass}
-              />
-            </label>
-            <label className="space-y-1.5 text-sm text-forest-700">
-              <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Province / state (optional)</span>
-              <input
-                value={form.province}
-                onChange={(event) => setForm((current) => ({...current, province: event.target.value}))}
-                className={fieldClass}
-              />
-            </label>
-            <label className="space-y-1.5 text-sm text-forest-700">
-              <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Postal code</span>
-              <input
-                value={form.postalCode}
-                onChange={(event) => setForm((current) => ({...current, postalCode: event.target.value}))}
-                required
-                className={fieldClass}
-              />
-            </label>
-            <label className="space-y-1.5 text-sm text-forest-700">
-              <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Country</span>
-              <input
-                value={form.country}
-                onChange={(event) => setForm((current) => ({...current, country: event.target.value}))}
-                required
-                className={fieldClass}
-              />
-            </label>
-          </div>
+      <AnimatePresence>
+        {formOpen ? (
+          <motion.form
+            key="address-form"
+            onSubmit={handleSubmit}
+            initial={{opacity: 0, scale: 0.98, y: -6}}
+            animate={{opacity: 1, scale: 1, y: 0}}
+            exit={{opacity: 0, scale: 0.98, y: -4}}
+            transition={{duration: 0.18, ease: [0.22, 1, 0.36, 1]}}
+            className="mt-5 space-y-4 rounded-xl border border-[#e4d9c1] bg-white/70 p-6"
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="space-y-1.5 text-sm text-forest-700">
+                <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Label</span>
+                <input
+                  value={form.label}
+                  onChange={(event) => setForm((current) => ({...current, label: event.target.value}))}
+                  placeholder="Home, Work, ..."
+                  className={fieldClass}
+                />
+              </label>
+              <label className="space-y-1.5 text-sm text-forest-700">
+                <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Recipient name</span>
+                <input
+                  value={form.recipientName}
+                  onChange={(event) => setForm((current) => ({...current, recipientName: event.target.value}))}
+                  required
+                  className={fieldClass}
+                />
+              </label>
+              <label htmlFor="address-phone" className="space-y-1.5 text-sm text-forest-700 sm:col-span-2">
+                <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Phone</span>
+                <PhoneInput
+                  id="address-phone"
+                  value={form.phone}
+                  onChange={(value) => setForm((current) => ({...current, phone: value}))}
+                  required
+                  compact
+                />
+              </label>
+              <label className="space-y-1.5 text-sm text-forest-700 sm:col-span-2">
+                <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Street address</span>
+                <input
+                  value={form.street}
+                  onChange={(event) => setForm((current) => ({...current, street: event.target.value}))}
+                  required
+                  className={fieldClass}
+                />
+              </label>
+              <label className="space-y-1.5 text-sm text-forest-700">
+                <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">City</span>
+                <input
+                  value={form.city}
+                  onChange={(event) => setForm((current) => ({...current, city: event.target.value}))}
+                  required
+                  className={fieldClass}
+                />
+              </label>
+              <label className="space-y-1.5 text-sm text-forest-700">
+                <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Province / state (optional)</span>
+                <input
+                  value={form.province}
+                  onChange={(event) => setForm((current) => ({...current, province: event.target.value}))}
+                  className={fieldClass}
+                />
+              </label>
+              <label className="space-y-1.5 text-sm text-forest-700">
+                <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Postal code</span>
+                <input
+                  value={form.postalCode}
+                  onChange={(event) => setForm((current) => ({...current, postalCode: event.target.value}))}
+                  required
+                  className={fieldClass}
+                />
+              </label>
+              <label className="space-y-1.5 text-sm text-forest-700">
+                <span className="text-xs font-medium uppercase tracking-[0.14em] text-forest-500">Country</span>
+                <input
+                  value={form.country}
+                  onChange={(event) => setForm((current) => ({...current, country: event.target.value}))}
+                  required
+                  className={fieldClass}
+                />
+              </label>
+            </div>
 
-          {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
+            {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
 
-          <div className="flex items-center gap-3 pt-1">
-            <button
-              type="submit"
-              disabled={saving}
-              className="glass-btn-primary rounded-full px-5 py-2.5 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {saving ? "Saving..." : editingId ? "Save changes" : "Add address"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setFormOpen(false)}
-              className="glass-btn-secondary rounded-full px-5 py-2.5 text-sm font-medium text-forest-700"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      ) : null}
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="submit"
+                disabled={saving}
+                className="glass-btn-primary rounded-full px-5 py-2.5 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {saving ? "Saving..." : editingId ? "Save changes" : "Add address"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormOpen(false)}
+                className="glass-btn-secondary rounded-full px-5 py-2.5 text-sm font-medium text-forest-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </motion.form>
+        ) : null}
+      </AnimatePresence>
 
       <div className="mt-5 space-y-3">
         {addresses === null ? (
@@ -239,8 +250,14 @@ export function AddressesManager() {
             <p className="text-sm text-forest-600">No saved addresses yet.</p>
           </div>
         ) : (
-          addresses.map((address) => (
-            <div key={address.id} className="rounded-xl border border-[#e4d9c1] bg-white/70 p-5">
+          addresses.map((address, index) => (
+            <motion.div
+              key={address.id}
+              initial={{opacity: 0, y: 6}}
+              animate={{opacity: 1, y: 0}}
+              transition={{duration: 0.2, delay: index * 0.04, ease: "easeOut"}}
+              className="rounded-xl border border-[#e4d9c1] bg-white/70 p-5"
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   {address.isDefault ? (
@@ -291,7 +308,7 @@ export function AddressesManager() {
                   Set as default
                 </button>
               ) : null}
-            </div>
+            </motion.div>
           ))
         )}
       </div>
