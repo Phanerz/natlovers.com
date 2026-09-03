@@ -11,6 +11,7 @@ import {
   GalleryHorizontal,
   LayoutDashboard,
   LogOut,
+  MapPin,
   Palette,
   PlusCircle,
   Receipt,
@@ -208,6 +209,15 @@ export function AdminSidebar() {
             <AddLink href="/mimin?tab=add-body-shape" active={isAddBodyShape} label="Add body shape" />
           </div>
         </div>
+      </div>
+
+      <div className="border-b border-[#d9cfc0] py-3">
+        <div className="px-3 pb-2">
+          <SectionLabel>Store</SectionLabel>
+        </div>
+        <NavLink href="/mimin/outlets" active={pathname === "/mimin/outlets"} icon={MapPin}>
+          Outlets
+        </NavLink>
       </div>
 
       <div className="border-b border-[#d9cfc0] py-3">

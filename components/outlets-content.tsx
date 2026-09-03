@@ -87,11 +87,20 @@ export function OutletsContent() {
 
         <div className="card h-[360px] overflow-hidden p-0 lg:sticky lg:top-6 lg:h-[520px]">
           <OutletsMap
-            name={studio.name}
-            address={studio.address}
-            type={studio.type}
-            latitude={studio.latitude}
-            longitude={studio.longitude}
+            locationList={[
+              {
+                id: "studio",
+                name: studio.name,
+                type: studio.type,
+                addressLine1: studio.address,
+                addressLine2: null,
+                latitude: studio.latitude,
+                longitude: studio.longitude,
+                hoursDisplay: studio.hours,
+                contact: studio.contact,
+                displayOrder: 0
+              }
+            ]}
           />
         </div>
       </div>

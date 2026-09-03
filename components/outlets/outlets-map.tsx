@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type {PublicLocation} from "@/lib/locations";
 
 // Leaflet touches window/document at import time, so it can only ever run
 // client-side. next/dynamic's ssr: false has to live in a Client Component
@@ -13,18 +14,6 @@ const OutletsMapInner = dynamic(() => import("./outlets-map-inner").then((mod) =
   )
 });
 
-export function OutletsMap({
-  name,
-  address,
-  type,
-  latitude,
-  longitude
-}: {
-  name: string;
-  address: string;
-  type: "main_studio" | "stockist";
-  latitude: number;
-  longitude: number;
-}) {
-  return <OutletsMapInner name={name} address={address} type={type} latitude={latitude} longitude={longitude} />;
+export function OutletsMap({locationList}: {locationList: PublicLocation[]}) {
+  return <OutletsMapInner locationList={locationList} />;
 }
