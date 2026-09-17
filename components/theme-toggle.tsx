@@ -12,13 +12,14 @@ export function ThemeToggle() {
         <p className="font-medium text-forest-900">Appearance</p>
         <p className="mt-0.5 text-sm text-forest-600">Switch between light and dark mode.</p>
       </div>
-      <div className="flex items-center gap-1 rounded-full border border-forest-100 bg-[#fdfaf3] p-1">
+      <div className="liquid-glass-on-light relative flex w-44 shrink-0 rounded-full p-1">
+        <span className={`liquid-glass-active-on-light theme-toggle-thumb ${theme === "dark" ? "is-dark" : ""}`} />
         <button
           type="button"
           onClick={() => setTheme("light")}
           aria-pressed={theme === "light"}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-            theme === "light" ? "bg-forest-900 text-sand-50" : "text-forest-600 hover:text-forest-900"
+          className={`relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full py-1.5 text-sm font-medium transition-colors duration-200 ${
+            theme === "light" ? "text-sand-50" : "text-forest-600"
           }`}
         >
           <Sun className="h-3.5 w-3.5" />
@@ -28,8 +29,8 @@ export function ThemeToggle() {
           type="button"
           onClick={() => setTheme("dark")}
           aria-pressed={theme === "dark"}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-            theme === "dark" ? "bg-forest-900 text-sand-50" : "text-forest-600 hover:text-forest-900"
+          className={`relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full py-1.5 text-sm font-medium transition-colors duration-200 ${
+            theme === "dark" ? "text-sand-50" : "text-forest-600"
           }`}
         >
           <Moon className="h-3.5 w-3.5" />

@@ -972,6 +972,28 @@ button {
   mask-composite: exclude;
 }
 
+/* Two-state light/dark switch (components/theme-toggle.tsx), built from the
+   same .liquid-glass-on-light / .liquid-glass-active-on-light pair used for
+   the sliding tab indicators above, just fixed to exactly two 50/50 halves
+   instead of JS-measured widths  -  with only two possible states there's
+   nothing to measure. The thumb animates via left/right instead of
+   transform: translateX(), which sidesteps needing to know the track's
+   pixel width to compute a translate distance. */
+.theme-toggle-thumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  right: 50%;
+  border-radius: 9999px;
+  transition: left 320ms cubic-bezier(0.22, 1, 0.36, 1), right 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.theme-toggle-thumb.is-dark {
+  left: 50%;
+  right: 4px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* transition: none only, deliberately not transform: none  -  transform now
      also carries each pill's actual position (translateX), so zeroing it
@@ -1146,21 +1168,6 @@ button {
   opacity: 0.65;
 }
 
-/* The selected country’s calling code, shown beside the flag so the field
-   states which code it will send rather than leaving it to be inferred from
-   a flag. Rendered as a pseudo-element fed by --natlovers-dial-code (set in
-   components/phone-input.tsx) precisely so it cannot be focused, selected,
-   or edited  -  it changes only by choosing another country in the dropdown.
-   Countries are listed there as "Indonesia (+62)", so the same code appears
-   in both places. */
-.natlovers-phone-input .PhoneInputCountry::after {
-  content: var(--natlovers-dial-code, "");
-  margin-left: 0.4rem;
-  font-variant-numeric: tabular-nums;
-  color: #344332;
-  white-space: nowrap;
-}
-
 .natlovers-phone-input .PhoneInputCountry {
   display: flex;
   align-items: center;
@@ -1181,7 +1188,18 @@ button {
   color: #a89f8a;
 }
 
+.dark .natlovers-phone-input {
+  border-color: rgba(230, 222, 199, 0.16);
+  background: #3e3b2e;
+}
 
+.dark .natlovers-phone-input .PhoneInputInput {
+  color: var(--dm-text-primary);
+}
+
+.dark .natlovers-phone-input .PhoneInputInput::placeholder {
+  color: var(--dm-text-tertiary);
+}
 
 
 /* ======================================================================
@@ -1466,7 +1484,6 @@ button {
 .dark [class~="bg-[#f3ede0]"] { background-color: #37352a; }  /* was H:41 S:44 L:92 n=1 */
 .dark [class~="bg-[#f3e3c9]"] { background-color: #433319; }  /* was H:37 S:64 L:87 n=1 (tinted amber) */
 .dark [class~="bg-[#f3d9d0]"] { background-color: #432419; }  /* was H:15 S:59 L:88 n=1 */
-.dark [class~="bg-[#f2e7d0]"] { background-color: #37352a; }  /* was H:41 S:57 L:88 n=1 */
 .dark [class~="bg-[#f0ebdf]"] { background-color: #37352a; }  /* was H:42 S:36 L:91 n=1 */
 .dark [class~="bg-[#f0cdb0]"] { background-color: #302f25; }  /* was H:27 S:68 L:82 n=1 */
 .dark [class~="bg-[#e6d6ac]"] { background-color: #2a2b21; }  /* was H:43 S:54 L:79 n=1 */
@@ -1547,6 +1564,31 @@ button {
 .dark [class~="hover:border-[#d5c8b1]"]:hover { border-color: rgba(230,222,199,0.16); }
 .dark .group:hover [class~="group-hover:text-[#344332]"] { color: var(--dm-text-primary); }
 
+/* bg-white is a plain Tailwind palette color, not one of the arbitrary
+   hex values the classifier above covers - it's used ~85 times as a form
+   field / surface background, almost always paired with a text-forest-*
+   class for the label or value. Missing this one left plenty of
+   now-light text-forest-900 sitting on a background that was still pure
+   white in dark mode. */
+.dark [class~="bg-white"] { background-color: #3e3b2e; }
+.dark [class~="hover:bg-white"]:hover { background-color: #3e3b2e; }
+.dark [class~="active:bg-white"]:active { background-color: #3e3b2e; }
+
+/* Opacity-suffixed bg-white/NN "frosted glass" surfaces (account/catalogue
+   panels, modals, dropdowns). Each is a distinct utility class/token
+   (Tailwind's opacity modifier is part of the class name itself), so each
+   needs its own exact-token rule same as above - these are the higher-
+   opacity ones actually used as a light content surface; the low-opacity
+   ones (bg-white/5 through /15) are glass highlights already living on
+   the dark header or the self-contained dark-scheme /aoh page and don't
+   need to change. */
+.dark [class~="bg-white/50"] { background-color: rgba(38, 40, 30, 0.5); }
+.dark [class~="bg-white/60"] { background-color: rgba(38, 40, 30, 0.6); }
+.dark [class~="bg-white/70"] { background-color: rgba(38, 40, 30, 0.7); }
+.dark [class~="bg-white/80"] { background-color: rgba(38, 40, 30, 0.8); }
+.dark [class~="bg-white/85"] { background-color: rgba(38, 40, 30, 0.85); }
+.dark [class~="hover:bg-white/70"]:hover { background-color: rgba(38, 40, 30, 0.7); }
+
 /* Excluded from the block above on purpose: text-[#132015] and
    text-[#241a0d] (components/aoh/aoh-calculator.tsx) are near-black text
    sitting on the "copied!" button's own bg-[#9bd08f]/bg-[#d9a75c] chips,
@@ -1599,7 +1641,4 @@ button {
 }
 .dark .prose-editor:empty:before {
   color: rgba(230, 222, 199, 0.4);
-}
-.dark .natlovers-phone-input .PhoneInputCountry::after {
-  color: var(--dm-text-secondary);
 }
