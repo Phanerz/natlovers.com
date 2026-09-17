@@ -12,8 +12,10 @@ export function ThemeToggle() {
         <p className="font-medium text-forest-900">Appearance</p>
         <p className="mt-0.5 text-sm text-forest-600">Switch between light and dark mode.</p>
       </div>
-      <div className="liquid-glass-on-light relative flex w-44 shrink-0 rounded-full p-1">
-        <span className={`liquid-glass-active-on-light theme-toggle-thumb ${theme === "dark" ? "is-dark" : ""}`} />
+      <div className="liquid-glass-on-light relative flex w-44 shrink-0 rounded-full p-1 backdrop-blur-[18px] backdrop-saturate-[160%]">
+        <span
+          className={`liquid-glass-active-on-light theme-toggle-thumb backdrop-blur-[14px] backdrop-saturate-[160%] ${theme === "dark" ? "is-dark" : ""}`}
+        />
         <button
           type="button"
           onClick={() => setTheme("light")}

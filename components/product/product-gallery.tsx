@@ -187,7 +187,7 @@ export function ProductGallery({
             type="button"
             onClick={() => setLightboxOpen(true)}
             aria-label="View full image"
-            className="liquid-glass-on-light icon-button absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full text-forest-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
+            className="liquid-glass-on-light icon-button absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full text-forest-800 backdrop-blur-[18px] backdrop-saturate-[160%] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
           >
             <Maximize2 className="h-4 w-4" />
           </button>

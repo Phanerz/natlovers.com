@@ -841,69 +841,11 @@ button {
   mask-composite: exclude;
 }
 
-/*
- * Flat (non-glass) counterparts of .liquid-glass-on-light / .liquid-glass-
- * active, for the same sliding-pill tab-bar mechanic used somewhere out of
- * glass scope per DESIGN.md (catalogue category tabs, admin sidebar nav).
- * Deliberately separate classes rather than restyling the .liquid-glass-*
- * originals  -  those are still genuinely in use for glass-scoped elements
- * elsewhere (the header nav, product gallery icon buttons), so the
- * originals stay untouched and these carry the flat treatment instead.
- * Same transition timing as .liquid-glass-active, so the tab-switch glide
- * feels identical  -  only the surface (solid fill, no blur/bevel/iridescent
- * edge) changed.
- */
-.flat-tab-bar {
-  background: #fdfaf3;
-  border: 1px solid rgba(52, 67, 50, 0.12);
-}
-
-.dark .flat-tab-bar {
-  background: #302f25;
-  border-color: rgba(230, 222, 199, 0.16);
-}
-
-.flat-tab-active {
-  position: absolute;
-  left: 0;
-  border-radius: 9999px;
-  background: #172015;
-  /* Same reasoning as .liquid-glass-active above: position travels via an
-     inline transform: translateX() rather than the `left` offset, so it's
-     compositor-only; `width` stays a real transition (this element is
-     absolutely positioned, so it doesn't reflow anything else). transform
-     keeps the same 560ms/smooth timing `left` used to carry alone  -  the
-     quicker 220ms/bouncy drag-lift feel only applies via .is-dragging below. */
-  transition-property: width, transform;
-  transition-duration: 560ms, 560ms;
-  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1);
-  pointer-events: none;
-}
-
-.flat-tab-active.is-dragging {
-  z-index: 20;
-  transition-property: width, transform;
-  transition-duration: 180ms, 220ms;
-  transition-timing-function: ease, cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  /* transition: none only, deliberately not transform: none  -  transform now
-     also carries this pill's actual position (translateX), so zeroing it
-     would snap the indicator back to the first tab instead of just removing
-     the slide animation. */
-  .flat-tab-active,
-  .flat-tab-active.is-dragging {
-    transition: none;
-  }
-}
-
 /* Flat counterpart of .liquid-glass-dark, for the admin sidebar's active nav
-   item  -  same reasoning as .flat-tab-bar/.flat-tab-active above: the admin
-   sidebar is out of glass scope, but .liquid-glass-dark itself is still
-   genuinely in use for glass-scoped primary buttons elsewhere (e.g. the
-   product page's Add to Bag), so it stays untouched and this carries the
-   flat treatment instead. */
+   item  -  the admin sidebar is out of glass scope, but .liquid-glass-dark
+   itself is still genuinely in use for glass-scoped elements elsewhere (the
+   product page's Add to Bag, the outlets map's Map/Satellite toggle), so it
+   stays untouched and this carries the flat treatment instead. */
 .flat-nav-active {
   background: #172015;
   border: 1px solid transparent;
@@ -924,6 +866,18 @@ button {
  * .liquid-glass, but inverted so it reads clearly over the site's cream
  * page background instead of the dark header: a soft dark-tinted glass
  * blob with a bright highlight on top, rather than a bright blob on dark.
+ *
+ * Unlike .liquid-glass/.liquid-glass-active, these three (.liquid-glass-on-
+ * light, .liquid-glass-dark, .liquid-glass-active-on-light) DO declare a
+ * literal backdrop-filter below  -  but this build's CSS pipeline silently
+ * drops hand-written backdrop-filter declarations (same issue as .aoh-glass
+ * further down this file), so every element using one of these three classes
+ * must also carry the matching backdrop-blur-[Npx] backdrop-saturate-[160%]
+ * Tailwind utility classes directly in its own className. Without that, the
+ * class still renders (background/border/box-shadow all survive), it just
+ * isn't actually blurring anything behind it  -  which reads as a flatter,
+ * less "glass" surface and, over a busy background (e.g. the outlets map's
+ * satellite tiles), can leave inactive-state text short on contrast.
  */
 .liquid-glass-on-light {
   /* No position here on purpose  -  every usage site sets its own `relative`
@@ -960,6 +914,13 @@ button {
 
 .liquid-glass-active-on-light {
   position: absolute;
+  /* Same reasoning as .liquid-glass-active: `left` stays permanently 0 and
+     position instead travels via an inline transform: translateX(), so a
+     JS-measured, transform-driven pill (the catalogue category tabs) can
+     reuse this class exactly like the navbar's own .liquid-glass-active,
+     not just the fixed 50/50 .theme-toggle-thumb pairing below (which still
+     overrides left/right/transition itself and is unaffected by this). */
+  left: 0;
   border-radius: 9999px;
   background: linear-gradient(180deg, rgba(52, 67, 50, 0.94), rgba(41, 54, 40, 0.86));
   backdrop-filter: blur(14px) saturate(160%);
@@ -969,10 +930,9 @@ button {
     inset 0 1px 1px rgba(255, 255, 255, 0.32),
     inset 0 -6px 10px rgba(0, 0, 0, 0.2),
     0 6px 16px rgba(52, 67, 50, 0.22);
-  transition-property: left, width, transform, box-shadow;
-  transition-duration: 560ms, 560ms, 220ms, 220ms;
-  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1),
-    cubic-bezier(0.34, 1.56, 0.64, 1), ease;
+  transition-property: width, transform, box-shadow;
+  transition-duration: 560ms, 560ms, 220ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.16, 1, 0.3, 1), ease;
   pointer-events: none;
 }
 
