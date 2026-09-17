@@ -355,6 +355,11 @@ button {
   background: rgba(255, 252, 246, 0.96);
 }
 
+.dark .motion-card:hover {
+  border-color: rgba(230, 222, 199, 0.24);
+  background: rgba(48, 47, 37, 0.96);
+}
+
 /* Same iridescent lit-glass edge .liquid-glass-active uses, faded in on
    hover only  -  a card that's just been lifted off the surface catching a
    thin rim of light, not a permanent decorative border. */
@@ -643,6 +648,24 @@ button {
   transition-duration: 120ms;
 }
 
+/* .glass-btn-secondary/.glass-icon-btn/.glass-stepper all share the same
+   hardcoded pale cream gradient above  -  fine on the light theme they were
+   designed for, but paired with a text-forest-* label (which does go light
+   in dark mode, see the text-forest-* rules earlier in this file) that left
+   light text sitting on a background that never got any darker. */
+.dark .glass-btn-secondary,
+.dark .glass-icon-btn,
+.dark .glass-stepper {
+  background: linear-gradient(165deg, rgba(62, 59, 46, 0.95), rgba(48, 47, 37, 0.85));
+  border-color: rgba(230, 222, 199, 0.16);
+}
+
+.dark .glass-btn-secondary:hover,
+.dark .glass-icon-btn:hover {
+  background: linear-gradient(165deg, rgba(70, 67, 53, 0.98), rgba(53, 52, 41, 0.95));
+  border-color: rgba(230, 222, 199, 0.3);
+}
+
 /*
  * Toggle switch  -  a literal iOS switch, not an interpretation: solid
  * colour track (no gradient, no glow), plain white thumb with one small
@@ -833,6 +856,11 @@ button {
 .flat-tab-bar {
   background: #fdfaf3;
   border: 1px solid rgba(52, 67, 50, 0.12);
+}
+
+.dark .flat-tab-bar {
+  background: #302f25;
+  border-color: rgba(230, 222, 199, 0.16);
 }
 
 .flat-tab-active {
@@ -1518,7 +1546,20 @@ button {
 .dark [class~="border-[#cfc4ad]"] { border-color: rgba(230,222,199,0.16); }  /* was H:41 S:26 L:75 n=1 */
 .dark [class~="divide-[#eee7d8]"] { border-color: rgba(230,222,199,0.16); }  /* was H:41 S:39 L:89 n=2 */
 .dark [class~="fill-[#344332]"] { fill: var(--dm-text-primary); }  /* was H:113 S:15 L:23 n=1 */
-.dark [class~="from-[#f7f4ee]"] { --tw-gradient-from: #3e3b2e; }  /* was H:40 S:36 L:95 n=1 */
+/* from-[#f7f4ee] and via-[#f7f4eef2] (the bottom scrim on each catalogue
+   card, fading the product photo into the name/price/tags) turned out to
+   need more than overriding their own gradient custom properties:
+   Tailwind's gradient-stop utilities each bake their literal color
+   straight into --tw-gradient-stops (the value the actual gradient
+   renders from) rather than composing it from var(--tw-gradient-from)
+   etc, so overriding those standalone variables never touched what
+   actually painted. Overriding --tw-gradient-stops itself on the one
+   element carrying both classes is what actually works - see
+   app/catalogue/shop-product-card.tsx for the source className this
+   targets (from-[#f7f4ee] from-45% via-[#f7f4eef2] to-transparent). */
+.dark [class~="from-[#f7f4ee]"][class~="via-[#f7f4eef2]"] {
+  --tw-gradient-stops: #3e3b2e 45%, rgba(62, 59, 46, 0.95), transparent;
+}
 .dark [class~="text-[#344332]"] { color: var(--dm-text-primary); }  /* was H:113 S:15 L:23 n=13 */
 .dark [class~="text-[#8a4a1f]"] { color: #dc9362; }  /* was H:24 S:63 L:33 n=7 */
 .dark [class~="text-[#2f5b2b]"] { color: #9cce97; }  /* was H:115 S:36 L:26 n=7 */
@@ -1546,7 +1587,6 @@ button {
 .dark [class~="text-[#4B4A42]"] { color: var(--dm-text-secondary); }  /* was H:53 S:6 L:28 n=1 */
 .dark [class~="text-[#3f7a4a]"] { color: #9bcfa5; }  /* was H:131 S:32 L:36 n=1 */
 .dark [class~="text-[#20241b]"] { color: var(--dm-text-primary); }  /* was H:87 S:14 L:12 n=1 */
-.dark [class~="via-[#f7f4eef2]"] { --tw-gradient-via: #3e3b2e; }  /* was H:40 S:36 L:95 n=1 */
 .dark [class~="hover:bg-[#f7e9e2]"]:hover { background-color: #432719; }
 .dark [class~="hover:bg-[#eee7d8]"]:hover { background-color: #37352a; }
 .dark [class~="hover:text-[#344332]"]:hover { color: var(--dm-text-primary); }
@@ -1616,6 +1656,17 @@ button {
 }
 .dark .border-forest-100 {
   border-color: rgba(230, 222, 199, 0.16);
+}
+/* bg-sand-100 / bg-forest-50 / bg-forest-100 are used as small icon-badge
+   circles (the About page's video play button, Custom Studio's paused/
+   review-step icons) with a text-forest-* icon color inside - since that
+   icon color does go light in dark mode (the rules above), leaving these
+   chip backgrounds untouched left a now-light icon sitting on a chip that
+   was still light too. */
+.dark .bg-sand-100,
+.dark .bg-forest-50,
+.dark .bg-forest-100 {
+  background-color: #302f25;
 }
 .dark [class~="hover:text-forest-900"]:hover,
 .dark [class~="hover:text-forest-800"]:hover,

@@ -120,7 +120,7 @@ export function AdminWidgetPicker({initialWidgets, onSaved}: {initialWidgets: Wi
                   type="button"
                   disabled={selected.length >= MAX_WIDGETS}
                   onClick={() => addWidget(key)}
-                  className="glass-btn-secondary flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-forest-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="glass-btn-secondary flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-forest-800 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Plus className="h-3 w-3" />
                   {meta.label}
