@@ -22,7 +22,7 @@ const themeInitScript = `(function(){try{var t=localStorage.getItem('nl-theme');
 
 export default function RootLayout({children}: {children: ReactNode}) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{__html: themeInitScript}} />
       </head>
