@@ -267,21 +267,29 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
     }
   }, [selectedProductType]);
 
-  function updateTabDragPosition(clientX: number) {
+  // Pure computation, no state writes: given a pointer's clientX, works out
+  // where the pill should sit and which tab it's currently nearest. Shared
+  // by the move handler (which uses it for live visual feedback) and the up
+  // handler (which uses it as the sole source of truth for the drop
+  // decision)  -  the up handler used to instead read back the `tabDragLeft`
+  // state that only the move handler ever wrote, which meant a drag fast
+  // enough to reach pointerup before a single pointermove fired (a quick
+  // flick, not a slow deliberate drag) left that state at its initial null
+  // and silently cancelled the whole drop, reading as "dropping it on a
+  // category just snaps back to the origin tab."
+  function computeTabDragTarget(clientX: number) {
     const containerBox = tabsRef.current?.getBoundingClientRect();
     if (!containerBox || !tabIndicator) {
-      return;
+      return null;
     }
 
     const half = tabIndicator.width / 2;
     const max = Math.max(0, containerBox.width - tabIndicator.width);
     const left = Math.min(max, Math.max(0, clientX - containerBox.left - half));
-    setTabDragLeft(left);
 
-    // Snap the pill's width to whichever tab it's currently nearest, rather
-    // than staying frozen at the width of whatever tab the drag started
-    // from  -  otherwise it visibly stops matching any label as soon as it
-    // slides over one of a different size.
+    // Nearest tab to the pill's current center  -  used both to snap the
+    // pill's width while dragging (so it stops matching whatever it's
+    // passing over) and, at drop time, to decide which tab was targeted.
     const dragCenter = left + tabIndicator.width / 2;
     let closestWidth = tabIndicator.width;
     let closestType: ShopProductType | null = null;
@@ -304,12 +312,22 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
       }
     });
 
-    setTabDragWidth(closestWidth);
+    return {containerBox, left, closestType, closestWidth};
+  }
+
+  function updateTabDragPosition(clientX: number) {
+    const target = computeTabDragTarget(clientX);
+    if (!target) {
+      return;
+    }
+
+    setTabDragLeft(target.left);
+    setTabDragWidth(target.closestWidth);
     // The label directly under the pill needs to switch to light text as
     // soon as the pill slides onto it  -  waiting for drop would leave a dark
     // label sitting underneath an opaque dark pill while dragging, which is
     // exactly the "can't read the text while dragging" bug this fixes.
-    setDragOverType(closestType);
+    setDragOverType(target.closestType);
   }
 
   function handleTabIndicatorPointerDown(event: ReactPointerEvent<HTMLElement>) {
@@ -354,44 +372,18 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
-    const containerBox = tabsRef.current?.getBoundingClientRect();
-    const dropLeft = tabDragLeft;
+    // Computed fresh from this event's own clientX, not read back from
+    // tabDragLeft state  -  see computeTabDragTarget's comment for why.
+    const target = computeTabDragTarget(event.clientX);
+    const closestType = target?.closestType ?? null;
+    const closestTab = closestType ? tabRefs.current.get(closestType) ?? null : null;
 
-    if (!containerBox || dropLeft === null || !tabIndicator) {
-      setTabDragLeft(null);
-      setTabDragWidth(null);
-      setDragOverType(null);
-      return;
-    }
-
-    const dropCenter = dropLeft + tabIndicator.width / 2;
-    let closestType: ShopProductType | null = null;
-    let closestTab: HTMLButtonElement | null = null;
-    let closestDistance = Infinity;
-
-    shopProductTypes.forEach((type) => {
-      const tab = tabRefs.current.get(type);
-      if (!tab) {
-        return;
-      }
-
-      const tabBox = tab.getBoundingClientRect();
-      const center = tabBox.left - containerBox.left + tabBox.width / 2;
-      const distance = Math.abs(center - dropCenter);
-
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestType = type;
-        closestTab = tab;
-      }
-    });
-
-    if (closestType && closestTab && closestType !== selectedProductType) {
+    if (target && closestType && closestTab && closestType !== selectedProductType) {
       // Glide the rest of the way to the destination tab's exact spot
       // instead of snapping back to the origin first  -  release should read
       // as "landing on the tab you dropped on," not a bounce-back.
-      const targetBox = (closestTab as HTMLButtonElement).getBoundingClientRect();
-      setTabDragLeft(targetBox.left - containerBox.left);
+      const targetBox = closestTab.getBoundingClientRect();
+      setTabDragLeft(targetBox.left - target.containerBox.left);
       setTabDragWidth(targetBox.width);
       setDragOverType(closestType);
       pendingTabTypeRef.current = closestType;

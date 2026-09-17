@@ -269,16 +269,24 @@ export function Header() {
     smoothScrollTo(Math.max(0, targetY));
   }
 
-  function updateDragPosition(clientX: number) {
+  // Pure computation, no state writes: given a pointer's clientX, works out
+  // where the pill should sit and which nav item it's currently nearest.
+  // Shared by the move handler (live visual feedback) and the up handler
+  // (the sole source of truth for the drop decision)  -  the up handler used
+  // to instead read back the `dragLeft` state that only the move handler
+  // ever wrote, so a drag fast enough to reach pointerup before a single
+  // pointermove fired (a quick flick, not a slow deliberate drag) left that
+  // state at its initial null and silently cancelled the whole drop, reading
+  // as "dropping it on a page just snaps back to the origin item."
+  function computeDragTarget(clientX: number) {
     const navBox = navRef.current?.getBoundingClientRect();
     if (!navBox || !indicator) {
-      return;
+      return null;
     }
 
     const half = indicator.width / 2;
     const max = Math.max(0, navBox.width - indicator.width);
     const left = Math.min(max, Math.max(0, clientX - navBox.left - half));
-    setDragLeft(left);
 
     // The pill's width magnetically snaps to whichever item it's currently
     // nearest, instead of staying frozen at the width of whatever item the
@@ -287,6 +295,7 @@ export function Header() {
     // supposed to be hovering (reads as a glitch, not a drag).
     const dragCenter = left + indicator.width / 2;
     let closestWidth = indicator.width;
+    let closestHref: Route | null = null;
     let closestDistance = Infinity;
 
     navItems.forEach((item) => {
@@ -302,10 +311,21 @@ export function Header() {
       if (distance < closestDistance) {
         closestDistance = distance;
         closestWidth = linkBox.width;
+        closestHref = item.href;
       }
     });
 
-    setDragWidth(closestWidth);
+    return {navBox, left, closestHref, closestWidth};
+  }
+
+  function updateDragPosition(clientX: number) {
+    const target = computeDragTarget(clientX);
+    if (!target) {
+      return;
+    }
+
+    setDragLeft(target.left);
+    setDragWidth(target.closestWidth);
   }
 
   function handleIndicatorPointerDown(event: ReactPointerEvent<HTMLElement>) {
@@ -348,43 +368,18 @@ export function Header() {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
-    const navBox = navRef.current?.getBoundingClientRect();
-    const dropLeft = dragLeft;
+    // Computed fresh from this event's own clientX, not read back from
+    // dragLeft state  -  see computeDragTarget's comment for why.
+    const target = computeDragTarget(event.clientX);
+    const closestHref = target?.closestHref ?? null;
+    const closestLink = closestHref ? linkRefs.current.get(closestHref) ?? null : null;
 
-    if (!navBox || dropLeft === null || !indicator) {
-      setDragLeft(null);
-      setDragWidth(null);
-      return;
-    }
-
-    const dropCenter = dropLeft + indicator.width / 2;
-    let closestHref: Route | null = null;
-    let closestLink: HTMLAnchorElement | null = null;
-    let closestDistance = Infinity;
-
-    navItems.forEach((item) => {
-      const link = linkRefs.current.get(item.href);
-      if (!link) {
-        return;
-      }
-
-      const linkBox = link.getBoundingClientRect();
-      const center = linkBox.left - navBox.left + linkBox.width / 2;
-      const distance = Math.abs(center - dropCenter);
-
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestHref = item.href;
-        closestLink = link;
-      }
-    });
-
-    if (closestHref && closestLink && closestHref !== activeHref) {
+    if (target && closestHref && closestLink && closestHref !== activeHref) {
       // Glide the rest of the way to the destination pill's exact spot
       // instead of snapping back to the origin first  -  release should read
       // as "landing on the page you dropped on," not a bounce-back.
-      const targetBox = (closestLink as HTMLAnchorElement).getBoundingClientRect();
-      setDragLeft(targetBox.left - navBox.left);
+      const targetBox = closestLink.getBoundingClientRect();
+      setDragLeft(targetBox.left - target.navBox.left);
       setDragWidth(targetBox.width);
       pendingNavHrefRef.current = closestHref;
       if (pendingNavTimeoutRef.current !== null) {
