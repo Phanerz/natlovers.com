@@ -765,7 +765,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#d9cfc0] px-6 py-3 sm:px-10">
           <div
             ref={tabsRef}
-            className="flat-tab-bar relative flex w-max items-center gap-1 overflow-x-auto rounded-full p-1.5"
+            className="liquid-glass-on-light relative flex w-max items-center gap-1 overflow-x-auto rounded-full p-1.5 backdrop-blur-[18px] backdrop-saturate-[160%]"
           >
             {tabIndicator
               ? (() => {
@@ -773,12 +773,14 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
                   const lensWidth = tabDragWidth ?? tabIndicator.width;
                   // Position travels via transform: translateX() (GPU-
                   // compositable) instead of the `left` offset  -  `left`
-                  // stays permanently 0 (set in the .flat-tab-active CSS
-                  // rule). The drag-lift scale has to be combined into this
-                  // same transform string rather than left as a separate
-                  // CSS-class transform, since an inline style's transform
-                  // always wins over a class's.
-                  const liftTransform = isTabDragging ? " scale(1.04)" : "";
+                  // stays permanently 0 (set in the .liquid-glass-active-on-
+                  // light CSS rule). The drag-lift scale/translateY has to be
+                  // combined into this same transform string rather than
+                  // left as a separate CSS-class transform, since an inline
+                  // style's transform always wins over a class's. Same lift
+                  // as the navbar's own .liquid-glass-active drag (header.tsx)
+                  // so picking up a pill feels identical everywhere it exists.
+                  const liftTransform = isTabDragging ? " scale(1.07) translateY(-3px)" : "";
 
                   return (
                     <span
@@ -787,7 +789,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
                       onPointerMove={handleTabIndicatorPointerMove}
                       onPointerUp={handleTabIndicatorPointerUp}
                       onPointerCancel={handleTabIndicatorPointerUp}
-                      className={`flat-tab-active top-1.5 h-[calc(100%-0.75rem)] ${
+                      className={`liquid-glass-active-on-light top-1.5 h-[calc(100%-0.75rem)] backdrop-blur-[14px] backdrop-saturate-[160%] ${
                         isTabDragging ? "is-dragging" : "cursor-grab active:cursor-grabbing"
                       }`}
                       style={{
@@ -862,7 +864,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
             <button
               type="button"
               onClick={() => setMobileFiltersOpen(true)}
-              className="liquid-glass-on-light relative flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-[#2e2e28] transition-transform duration-200 active:scale-95 lg:hidden"
+              className="liquid-glass-on-light relative flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-[#2e2e28] backdrop-blur-[18px] backdrop-saturate-[160%] transition-transform duration-200 active:scale-95 lg:hidden"
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
               Filters
@@ -874,7 +876,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
               <button
                 type="button"
                 onClick={() => setSortOpen((open) => !open)}
-                className="liquid-glass-on-light relative flex items-center gap-2 rounded-full px-4 py-2 text-sm text-[#2e2e28] transition-transform duration-200 active:scale-95"
+                className="liquid-glass-on-light relative flex items-center gap-2 rounded-full px-4 py-2 text-sm text-[#2e2e28] backdrop-blur-[18px] backdrop-saturate-[160%] transition-transform duration-200 active:scale-95"
               >
                 <span className="text-[#6b6b5f]">Sort by:</span>
                 <span className="font-medium">{sortOptions.find((option) => option.value === sort)?.label}</span>
@@ -923,7 +925,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
               type="button"
               aria-label="Show filters"
               onClick={() => setSidebarCollapsed(false)}
-              className={`liquid-glass-on-light absolute inset-0 flex flex-col items-center justify-center gap-4 text-[#8a8a7a] transition-opacity duration-300 hover:text-[#344332] ${
+              className={`liquid-glass-on-light absolute inset-0 flex flex-col items-center justify-center gap-4 text-[#8a8a7a] backdrop-blur-[18px] backdrop-saturate-[160%] transition-opacity duration-300 hover:text-[#344332] ${
                 sidebarCollapsed ? "pointer-events-auto opacity-100 delay-150" : "pointer-events-none opacity-0"
               }`}
             >
@@ -973,7 +975,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
                 type="button"
                 aria-label="Close filters"
                 onClick={() => setMobileFiltersOpen(false)}
-                className="liquid-glass-on-light relative mb-4 flex h-9 w-9 items-center justify-center rounded-full text-[#2e2e28] transition-transform duration-200 active:scale-90"
+                className="liquid-glass-on-light relative mb-4 flex h-9 w-9 items-center justify-center rounded-full text-[#2e2e28] backdrop-blur-[18px] backdrop-saturate-[160%] transition-transform duration-200 active:scale-90"
               >
                 <X className="h-4 w-4" />
               </button>

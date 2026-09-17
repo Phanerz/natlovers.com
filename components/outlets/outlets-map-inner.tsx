@@ -62,22 +62,24 @@ const TILE_LAYERS: Record<TileMode, {url: string; attribution: string}> = {
   }
 };
 
-// Flat two-segment pill, styled to match the rest of the site's toggle-pill
-// pattern instead of Leaflet's default boxy layer-list control. Positioned
-// as a plain absolutely-placed sibling over the map, DESIGN.md keeps map
-// controls flat, no glass, so this is a solid cream surface with a 1px
-// border.
+// Same liquid-glass pill language as the navbar and the catalogue category
+// tabs, not Leaflet's default boxy layer-list control: a translucent glass
+// track (.liquid-glass-on-light) housing a static glass pill (.liquid-glass-
+// dark  -  no drag here, just two options, so no need for the JS-measured
+// sliding indicator the tabs use) on whichever option is active.
 function TileToggle({mode, onChange}: {mode: TileMode; onChange: (mode: TileMode) => void}) {
   return (
     <div className="leaflet-top leaflet-left" style={{marginTop: "10px", marginLeft: "50px"}}>
-      <div className="leaflet-control flex overflow-hidden rounded-full border border-[#d4c5ab] bg-[#fffaf1] p-1 shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
+      <div className="leaflet-control liquid-glass-on-light flex overflow-hidden rounded-full p-1 backdrop-blur-[18px] backdrop-saturate-[160%]">
         {(["map", "satellite"] as const).map((option) => (
           <button
             key={option}
             type="button"
             onClick={() => onChange(option)}
             className={`rounded-full px-3.5 py-1.5 text-xs font-semibold capitalize transition-colors duration-150 ${
-              mode === option ? "bg-forest-900 text-sand-50" : "text-forest-700 hover:bg-[#f0e7d4]"
+              mode === option
+                ? "liquid-glass-dark text-sand-50 backdrop-blur-[14px] backdrop-saturate-[160%]"
+                : "text-forest-700 hover:bg-[#34433212]"
             }`}
           >
             {option}
