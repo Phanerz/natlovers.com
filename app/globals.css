@@ -176,6 +176,20 @@ body::-webkit-scrollbar {
   display: none;
 }
 
+/* Dark mode tokens. The `.dark` class lands on <html> (see the blocking
+   script in app/layout.tsx and components/theme-provider.tsx) before
+   React hydrates, so there's no flash of the light theme. Everything below
+   this point that reads one of these variables, plus the large `.dark
+   [class*="..."]` override block at the end of this file (which retargets
+   the app's many hardcoded Tailwind arbitrary-value colors), together make
+   up the dark theme  -  see DARK_MODE_NOTES below that block for how it
+   was generated and how to extend it. */
+:root {
+  --dm-text-primary: #f3ecd9;
+  --dm-text-secondary: #cdc4ac;
+  --dm-text-tertiary: #a79f8a;
+}
+
 body {
   @apply bg-paper font-body antialiased;
   color: #112319;
@@ -186,6 +200,19 @@ body {
      several viewport-heights on a long page), zooming the image in far
      past what's ever visible instead of framing it against the screen. */
   background-color: #f2ead9;
+  /* Without a stacking context here, body has no box of its own in the
+     paint order and this background gets promoted to paint the page
+     canvas  -  the single bottom-most layer, underneath even the negative
+     z-index .site-background photo. isolation: isolate gives body its own
+     stacking context so the photo (z-index: -1, scoped to this context)
+     paints above this fallback instead of being hidden behind it. */
+  isolation: isolate;
+}
+
+.dark body {
+  color: var(--dm-text-primary);
+  background-color: #1a1c14;
+  background-image: none;
 }
 
 /* Site-wide background photo, rendered here only. Every page/section that
@@ -210,6 +237,11 @@ body {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  opacity: 0.55;
+}
+
+.dark .site-background {
+  background-image: url("/images/natlovers-background-dark.webp");
 }
 
 a {
@@ -232,6 +264,11 @@ button {
      one (that scope is buttons and explicitly-marked featured cards only).
      A subtle resting shadow, no blur, no glass bevel. */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.dark .card {
+  border-color: rgba(230, 222, 199, 0.14);
+  background: rgba(38, 40, 30, 0.92);
 }
 
 /* Placeholder text for the admin rich text editor (components/admin/
@@ -1357,3 +1394,212 @@ button {
   }
 }
 
+
+/* =========================================================================
+   DARK MODE: sitewide arbitrary-color overrides
+   =========================================================================
+   The design system was built with ~130 distinct hardcoded Tailwind
+   arbitrary-value colors (bg-[#...], text-[#...], border-[#...], etc.)
+   scattered across ~70 files, rather than a small set of shared tokens.
+   Rewriting every call site to a token was a much larger, riskier change
+   than the dark-mode feature itself needed, so instead this block adds
+   `.dark [class~="<exact-utility-class>"]` overrides that retarget each
+   color, keyed on the literal class string Tailwind already renders into
+   the DOM `class` attribute.
+
+   Why `[class~="..."]` and not `[class*="..."]`: `~=` matches only an
+   exact whitespace-separated token, so `[class~="bg-[#f0e7d4]"]` does NOT
+   also match `hover:bg-[#f0e7d4]` on the same element (a substring match
+   would, which would incorrectly apply the "resting" dark color as the
+   hover color too, or fight the real :hover rule since both have equal
+   specificity). Every hover/focus/group-hover variant of a color used
+   elsewhere gets its own explicit pseudo-class-scoped rule below instead.
+
+   Colors were classified by lightness/saturation (see scripts/gen-dark-
+   overrides-v2.js, not part of the build): light neutral creams/tans
+   become one of four graduated dark surface tones; light pastel status
+   chips (green/blue/rose) become dark-tinted versions of the same hue so
+   badges keep their meaning; dark saturated accent text (errors, links,
+   status labels) gets lightened to stay legible on dark surfaces; already-
+   dark brand chrome (the header, the bank-transfer panel) and already-
+   light text-on-dark-chrome (header nav, that panel's own text) are left
+   untouched since both already work on any page background. A few
+   auto-classified results were hand-corrected where a chip's text color
+   was being lightened while sitting on a light chip background that was
+   intentionally being kept as-is (see the exclusions below) or where a
+   pastel chip's low saturation fell just under the auto-classifier's
+   hue-detection threshold.
+   ========================================================================= */
+
+.dark [class~="bg-[#fffdf9]"] { background-color: #3e3b2e; }  /* was H:40 S:100 L:99 n=50 */
+.dark [class~="bg-[#fffaf1]"] { background-color: #3e3b2e; }  /* was H:39 S:100 L:97 n=22 */
+.dark [class~="bg-[#eee4cd]"] { background-color: #302f25; }  /* was H:42 S:49 L:87 n=15 */
+.dark [class~="bg-[#faf6ec]"] { background-color: #3e3b2e; }  /* was H:43 S:58 L:95 n=11 */
+.dark [class~="bg-[#f0e7d4]"] { background-color: #37352a; }  /* was H:41 S:48 L:89 n=10 */
+.dark [class~="bg-[#f2ecdc]"] { background-color: #37352a; }  /* was H:44 S:46 L:91 n=9 */
+.dark [class~="bg-[#eee7d8]"] { background-color: #37352a; }  /* was H:41 S:39 L:89 n=9 */
+.dark [class~="bg-[#f6ddc9]"] { background-color: #432c19; }  /* was H:27 S:71 L:88 n=7 (tinted amber-peach) */
+.dark [class~="bg-[#fdfaf3]"] { background-color: #3e3b2e; }  /* was H:42 S:71 L:97 n=6 */
+.dark [class~="bg-[#f6efdd]"] { background-color: #37352a; }  /* was H:43 S:58 L:92 n=5 */
+.dark [class~="bg-[#eee1c4]"] { background-color: #302f25; }  /* was H:41 S:55 L:85 n=5 */
+.dark [class~="bg-[#e4d9c1]"] { background-color: #302f25; }  /* was H:41 S:39 L:83 n=5 */
+.dark [class~="bg-[#dcead0]"] { background-color: #2d3f1c; }  /* was H:92 S:38 L:87 n=5 */
+.dark [class~="bg-[#f7f4ee]"] { background-color: #3e3b2e; }  /* was H:40 S:36 L:95 n=4 */
+.dark [class~="bg-[#e7ddc6]"] { background-color: #302f25; }  /* was H:42 S:41 L:84 n=4 */
+.dark [class~="bg-[#dbe6f2]"] { background-color: #192d43; }  /* was H:211 S:47 L:90 n=4 */
+.dark [class~="bg-[#d4c5ab]"] { background-color: #2a2b21; }  /* was H:38 S:32 L:75 n=4 */
+.dark [class~="bg-[rgba(250,246,236,0.98)]"] { background-color: #3e3b2e; }  /* was H:43 S:58 L:95 n=3 */
+.dark [class~="bg-[#fffaf2]"] { background-color: #3e3b2e; }  /* was H:37 S:100 L:97 n=3 */
+.dark [class~="bg-[#f7e9e2]"] { background-color: #432719; }  /* was H:20 S:57 L:93 n=3 */
+.dark [class~="bg-[#e6e0d8]"] { background-color: #302f25; }  /* was H:34 S:22 L:87 n=3 */
+.dark [class~="bg-[#dcecd8]"] { background-color: #243e1e; }  /* was H:108 S:34 L:89 n=3 */
+.dark [class~="bg-[#F0DEE0]"] { background-color: #3f1d21; }  /* was H:353 S:37 L:91 n=3 */
+.dark [class~="bg-[#fdf1ec]"] { background-color: #432519; }  /* was H:18 S:81 L:96 n=2 */
+.dark [class~="bg-[#cfe6ca]"] { background-color: #233e1d; }  /* was H:109 S:36 L:85 n=2 */
+.dark [class~="bg-[#DDE8DA]"] { background-color: #253e1e; }  /* was H:107 S:23 L:88 n=2 (tinted green) */
+.dark [class~="bg-[#DCE6EA]"] { background-color: #223339; }  /* was H:197 S:25 L:89 n=2 */
+.dark [class~="bg-[rgba(247,240,227,0.97)]"] { background-color: #37352a; }  /* was H:39 S:56 L:93 n=1 */
+.dark [class~="bg-[#fffdf8]"] { background-color: #3e3b2e; }  /* was H:43 S:100 L:99 n=1 */
+.dark [class~="bg-[#fbf3e2]"] { background-color: #37352a; }  /* was H:41 S:76 L:94 n=1 */
+.dark [class~="bg-[#f8f1e6]"] { background-color: #37352a; }  /* was H:37 S:56 L:94 n=1 */
+.dark [class~="bg-[#f7f1e2]"] { background-color: #37352a; }  /* was H:43 S:57 L:93 n=1 */
+.dark [class~="bg-[#f3ede0]"] { background-color: #37352a; }  /* was H:41 S:44 L:92 n=1 */
+.dark [class~="bg-[#f3e3c9]"] { background-color: #433319; }  /* was H:37 S:64 L:87 n=1 (tinted amber) */
+.dark [class~="bg-[#f3d9d0]"] { background-color: #432419; }  /* was H:15 S:59 L:88 n=1 */
+.dark [class~="bg-[#f2e7d0]"] { background-color: #37352a; }  /* was H:41 S:57 L:88 n=1 */
+.dark [class~="bg-[#f0ebdf]"] { background-color: #37352a; }  /* was H:42 S:36 L:91 n=1 */
+.dark [class~="bg-[#f0cdb0]"] { background-color: #302f25; }  /* was H:27 S:68 L:82 n=1 */
+.dark [class~="bg-[#e6d6ac]"] { background-color: #2a2b21; }  /* was H:43 S:54 L:79 n=1 */
+.dark [class~="bg-[#e4dfd2]"] { background-color: #302f25; }  /* was H:43 S:25 L:86 n=1 */
+.dark [class~="bg-[#ddd5c4]"] { background-color: #302f25; }  /* was H:41 S:27 L:82 n=1 */
+.dark [class~="bg-[#dcd4c8]"] { background-color: #302f25; }  /* was H:36 S:22 L:82 n=1 */
+.dark [class~="bg-[#cdbfa6]"] { background-color: #2a2b21; }  /* was H:38 S:28 L:73 n=1 */
+.dark [class~="bg-[#EFEDE6]"] { background-color: #37352a; }  /* was H:47 S:22 L:92 n=1 */
+.dark [class~="border-[#d4c5ab]"] { border-color: rgba(230,222,199,0.16); }  /* was H:38 S:32 L:75 n=64 */
+.dark [class~="border-[#e4d9c1]"] { border-color: rgba(230,222,199,0.16); }  /* was H:41 S:39 L:83 n=37 */
+.dark [class~="border-[#e7ddc6]"] { border-color: rgba(230,222,199,0.16); }  /* was H:42 S:41 L:84 n=17 */
+.dark [class~="border-[#ddd5c4]"] { border-color: rgba(230,222,199,0.16); }  /* was H:41 S:27 L:82 n=14 */
+.dark [class~="border-[#e4dcc9]"] { border-color: rgba(230,222,199,0.16); }  /* was H:42 S:33 L:84 n=12 */
+.dark [class~="border-[#d9cfc0]"] { border-color: rgba(230,222,199,0.16); }  /* was H:36 S:25 L:80 n=11 */
+.dark [class~="border-[#e0d8c7]"] { border-color: rgba(230,222,199,0.16); }  /* was H:41 S:29 L:83 n=10 */
+.dark [class~="border-[#d9ccb3]"] { border-color: rgba(230,222,199,0.16); }  /* was H:39 S:33 L:78 n=8 */
+.dark [class~="border-[#d7cab2]"] { border-color: rgba(230,222,199,0.16); }  /* was H:39 S:32 L:77 n=6 */
+.dark [class~="border-[#cdbfa6]"] { border-color: rgba(230,222,199,0.16); }  /* was H:38 S:28 L:73 n=5 */
+.dark [class~="border-[#d2c3a8]"] { border-color: rgba(230,222,199,0.16); }  /* was H:39 S:32 L:74 n=4 */
+.dark [class~="border-[#c9bfa8]"] { border-color: rgba(230,222,199,0.16); }  /* was H:42 S:23 L:72 n=4 */
+.dark [class~="border-[#d5c8b1]"] { border-color: rgba(230,222,199,0.16); }  /* was H:38 S:30 L:76 n=3 */
+.dark [class~="border-[#efe3cb]"] { border-color: rgba(230,222,199,0.16); }  /* was H:40 S:53 L:87 n=2 */
+.dark [class~="border-[#e6c4b6]"] { border-color: rgba(230,222,199,0.16); }  /* was H:18 S:49 L:81 n=2 */
+.dark [class~="border-[#DEBBBF]"] { border-color: rgba(230,222,199,0.16); }  /* was H:353 S:35 L:80 n=2 */
+.dark [class~="border-[#fff1cf]"] { border-color: rgba(230,222,199,0.16); }  /* was H:42 S:100 L:91 n=1 */
+.dark [class~="border-[#f3e7cf]"] { border-color: rgba(230,222,199,0.16); }  /* was H:40 S:60 L:88 n=1 */
+.dark [class~="border-[#ecdfc4]"] { border-color: rgba(230,222,199,0.16); }  /* was H:40 S:51 L:85 n=1 */
+.dark [class~="border-[#e0b89f]"] { border-color: rgba(230,222,199,0.16); }  /* was H:23 S:51 L:75 n=1 */
+.dark [class~="border-[#d9a992]"] { border-color: rgba(230,222,199,0.16); }  /* was H:19 S:48 L:71 n=1 */
+.dark [class~="border-[#d8ccb6]"] { border-color: rgba(230,222,199,0.16); }  /* was H:39 S:30 L:78 n=1 */
+.dark [class~="border-[#d6ccb8]"] { border-color: rgba(230,222,199,0.16); }  /* was H:40 S:27 L:78 n=1 */
+.dark [class~="border-[#cfc4ad]"] { border-color: rgba(230,222,199,0.16); }  /* was H:41 S:26 L:75 n=1 */
+.dark [class~="divide-[#eee7d8]"] { border-color: rgba(230,222,199,0.16); }  /* was H:41 S:39 L:89 n=2 */
+.dark [class~="fill-[#344332]"] { fill: var(--dm-text-primary); }  /* was H:113 S:15 L:23 n=1 */
+.dark [class~="from-[#f7f4ee]"] { --tw-gradient-from: #3e3b2e; }  /* was H:40 S:36 L:95 n=1 */
+.dark [class~="text-[#344332]"] { color: var(--dm-text-primary); }  /* was H:113 S:15 L:23 n=13 */
+.dark [class~="text-[#8a4a1f]"] { color: #dc9362; }  /* was H:24 S:63 L:33 n=7 */
+.dark [class~="text-[#2f5b2b]"] { color: #9cce97; }  /* was H:115 S:36 L:26 n=7 */
+.dark [class~="text-[#2e2e28]"] { color: var(--dm-text-primary); }  /* was H:60 S:7 L:17 n=6 */
+.dark [class~="text-[#a4553c]"] { color: #d29784; }  /* was H:14 S:46 L:44 n=5 */
+.dark [class~="text-[#a4402b]"] { color: #d87f6c; }  /* was H:10 S:58 L:41 n=5 */
+.dark [class~="text-[#8a9a7c]"] { color: var(--dm-text-tertiary); }  /* was H:92 S:13 L:55 n=5 */
+.dark [class~="text-[#3c3c34]"] { color: var(--dm-text-primary); }  /* was H:60 S:7 L:22 n=5 */
+.dark [class~="text-[#2a4a70]"] { color: #86a8d1; }  /* was H:213 S:45 L:30 n=5 */
+.dark [class~="text-[#6b6b5f]"] { color: var(--dm-text-secondary); }  /* was H:60 S:6 L:40 n=4 */
+.dark [class~="text-[#4a4a3f]"] { color: var(--dm-text-secondary); }  /* was H:60 S:8 L:27 n=4 */
+.dark [class~="text-[#5C2E33]"] { color: #ce9aa0; }  /* was H:353 S:33 L:27 n=3 */
+.dark [class~="text-[#2b5c2a]"] { color: #96ce94; }  /* was H:119 S:37 L:26 n=3 */
+.dark [class~="text-[#a39d8d]"] { color: var(--dm-text-tertiary); }  /* was H:44 S:11 L:60 n=2 */
+.dark [class~="text-[#8a8a7a]"] { color: var(--dm-text-tertiary); }  /* was H:60 S:6 L:51 n=2 */
+.dark [class~="text-[#2F4A2C]"] { color: #a6d2a2; }  /* was H:114 S:25 L:23 n=2 */
+.dark [class~="text-[#2A3D42]"] { color: #a5cad4; }  /* was H:193 S:22 L:21 n=2 */
+.dark [class~="text-[#1a0dab]"] { color: #5d52e0; }  /* was H:245 S:86 L:36 n=2 */
+.dark [class~="text-[#a9b79c]"] { color: var(--dm-text-tertiary); }  /* was H:91 S:16 L:66 n=1 */
+.dark [class~="text-[#9a9a8a]"] { color: var(--dm-text-tertiary); }  /* was H:60 S:7 L:57 n=1 */
+.dark [class~="text-[#8a5a1f]"] { color: #dca562; }  /* was H:33 S:63 L:33 n=1 */
+.dark [class~="text-[#8a4a3a]"] { color: #d09b8e; }  /* was H:12 S:41 L:38 n=1 */
+.dark [class~="text-[#5c5c50]"] { color: var(--dm-text-secondary); }  /* was H:60 S:7 L:34 n=1 */
+.dark [class~="text-[#4d5156]"] { color: var(--dm-text-secondary); }  /* was H:213 S:6 L:32 n=1 */
+.dark [class~="text-[#4B4A42]"] { color: var(--dm-text-secondary); }  /* was H:53 S:6 L:28 n=1 */
+.dark [class~="text-[#3f7a4a]"] { color: #9bcfa5; }  /* was H:131 S:32 L:36 n=1 */
+.dark [class~="text-[#20241b]"] { color: var(--dm-text-primary); }  /* was H:87 S:14 L:12 n=1 */
+.dark [class~="via-[#f7f4eef2]"] { --tw-gradient-via: #3e3b2e; }  /* was H:40 S:36 L:95 n=1 */
+.dark [class~="hover:bg-[#f7e9e2]"]:hover { background-color: #432719; }
+.dark [class~="hover:bg-[#eee7d8]"]:hover { background-color: #37352a; }
+.dark [class~="hover:text-[#344332]"]:hover { color: var(--dm-text-primary); }
+.dark [class~="hover:text-[#2a4a70]"]:hover { color: #86a8d1; }
+.dark [class~="hover:text-[#2f5b2b]"]:hover { color: #9cce97; }
+.dark [class~="hover:bg-[#f0e7d4]"]:hover { background-color: #37352a; }
+.dark [class~="hover:bg-[#dbe6f2]"]:hover { background-color: #192d43; }
+.dark [class~="hover:bg-[#dcead0]"]:hover { background-color: #2d3f1c; }
+.dark [class~="hover:bg-[#f6efdd]"]:hover { background-color: #37352a; }
+.dark [class~="hover:bg-[#cfe6ca]"]:hover { background-color: #233e1d; }
+.dark [class~="hover:bg-[#f0cdb0]"]:hover { background-color: #302f25; }
+.dark [class~="hover:bg-[#dcd4c8]"]:hover { background-color: #302f25; }
+.dark [class~="hover:bg-[#e6d6ac]"]:hover { background-color: #2a2b21; }
+.dark [class~="hover:bg-[#eee1c4]"]:hover { background-color: #302f25; }
+.dark [class~="hover:border-[#d5c8b1]"]:hover { border-color: rgba(230,222,199,0.16); }
+.dark .group:hover [class~="group-hover:text-[#344332]"] { color: var(--dm-text-primary); }
+
+/* Excluded from the block above on purpose: text-[#132015] and
+   text-[#241a0d] (components/aoh/aoh-calculator.tsx) are near-black text
+   sitting on the "copied!" button's own bg-[#9bd08f]/bg-[#d9a75c] chips,
+   which are intentionally kept unchanged in dark mode (self-contained
+   solid-color chips, not page-background-dependent) - lightening the text
+   would break contrast against that chip rather than help it. */
+
+/* text-forest-* is the app's primary body-text color system (~660 uses
+   across every page) - retargeting these four tiers covers the large
+   majority of dark-mode text-legibility work in one place. bg-forest-*
+   and border-forest-* are left alone: they're brand-chrome fills (header,
+   buttons, badges) that already read fine against either page theme. */
+.dark .text-forest-900,
+.dark .text-forest-800,
+.dark .text-forest-700 {
+  color: var(--dm-text-primary);
+}
+.dark .text-forest-600,
+.dark .text-forest-500 {
+  color: var(--dm-text-secondary);
+}
+.dark .text-forest-400,
+.dark .text-forest-300 {
+  color: var(--dm-text-tertiary);
+}
+.dark .border-forest-100 {
+  border-color: rgba(230, 222, 199, 0.16);
+}
+.dark [class~="hover:text-forest-900"]:hover,
+.dark [class~="hover:text-forest-800"]:hover,
+.dark [class~="hover:text-forest-700"]:hover {
+  color: var(--dm-text-primary);
+}
+.dark [class~="hover:text-forest-600"]:hover,
+.dark [class~="hover:text-forest-500"]:hover {
+  color: var(--dm-text-secondary);
+}
+
+/* Misc named classes (not Tailwind utilities) with their own hardcoded ink
+   color, found earlier in this file. */
+.dark .section-title {
+  color: var(--dm-text-primary);
+}
+.dark .muted {
+  color: rgba(230, 222, 199, 0.62);
+}
+.dark .prose-editor a,
+.dark .prose-description a {
+  color: var(--dm-text-primary);
+}
+.dark .prose-editor:empty:before {
+  color: rgba(230, 222, 199, 0.4);
+}
+.dark .natlovers-phone-input .PhoneInputCountry::after {
+  color: var(--dm-text-secondary);
+}

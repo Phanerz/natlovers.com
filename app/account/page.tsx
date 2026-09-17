@@ -26,6 +26,7 @@ import {KpiCard} from "@/components/admin/kpi-card";
 import {CustomRequestsHistory} from "@/components/custom-requests-history";
 import {PhoneInput} from "@/components/phone-input";
 import {useSitePreferences} from "@/components/site-preferences-provider";
+import {ThemeToggle} from "@/components/theme-toggle";
 import {formatCurrency} from "@/lib/format";
 import {DEFAULT_WIDGETS, WIDGET_CATALOG, WidgetKey} from "@/lib/admin-widgets";
 import type {CustomerTelemetry} from "@/lib/customers";
@@ -497,6 +498,10 @@ function AccountContent() {
                     ))}
                   </select>
                 </label>
+              </div>
+
+              <div className="mt-8 border-t border-[#e4d9c1] pt-8">
+                <ThemeToggle />
               </div>
 
               {isAdmin ? (

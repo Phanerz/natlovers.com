@@ -7,7 +7,6 @@ import {ProductBreadcrumb} from "@/components/product/product-breadcrumb";
 import {ProductGallery} from "@/components/product/product-gallery";
 import {ProductPurchasePanel} from "@/components/product/product-purchase-panel";
 import {ProductInfoSection} from "@/components/product/product-info-section";
-import {ProductTrustBadges} from "@/components/product/product-trust-badges";
 import {PreviewBanner} from "@/components/product/preview-banner";
 import {ReassuranceBar} from "@/components/product/reassurance-bar";
 
@@ -93,7 +92,6 @@ export default async function ProductPage({
       <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-[30px] xl:gap-[48px]">
         <div>
           <ProductGallery images={images} name={product.name} tintHex={tint.bg} zoomEnabled={product.imageZoomEnabled} />
-          <ProductTrustBadges />
         </div>
         <ProductPurchasePanel product={product} />
       </div>
