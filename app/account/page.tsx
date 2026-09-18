@@ -24,6 +24,7 @@ import {AddressesManager} from "@/components/addresses-manager";
 import {AdminWidgetPicker} from "@/components/admin-widget-picker";
 import {KpiCard} from "@/components/admin/kpi-card";
 import {CustomRequestsHistory} from "@/components/custom-requests-history";
+import {DaisyLoader} from "@/components/daisy-loader";
 import {PhoneInput} from "@/components/phone-input";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {ThemeToggle} from "@/components/theme-toggle";
@@ -234,11 +235,7 @@ function AccountContent() {
   }
 
   if (status === "loading" || (status === "authenticated" && !profileLoaded)) {
-    return (
-      <main className="shell flex min-h-[70vh] items-center justify-center py-16">
-        <p className="muted">Loading...</p>
-      </main>
-    );
+    return <DaisyLoader text="Loading your account..." />;
   }
 
   if (status !== "authenticated" || !session?.user) {
@@ -536,13 +533,7 @@ function AccountContent() {
 
 export default function AccountPage() {
   return (
-    <Suspense
-      fallback={
-        <main className="shell flex min-h-[70vh] items-center justify-center py-16">
-          <p className="muted">Loading...</p>
-        </main>
-      }
-    >
+    <Suspense fallback={<DaisyLoader text="Loading your account..." />}>
       <AccountContent />
     </Suspense>
   );
