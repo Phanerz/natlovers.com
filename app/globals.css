@@ -271,6 +271,23 @@ button {
   background: rgba(38, 40, 30, 0.92);
 }
 
+/* Catalogue product card's name/price scrim (app/catalogue/shop-product-
+   card.tsx)  -  deliberately fixed white background + black text in both
+   themes, not remapped by dark mode. The product photo's colour-coded
+   backdrop already carries this card's visual identity; the label strip
+   underneath it stays the same plain white/black read it always had. */
+.catalogue-card-scrim {
+  background: linear-gradient(to top, #f7f4ee 45%, rgba(247, 244, 238, 0.95), transparent);
+}
+
+.catalogue-card-name {
+  color: #20241b;
+}
+
+.catalogue-card-price {
+  color: #4a4a3f;
+}
+
 /* Placeholder text for the admin rich text editor (components/admin/
    rich-text-editor.tsx)  -  a contentEditable div, so this can't use the
    native `placeholder` attribute. */
@@ -1520,20 +1537,6 @@ button {
 .dark [class~="border-[#cfc4ad]"] { border-color: rgba(230,222,199,0.16); }  /* was H:41 S:26 L:75 n=1 */
 .dark [class~="divide-[#eee7d8]"] { border-color: rgba(230,222,199,0.16); }  /* was H:41 S:39 L:89 n=2 */
 .dark [class~="fill-[#344332]"] { fill: var(--dm-text-primary); }  /* was H:113 S:15 L:23 n=1 */
-/* from-[#f7f4ee] and via-[#f7f4eef2] (the bottom scrim on each catalogue
-   card, fading the product photo into the name/price/tags) turned out to
-   need more than overriding their own gradient custom properties:
-   Tailwind's gradient-stop utilities each bake their literal color
-   straight into --tw-gradient-stops (the value the actual gradient
-   renders from) rather than composing it from var(--tw-gradient-from)
-   etc, so overriding those standalone variables never touched what
-   actually painted. Overriding --tw-gradient-stops itself on the one
-   element carrying both classes is what actually works - see
-   app/catalogue/shop-product-card.tsx for the source className this
-   targets (from-[#f7f4ee] from-45% via-[#f7f4eef2] to-transparent). */
-.dark [class~="from-[#f7f4ee]"][class~="via-[#f7f4eef2]"] {
-  --tw-gradient-stops: #3e3b2e 45%, rgba(62, 59, 46, 0.95), transparent;
-}
 .dark [class~="text-[#344332]"] { color: var(--dm-text-primary); }  /* was H:113 S:15 L:23 n=13 */
 .dark [class~="text-[#8a4a1f]"] { color: #dc9362; }  /* was H:24 S:63 L:33 n=7 */
 .dark [class~="text-[#2f5b2b]"] { color: #9cce97; }  /* was H:115 S:36 L:26 n=7 */
