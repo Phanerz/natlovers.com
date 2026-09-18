@@ -163,11 +163,21 @@ export function ShopProductCard({
         instead of wrapping  -  so however many tags there are, or however
         long they run, they add width, never height.
       */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 overflow-hidden bg-gradient-to-t from-[#f7f4ee] from-45% via-[#f7f4eef2] to-transparent px-3 pb-3 pt-10 sm:px-4 sm:pb-4">
-        <p className="truncate font-display text-[17px] font-semibold leading-tight text-[#20241b] sm:text-[21px]">
+      {/*
+        catalogue-card-scrim/-name/-price are dedicated classes (globals.css),
+        not the Tailwind arbitrary-hex classes used elsewhere  -  deliberately
+        so this card's own white-background/black-text look stays fixed in
+        both themes instead of picking up the site-wide dark-mode overrides
+        that key off those literal hex classes. The product photo and its
+        colour-coded backdrop already carry the visual identity here; the
+        name/price/tags strip reads as a plain label underneath it, same as
+        it did before dark mode existed.
+      */}
+      <div className="catalogue-card-scrim pointer-events-none absolute inset-x-0 bottom-0 overflow-hidden px-3 pb-3 pt-10 sm:px-4 sm:pb-4">
+        <p className="catalogue-card-name truncate font-display text-[17px] font-semibold leading-tight sm:text-[21px]">
           {product.name}
         </p>
-        <p className="mt-1 text-[15px] font-medium text-[#4a4a3f] sm:text-[17px]">
+        <p className="catalogue-card-price mt-1 text-[15px] font-medium sm:text-[17px]">
           {formatCurrency(product.priceIdr, currency)}
         </p>
         <div className="scrollbar-hide pointer-events-auto mt-2 flex flex-nowrap gap-1.5 overflow-x-auto">
