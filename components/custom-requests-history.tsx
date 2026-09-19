@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {DaisyLoader} from "@/components/daisy-loader";
 import {useEffect, useState} from "react";
+import {useRefreshOnReturn} from "@/components/use-refresh-on-return";
 import {ArrowRight} from "lucide-react";
 import {formatCurrency} from "@/lib/format";
 import type {CurrencyCode} from "@/lib/site";
@@ -26,6 +27,9 @@ import {StatusStepper} from "@/components/status-stepper";
 // piece is.
 export function CustomRequestsHistory({currency}: {currency: CurrencyCode}) {
   const [requests, setRequests] = useState<CustomRequestView[] | null>(null);
+  // Refetch when the customer returns to this tab, so a request an admin has
+  // deleted disappears without a manual reload.
+  const refreshTick = useRefreshOnReturn();
 
   useEffect(() => {
     let cancelled = false;
@@ -37,12 +41,13 @@ export function CustomRequestsHistory({currency}: {currency: CurrencyCode}) {
         }
       })
       .catch(() => {
-        if (!cancelled) setRequests([]);
+        // Keep whatever is already showing if a background refresh fails.
+        if (!cancelled) setRequests((current) => current ?? []);
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshTick]);
 
   if (requests === null) {
     return <DaisyLoader layout="section" text="Finding your custom requests..." />;

@@ -1,8 +1,9 @@
 // Shared loading treatment used everywhere the site is still fetching
 // something. A minimal daisy (eight petals around a gold center, no stem or
-// leaves) whose petals drop off one after another, tumbling as they fall, then
+// leaves) whose petals are plucked one after another (a small tug, then each
+// drifts out the way it faces while fading), then
 // grow back one after another with a springy pop. Under it a serif caption
-// that wipes away and wipes in as the petals fall and regrow, and a thin gold
+// that wipes away and wipes in as the petals are plucked and regrow, and a thin gold
 // progress bar. Flat per DESIGN.md's glass scope: no blur, just a soft CSS
 // drop-shadow glow.
 //

@@ -5,6 +5,7 @@ import {MapPin} from "lucide-react";
 import {GlassToggle} from "./glass-toggle";
 import {LocationFormState} from "./location-types";
 import {LocationType, locationTypes} from "@/lib/location-constants";
+import {parseCoordinates} from "@/lib/parse-coordinates";
 
 const fieldClass =
   "w-full rounded-lg border border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-base text-forest-900 outline-none focus:border-forest-400";
@@ -14,7 +15,13 @@ const typeLabels: Record<LocationType, string> = {
   stockist: "Stockist"
 };
 
-type GeocodePreview = {latitude: number; longitude: number; displayName: string} | null;
+type GeocodePreview = {
+  latitude: number;
+  longitude: number;
+  displayName: string;
+  approximate?: boolean;
+  matchedQuery?: string;
+} | null;
 
 // Geocode-on-save rather than an embedded map-click picker: this reuses the
 // same server-side Nominatim proxy the public map's data relies on being
@@ -47,6 +54,9 @@ export function LocationForm({
   const [geocoding, setGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
   const [preview, setPreview] = useState<GeocodePreview>(null);
+  const [pasted, setPasted] = useState("");
+  const [pasteBusy, setPasteBusy] = useState(false);
+  const [pasteMessage, setPasteMessage] = useState<{tone: "ok" | "error"; text: string} | null>(null);
 
   const hasCoordinates = form.latitude.trim() !== "" && form.longitude.trim() !== "";
 
@@ -72,6 +82,54 @@ export function LocationForm({
       setGeocodeError("Could not reach the geocoder. Please try again.");
     } finally {
       setGeocoding(false);
+    }
+  }
+
+  // Anything an admin can copy out of Google Maps: a full link, a short
+  // maps.app.goo.gl link (resolved on the server), or plain coordinates
+  // (right-click a spot in Google Maps and the coordinates are the first
+  // thing in the menu). Coordinates and full links are read right here; only
+  // short links need the server.
+  async function handleUsePasted(rawValue: string = pasted) {
+    const value = rawValue.trim();
+    if (!value) return;
+    setPasteMessage(null);
+
+    const direct = parseCoordinates(value);
+    if (direct) {
+      onChange({...form, latitude: String(direct.latitude), longitude: String(direct.longitude)});
+      setPasteMessage({tone: "ok", text: `Location set to ${direct.latitude}, ${direct.longitude}.`});
+      setPasted("");
+      return;
+    }
+
+    if (!/^https?:\/\//i.test(value)) {
+      setPasteMessage({
+        tone: "error",
+        text: "That does not look like coordinates or a Google Maps link. Try something like -7.7860, 110.3417."
+      });
+      return;
+    }
+
+    setPasteBusy(true);
+    try {
+      const response = await fetch("/api/admin/locations/geocode", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({url: value})
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setPasteMessage({tone: "error", text: data?.error ?? "Could not read a location from that link."});
+        return;
+      }
+      onChange({...form, latitude: String(data.latitude), longitude: String(data.longitude)});
+      setPasteMessage({tone: "ok", text: `Location set to ${data.latitude}, ${data.longitude}.`});
+      setPasted("");
+    } catch {
+      setPasteMessage({tone: "error", text: "Could not open that link. Please try again, or paste the coordinates instead."});
+    } finally {
+      setPasteBusy(false);
     }
   }
 
@@ -161,6 +219,12 @@ export function LocationForm({
               </span>
             </p>
             <p className="text-xs text-forest-500">{preview.displayName}</p>
+            {preview.approximate ? (
+              <p className="text-xs text-forest-700">
+                The exact street was not found, so this is the closest match (searched for &quot;{preview.matchedQuery}&quot;).
+                Use it and fine-tune below, or paste an exact Google Maps pin.
+              </p>
+            ) : null}
             <div className="flex gap-2">
               <button type="button" onClick={acceptPreview} className="rounded-full bg-forest-900 px-4 py-1.5 text-xs font-semibold text-sand-50">
                 Use this location
@@ -176,30 +240,74 @@ export function LocationForm({
           </div>
         ) : null}
 
-        {hasCoordinates ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block space-y-1 text-xs text-forest-500">
-              <span>Latitude (fine-tune if needed)</span>
+        <div className="space-y-2 border-t border-[#e4d9c1] pt-3">
+          <label className="block space-y-1 text-xs text-forest-500">
+            <span>Or paste a Google Maps link, or coordinates</span>
+            <div className="flex gap-2">
               <input
-                type="number"
-                step="any"
-                value={form.latitude}
-                onChange={(event) => onChange({...form, latitude: event.target.value})}
+                value={pasted}
+                onChange={(event) => setPasted(event.target.value)}
+                onPaste={(event) => {
+                  const text = event.clipboardData.getData("text");
+                  if (text.trim()) {
+                    event.preventDefault();
+                    setPasted(text);
+                    void handleUsePasted(text);
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    void handleUsePasted();
+                  }
+                }}
+                placeholder="e.g. -7.7860, 110.3417 or https://maps.app.goo.gl/..."
                 className="w-full rounded-md border border-[#d4c5ab] bg-white px-3 py-2 text-sm text-forest-900 outline-none focus:border-forest-400"
               />
-            </label>
-            <label className="block space-y-1 text-xs text-forest-500">
-              <span>Longitude (fine-tune if needed)</span>
-              <input
-                type="number"
-                step="any"
-                value={form.longitude}
-                onChange={(event) => onChange({...form, longitude: event.target.value})}
-                className="w-full rounded-md border border-[#d4c5ab] bg-white px-3 py-2 text-sm text-forest-900 outline-none focus:border-forest-400"
-              />
-            </label>
-          </div>
-        ) : null}
+              <button
+                type="button"
+                onClick={() => void handleUsePasted()}
+                disabled={!pasted.trim() || pasteBusy}
+                className="glass-btn-secondary shrink-0 rounded-full px-4 py-2 text-sm font-semibold text-forest-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {pasteBusy ? "Reading..." : "Use this"}
+              </button>
+            </div>
+          </label>
+          {pasteMessage ? (
+            <p className={`text-xs ${pasteMessage.tone === "ok" ? "text-forest-700" : "text-red-600"}`}>{pasteMessage.text}</p>
+          ) : (
+            <p className="text-xs text-forest-500">
+              Tip: in Google Maps, right-click the exact spot and click the coordinates at the top of the menu to copy
+              them, then paste here.
+            </p>
+          )}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block space-y-1 text-xs text-forest-500">
+            <span>Latitude{hasCoordinates ? " (fine-tune if needed)" : ""}</span>
+            <input
+              type="number"
+              step="any"
+              value={form.latitude}
+              onChange={(event) => onChange({...form, latitude: event.target.value})}
+              placeholder="-7.7860"
+              className="w-full rounded-md border border-[#d4c5ab] bg-white px-3 py-2 text-sm text-forest-900 outline-none focus:border-forest-400"
+            />
+          </label>
+          <label className="block space-y-1 text-xs text-forest-500">
+            <span>Longitude{hasCoordinates ? " (fine-tune if needed)" : ""}</span>
+            <input
+              type="number"
+              step="any"
+              value={form.longitude}
+              onChange={(event) => onChange({...form, longitude: event.target.value})}
+              placeholder="110.3417"
+              className="w-full rounded-md border border-[#d4c5ab] bg-white px-3 py-2 text-sm text-forest-900 outline-none focus:border-forest-400"
+            />
+          </label>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -233,6 +341,13 @@ export function LocationForm({
       </div>
 
       {errorMessage ? <p className="text-sm font-medium text-red-600">{errorMessage}</p> : null}
+
+      {!hasCoordinates ? (
+        <p className="text-sm text-forest-600">
+          Set the map location first to enable saving: use Find on map, paste a Google Maps link or coordinates, or type
+          the latitude and longitude above.
+        </p>
+      ) : null}
 
       <div className="flex flex-wrap gap-3">
         <button
