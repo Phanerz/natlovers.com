@@ -1776,8 +1776,9 @@ button {
   opacity: 0.24;
 }
 
-/* Petal cycle: 7.2s, every petal identical, offset by its own
-   animation-delay (0.22s apart) so they drop off one after another,
+/* Petal cycle: 8s (the shared beat the captions and progress bar are also
+   timed to), every petal identical, offset by its own
+   animation-delay (0.25s apart) so they drop off one after another,
    clockwise from the top, then pop back one after another in the same order.
    Deliberately plain: a petal just lets go and falls (ease-in, so it picks up
    speed like something dropping) with a small turn, fades out, and later
@@ -1786,13 +1787,13 @@ button {
    flips the sideways lean and turn so they are not all identical. */
 .daisy-petal-fall {
   transform-origin: 0 0;
-  animation: daisyPetalFall 7.2s linear infinite, daisyPetalFade 7.2s linear infinite;
+  animation: daisyPetalFall 8s linear infinite, daisyPetalFade 8s linear infinite;
 }
 
 .daisy-petal-tumble {
   transform-box: fill-box;
   transform-origin: center;
-  animation: daisyPetalTurn 7.2s linear infinite;
+  animation: daisyPetalTurn 8s linear infinite;
 }
 
 @keyframes daisyPetalFall {
@@ -1856,10 +1857,16 @@ button {
   color: #f3ecd9;
 }
 
-/* Cycling caption: the seven lines sit stacked in one grid cell (so the box is
-   as tall as the tallest line). Each one is revealed by a soft left-to-right
-   wipe, holds, then is wiped away in the same direction, six seconds apiece
-   over a 42s loop (each slot is 1/7 of the loop, about 14.29%).
+/* Cycling caption, timed to the flower. Everything on the loader runs on one
+   shared 8s beat (the petal cycle). Within each beat the petals start letting
+   go at 0.64s and the last one has fallen by about 3.25s; the caption is wiped
+   away left to right over exactly that stretch (2.6s), and the next line
+   wipes in right behind it (2.4s, done by about 5.65s, while the petals grow
+   back), then holds through full bloom (3s) until the petals let go again.
+   That is 2.4s in + 3s held + 2.6s out = 8s per line, 7 lines = a 56s loop
+   (each line's own delay, set in the component, lines its exit up with the
+   fall). All on a gentle sine ease so no stretch of the sweep is faster than
+   another.
    The wipe is a mask five times as wide as the line: transparent padding,
    a soft ramp, an opaque middle, a soft ramp, transparent padding. Sliding
    it right to left (mask-position 100% down to 0%) drags the soft edge across
@@ -1873,38 +1880,38 @@ button {
 
 .daisy-loader-line {
   grid-area: 1 / 1;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, transparent 20%, #000 28%, #000 72%, transparent 80%, transparent 100%);
-  mask-image: linear-gradient(90deg, transparent 0%, transparent 20%, #000 28%, #000 72%, transparent 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, transparent 20%, #000 32%, #000 68%, transparent 80%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, transparent 20%, #000 32%, #000 68%, transparent 80%, transparent 100%);
   -webkit-mask-size: 500% 100%;
   mask-size: 500% 100%;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-position: 100% 0;
   mask-position: 100% 0;
-  animation: daisyLine 42s linear infinite;
+  animation: daisyLine 56s linear infinite;
 }
 
 @keyframes daisyLine {
   0% {
     -webkit-mask-position: 100% 0;
     mask-position: 100% 0;
-    animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+    animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
   }
-  3.9% {
-    -webkit-mask-position: 65% 0;
-    mask-position: 65% 0;
+  4.2857% {
+    -webkit-mask-position: 60% 0;
+    mask-position: 60% 0;
     animation-timing-function: linear;
   }
-  10.4% {
-    -webkit-mask-position: 35% 0;
-    mask-position: 35% 0;
-    animation-timing-function: cubic-bezier(0.8, 0, 0.7, 1);
+  9.6429% {
+    -webkit-mask-position: 40% 0;
+    mask-position: 40% 0;
+    animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
   }
-  14.28% {
+  14.2857% {
     -webkit-mask-position: 0% 0;
     mask-position: 0% 0;
   }
-  14.29%, 100% {
+  14.2858%, 100% {
     -webkit-mask-position: 100% 0;
     mask-position: 100% 0;
   }
@@ -1941,7 +1948,7 @@ button {
 
 .daisy-loader-fill.is-indeterminate {
   width: 40%;
-  animation: daisyProgressSlide 1.8s ease-in-out infinite;
+  animation: daisyProgressSlide 2s ease-in-out infinite;
 }
 
 @keyframes daisyProgressSlide {
