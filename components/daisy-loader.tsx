@@ -11,8 +11,8 @@
 // the existing `.dark` class on <html> via CSS and the petal motion is pure
 // CSS, so this stays safe to render from a Server Component.
 
-// With no `text` prop the caption gently cycles through these, one every six
-// seconds (pure CSS soft wipe, see .daisy-loader-line). Ordered as a small
+// With no `text` prop the caption gently cycles through these, one per eight-second
+// flower cycle (pure CSS soft wipe, see .daisy-loader-line). Ordered as a small
 // story about what Natlovers is: first the making, then the heart in it, then
 // the patience it takes. The CSS keyframes are written for exactly seven
 // lines, so keep this list at seven. Passing `text` pins one fixed line
@@ -26,7 +26,12 @@ const CYCLING_MESSAGES = [
   "Preparing something beautiful for you...",
   "Patience is bitter but its fruit is sweet..."
 ];
-const MESSAGE_SECONDS = 6;
+const MESSAGE_SECONDS = 8;
+// A line starts wiping in 3.24s into a beat (right after the previous line has
+// been wiped away over the petal fall) and lasts one full beat, so line 0
+// starts 4.76s before the loader mounts: it is already fully shown when the
+// page loads, then is wiped away as the first petals fall.
+const FIRST_LINE_OFFSET_SECONDS = -4.76;
 
 const PETAL_COUNT = 8;
 
@@ -43,7 +48,7 @@ const SWAY = [1, -1, 0.7, -1.2, 1.1, -0.8, 1, -1.1];
 const PETALS = Array.from({length: PETAL_COUNT}, (_, index) => ({
   angle: (360 / PETAL_COUNT) * index,
   sway: SWAY[index],
-  delay: `${(index * 0.22).toFixed(2)}s`
+  delay: `${(index * 0.25).toFixed(2)}s`
 }));
 
 export function DaisyLoader({
@@ -103,7 +108,7 @@ export function DaisyLoader({
               key={message}
               className="daisy-loader-line"
               aria-hidden={index === 0 ? undefined : true}
-              style={{animationDelay: `${index * MESSAGE_SECONDS}s`}}
+              style={{animationDelay: `${(FIRST_LINE_OFFSET_SECONDS + index * MESSAGE_SECONDS).toFixed(2)}s`}}
             >
               {message}
             </span>
