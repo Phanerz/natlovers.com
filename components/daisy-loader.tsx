@@ -20,11 +20,11 @@
 const CYCLING_MESSAGES = [
   "Handmaking something for you to cherish...",
   "Woven by hand, one strand at a time...",
-  "The best things in life are handmade.",
-  "The beauty of handmade is in the imperfections.",
-  "We say handcrafted, but really, it comes from the heart.",
+  "The best things in life are handmade...",
+  "The beauty of handmade is in the imperfections...",
+  "We say handcrafted, but really, it comes from the heart...",
   "Preparing something beautiful for you...",
-  "Patience is bitter but its fruit is sweet."
+  "Patience is bitter but its fruit is sweet..."
 ];
 const MESSAGE_SECONDS = 5;
 
