@@ -2,6 +2,7 @@
 
 import {FormEvent, useEffect, useState} from "react";
 import {Check, MapPin, Pencil, Plus, Trash2} from "lucide-react";
+import {DaisyLoader} from "@/components/daisy-loader";
 import {PhoneInput} from "@/components/phone-input";
 import type {AddressView} from "@/lib/addresses";
 
@@ -232,7 +233,7 @@ export function AddressesManager() {
 
       <div className="mt-5 space-y-3">
         {addresses === null ? (
-          <p className="py-8 text-center text-sm text-forest-500">Loading...</p>
+          <DaisyLoader layout="section" text="Finding your addresses..." />
         ) : addresses.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-xl border border-[#e4d9c1] bg-white/50 py-12 text-center">
             <MapPin className="h-6 w-6 text-forest-400" />

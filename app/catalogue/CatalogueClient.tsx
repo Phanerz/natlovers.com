@@ -4,6 +4,7 @@ import {useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
 import type {PointerEvent as ReactPointerEvent} from "react";
 import {useSearchParams} from "next/navigation";
 import {Baby, ChevronDown, Gem, PanelLeftClose, PanelLeftOpen, Shirt, ShoppingBag, SlidersHorizontal, X} from "lucide-react";
+import {DaisyLoader} from "@/components/daisy-loader";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {useClickOutside} from "@/components/use-click-outside";
 import {useDelayedMount} from "@/components/use-delayed-mount";
@@ -110,6 +111,9 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   // prop and relies entirely on the client fetch below, same as before.
   const [products, setProducts] = useState<ShopProduct[]>(initialProducts ?? []);
   const hasInitialProducts = initialProducts !== undefined;
+  // Only the home-page embed fetches client-side; until that fetch settles the
+  // grid shows the loader instead of a misleading empty shelf.
+  const [productsLoading, setProductsLoading] = useState(!hasInitialProducts);
 
   useEffect(() => {
     // Skipped when the server already provided live data  -  re-fetching the
@@ -132,7 +136,12 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
         }
         setProducts(data as ShopProduct[]);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) {
+          setProductsLoading(false);
+        }
+      });
 
     return () => {
       cancelled = true;
@@ -991,7 +1000,11 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
 
           <div ref={contentRef} className="flex min-h-0 min-w-0 flex-1 flex-col">
             <div className="min-h-0 flex-1 overflow-hidden border-l border-t border-[#d9cfc0]">
-              {filteredProducts.length ? (
+              {productsLoading ? (
+                <div key="loading" className="flex h-full items-center justify-center">
+                  <DaisyLoader layout="section" />
+                </div>
+              ) : filteredProducts.length ? (
                 <div key="cards" ref={trackRef} className="flex h-full" style={{width: `${pageCount * 100}%`}}>
                   {Array.from({length: pageCount}).map((_, pageIdx) => (
                     <div

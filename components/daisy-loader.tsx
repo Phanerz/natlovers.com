@@ -1,23 +1,40 @@
-// Shared loading treatment used everywhere the site needs a loading state:
-// route-level loading.tsx files and the few full-page Suspense fallbacks.
-// Fills the whole content area under the site header. A minimal daisy (ten
-// slim petals around a gold center, no stem or leaves) whose petals drop off
-// one after another, tumbling and swaying as they fall, then grow back one
-// after another with a springy pop, chasing each other round the flower on a
-// loop. Serif line of copy and a thin gold progress bar underneath. Flat per
-// DESIGN.md's glass scope: no blur, just a soft CSS drop-shadow glow.
+// Shared loading treatment used everywhere the site is still fetching
+// something. A minimal daisy (eight petals around a gold center, no stem or
+// leaves) whose petals drop off one after another, tumbling as they fall, then
+// grow back one after another with a springy pop. Under it a serif caption
+// that wipes away and wipes in as the petals fall and regrow, and a thin gold
+// progress bar. Flat per DESIGN.md's glass scope: no blur, just a soft CSS
+// drop-shadow glow.
+//
+// Everything runs on ONE shared beat (BEAT_SECONDS, 9s) so the petals, the
+// captions and the progress bar move together: within each beat the petals let
+// go at 8% and are all gone by about 41%, the old caption is wiped away over
+// exactly that stretch, the new caption wipes in behind it while the petals
+// grow back, then holds through full bloom. The CSS in globals.css
+// (.daisy-petal-*, .daisy-loader-line, .daisy-loader-fill) is written to the
+// same 9s beat: change BEAT_SECONDS and those durations together.
+//
+// layout="page" (default) fills the content area under the header and hides
+// the site footer while it is on screen. layout="section" is the same loader,
+// smaller and transparent, for a panel or tab that is still loading inside an
+// otherwise finished page.
 //
 // No client-side state (no hooks, no theme lookup): light/dark is handled by
-// the existing `.dark` class on <html> via CSS and the petal motion is pure
-// CSS, so this stays safe to render from a Server Component.
+// the existing `.dark` class on <html> via CSS and all motion is pure CSS, so
+// this is safe to render from Server and Client Components alike.
 
-// With no `text` prop the caption gently cycles through these, one per eight-second
-// flower cycle (pure CSS soft wipe, see .daisy-loader-line). Ordered as a small
-// story about what Natlovers is: first the making, then the heart in it, then
-// the patience it takes. The CSS keyframes are written for exactly seven
-// lines, so keep this list at seven. Passing `text` pins one fixed line
-// instead (route-specific copy like "Loading dashboard...").
-const CYCLING_MESSAGES = [
+const BEAT_SECONDS = 9;
+// Within one caption's 9s: 2.7s wiping in, 3.35s held, 2.95s wiping out.
+const ENTER_SECONDS = 2.7;
+const HOLD_SECONDS = 3.35;
+// The petals start letting go 0.72s into a beat (8% of 9s). A caption starts
+// wiping out exactly then, so the first caption starts already mid-hold.
+const PETALS_LET_GO_SECONDS = 0.72;
+
+// With no `text` or `messages` prop the caption cycles through these. Ordered
+// as a small story about what Natlovers is: the making, then the heart in it,
+// then the patience it takes.
+const DEFAULT_MESSAGES = [
   "Handmaking something for you to cherish...",
   "Woven by hand, one strand at a time...",
   "The best things in life are handmade...",
@@ -26,12 +43,6 @@ const CYCLING_MESSAGES = [
   "Preparing something beautiful for you...",
   "Patience is bitter but its fruit is sweet..."
 ];
-const MESSAGE_SECONDS = 8;
-// A line starts wiping in 3.24s into a beat (right after the previous line has
-// been wiped away over the petal fall) and lasts one full beat, so line 0
-// starts 4.76s before the loader mounts: it is already fully shown when the
-// page loads, then is wiped away as the first petals fall.
-const FIRST_LINE_OFFSET_SECONDS = -4.76;
 
 const PETAL_COUNT = 8;
 
@@ -48,27 +59,60 @@ const SWAY = [1, -1, 0.7, -1.2, 1.1, -0.8, 1, -1.1];
 const PETALS = Array.from({length: PETAL_COUNT}, (_, index) => ({
   angle: (360 / PETAL_COUNT) * index,
   sway: SWAY[index],
-  delay: `${(index * 0.25).toFixed(2)}s`
+  delay: `${(index * 0.28).toFixed(2)}s`
 }));
+
+// Keyframes for a caption loop of `count` lines (one line per beat), built per
+// count so any number of messages stays on the shared beat. The mask slides
+// right to left (100% down to 0%): first uncovering the text left to right,
+// then covering it again the same way. The line is hidden at both ends and
+// only jumps between its hidden ends at the iteration boundary (an atomic
+// step), never through a keyframe pair that could be caught between frames
+// and flash the text; visibility backs that up.
+function lineKeyframes(count: number) {
+  const loop = count * BEAT_SECONDS;
+  const pct = (seconds: number) => ((seconds / loop) * 100).toFixed(4);
+  const sine = "cubic-bezier(0.37, 0, 0.63, 1)";
+  const step = (position: number, visibility: "visible" | "hidden", timing?: string) =>
+    `-webkit-mask-position: ${position}% 0; mask-position: ${position}% 0; visibility: ${visibility};${
+      timing ? ` animation-timing-function: ${timing};` : ""
+    }`;
+  const beatEnd = Number(pct(BEAT_SECONDS));
+
+  return `@keyframes daisyLine${count} {
+  0% { ${step(100, "visible", sine)} }
+  ${pct(ENTER_SECONDS)}% { ${step(60, "visible", "linear")} }
+  ${pct(ENTER_SECONDS + HOLD_SECONDS)}% { ${step(40, "visible", sine)} }
+  ${beatEnd.toFixed(4)}% { ${step(0, "visible")} }
+  ${(beatEnd + 0.0001).toFixed(4)}%, 100% { ${step(0, "hidden")} }
+}`;
+}
 
 export function DaisyLoader({
   text,
+  messages = DEFAULT_MESSAGES,
   variant = "storefront",
+  layout = "page",
+  showProgress = true,
   progress
 }: {
+  // Pin one fixed line instead of cycling (route-specific copy).
   text?: string;
+  messages?: string[];
   variant?: "storefront" | "admin";
+  layout?: "page" | "section";
+  showProgress?: boolean;
   progress?: number;
 }) {
   const determinate = typeof progress === "number";
   const clampedProgress = determinate ? Math.min(100, Math.max(0, progress as number)) : undefined;
+  const count = messages.length;
+  const firstLineDelay = PETALS_LET_GO_SECONDS - (ENTER_SECONDS + HOLD_SECONDS);
+  const sceneClass =
+    layout === "section" ? "is-section" : `is-page ${variant === "admin" ? "is-admin" : "is-storefront"}`;
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className={`daisy-loader-scene ${variant === "admin" ? "is-admin" : "is-storefront"}`}
-    >
+    <div role="status" aria-live="polite" className={`daisy-loader-scene ${sceneClass}`}>
       <svg className="daisy-loader-flower" viewBox="-36 -36 72 72" aria-hidden="true">
         <defs>
           <linearGradient id="daisy-petal-fill" x1="0" y1="0" x2="0" y2="1">
@@ -103,12 +147,17 @@ export function DaisyLoader({
         <p className="daisy-loader-text">{text}</p>
       ) : (
         <div className="daisy-loader-text daisy-loader-messages">
-          {CYCLING_MESSAGES.map((message, index) => (
+          <style>{lineKeyframes(count)}</style>
+          {messages.map((message, index) => (
             <span
               key={message}
               className="daisy-loader-line"
               aria-hidden={index === 0 ? undefined : true}
-              style={{animationDelay: `${(FIRST_LINE_OFFSET_SECONDS + index * MESSAGE_SECONDS).toFixed(2)}s`}}
+              style={{
+                animationName: `daisyLine${count}`,
+                animationDuration: `${count * BEAT_SECONDS}s`,
+                animationDelay: `${(firstLineDelay + index * BEAT_SECONDS).toFixed(2)}s`
+              }}
             >
               {message}
             </span>
@@ -116,12 +165,14 @@ export function DaisyLoader({
         </div>
       )}
 
-      <div className="daisy-loader-track">
-        <div
-          className={`daisy-loader-fill${determinate ? "" : " is-indeterminate"}`}
-          style={determinate ? {width: `${clampedProgress}%`} : undefined}
-        />
-      </div>
+      {showProgress ? (
+        <div className="daisy-loader-track">
+          <div
+            className={`daisy-loader-fill${determinate ? "" : " is-indeterminate"}`}
+            style={determinate ? {width: `${clampedProgress}%`} : undefined}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -374,7 +374,7 @@ function AccountContent() {
 
           {tab === "orders" ? (
             orders === null ? (
-              <p className="py-16 text-center text-sm text-forest-500">Loading...</p>
+              <DaisyLoader layout="section" text="Finding your orders..." />
             ) : orders.length === 0 ? (
               <EmptyState
                 title="Orders & purchases"
@@ -420,7 +420,7 @@ function AccountContent() {
 
           {tab === "wishlist" ? (
             wishlistProducts === null ? (
-              <p className="py-16 text-center text-sm text-forest-500">Loading...</p>
+              <DaisyLoader layout="section" text="Gathering your wishlist..." />
             ) : wishlistProducts.length === 0 ? (
               <EmptyState
                 title="Wishlist"
