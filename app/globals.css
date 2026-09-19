@@ -684,31 +684,128 @@ button {
 }
 
 /*
- * Toggle switch  -  a literal iOS switch, not an interpretation: solid
- * colour track (no gradient, no glow), plain white thumb with one small
- * resting shadow. The prior version's blur/gradient/multi-layer glow read
- * as generic AI gloss instead of a real control, so this deliberately has
- * almost no decoration - the crispness IS the effect.
+ * On/off switch, after Apple's Liquid Glass switch (components/admin/glass-
+ * toggle.tsx). A recessed translucent track that tints soft sage when on (the
+ * site's own forest green, lifted so it reads on both the cream and the dark
+ * surfaces instead of sinking into them), and a wide frosted-glass capsule
+ * thumb: bright top, soft warm underside, a specular sheen, and a real blur of
+ * whatever is behind it (the blur comes from the Tailwind backdrop-blur
+ * classes on the thumb, since hand-written backdrop-filter gets dropped by
+ * this build). Pressing stretches the thumb a little, like the real thing.
+ * Warm throughout, no cold blue or pink glass fringe (DESIGN.md).
  */
 .glass-toggle {
+  --toggle-w: 54px;
+  --toggle-h: 32px;
+  --toggle-inset: 3px;
+  --thumb-w: 34px;
+  --thumb-h: 26px;
+  --thumb-press-w: 41px;
   position: relative;
-  background: #dcdcdc;
-  border: none;
-  box-shadow: none;
-  transition: background-color 200ms ease;
+  width: var(--toggle-w);
+  height: var(--toggle-h);
+  padding: 0;
+  cursor: pointer;
+  background: linear-gradient(180deg, rgba(58, 68, 54, 0.24), rgba(58, 68, 54, 0.13));
+  border: 1px solid rgba(58, 68, 54, 0.16);
+  box-shadow:
+    inset 0 2px 4px rgba(20, 30, 20, 0.2),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.5);
+  transition: background 320ms ease, border-color 320ms ease, box-shadow 320ms ease;
+}
+
+.glass-toggle.is-sm {
+  --toggle-w: 44px;
+  --toggle-h: 26px;
+  --toggle-inset: 2.5px;
+  --thumb-w: 28px;
+  --thumb-h: 20px;
+  --thumb-press-w: 34px;
 }
 
 .glass-toggle[data-on="true"] {
-  background: #344332;
+  background: linear-gradient(180deg, #86a47e, #648a63);
+  border-color: rgba(255, 255, 255, 0.34);
+  box-shadow:
+    inset 0 2px 4px rgba(30, 55, 32, 0.28),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.28),
+    0 2px 10px rgba(100, 138, 99, 0.3);
+}
+
+.glass-toggle:focus-visible {
+  outline: 2px solid rgba(100, 138, 99, 0.85);
+  outline-offset: 2px;
 }
 
 .glass-toggle-thumb {
   position: absolute;
-  top: 2px;
-  left: 2px;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  transition: transform 200ms ease;
+  top: 50%;
+  left: var(--toggle-inset);
+  width: var(--thumb-w);
+  height: var(--thumb-h);
+  transform: translateY(-50%);
+  border-radius: 9999px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 250, 240, 0.8));
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 1),
+    inset 0 -3px 5px rgba(140, 112, 60, 0.12),
+    0 3px 8px rgba(20, 32, 20, 0.28),
+    0 1px 2px rgba(20, 32, 20, 0.22);
+  transition: left 440ms cubic-bezier(0.34, 1.4, 0.64, 1), width 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 320ms ease;
+}
+
+/* Specular sheen across the top of the glass. */
+.glass-toggle-thumb::before {
+  content: "";
+  position: absolute;
+  inset: 1.5px 6px auto 6px;
+  height: 42%;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0));
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.glass-toggle[data-on="true"] .glass-toggle-thumb {
+  left: calc(100% - var(--thumb-w) - var(--toggle-inset));
+  /* A little more see-through when on, so the sage tint shows through the
+     glass instead of a flat white blob sitting on top of it. */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(250, 250, 240, 0.7));
+}
+
+.glass-toggle:active .glass-toggle-thumb {
+  width: var(--thumb-press-w);
+}
+
+.glass-toggle[data-on="true"]:active .glass-toggle-thumb {
+  left: calc(100% - var(--thumb-press-w) - var(--toggle-inset));
+}
+
+.dark .glass-toggle {
+  background: linear-gradient(180deg, rgba(230, 222, 199, 0.2), rgba(230, 222, 199, 0.11));
+  border-color: rgba(230, 222, 199, 0.2);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.35),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .glass-toggle[data-on="true"] {
+  background: linear-gradient(180deg, #93b38a, #6f9670);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow:
+    inset 0 2px 4px rgba(20, 45, 24, 0.32),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.22),
+    0 2px 12px rgba(120, 165, 120, 0.28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-toggle,
+  .glass-toggle-thumb {
+    transition: none;
+  }
 }
 
 .ambient-orb {
@@ -1718,6 +1815,172 @@ body:has(.daisy-loader-scene.is-page) footer {
 }
 
 .daisy-loader-scene.is-section .daisy-loader-text {
+  font-size: clamp(15px, 1.8vmin, 19px);
+}
+
+.daisy-loader-scene.is-section .daisy-loader-track {
+  width: clamp(150px, 20vmin, 220px);
+}
+
+.daisy-loader-scene.is-storefront {
+  background-color: #f2ead9;
+  background-image: url("/images/natlovers-background.webp");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.dark .daisy-loader-scene.is-storefront {
+  background-color: #1a1c14;
+  background-image: url("/images/natlovers-background-dark.webp");
+}
+
+/* Admin gets a plain flat surface, no botanical photo  -  a decorative leaf
+   background inside /mimin would be inconsistent with the rest of the
+   admin panel's restrained aesthetic. */
+.daisy-loader-scene.is-admin {
+  background-color: #f7f4ee;
+}
+
+.dark .daisy-loader-scene.is-admin {
+  background-color: #22241a;
+}
+
+.daisy-loader-flower {
+  /* Deliberately modest: a small, calm flower, not a hero graphic. */
+  height: clamp(120px, 20vmin, 200px);
+  width: clamp(120px, 20vmin, 200px);
+  overflow: visible;
+  /* Two stacked drop-shadows (tight + wide) read as one soft bloom of light
+     behind the flower head rather than a single hard-edged halo. */
+  filter: drop-shadow(0 0 6px rgba(199, 167, 100, 0.5)) drop-shadow(0 0 18px rgba(199, 167, 100, 0.28));
+}
+
+/* Petal and center colours. Light mode: a slightly deeper cream with a faint
+   outline so the petals hold their shape against a light background. Dark
+   mode: bright, outline-free petals that glow against the dark leaves. */
+.daisy-stop-tip {
+  stop-color: #fffdf8;
+}
+
+.daisy-stop-base {
+  stop-color: #eadfc4;
+}
+
+.dark .daisy-stop-base {
+  stop-color: #f1ebd9;
+}
+
+.daisy-stop-center-a {
+  stop-color: #e4c47c;
+}
+
+.daisy-stop-center-b {
+  stop-color: #b58d45;
+}
+
+.dark .daisy-stop-center-b {
+  stop-color: #c09a52;
+}
+
+.daisy-petal-shape {
+  stroke: rgba(23, 32, 21, 0.16);
+  stroke-width: 0.5;
+  stroke-linejoin: round;
+}
+
+.dark .daisy-petal-shape {
+  stroke: none;
+}
+
+.daisy-petal-vein {
+  fill: none;
+  stroke: rgba(183, 146, 75, 0.38);
+  stroke-width: 0.55;
+  stroke-linecap: round;
+}
+
+.daisy-center-halo {
+  fill: #c7a764;
+  opacity: 0.24;
+}
+
+/* Petal cycle: 9s (the shared beat the captions and progress bar are also
+   timed to), every petal identical, offset by its own animation-delay (0.28s
+   apart) so they are plucked one after another, clockwise from the top, then
+   grow back one after another in the same order.
+   A pluck, not a fall: the petal gets a small tug (pulls out a touch and
+   twists), lets go, and drifts a short way further out in the direction it
+   faces while fading to nothing. Later it grows back from the center with a
+   springy overshoot. Two nested groups: .daisy-petal-tumble sits inside the
+   petal's own rotated frame, so its "up" is always straight out from the
+   flower's center (that is what makes each petal leave in its own direction);
+   .daisy-petal-fall works in the flower's frame and does the fade and the
+   regrow. --s (+/-) just flips the twist so they are not all identical. */
+.daisy-petal-fall {
+  transform-origin: 0 0;
+  animation: daisyPetalFall 9s linear infinite, daisyPetalFade 9s linear infinite;
+}
+
+.daisy-petal-tumble {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: daisyPetalTurn 9s linear infinite;
+}
+
+@keyframes daisyPetalFall {
+  0%, 19% {
+    transform: scale(1);
+  }
+  19.01%, 45.9% {
+    transform: scale(0);
+  }
+  46% {
+    transform: scale(0.05);
+    animation-timing-function: cubic-bezier(0.34, 1.7, 0.64, 1);
+  }
+  57%, 100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes daisyPetalTurn {
+  0%, 8% {
+    transform: translate(0, 0) rotate(0deg);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.4, 1);
+  }
+  9.6% {
+    transform: translate(0, -1.8px) rotate(calc(var(--s) * -5deg));
+    animation-timing-function: ease-in-out;
+  }
+  11.2% {
+    transform: translate(0, -0.6px) rotate(calc(var(--s) * 3deg));
+    animation-timing-function: cubic-bezier(0.2, 0.55, 0.3, 1);
+  }
+  19% {
+    transform: translate(0, -10px) rotate(calc(var(--s) * 7deg));
+  }
+  19.01%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+@keyframes daisyPetalFade {
+  0%, 10.5% {
+    opacity: 1;
+  }
+  19% {
+    opacity: 0;
+  }
+  19.01%, 45.9% {
+    opacity: 0;
+  }
+  46%, 100% {
+    opacity: 1;
+  }
+}
+
+.daisy-loader-text {
   font-size: clamp(15px, 1.8vmin, 19px);
 }
 

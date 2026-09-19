@@ -26,6 +26,7 @@ import {KpiCard} from "@/components/admin/kpi-card";
 import {CustomRequestsHistory} from "@/components/custom-requests-history";
 import {DaisyLoader} from "@/components/daisy-loader";
 import {PhoneInput} from "@/components/phone-input";
+import {useRefreshOnReturn} from "@/components/use-refresh-on-return";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {ThemeToggle} from "@/components/theme-toggle";
 import {formatCurrency} from "@/lib/format";
@@ -114,6 +115,9 @@ function AccountContent() {
   const [adminTelemetry, setAdminTelemetry] = useState<CustomerTelemetry | null>(null);
   const [adminStats, setAdminStats] = useState<DashboardStats | null>(null);
   const [adminWidgets, setAdminWidgets] = useState<WidgetKey[]>(DEFAULT_WIDGETS);
+  // Bumps whenever the customer comes back to this tab, so orders and the
+  // wishlist refetch and anything deleted or changed meanwhile is gone.
+  const refreshTick = useRefreshOnReturn();
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -164,7 +168,7 @@ function AccountContent() {
   }, [status]);
 
   useEffect(() => {
-    if (status !== "authenticated" || tab !== "orders" || orders !== null) {
+    if (status !== "authenticated" || tab !== "orders") {
       return;
     }
     let cancelled = false;
@@ -176,17 +180,18 @@ function AccountContent() {
         }
       })
       .catch(() => {
+        // Keep whatever is already showing if a background refresh fails.
         if (!cancelled) {
-          setOrders([]);
+          setOrders((current) => current ?? []);
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [status, tab, orders]);
+  }, [status, tab, refreshTick]);
 
   useEffect(() => {
-    if (status !== "authenticated" || tab !== "wishlist" || wishlistProducts !== null) {
+    if (status !== "authenticated" || tab !== "wishlist") {
       return;
     }
     let cancelled = false;
@@ -203,13 +208,13 @@ function AccountContent() {
       })
       .catch(() => {
         if (!cancelled) {
-          setWishlistProducts([]);
+          setWishlistProducts((current) => current ?? []);
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [status, tab, wishlistProducts]);
+  }, [status, tab, refreshTick]);
 
   function selectTab(key: TabKey) {
     router.replace(key === "profile" ? "/account" : `/account?tab=${key}`, {scroll: false});
