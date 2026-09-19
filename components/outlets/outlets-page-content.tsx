@@ -116,13 +116,15 @@ export function OutletsPageContent({locationList}: {locationList: PublicLocation
     return () => window.removeEventListener("resize", measure);
   }, []);
 
-  // The page never scrolls: wheel, arrow keys and swipes all step the deck
-  // instead. One step per gesture: after a step, a continuous stream of wheel
+  // The page never scrolls. The wheel steps the deck ONLY while the pointer
+  // is over the card itself (the listener lives on the deck, not the page),
+  // so scrolling anywhere else does nothing. Arrow keys and swipes on the
+  // card step it too. One step per gesture: after a step, a continuous stream of wheel
   // events (trackpad inertia, a spun mouse wheel) is ignored until it
   // settles, so a single flick can't skip several locations.
   useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
+    const deck = deckRef.current;
+    if (!deck) return;
 
     let lockUntil = 0;
     let lastWheelAt = 0;
@@ -141,8 +143,8 @@ export function OutletsPageContent({locationList}: {locationList: PublicLocation
       step(event.deltaY > 0 ? 1 : -1);
     };
 
-    stage.addEventListener("wheel", onWheel, {passive: false});
-    return () => stage.removeEventListener("wheel", onWheel);
+    deck.addEventListener("wheel", onWheel, {passive: false});
+    return () => deck.removeEventListener("wheel", onWheel);
   }, [step]);
 
   useEffect(() => {
