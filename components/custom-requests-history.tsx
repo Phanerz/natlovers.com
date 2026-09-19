@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import {DaisyLoader} from "@/components/daisy-loader";
 import {useEffect, useState} from "react";
 import {ArrowRight} from "lucide-react";
 import {formatCurrency} from "@/lib/format";
@@ -44,7 +45,7 @@ export function CustomRequestsHistory({currency}: {currency: CurrencyCode}) {
   }, []);
 
   if (requests === null) {
-    return <p className="py-16 text-center text-sm text-forest-500">Loading...</p>;
+    return <DaisyLoader layout="section" text="Finding your custom requests..." />;
   }
 
   if (!requests.length) {

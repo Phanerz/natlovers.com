@@ -1,7 +1,7 @@
 "use client";
 
 import {useEffect, useState} from "react";
-import {Loader2} from "lucide-react";
+import {DaisyLoader} from "@/components/daisy-loader";
 import {CustomStudio} from "@/components/custom-studio/studio";
 import {PausedNotice} from "@/components/custom-studio/paused-notice";
 import {emptyPricingBasis, type PricingBasis} from "@/lib/custom-pricing";
@@ -66,7 +66,7 @@ export function CustomStudioSection() {
   if (!data) {
     return (
       <div className="shell flex min-h-[24rem] items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-forest-400" />
+        <DaisyLoader layout="section" text="Setting up your custom studio..." />
       </div>
     );
   }
