@@ -1845,7 +1845,8 @@ button {
 
 .daisy-loader-text {
   @apply font-display;
-  max-width: 46ch;
+  max-width: 62ch;
+  text-wrap: balance;
   font-size: clamp(16px, 2.1vmin, 22px);
   letter-spacing: 0.01em;
   color: #112319;
@@ -1855,9 +1856,10 @@ button {
   color: #f3ecd9;
 }
 
-/* Cycling caption: the four lines sit stacked in one grid cell (so the box is
+/* Cycling caption: the seven lines sit stacked in one grid cell (so the box is
    as tall as the tallest line) and each fades in with a slight rise, holds,
-   then fades out with a slight lift, four seconds apiece over a 16s loop. */
+   then fades out with a slight lift, five seconds apiece over a 35s loop
+   (each slot is 1/7 of the loop, about 14.29%). */
 .daisy-loader-messages {
   display: grid;
   justify-items: center;
@@ -1866,7 +1868,7 @@ button {
 .daisy-loader-line {
   grid-area: 1 / 1;
   opacity: 0;
-  animation: daisyLine 16s ease-in-out infinite;
+  animation: daisyLine 35s ease-in-out infinite;
 }
 
 @keyframes daisyLine {
@@ -1874,15 +1876,15 @@ button {
     opacity: 0;
     transform: translateY(6px);
   }
-  5%, 20% {
+  2.6%, 11.7% {
     opacity: 1;
     transform: translateY(0);
   }
-  25% {
+  14.28% {
     opacity: 0;
     transform: translateY(-6px);
   }
-  25.01%, 100% {
+  14.29%, 100% {
     opacity: 0;
     transform: translateY(6px);
   }

@@ -11,17 +11,22 @@
 // the existing `.dark` class on <html> via CSS and the petal motion is pure
 // CSS, so this stays safe to render from a Server Component.
 
-// With no `text` prop the caption gently cycles through these, one every four
-// seconds (pure CSS crossfade, see .daisy-loader-line). The CSS keyframes are
-// written for exactly four lines, so keep this list at four. Passing `text`
-// pins one fixed line instead (route-specific copy like "Loading dashboard...").
+// With no `text` prop the caption gently cycles through these, one every five
+// seconds (pure CSS crossfade, see .daisy-loader-line). Ordered as a small
+// story about what Natlovers is: first the making, then the heart in it, then
+// the patience it takes. The CSS keyframes are written for exactly seven
+// lines, so keep this list at seven. Passing `text` pins one fixed line
+// instead (route-specific copy like "Loading dashboard...").
 const CYCLING_MESSAGES = [
   "Handmaking something for you to cherish...",
-  "Preparing something beautiful for you...",
   "Woven by hand, one strand at a time...",
-  "Almost ready for you..."
+  "The best things in life are handmade.",
+  "The beauty of handmade is in the imperfections.",
+  "We say handcrafted, but really, it comes from the heart.",
+  "Preparing something beautiful for you...",
+  "Patience is bitter but its fruit is sweet."
 ];
-const MESSAGE_SECONDS = 4;
+const MESSAGE_SECONDS = 5;
 
 const PETAL_COUNT = 8;
 
