@@ -1776,101 +1776,76 @@ button {
   opacity: 0.24;
 }
 
-/* Petal cycle (14s, every petal identical, offset by its own animation-delay
-   so they go one after another, clockwise from the top). Two nested groups do
-   the work so the fall can happen in screen space while the tumble happens in
-   the petal's own frame:
-     .daisy-petal-fall   translate + scale, in screen space: it lets go, drops
-                         with gravity (each step covers more ground than the
-                         last) swaying side to side, fades out; later it grows
-                         back from the flower's center with a springy
-                         overshoot.
-     .daisy-petal-tumble rotate about the petal's own middle: a little
-                         wiggle as it works loose, then a slow tumble.
-   --s is the petal's own sway multiplier (sign = direction). The fall of one
-   petal overlaps the regrowth of the ones before it, so the flower always
-   has petals in motion and holds fully bloomed for about a second and a half
-   before the next round. */
+/* Petal cycle: 6.4s, every petal identical, offset by its own
+   animation-delay (0.2s apart) so they drop off one after another,
+   clockwise from the top, then pop back one after another in the same order.
+   Deliberately plain: a petal just lets go and falls (ease-in, so it picks up
+   speed like something dropping) with a small turn, fades out, and later
+   pops back from the center. Two nested groups so the fall is in screen
+   space and the turn is about the petal's own middle. --s (+/-) just
+   flips the sideways lean and turn so they are not all identical. */
 .daisy-petal-fall {
   transform-origin: 0 0;
-  animation: daisyPetalFall 14s ease-in-out infinite;
+  animation: daisyPetalFall 6.4s linear infinite, daisyPetalFade 6.4s linear infinite;
 }
 
 .daisy-petal-tumble {
   transform-box: fill-box;
   transform-origin: center;
-  animation: daisyPetalTumble 14s ease-in-out infinite;
+  animation: daisyPetalTurn 6.4s linear infinite;
 }
 
 @keyframes daisyPetalFall {
-  0%, 6% {
+  0%, 8% {
     transform: translate(0, 0) scale(1);
-    opacity: 1;
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.55);
   }
-  10% {
-    transform: translate(calc(var(--s) * 3px), 4px) scale(1);
-    opacity: 1;
+  19% {
+    transform: translate(calc(var(--s) * 3px), 34px) scale(1);
   }
-  15% {
-    transform: translate(calc(var(--s) * -4px), 15px) scale(1);
-    opacity: 1;
-  }
-  20% {
-    transform: translate(calc(var(--s) * 4.5px), 30px) scale(1);
-    opacity: 0.85;
-  }
-  25% {
-    transform: translate(calc(var(--s) * -1px), 48px) scale(1);
-    opacity: 0;
-  }
-  25.01%, 51.9% {
+  19.01%, 45.9% {
     transform: translate(0, 0) scale(0);
-    opacity: 0;
   }
-  52% {
-    transform: translate(0, 0) scale(0.04);
-    opacity: 1;
-    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+  46% {
+    transform: translate(0, 0) scale(0.05);
+    animation-timing-function: cubic-bezier(0.34, 1.7, 0.64, 1);
   }
-  61%, 100% {
+  57%, 100% {
     transform: translate(0, 0) scale(1);
-    opacity: 1;
   }
 }
 
-@keyframes daisyPetalTumble {
-  0%, 4% {
+@keyframes daisyPetalTurn {
+  0%, 8% {
+    transform: rotate(0deg);
+    animation-timing-function: ease-in;
+  }
+  19% {
+    transform: rotate(calc(var(--s) * 32deg));
+  }
+  19.01%, 100% {
     transform: rotate(0deg);
   }
-  5% {
-    transform: rotate(calc(var(--s) * -6deg));
+}
+
+@keyframes daisyPetalFade {
+  0%, 13% {
+    opacity: 1;
   }
-  6.5% {
-    transform: rotate(calc(var(--s) * 5deg));
+  19% {
+    opacity: 0;
   }
-  8% {
-    transform: rotate(calc(var(--s) * -4deg));
+  19.01%, 45.9% {
+    opacity: 0;
   }
-  10% {
-    transform: rotate(calc(var(--s) * 7deg));
-  }
-  15% {
-    transform: rotate(calc(var(--s) * -16deg));
-  }
-  20% {
-    transform: rotate(calc(var(--s) * 28deg));
-  }
-  25% {
-    transform: rotate(calc(var(--s) * 44deg));
-  }
-  25.01%, 100% {
-    transform: rotate(0deg);
+  46%, 100% {
+    opacity: 1;
   }
 }
 
 .daisy-loader-text {
   @apply font-display;
-  max-width: 34ch;
+  max-width: 46ch;
   font-size: clamp(16px, 2.1vmin, 22px);
   letter-spacing: 0.01em;
   color: #112319;
@@ -1878,6 +1853,39 @@ button {
 
 .dark .daisy-loader-text {
   color: #f3ecd9;
+}
+
+/* Cycling caption: the four lines sit stacked in one grid cell (so the box is
+   as tall as the tallest line) and each fades in with a slight rise, holds,
+   then fades out with a slight lift, four seconds apiece over a 16s loop. */
+.daisy-loader-messages {
+  display: grid;
+  justify-items: center;
+}
+
+.daisy-loader-line {
+  grid-area: 1 / 1;
+  opacity: 0;
+  animation: daisyLine 16s ease-in-out infinite;
+}
+
+@keyframes daisyLine {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  5%, 20% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  25% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  25.01%, 100% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 
 .daisy-loader-track {
@@ -1926,8 +1934,13 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .daisy-petal-fall,
   .daisy-petal-tumble,
-  .daisy-loader-fill.is-indeterminate {
+  .daisy-loader-fill.is-indeterminate,
+  .daisy-loader-line {
     animation: none;
+  }
+
+  .daisy-loader-line:first-child {
+    opacity: 1;
   }
 
   .daisy-loader-fill.is-indeterminate {
