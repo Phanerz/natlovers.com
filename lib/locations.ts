@@ -1,4 +1,4 @@
-import {asc, eq} from "drizzle-orm";
+import {asc, eq, sql} from "drizzle-orm";
 import {db, locations} from "@/lib/db";
 import type {LocationType} from "@/lib/location-constants";
 
@@ -17,9 +17,10 @@ export type PublicLocation = {
 
 // Server-side only, called from app/outlets/page.tsx  -  no client fetch, so
 // this can never reintroduce the waterfall the catalogue LCP fix already
-// solved for. Only active locations, in displayOrder.
+// solved for. Only active locations. The main studio is always first no matter
+// what the admin reorder does, then stockists in displayOrder.
 export async function getActiveLocations(): Promise<PublicLocation[]> {
-  const rows = await db.select().from(locations).where(eq(locations.isActive, true)).orderBy(asc(locations.displayOrder));
+  const rows = await db.select().from(locations).where(eq(locations.isActive, true)).orderBy(sql`(${locations.type} = 'main_studio') desc`, asc(locations.displayOrder));
 
   return rows.map((row) => ({
     id: row.id,
