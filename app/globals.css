@@ -2227,6 +2227,355 @@ body:has(.daisy-loader-scene.is-page) footer {
     left: 100%;
   }
 }
+/* ------------------------------------------------------------------------
+   Outlets page: one fixed screen, no document scroll. Wheel / arrow keys /
+   swipes step a deck of location cards instead (components/outlets/
+   outlets-page-content.tsx). The footer is hidden here so the page really is
+   a single screen. No backdrop-filter anywhere in this block (the CSS
+   pipeline drops hand-written ones); the blur below is plain filter: blur.
+   ------------------------------------------------------------------------ */
+/* --outlets-top is the stage's real distance from the top of the page,
+   measured in JS: the sticky header renders taller than --header-height. */
+.outlets-stage {
+  height: calc(100svh - var(--outlets-top, var(--header-height)));
+  overflow: hidden;
+}
+
+html:has(.outlets-stage) {
+  overflow-y: hidden;
+}
+
+body:has(.outlets-stage) footer {
+  display: none;
+}
+
+.outlets-stage .section-title {
+  font-size: clamp(1.6rem, 1.1rem + 1.6vw, 2.5rem);
+}
+
+.outlets-intro-body {
+  display: none;
+}
+
+@media (min-width: 1024px) and (min-height: 760px) {
+  .outlets-intro-body {
+    display: block;
+  }
+}
+
+.outlets-map-frame {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 12rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(17, 35, 25, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.dark .outlets-map-frame {
+  border-color: rgba(230, 222, 199, 0.14);
+}
+
+@media (min-width: 1024px) {
+  .outlets-map-frame {
+    height: min(calc(100svh - var(--outlets-top, var(--header-height)) - 4rem), 40rem);
+  }
+}
+
+.outlet-deck {
+  position: relative;
+  height: 13.75rem;
+  touch-action: none;
+}
+
+@media (min-width: 1024px) {
+  .outlet-deck {
+    height: 14.5rem;
+  }
+}
+
+.outlet-card {
+  --oc-surface: rgba(255, 251, 244, 0.96);
+  --oc-border: rgba(17, 35, 25, 0.1);
+  --oc-ink: #172015;
+  --oc-body: #4a5a44;
+  --oc-faint: rgba(23, 32, 21, 0.07);
+  --oc-accent: #5f7a52;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: 1.1rem 1.25rem 1.1rem 1.4rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--oc-border);
+  background: var(--oc-surface);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  will-change: transform, opacity, filter;
+  transition:
+    opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.95s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.85s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 0.95s;
+}
+
+.dark .outlet-card {
+  --oc-surface: rgba(38, 40, 30, 0.94);
+  --oc-border: rgba(230, 222, 199, 0.14);
+  --oc-ink: #f4ecd9;
+  --oc-body: #cfc6ad;
+  --oc-faint: rgba(244, 236, 217, 0.08);
+  --oc-accent: #a9bf9a;
+}
+
+.outlet-card[data-type="main_studio"] {
+  --oc-accent: #c9a24a;
+}
+
+.outlet-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14%;
+  bottom: 14%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--oc-accent);
+}
+
+/* Leaving upward: shrinks, blurs and fades slowly. Arriving from below:
+   starts small, blurred and faded, then grows into the middle. */
+.outlet-card[data-pos="prev"] {
+  opacity: 0;
+  transform: translateY(-3.5rem) scale(0.84);
+  filter: blur(8px);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.outlet-card[data-pos="next"] {
+  opacity: 0;
+  transform: translateY(4.5rem) scale(0.86);
+  filter: blur(10px);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.outlet-card[data-pos="current"] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+  visibility: visible;
+  transition-delay: 0.14s, 0.14s, 0.14s, 0s;
+}
+
+.outlet-card__index {
+  position: absolute;
+  top: 0.55rem;
+  right: 1rem;
+  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Garamond, Georgia, serif;
+  font-size: 3.4rem;
+  line-height: 1;
+  color: var(--oc-faint);
+  pointer-events: none;
+}
+
+.outlet-card[data-type="main_studio"] .outlet-card__index {
+  color: rgba(201, 162, 74, 0.3);
+}
+
+.outlet-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(23, 32, 21, 0.18);
+  background: #ffffff;
+  color: #172015;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.outlet-chip__dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.outlet-card[data-type="main_studio"] .outlet-chip {
+  border-color: rgba(138, 106, 23, 0.5);
+  background: linear-gradient(135deg, #f7e7ae, #dcae46);
+  color: #4a3608;
+}
+
+.outlet-card__name {
+  margin-top: 0.7rem;
+  font-size: 1.5rem;
+  line-height: 1.15;
+  color: var(--oc-ink);
+}
+
+.outlet-card__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--oc-body);
+}
+
+.outlet-card__row svg {
+  margin-top: 0.15rem;
+  color: var(--oc-accent);
+}
+
+.outlet-card__maps {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+  padding-bottom: 1px;
+  border-bottom: 1px solid var(--oc-accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--oc-ink);
+  transition: color 0.15s;
+}
+
+.outlet-card__maps:hover {
+  color: var(--oc-accent);
+}
+
+.outlet-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.outlet-step {
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(17, 35, 25, 0.18);
+  background: rgba(255, 251, 244, 0.9);
+  color: #172015;
+}
+
+.outlet-step:hover:not(:disabled) {
+  background: #f3dc9a;
+}
+
+.outlet-step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.dark .outlet-step {
+  border-color: rgba(230, 222, 199, 0.22);
+  background: rgba(38, 40, 30, 0.9);
+  color: #f4ecd9;
+}
+
+.dark .outlet-step:hover:not(:disabled) {
+  background: rgba(201, 162, 74, 0.35);
+}
+
+.outlet-progress {
+  height: 2px;
+  flex: 1;
+  background: rgba(23, 32, 21, 0.12);
+}
+
+.dark .outlet-progress {
+  background: rgba(244, 236, 217, 0.14);
+}
+
+.outlet-progress span {
+  display: block;
+  height: 100%;
+  background: #c9a24a;
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.outlet-counter {
+  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Garamond, Georgia, serif;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  color: #172015;
+}
+
+.outlet-counter span {
+  opacity: 0.5;
+}
+
+.dark .outlet-counter {
+  color: #f4ecd9;
+}
+
+/* Map pins: white for stockists, gold for the main studio; the selected
+   pin grows and pulses. */
+.outlet-pin {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.32);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.outlet-pin--stockist {
+  background: #ffffff;
+  color: #172015;
+  border: 2px solid #172015;
+}
+
+.outlet-pin--main {
+  background: linear-gradient(145deg, #f7e7ae, #dcae46);
+  color: #4a3608;
+  border: 2px solid #8a6a17;
+  box-shadow: 0 2px 10px rgba(201, 162, 74, 0.55);
+}
+
+.outlet-pin.is-active {
+  transform: scale(1.22);
+}
+
+.outlet-pin.is-active::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  border: 2px solid #172015;
+  animation: outlet-pin-pulse 1.7s ease-out infinite;
+}
+
+.outlet-pin--main.is-active::after {
+  border-color: #c9a24a;
+}
+
+@keyframes outlet-pin-pulse {
+  from {
+    transform: scale(0.85);
+    opacity: 0.75;
+  }
+  to {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .daisy-petal-fall,
@@ -2249,5 +2598,18 @@ body:has(.daisy-loader-scene.is-page) footer {
   .daisy-loader-fill.is-indeterminate {
     left: 0;
     width: 55%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .outlet-card,
+  .outlet-progress span,
+  .outlet-pin {
+    transition-duration: 0.01s;
+    transition-delay: 0s;
+  }
+
+  .outlet-pin.is-active::after {
+    animation: none;
   }
 }

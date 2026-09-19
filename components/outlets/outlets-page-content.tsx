@@ -1,4 +1,7 @@
-import {Clock, MapPin, MessageCircle} from "lucide-react";
+"use client";
+
+import {useCallback, useEffect, useRef, useState} from "react";
+import {ArrowUpRight, ChevronDown, ChevronUp, Clock, MapPin, MessageCircle} from "lucide-react";
 import type {PublicLocation} from "@/lib/locations";
 import {OutletsMap} from "./outlets-map";
 
@@ -8,63 +11,250 @@ function googleMapsUrl(location: PublicLocation) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 }
 
-function LocationCard({location}: {location: PublicLocation}) {
+function LocationCard({
+  location,
+  index,
+  position,
+  onFocus
+}: {
+  location: PublicLocation;
+  index: number;
+  position: "prev" | "current" | "next";
+  onFocus: () => void;
+}) {
+  const isMain = location.type === "main_studio";
+  const address = [location.addressLine1, location.addressLine2].filter(Boolean).join(", ");
+
   return (
-    <div className="card motion-card p-8 text-sm leading-7 text-forest-700">
-      <p className="muted">{location.type === "main_studio" ? "Main Studio" : "Stockist"}</p>
-      <h3 className="mt-2 font-display text-2xl text-forest-900">{location.name}</h3>
-      <div className="mt-5 space-y-3">
-        <p className="flex items-start gap-2">
-          <MapPin className="mt-1 h-4 w-4 shrink-0" />
-          <a
-            href={googleMapsUrl(location)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline decoration-[#cdbfa6] underline-offset-2 transition-colors duration-150 hover:text-forest-900"
-          >
-            {location.addressLine1}
-            {location.addressLine2 ? `, ${location.addressLine2}` : ""}
-          </a>
+    <article
+      className="outlet-card"
+      data-pos={position}
+      data-type={location.type}
+      aria-hidden={position !== "current"}
+      onClick={onFocus}
+    >
+      <span className="outlet-card__index" aria-hidden>
+        {String(index + 1).padStart(2, "0")}
+      </span>
+
+      <div>
+        <span className="outlet-chip">
+          <span className="outlet-chip__dot" />
+          {isMain ? "Main Studio" : "Stockist"}
+        </span>
+        <h3 className="outlet-card__name font-display">{location.name}</h3>
+      </div>
+
+      <div className="space-y-2">
+        <p className="outlet-card__row">
+          <MapPin className="h-4 w-4 shrink-0" />
+          <span className="line-clamp-2">{address}</span>
         </p>
         {location.hoursDisplay ? (
-          <p className="flex items-center gap-2">
+          <p className="outlet-card__row">
             <Clock className="h-4 w-4 shrink-0" /> {location.hoursDisplay}
           </p>
         ) : null}
         {location.contact ? (
-          <p className="flex items-center gap-2">
+          <p className="outlet-card__row">
             <MessageCircle className="h-4 w-4 shrink-0" /> {location.contact}
           </p>
         ) : null}
+        <a
+          href={googleMapsUrl(location)}
+          target="_blank"
+          rel="noopener noreferrer"
+          tabIndex={position === "current" ? 0 : -1}
+          onClick={(event) => event.stopPropagation()}
+          className="outlet-card__maps"
+        >
+          Open in Google Maps <ArrowUpRight className="h-3.5 w-3.5" />
+        </a>
       </div>
-    </div>
+    </article>
   );
 }
 
 export function OutletsPageContent({locationList}: {locationList: PublicLocation[]}) {
-  const stockists = locationList.filter((location) => location.type === "stockist");
+  const [active, setActive] = useState(0);
+  const [focusTick, setFocusTick] = useState(0);
+  const [showAllTick, setShowAllTick] = useState(0);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const deckRef = useRef<HTMLDivElement>(null);
+  const count = locationList.length;
+
+  const step = useCallback(
+    (direction: 1 | -1) => {
+      setActive((current) => Math.min(count - 1, Math.max(0, current + direction)));
+    },
+    [count]
+  );
+
+  // Picking the location that's already active re-flies the map to it, so
+  // clicking the card (or its pin) after panning away brings you back.
+  const select = useCallback(
+    (index: number) => {
+      if (index === active) {
+        setFocusTick((tick) => tick + 1);
+      } else {
+        setActive(index);
+      }
+    },
+    [active]
+  );
+
+  // Measure where the stage actually starts (below the sticky header) so
+  // the stage fills exactly the rest of the screen and the page can't scroll.
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const measure = () => {
+      stage.style.setProperty("--outlets-top", `${Math.round(stage.getBoundingClientRect().top + window.scrollY)}px`);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  // The page never scrolls: wheel, arrow keys and swipes all step the deck
+  // instead. One step per gesture: after a step, a continuous stream of wheel
+  // events (trackpad inertia, a spun mouse wheel) is ignored until it
+  // settles, so a single flick can't skip several locations.
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    let lockUntil = 0;
+    let lastWheelAt = 0;
+    let lastStepAt = 0;
+
+    const onWheel = (event: WheelEvent) => {
+      if (event.ctrlKey) return;
+      event.preventDefault();
+      const now = performance.now();
+      const continuous = now - lastWheelAt < 70;
+      lastWheelAt = now;
+      if (now < lockUntil || Math.abs(event.deltaY) < 8) return;
+      if (continuous && now - lastStepAt < 1400) return;
+      lockUntil = now + 750;
+      lastStepAt = now;
+      step(event.deltaY > 0 ? 1 : -1);
+    };
+
+    stage.addEventListener("wheel", onWheel, {passive: false});
+    return () => stage.removeEventListener("wheel", onWheel);
+  }, [step]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+      if (event.key === "ArrowDown" || event.key === "PageDown") {
+        event.preventDefault();
+        step(1);
+      } else if (event.key === "ArrowUp" || event.key === "PageUp") {
+        event.preventDefault();
+        step(-1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [step]);
+
+  useEffect(() => {
+    const deck = deckRef.current;
+    if (!deck) return;
+    let startY: number | null = null;
+
+    const onStart = (event: TouchEvent) => {
+      startY = event.touches[0].clientY;
+    };
+    const onEnd = (event: TouchEvent) => {
+      if (startY === null) return;
+      const delta = startY - event.changedTouches[0].clientY;
+      startY = null;
+      if (Math.abs(delta) > 36) step(delta > 0 ? 1 : -1);
+    };
+
+    deck.addEventListener("touchstart", onStart, {passive: true});
+    deck.addEventListener("touchend", onEnd, {passive: true});
+    return () => {
+      deck.removeEventListener("touchstart", onStart);
+      deck.removeEventListener("touchend", onEnd);
+    };
+  }, [step]);
+
+  if (count === 0) {
+    return null;
+  }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-      <div className="space-y-6">
-        {locationList.map((location) => (
-          <LocationCard key={location.id} location={location} />
-        ))}
-
-        {stockists.length === 0 ? (
-          <div className="card motion-card flex flex-col justify-center p-8 text-center text-sm leading-7 text-forest-700">
-            <p className="muted">Stockist Partners</p>
-            <p className="mt-3 font-display text-xl text-forest-900">More locations coming soon</p>
-            <p className="mt-3">
-              Interested in carrying Natlovers pieces at your store? Reach out through our socials and we&apos;ll follow up
-              about wholesale and stockist partnerships.
+    <div ref={stageRef} className="outlets-stage">
+      <div className="shell flex h-full min-h-0 flex-col gap-3 py-3 lg:flex-row lg:items-center lg:gap-10 lg:py-6">
+        <div className="contents lg:flex lg:w-[26rem] lg:shrink-0 lg:flex-col lg:justify-center lg:gap-6">
+          <div className="order-1 space-y-2 lg:space-y-3">
+            <p className="muted">Find Us</p>
+            <h1 className="section-title">Visit the studio, or find Natlovers near you.</h1>
+            <p className="outlets-intro-body text-sm leading-7 text-forest-700">
+              Our workshop and showroom in Yogyakarta is open to visitors by appointment. Stockist partners across
+              Indonesia are added here as they come online.
             </p>
           </div>
-        ) : null}
-      </div>
 
-      <div className="card h-[360px] overflow-hidden p-0 lg:sticky lg:top-6 lg:h-[520px]">
-        <OutletsMap locationList={locationList} />
+          <div className="order-3 space-y-3">
+            <div ref={deckRef} className="outlet-deck">
+              {locationList.map((location, index) => (
+                <LocationCard
+                  key={location.id}
+                  location={location}
+                  index={index}
+                  position={index < active ? "prev" : index > active ? "next" : "current"}
+                  onFocus={() => select(index)}
+                />
+              ))}
+            </div>
+
+            <div className="outlet-controls">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  aria-label="Previous location"
+                  onClick={() => step(-1)}
+                  disabled={active === 0}
+                  className="outlet-step"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Next location"
+                  onClick={() => step(1)}
+                  disabled={active === count - 1}
+                  className="outlet-step"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="outlet-progress" aria-hidden>
+                <span style={{width: `${((active + 1) / count) * 100}%`}} />
+              </div>
+              <p className="outlet-counter" aria-live="polite">
+                {String(active + 1).padStart(2, "0")} <span>/ {String(count).padStart(2, "0")}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="outlets-map-frame order-2">
+          <OutletsMap
+            locationList={locationList}
+            activeIndex={active}
+            focusTick={focusTick}
+            showAllTick={showAllTick}
+            onSelect={select}
+            onShowAll={() => setShowAllTick((tick) => tick + 1)}
+          />
+        </div>
       </div>
     </div>
   );

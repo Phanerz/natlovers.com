@@ -1,48 +1,35 @@
 "use client";
 
-import {useEffect, useMemo, useState} from "react";
-import {MapContainer, Marker, Popup, TileLayer, useMap} from "react-leaflet";
+import {useEffect, useRef, useState} from "react";
+import {MapContainer, Marker, TileLayer, Tooltip, useMap} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type {PublicLocation} from "@/lib/locations";
+import type {OutletsMapProps} from "./outlets-map";
 
-// Root cause of the "crosshair" marker this replaced: the old icon was five
-// same-size, same-color circles in a plus-sign layout (center + N/S/E/W).
-// At 32px that reads as a targeting reticle, not a flower - confirmed by
-// inspecting the live DOM, only one marker element existed and it matched
-// this exact icon, no stray Leaflet control involved. Replaced with a real
-// house-silhouette pictogram (roof + walls + a door notch), the brand's
-// dark forest green (#172015, same shade already used for glass-btn-primary
-// and every existing pin) on a cream badge, at two sizes so HQ reads bigger
-// than a stockist pin at a glance. Every marker is this same house shape now,
-// sized by type  -  no per-location icon choice.
+// Every marker is the same house pictogram, sized by type so the studio
+// reads bigger than a stockist at a glance. Colour carries the type too:
+// stockists are white badges, the main studio is gold. The look lives in
+// .outlet-pin (app/globals.css) so the selected pin can pulse.
 const HOUSE_PATH = "M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z";
 
-function houseIcon(type: "main_studio" | "stockist") {
+const ZOOM_ON_LOCATION = 16;
+
+function houseIcon(type: "main_studio" | "stockist", active: boolean) {
   const outer = type === "main_studio" ? 36 : 26;
   const glyph = type === "main_studio" ? 20 : 14;
   return L.divIcon({
     className: "",
     html: `
-      <div style="
-        width: ${outer}px;
-        height: ${outer}px;
-        border-radius: 999px;
-        background: #fbf8f1;
-        border: 2px solid #172015;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.28);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      ">
+      <div class="outlet-pin outlet-pin--${type === "main_studio" ? "main" : "stockist"}${active ? " is-active" : ""}" style="width:${outer}px;height:${outer}px;">
         <svg width="${glyph}" height="${glyph}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="${HOUSE_PATH}" fill="#172015" />
+          <path d="${HOUSE_PATH}" fill="currentColor" />
         </svg>
       </div>
     `,
     iconSize: [outer, outer],
     iconAnchor: [outer / 2, outer / 2],
-    popupAnchor: [0, -outer / 2]
+    tooltipAnchor: [0, -outer / 2]
   });
 }
 
@@ -67,68 +54,130 @@ const TILE_LAYERS: Record<TileMode, {url: string; attribution: string}> = {
 // track (.liquid-glass-on-light) housing a static glass pill (.liquid-glass-
 // dark  -  no drag here, just two options, so no need for the JS-measured
 // sliding indicator the tabs use) on whichever option is active.
-function TileToggle({mode, onChange}: {mode: TileMode; onChange: (mode: TileMode) => void}) {
+function MapControls({
+  mode,
+  onChange,
+  onShowAll
+}: {
+  mode: TileMode;
+  onChange: (mode: TileMode) => void;
+  onShowAll?: () => void;
+}) {
   return (
     <div className="leaflet-top leaflet-left" style={{marginTop: "10px", marginLeft: "50px"}}>
-      <div className="leaflet-control liquid-glass-on-light flex overflow-hidden rounded-full p-1 backdrop-blur-[18px] backdrop-saturate-[160%]">
-        {(["map", "satellite"] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => onChange(option)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold capitalize transition-colors duration-150 ${
-              mode === option
-                ? "liquid-glass-dark text-sand-50 backdrop-blur-[14px] backdrop-saturate-[160%]"
-                : "text-forest-700 hover:bg-[#34433212]"
-            }`}
-          >
-            {option}
-          </button>
-        ))}
+      <div className="flex items-center gap-2">
+        <div className="leaflet-control liquid-glass-on-light flex overflow-hidden rounded-full p-1 backdrop-blur-[18px] backdrop-saturate-[160%]">
+          {(["map", "satellite"] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => onChange(option)}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold capitalize transition-colors duration-150 ${
+                mode === option
+                  ? "liquid-glass-dark text-sand-50 backdrop-blur-[14px] backdrop-saturate-[160%]"
+                  : "text-forest-700 hover:bg-[#34433212]"
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+        {onShowAll ? (
+          <div className="leaflet-control liquid-glass-on-light flex overflow-hidden rounded-full p-1 backdrop-blur-[18px] backdrop-saturate-[160%]">
+            <button
+              type="button"
+              onClick={onShowAll}
+              className="rounded-full px-3.5 py-1.5 text-xs font-semibold text-forest-700 transition-colors duration-150 hover:bg-[#34433212]"
+            >
+              Show all
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
 }
 
-// A single location gets a fixed close-in zoom (there's nothing to fit
-// bounds against); multiple locations fit the map to all of them, the same
-// pattern the earlier multi-location build used, biased toward however the
-// real coordinates cluster rather than a hardcoded center/zoom.
-function FitBounds({locationList}: {locationList: PublicLocation[]}) {
+// Flies to the selected location whenever the selection changes, or the
+// selected card / pin is clicked again (tick). Skips the very first run: the
+// map already mounts centred on the first location.
+function FlyToActive({location, tick}: {location: PublicLocation; tick: number}) {
   const map = useMap();
+  const firstRun = useRef(true);
 
   useEffect(() => {
-    if (locationList.length < 2) return;
-    const bounds = L.latLngBounds(locationList.map((location) => [location.latitude, location.longitude]));
-    map.fitBounds(bounds, {padding: [48, 48], maxZoom: 14});
-  }, [map, locationList]);
+    if (firstRun.current) {
+      firstRun.current = false;
+      return;
+    }
+    map.flyTo([location.latitude, location.longitude], ZOOM_ON_LOCATION, {duration: 1.3});
+  }, [map, location.id, location.latitude, location.longitude, tick]);
 
   return null;
 }
 
-export function OutletsMapInner({locationList}: {locationList: PublicLocation[]}) {
+function FitAll({locationList, tick}: {locationList: PublicLocation[]; tick: number}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (tick === 0 || locationList.length < 2) return;
+    const bounds = L.latLngBounds(locationList.map((location) => [location.latitude, location.longitude]));
+    map.flyToBounds(bounds, {padding: [48, 48], maxZoom: 14, duration: 1.4});
+  }, [map, locationList, tick]);
+
+  return null;
+}
+
+// The page's layout changes size (mobile <-> desktop, dev-tools resize), and
+// Leaflet only re-measures its container when told to.
+function KeepSized() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [map]);
+
+  return null;
+}
+
+export function OutletsMapInner({
+  locationList,
+  activeIndex = 0,
+  focusTick = 0,
+  showAllTick = 0,
+  onSelect,
+  onShowAll
+}: OutletsMapProps) {
   const [tileMode, setTileMode] = useState<TileMode>("map");
   const tile = TILE_LAYERS[tileMode];
-
-  const center = useMemo<[number, number]>(() => {
-    const first = locationList[0];
-    return first ? [first.latitude, first.longitude] : [-2.5, 118];
-  }, [locationList]);
+  const activeLocation = locationList[activeIndex] ?? locationList[0];
 
   return (
-    <MapContainer center={center} zoom={15} scrollWheelZoom={false} className="h-full w-full">
+    <MapContainer
+      center={[activeLocation.latitude, activeLocation.longitude]}
+      zoom={ZOOM_ON_LOCATION}
+      scrollWheelZoom={false}
+      className="h-full w-full"
+    >
       <TileLayer key={tileMode} attribution={tile.attribution} url={tile.url} />
-      <TileToggle mode={tileMode} onChange={setTileMode} />
-      <FitBounds locationList={locationList} />
-      {locationList.map((location) => (
-        <Marker key={location.id} position={[location.latitude, location.longitude]} icon={houseIcon(location.type)}>
-          <Popup>
-            <p style={{fontWeight: 600, margin: 0}}>{location.name}</p>
-            <p style={{margin: "2px 0 0", fontSize: "12px", color: "#5c5c50"}}>
-              {location.addressLine1}
-              {location.addressLine2 ? `, ${location.addressLine2}` : ""}
-            </p>
-          </Popup>
+      <MapControls mode={tileMode} onChange={setTileMode} onShowAll={locationList.length > 1 ? onShowAll : undefined} />
+      <KeepSized />
+      <FlyToActive location={activeLocation} tick={focusTick} />
+      <FitAll locationList={locationList} tick={showAllTick} />
+      {locationList.map((location, index) => (
+        <Marker
+          key={location.id}
+          position={[location.latitude, location.longitude]}
+          icon={houseIcon(location.type, index === activeIndex)}
+          zIndexOffset={index === activeIndex ? 1000 : location.type === "main_studio" ? 500 : 0}
+          eventHandlers={{click: () => onSelect?.(index)}}
+        >
+          <Tooltip direction="top" offset={[0, -2]}>
+            {location.name}
+          </Tooltip>
         </Marker>
       ))}
     </MapContainer>
