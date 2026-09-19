@@ -1776,8 +1776,8 @@ button {
   opacity: 0.24;
 }
 
-/* Petal cycle: 6.4s, every petal identical, offset by its own
-   animation-delay (0.2s apart) so they drop off one after another,
+/* Petal cycle: 7.2s, every petal identical, offset by its own
+   animation-delay (0.22s apart) so they drop off one after another,
    clockwise from the top, then pop back one after another in the same order.
    Deliberately plain: a petal just lets go and falls (ease-in, so it picks up
    speed like something dropping) with a small turn, fades out, and later
@@ -1786,13 +1786,13 @@ button {
    flips the sideways lean and turn so they are not all identical. */
 .daisy-petal-fall {
   transform-origin: 0 0;
-  animation: daisyPetalFall 6.4s linear infinite, daisyPetalFade 6.4s linear infinite;
+  animation: daisyPetalFall 7.2s linear infinite, daisyPetalFade 7.2s linear infinite;
 }
 
 .daisy-petal-tumble {
   transform-box: fill-box;
   transform-origin: center;
-  animation: daisyPetalTurn 6.4s linear infinite;
+  animation: daisyPetalTurn 7.2s linear infinite;
 }
 
 @keyframes daisyPetalFall {
@@ -1857,9 +1857,15 @@ button {
 }
 
 /* Cycling caption: the seven lines sit stacked in one grid cell (so the box is
-   as tall as the tallest line) and each fades in with a slight rise, holds,
-   then fades out with a slight lift, five seconds apiece over a 35s loop
-   (each slot is 1/7 of the loop, about 14.29%). */
+   as tall as the tallest line). Each one is revealed by a soft left-to-right
+   wipe, holds, then is wiped away in the same direction, six seconds apiece
+   over a 42s loop (each slot is 1/7 of the loop, about 14.29%).
+   The wipe is a mask five times as wide as the line: transparent padding,
+   a soft ramp, an opaque middle, a soft ramp, transparent padding. Sliding
+   it right to left (mask-position 100% down to 0%) drags the soft edge across
+   the text left to right, first uncovering it, then covering it again. The
+   opaque middle is wide enough that the slow drift through it is invisible,
+   so the hold needs no separate state. */
 .daisy-loader-messages {
   display: grid;
   justify-items: center;
@@ -1867,26 +1873,40 @@ button {
 
 .daisy-loader-line {
   grid-area: 1 / 1;
-  opacity: 0;
-  animation: daisyLine 35s ease-in-out infinite;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, transparent 20%, #000 28%, #000 72%, transparent 80%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, transparent 20%, #000 28%, #000 72%, transparent 80%, transparent 100%);
+  -webkit-mask-size: 500% 100%;
+  mask-size: 500% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 100% 0;
+  mask-position: 100% 0;
+  animation: daisyLine 42s linear infinite;
 }
 
 @keyframes daisyLine {
   0% {
-    opacity: 0;
-    transform: translateY(6px);
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
+    animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
   }
-  2.6%, 11.7% {
-    opacity: 1;
-    transform: translateY(0);
+  3.9% {
+    -webkit-mask-position: 65% 0;
+    mask-position: 65% 0;
+    animation-timing-function: linear;
+  }
+  10.4% {
+    -webkit-mask-position: 35% 0;
+    mask-position: 35% 0;
+    animation-timing-function: cubic-bezier(0.8, 0, 0.7, 1);
   }
   14.28% {
-    opacity: 0;
-    transform: translateY(-6px);
+    -webkit-mask-position: 0% 0;
+    mask-position: 0% 0;
   }
   14.29%, 100% {
-    opacity: 0;
-    transform: translateY(6px);
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
   }
 }
 
@@ -1939,10 +1959,12 @@ button {
   .daisy-loader-fill.is-indeterminate,
   .daisy-loader-line {
     animation: none;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
-  .daisy-loader-line:first-child {
-    opacity: 1;
+  .daisy-loader-line:not(:first-child) {
+    display: none;
   }
 
   .daisy-loader-fill.is-indeterminate {
