@@ -14,6 +14,18 @@ const OutletsMapInner = dynamic(() => import("./outlets-map-inner").then((mod) =
   )
 });
 
-export function OutletsMap({locationList}: {locationList: PublicLocation[]}) {
-  return <OutletsMapInner locationList={locationList} />;
+// Everything past locationList is optional so a static, single-location
+// embed (the home page section) can use the map without the outlets page's
+// selection state.
+export type OutletsMapProps = {
+  locationList: PublicLocation[];
+  activeIndex?: number;
+  focusTick?: number;
+  showAllTick?: number;
+  onSelect?: (index: number) => void;
+  onShowAll?: () => void;
+};
+
+export function OutletsMap(props: OutletsMapProps) {
+  return <OutletsMapInner {...props} />;
 }
