@@ -11,28 +11,43 @@
 // the existing `.dark` class on <html> via CSS and the petal motion is pure
 // CSS, so this stays safe to render from a Server Component.
 
-const DEFAULT_TEXT = "Preparing something beautiful for you...";
+// With no `text` prop the caption gently cycles through these, one every five
+// seconds (pure CSS crossfade, see .daisy-loader-line). Ordered as a small
+// story about what Natlovers is: first the making, then the heart in it, then
+// the patience it takes. The CSS keyframes are written for exactly seven
+// lines, so keep this list at seven. Passing `text` pins one fixed line
+// instead (route-specific copy like "Loading dashboard...").
+const CYCLING_MESSAGES = [
+  "Handmaking something for you to cherish...",
+  "Woven by hand, one strand at a time...",
+  "The best things in life are handmade...",
+  "The beauty of handmade is in the imperfections...",
+  "We say handcrafted, but really, it comes from the heart...",
+  "Preparing something beautiful for you...",
+  "Patience is bitter but its fruit is sweet..."
+];
+const MESSAGE_SECONDS = 5;
 
-const PETAL_COUNT = 10;
+const PETAL_COUNT = 8;
 
 // Slim petal pointing straight up: narrow where it tucks under the center,
 // widest about two thirds out, softly rounded tip.
 const PETAL_PATH =
-  "M0 -5 C4.4 -7 6.9 -14 6.6 -21.5 C6.4 -26.8 3.3 -29 0 -29 C-3.3 -29 -6.4 -26.8 -6.6 -21.5 C-6.9 -14 -4.4 -7 0 -5 Z";
+  "M0 -5 C5.2 -7 8.2 -14 7.9 -21.5 C7.6 -26.8 3.9 -29 0 -29 C-3.9 -29 -7.6 -26.8 -7.9 -21.5 C-8.2 -14 -5.2 -7 0 -5 Z";
 const VEIN_PATH = "M0 -9 L0 -23";
 
-// Per-petal sideways sway (and tumble direction) so no two petals fall the
+// Per-petal sideways lean (and turn direction) so no two petals fall the
 // same way. Deterministic, so server and client render identical markup.
-const SWAY = [1, -1, 0.7, -1.2, 1.1, -0.8, 1, -1.1, 0.8, -0.9];
+const SWAY = [1, -1, 0.7, -1.2, 1.1, -0.8, 1, -1.1];
 
 const PETALS = Array.from({length: PETAL_COUNT}, (_, index) => ({
   angle: (360 / PETAL_COUNT) * index,
   sway: SWAY[index],
-  delay: `${(index * 0.55).toFixed(2)}s`
+  delay: `${(index * 0.2).toFixed(2)}s`
 }));
 
 export function DaisyLoader({
-  text = DEFAULT_TEXT,
+  text,
   variant = "storefront",
   progress
 }: {
@@ -79,7 +94,22 @@ export function DaisyLoader({
         <circle cx="0" cy="0" r="8.6" fill="url(#daisy-center-fill)" />
       </svg>
 
-      <p className="daisy-loader-text">{text}</p>
+      {text ? (
+        <p className="daisy-loader-text">{text}</p>
+      ) : (
+        <div className="daisy-loader-text daisy-loader-messages">
+          {CYCLING_MESSAGES.map((message, index) => (
+            <span
+              key={message}
+              className="daisy-loader-line"
+              aria-hidden={index === 0 ? undefined : true}
+              style={{animationDelay: `${index * MESSAGE_SECONDS}s`}}
+            >
+              {message}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="daisy-loader-track">
         <div
