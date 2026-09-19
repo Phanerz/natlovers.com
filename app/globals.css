@@ -1670,3 +1670,230 @@ button {
 .dark .prose-editor:empty:before {
   color: rgba(230, 222, 199, 0.4);
 }
+
+/* ============================================================
+   Daisy loader (components/daisy-loader.tsx)  -  the shared loading
+   treatment used site-wide: route-level loading.tsx files and the handful
+   of full-page Suspense fallbacks that used to just show "Loading...".
+   Flat per DESIGN.md's glass scope: no blur/backdrop-filter anywhere here,
+   only a soft drop-shadow glow behind the flower and a plain background.
+   ============================================================ */
+.daisy-loader-scene {
+  position: relative;
+  display: flex;
+  min-height: 70vh;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 24px;
+  text-align: center;
+}
+
+.daisy-loader-scene.is-storefront {
+  background-color: #f2ead9;
+  background-image: url("/images/natlovers-background.webp");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.dark .daisy-loader-scene.is-storefront {
+  background-color: #1a1c14;
+  background-image: url("/images/natlovers-background-dark.webp");
+}
+
+/* Admin gets a plain flat surface, no botanical photo  -  a decorative leaf
+   background inside /mimin would be inconsistent with the rest of the
+   admin panel's restrained aesthetic. */
+.daisy-loader-scene.is-admin {
+  background-color: #f7f4ee;
+  border: 1px solid rgba(23, 32, 21, 0.08);
+  border-radius: 16px;
+}
+
+.dark .daisy-loader-scene.is-admin {
+  background-color: #22241a;
+  border-color: rgba(230, 222, 199, 0.12);
+}
+
+.daisy-loader-flower-stage {
+  position: relative;
+  display: flex;
+  height: 140px;
+  width: 140px;
+  align-items: center;
+  justify-content: center;
+}
+
+.daisy-loader-flower {
+  height: 104px;
+  width: 104px;
+  /* Two stacked drop-shadows (tight + wide) read as one soft bloom of light
+     behind the flower head rather than a single hard-edged halo. */
+  filter: drop-shadow(0 0 10px rgba(199, 167, 100, 0.55)) drop-shadow(0 0 26px rgba(199, 167, 100, 0.32));
+}
+
+/* No stem, no leaves, no ground  -  just the flower head and its ring of
+   petals, like a PVZ sunflower rather than a botanical illustration. */
+.daisy-loader-petals ellipse {
+  fill: #f4ecd9;
+  stroke: rgba(23, 32, 21, 0.12);
+  stroke-width: 0.6;
+}
+
+.dark .daisy-loader-petals ellipse {
+  fill: #fdfaf3;
+  stroke: none;
+}
+
+.daisy-loader-center {
+  /* Deeper/more saturated in light mode so the center doesn't wash out
+     against a light background; brighter in dark mode to read as the source
+     of the glow. Both stay within the site's existing sand-* palette, no
+     new accent color introduced. */
+  fill: #b7924b;
+}
+
+.dark .daisy-loader-center {
+  fill: #c7a764;
+}
+
+.daisy-loose-petal {
+  position: absolute;
+  height: 26px;
+  width: 18px;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15));
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.daisy-loose-petal-svg {
+  height: 100%;
+  width: 100%;
+}
+
+.daisy-loose-petal-svg ellipse {
+  fill: #f4ecd9;
+  stroke: rgba(23, 32, 21, 0.12);
+  stroke-width: 0.6;
+}
+
+.dark .daisy-loose-petal-svg ellipse {
+  fill: #fdfaf3;
+  stroke: none;
+}
+
+/* Three petals, three independent drift rhythms (different duration and
+   delay each) so they never move in sync  -  ambient motion, not a
+   synchronized effect. Rotation is baked into each keyframe alongside the
+   float instead of layered as a separate static transform, since a second
+   transform declaration would just overwrite the animated one. */
+.daisy-loose-petal-1 {
+  right: 10%;
+  top: 4%;
+  animation-name: daisyDrift1;
+  animation-duration: 6.5s;
+  animation-delay: 0s;
+}
+
+.daisy-loose-petal-2 {
+  left: 0%;
+  top: 48%;
+  animation-name: daisyDrift2;
+  animation-duration: 7.2s;
+  animation-delay: 1.1s;
+}
+
+.daisy-loose-petal-3 {
+  bottom: 8%;
+  right: 22%;
+  animation-name: daisyDrift3;
+  animation-duration: 5.8s;
+  animation-delay: 2.3s;
+}
+
+@keyframes daisyDrift1 {
+  0%, 100% { transform: translateY(0) rotate(12deg); }
+  50% { transform: translateY(-9px) rotate(20deg); }
+}
+
+@keyframes daisyDrift2 {
+  0%, 100% { transform: translateY(0) rotate(-18deg); }
+  50% { transform: translateY(-7px) rotate(-26deg); }
+}
+
+@keyframes daisyDrift3 {
+  0%, 100% { transform: translateY(0) rotate(34deg); }
+  50% { transform: translateY(-11px) rotate(42deg); }
+}
+
+.daisy-loader-text {
+  @apply font-display;
+  max-width: 32ch;
+  font-size: 18px;
+  letter-spacing: 0.01em;
+  color: #112319;
+}
+
+.dark .daisy-loader-text {
+  color: #f3ecd9;
+}
+
+.daisy-loader-track {
+  position: relative;
+  height: 3px;
+  width: 220px;
+  max-width: 70vw;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(23, 32, 21, 0.12);
+}
+
+.dark .daisy-loader-track {
+  background: rgba(243, 236, 217, 0.18);
+}
+
+.daisy-loader-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 999px;
+  /* Gold stays gold in both themes  -  it's already high-contrast against
+     both the light cream and dark olive backgrounds. */
+  background: linear-gradient(90deg, #b7924b, #d7c08a);
+}
+
+.daisy-loader-fill:not(.is-indeterminate) {
+  transition: width 300ms ease;
+}
+
+.daisy-loader-fill.is-indeterminate {
+  width: 40%;
+  animation: daisyProgressSlide 1.8s ease-in-out infinite;
+}
+
+@keyframes daisyProgressSlide {
+  0% {
+    left: -40%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daisy-loose-petal-1,
+  .daisy-loose-petal-2,
+  .daisy-loose-petal-3,
+  .daisy-loader-fill.is-indeterminate {
+    animation: none;
+  }
+
+  .daisy-loader-fill.is-indeterminate {
+    left: 0;
+    width: 55%;
+  }
+}
