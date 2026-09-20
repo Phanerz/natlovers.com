@@ -75,8 +75,14 @@ function LocationCard({
   );
 }
 
-export function OutletsPageContent({locationList}: {locationList: PublicLocation[]}) {
+// embedded = the home page's Outlets section: it sits inside the home page's
+// own scroll snapping, so it must not lock the page, listen to arrow keys
+// or trap touch scrolling, and the wheel passes through at either end of
+// the deck so the page can keep scrolling to the neighbouring sections.
+export function OutletsPageContent({locationList, embedded = false}: {locationList: PublicLocation[]; embedded?: boolean}) {
   const [active, setActive] = useState(0);
+  const activeRef = useRef(0);
+  activeRef.current = active;
   const [focusTick, setFocusTick] = useState(0);
   const [showAllTick, setShowAllTick] = useState(0);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -107,14 +113,14 @@ export function OutletsPageContent({locationList}: {locationList: PublicLocation
   // the stage fills exactly the rest of the screen and the page can't scroll.
   useEffect(() => {
     const stage = stageRef.current;
-    if (!stage) return;
+    if (!stage || embedded) return;
     const measure = () => {
       stage.style.setProperty("--outlets-top", `${Math.round(stage.getBoundingClientRect().top + window.scrollY)}px`);
     };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, []);
+  }, [embedded]);
 
   // The page never scrolls. The wheel steps the deck ONLY while the pointer
   // is over the card itself (the listener lives on the deck, not the page),
@@ -132,8 +138,16 @@ export function OutletsPageContent({locationList}: {locationList: PublicLocation
 
     const onWheel = (event: WheelEvent) => {
       if (event.ctrlKey) return;
-      event.preventDefault();
       const now = performance.now();
+      // At either end of the deck, let the wheel through to the page, but
+      // keep swallowing the inertia tail of the step that just got us here.
+      const direction = event.deltaY > 0 ? 1 : -1;
+      const atEdge = (direction === 1 && activeRef.current >= count - 1) || (direction === -1 && activeRef.current <= 0);
+      if (embedded && atEdge && now > lockUntil + 500) {
+        lastWheelAt = now;
+        return;
+      }
+      event.preventDefault();
       const continuous = now - lastWheelAt < 70;
       lastWheelAt = now;
       if (now < lockUntil || Math.abs(event.deltaY) < 8) return;
@@ -145,9 +159,10 @@ export function OutletsPageContent({locationList}: {locationList: PublicLocation
 
     deck.addEventListener("wheel", onWheel, {passive: false});
     return () => deck.removeEventListener("wheel", onWheel);
-  }, [step]);
+  }, [step, count, embedded]);
 
   useEffect(() => {
+    if (embedded) return;
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
@@ -161,11 +176,11 @@ export function OutletsPageContent({locationList}: {locationList: PublicLocation
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [step]);
+  }, [step, embedded]);
 
   useEffect(() => {
     const deck = deckRef.current;
-    if (!deck) return;
+    if (!deck || embedded) return;
     let startY: number | null = null;
 
     const onStart = (event: TouchEvent) => {
@@ -184,19 +199,21 @@ export function OutletsPageContent({locationList}: {locationList: PublicLocation
       deck.removeEventListener("touchstart", onStart);
       deck.removeEventListener("touchend", onEnd);
     };
-  }, [step]);
+  }, [step, embedded]);
 
   if (count === 0) {
     return null;
   }
 
+  const Heading = embedded ? "h2" : "h1";
+
   return (
-    <div ref={stageRef} className="outlets-stage">
+    <div ref={stageRef} className={`outlets-stage ${embedded ? "outlets-stage--embedded" : "outlets-stage--page"}`}>
       <div className="shell flex h-full min-h-0 flex-col gap-3 py-3 lg:flex-row lg:items-center lg:gap-10 lg:py-6">
         <div className="contents lg:flex lg:w-[26rem] lg:shrink-0 lg:flex-col lg:justify-center lg:gap-6">
           <div className="order-1 space-y-2 lg:space-y-3">
             <p className="muted">Find Us</p>
-            <h1 className="section-title">Visit the studio, or find Natlovers near you.</h1>
+            <Heading className="section-title">Visit the studio, or find Natlovers near you.</Heading>
             <p className="outlets-intro-body text-sm leading-7 text-forest-700">
               Our workshop and showroom in Yogyakarta is open to visitors by appointment. Stockist partners across
               Indonesia are added here as they come online.
@@ -204,7 +221,7 @@ export function OutletsPageContent({locationList}: {locationList: PublicLocation
           </div>
 
           <div className="order-3 space-y-3">
-            <div ref={deckRef} className="outlet-deck">
+            <div ref={deckRef} className={`outlet-deck${embedded ? " outlet-deck--embedded" : ""}`}>
               {locationList.map((location, index) => (
                 <LocationCard
                   key={location.id}

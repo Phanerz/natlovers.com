@@ -2237,15 +2237,25 @@ body:has(.daisy-loader-scene.is-page) footer {
 /* --outlets-top is the stage's real distance from the top of the page,
    measured in JS: the sticky header renders taller than --header-height. */
 .outlets-stage {
-  height: calc(100svh - var(--outlets-top, var(--header-height)));
   overflow: hidden;
 }
 
-html:has(.outlets-stage) {
+/* Standalone /outlets page: fills the screen, locks the page. */
+.outlets-stage--page {
+  height: calc(100svh - var(--outlets-top, var(--header-height)));
+}
+
+html:has(.outlets-stage--page) {
   overflow-y: hidden;
 }
 
-body:has(.outlets-stage) footer {
+/* Home page section: same height as the other snapping sections, and it
+   leaves the page's own scrolling alone. */
+.outlets-stage--embedded {
+  height: calc(100dvh - var(--header-height));
+}
+
+body:has(.outlets-stage--page) footer {
   display: none;
 }
 
@@ -2288,6 +2298,12 @@ body:has(.outlets-stage) footer {
   position: relative;
   height: 13.75rem;
   touch-action: none;
+}
+
+/* Embedded in the home page: touch drags on the card must still scroll the
+   page, so the swipe gesture is off and the step buttons do the work. */
+.outlet-deck--embedded {
+  touch-action: auto;
 }
 
 @media (min-width: 1024px) {
