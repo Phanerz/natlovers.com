@@ -33,12 +33,33 @@ export function useActiveNavSection(): string | null {
       const scrollY = window.scrollY;
       let current = sections[0];
 
+      // At the very top of the page the first section is always the one in
+      // view. Without this, a measurement taken while the layout was still
+      // settling could crown a later section and leave it stuck (nothing
+      // scrolls, so nothing re-measures).
+      if (scrollY <= 4) {
+        setActiveNavSection(current.getAttribute("data-nav-href"));
+        return;
+      }
+
+      let laidOut = 0;
       sections.forEach((section) => {
-        const top = section.getBoundingClientRect().top + scrollY;
-        if (top <= scrollY + offset + 4) {
+        const box = section.getBoundingClientRect();
+        // A section that has collapsed to nothing (content not laid out yet)
+        // has no real position, so it can't be "under the header".
+        if (box.height < 1) {
+          return;
+        }
+        laidOut += 1;
+        if (box.top + scrollY <= scrollY + offset + 4) {
           current = section;
         }
       });
+
+      // Nothing has a real size yet: keep whatever we had rather than guess.
+      if (laidOut === 0) {
+        return;
+      }
 
       setActiveNavSection(current.getAttribute("data-nav-href"));
     }
@@ -66,6 +87,14 @@ export function useActiveNavSection(): string | null {
     document.fonts?.ready?.then(scheduleCompute).catch(() => {});
     const settleTimeout = window.setTimeout(scheduleCompute, 400);
 
+    // Layout can also change with no scroll or resize at all (an async
+    // section swapping its loader for content, images, fonts). Re-measure
+    // whenever the page or any section changes size, so a wrong pick can't
+    // outlive the layout that caused it.
+    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(scheduleCompute);
+    resizeObserver?.observe(document.body);
+    sections.forEach((section) => resizeObserver?.observe(section));
+
     return () => {
       if (rafId !== null) {
         cancelAnimationFrame(rafId);
@@ -74,6 +103,7 @@ export function useActiveNavSection(): string | null {
       window.removeEventListener("resize", scheduleCompute);
       document.removeEventListener("visibilitychange", scheduleCompute);
       window.clearTimeout(settleTimeout);
+      resizeObserver?.disconnect();
     };
   }, [pathname]);
 
