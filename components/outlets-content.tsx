@@ -1,109 +1,49 @@
-import {MapPin, Clock, MessageCircle} from "lucide-react";
-import {SectionHeading} from "@/components/section-heading";
-import {OutletsMap} from "@/components/outlets/outlets-map";
+"use client";
 
-type Outlet = {
-  name: string;
-  kind: string;
-  address: string;
-  hours: string;
-  contact: string;
-  type: "main_studio" | "stockist";
-  // Geocoded against the actual street (Jalan Tata Bumi Selatan) via
-  // Nominatim/OpenStreetMap. OSM has no data for the exact house number
-  // ("No.107"), so this is the real street this address sits on, not a
-  // city-center placeholder.
-  latitude: number;
-  longitude: number;
-};
+import Link from "next/link";
+import {useEffect, useState} from "react";
+import {DaisyLoader} from "@/components/daisy-loader";
+import {OutletsPageContent} from "@/components/outlets/outlets-page-content";
+import type {PublicLocation} from "@/lib/locations";
 
-const outlets: Outlet[] = [
-  {
-    name: "Natlovers Studio & Showroom",
-    kind: "Flagship",
-    address: "Jl. Tata Bumi Selatan No.107, Banyuraden, Gamping, Sleman, Yogyakarta",
-    hours: "Mon–Sat, 09:00–17:00 WIB",
-    contact: "+62 812-2697-007",
-    type: "main_studio",
-    latitude: -7.7859895,
-    longitude: 110.3416997
-  }
-];
-
-const studio = outlets[0];
-
-// Plain deep link, not the Maps JS/Embed API - no key, no billing risk.
-// Reused for every outlet card, including any future stockist entries.
-function googleMapsUrl(address: string) {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-}
-
+// The home page's Outlets section. Same deck + map as /outlets (embedded
+// mode, so it lives inside the home page's own scroll snapping instead of
+// locking the page), fed by the public /api/locations route because the home
+// page is a client component.
 export function OutletsContent() {
-  return (
-    <div className="shell space-y-10 py-16">
-      <SectionHeading
-        eyebrow="Find Us"
-        title="Visit the studio, or find Natlovers near you."
-        body="Our workshop and showroom in Yogyakarta is open to visitors by appointment. We're steadily growing our list of stockist partners across Indonesia and beyond, and this page will keep expanding as new locations come online."
-      />
+  const [locationList, setLocationList] = useState<PublicLocation[] | null>(null);
+  const [failed, setFailed] = useState(false);
 
-      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-        <div className="space-y-6">
-          {outlets.map((outlet) => (
-            <div key={outlet.name} className="card motion-card p-8 text-sm leading-7 text-forest-700">
-              <p className="muted">{outlet.kind}</p>
-              <h3 className="mt-2 font-display text-2xl text-forest-900">{outlet.name}</h3>
-              <div className="mt-5 space-y-3">
-                <p className="flex items-start gap-2">
-                  <MapPin className="mt-1 h-4 w-4 shrink-0" />
-                  <a
-                    href={googleMapsUrl(outlet.address)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline decoration-[#cdbfa6] underline-offset-2 transition-colors duration-150 hover:text-forest-900"
-                  >
-                    {outlet.address}
-                  </a>
-                </p>
-                <p className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 shrink-0" /> {outlet.hours}
-                </p>
-                <p className="flex items-center gap-2">
-                  <MessageCircle className="h-4 w-4 shrink-0" /> {outlet.contact}
-                </p>
-              </div>
-            </div>
-          ))}
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/locations")
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("bad response"))))
+      .then((data: PublicLocation[]) => {
+        if (!cancelled) setLocationList(data);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-          <div className="card motion-card flex flex-col justify-center p-8 text-center text-sm leading-7 text-forest-700">
-            <p className="muted">Stockist Partners</p>
-            <p className="mt-3 font-display text-xl text-forest-900">More locations coming soon</p>
-            <p className="mt-3">
-              Interested in carrying Natlovers pieces at your store? Reach out through our socials and we&apos;ll follow up
-              about wholesale and stockist partnerships.
-            </p>
-          </div>
-        </div>
+  if (locationList && locationList.length > 0) {
+    return <OutletsPageContent locationList={locationList} embedded />;
+  }
 
-        <div className="card h-[360px] overflow-hidden p-0 lg:sticky lg:top-6 lg:h-[520px]">
-          <OutletsMap
-            locationList={[
-              {
-                id: "studio",
-                name: studio.name,
-                type: studio.type,
-                addressLine1: studio.address,
-                addressLine2: null,
-                latitude: studio.latitude,
-                longitude: studio.longitude,
-                hoursDisplay: studio.hours,
-                contact: studio.contact,
-                displayOrder: 0
-              }
-            ]}
-          />
-        </div>
+  if (failed || (locationList && locationList.length === 0)) {
+    return (
+      <div className="shell flex h-full min-h-[16rem] flex-col items-center justify-center gap-3 text-center">
+        <p className="muted">Find Us</p>
+        <p className="font-display text-2xl text-forest-900">Visit the studio, or find Natlovers near you.</p>
+        <Link href="/outlets" className="text-sm underline underline-offset-4">
+          See all locations
+        </Link>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return <DaisyLoader layout="section" text="Finding our outlets..." />;
 }
