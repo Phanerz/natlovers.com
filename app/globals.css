@@ -2275,6 +2275,13 @@ body:has(.outlets-stage--page) footer {
 
 .outlets-map-frame {
   position: relative;
+  /* Leaflet's own panes go up to z-index: 700 (popups), 650 (tooltips), 600
+     (markers)  -  position: relative alone doesn't start a new stacking
+     context, so without isolation those panes compare directly against the
+     sticky header's z-40 in the shared outer context and paint over it once
+     the map scrolls underneath. isolation traps them inside this box's own
+     stacking context instead, same fix as .site-background above. */
+  isolation: isolate;
   flex: 1 1 0;
   min-width: 0;
   min-height: 12rem;
