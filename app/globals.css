@@ -1731,6 +1731,14 @@ button {
 .dark .border-forest-100 {
   border-color: rgba(230, 222, 199, 0.16);
 }
+/* divide-forest-100 (product specs panel, reassurance bar) generates its
+   border-color on the child-combinator selector below, not on an element
+   that actually carries the class "border-forest-100" itself, so the plain
+   rule above never matched it - the divider lines stayed the light-mode tan
+   in dark mode. Same target color as border-forest-100 above. */
+.dark .divide-forest-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(230, 222, 199, 0.16);
+}
 /* bg-sand-100 / bg-forest-50 / bg-forest-100 are used as small icon-badge
    circles (the About page's video play button, Custom Studio's paused/
    review-step icons) with a text-forest-* icon color inside - since that

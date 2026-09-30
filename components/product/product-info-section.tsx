@@ -1,7 +1,5 @@
-import {materialLabels} from "@/app/catalogue/shop-data";
 import {ProductAccordionRow} from "@/components/product/product-accordion-row";
 import type {AdminProduct} from "@/lib/admin-products";
-import {formatBodyShapeDimensions} from "@/lib/body-shapes";
 import {sanitizeDescriptionHtml} from "@/lib/sanitize-html";
 
 // Real, confirmed store policy  -  English only, same reasoning as the
@@ -14,10 +12,6 @@ const SHIPPING_AND_RETURNS_COPY = [
 
 export function ProductInfoSection({product}: {product: AdminProduct}) {
   const hasMaterials = product.materials.length > 0;
-  // The admin's free-text override always wins (for an irregular piece the
-  // assigned body's own L/W/H can't express); otherwise the real
-  // measurements come from the product's assigned body, if it has one.
-  const dimensionsValue = product.dimensions ?? (product.bodyShape ? formatBodyShapeDimensions(product.bodyShape) : null);
 
   return (
     <div className="mt-14 grid gap-8 rounded-xl border border-forest-100 bg-[#fffdf9] p-6 sm:p-8 lg:grid-cols-2 lg:gap-12">
@@ -39,10 +33,12 @@ export function ProductInfoSection({product}: {product: AdminProduct}) {
       </div>
 
       <div>
+        {/* The material names themselves, size and dimensions now live in the
+            specs panel up in the purchase column (see product-specs-panel.tsx)
+            - this row is just the care note that panel has no room for. */}
         {hasMaterials ? (
           <ProductAccordionRow title="Material & Care">
-            <p>Materials: {product.materials.map((material) => materialLabels[material].en).join(", ")}.</p>
-            <p className="mt-1.5 text-forest-500">Undyed natural fibre, handwoven. The material is the colour.</p>
+            <p>Undyed natural fibre, handwoven. The material is the colour.</p>
           </ProductAccordionRow>
         ) : null}
 
@@ -53,8 +49,6 @@ export function ProductInfoSection({product}: {product: AdminProduct}) {
             </p>
           ))}
         </ProductAccordionRow>
-
-        {dimensionsValue ? <ProductAccordionRow title="Dimensions">{dimensionsValue}</ProductAccordionRow> : null}
       </div>
     </div>
   );
