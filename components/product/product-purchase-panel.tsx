@@ -14,12 +14,13 @@ import {defaultConfigForProduct} from "@/lib/product-customization";
 import type {ProductSelection} from "@/lib/product-selection";
 import type {AdminProduct} from "@/lib/admin-products";
 import {ProductCustomizer} from "@/components/product/product-customizer";
+import {ProductSpecsPanel} from "@/components/product/product-specs-panel";
 
 export function ProductPurchasePanel({product}: {product: AdminProduct}) {
   const router = useRouter();
   const {status} = useSession();
   const signedIn = status === "authenticated";
-  const {currency} = useSitePreferences();
+  const {currency, locale} = useSitePreferences();
   const {addToCart} = useStorefront();
   const {isWishlisted, toggle: toggleWishlist} = useWishlist();
 
@@ -134,6 +135,8 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
         <p className="mt-3 line-clamp-2 text-sm leading-6 text-forest-600">{product.shortDescription}</p>
       ) : null}
 
+      <ProductSpecsPanel product={product} outOfStock={outOfStock} stockLabel={stockLabel} locale={locale} />
+
       <div className="mt-5">
         <ProductCustomizer
           hasBaseColour={product.hasBaseColour}
@@ -176,8 +179,6 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
         >
           {outOfStock ? "Sold Out" : addedNotice ? "Added to Bag" : "Add to Bag"}
         </button>
-
-        <p className="text-center text-[11px] text-forest-400">{stockLabel}</p>
       </div>
 
       <div className="mt-4 flex items-center justify-between">
