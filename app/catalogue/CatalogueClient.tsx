@@ -2,6 +2,7 @@
 
 import {useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
 import type {PointerEvent as ReactPointerEvent} from "react";
+import {createPortal} from "react-dom";
 import {useSearchParams} from "next/navigation";
 import {Baby, ChevronDown, Gem, PanelLeftClose, PanelLeftOpen, Shirt, ShoppingBag, SlidersHorizontal, X} from "lucide-react";
 import {DaisyLoader} from "@/components/daisy-loader";
@@ -50,10 +51,28 @@ const productTypeIcons: Record<ShopProductType, typeof ShoppingBag> = {
  */
 const MOBILE_BREAKPOINT = 640;
 const DESKTOP_COLUMNS = 4;
-const DESKTOP_COLUMNS_COLLAPSED = 5;
-const DESKTOP_CAPACITY = DESKTOP_COLUMNS * 2;
-const DESKTOP_CAPACITY_COLLAPSED = DESKTOP_COLUMNS_COLLAPSED * 2;
-const MOBILE_CAPACITY = 6;
+const DESKTOP_ROWS = 2;
+const MOBILE_ROWS = 3;
+const DESKTOP_CAPACITY = DESKTOP_COLUMNS * DESKTOP_ROWS;
+
+// The filter panel is a controlled width (about 19% of the screen, never
+// narrower than 240px or wider than 276px). columnsFor mirrors that same clamp
+// so the column count is picked from the width the products really have: four
+// across on a 1440px desktop, three on a small laptop or tablet, two on a
+// phone  -  never so many that a piece gets small.
+const SIDEBAR_WIDTH = "clamp(240px, 19vw, 276px)";
+
+function columnsFor(viewportWidth: number, sidebarCollapsed: boolean): number {
+  if (viewportWidth < MOBILE_BREAKPOINT) {
+    return 2;
+  }
+  const sidebarVisible = viewportWidth >= 1024;
+  const sidebarWidth = !sidebarVisible ? 0 : sidebarCollapsed ? 48 : Math.min(276, Math.max(240, viewportWidth * 0.19));
+  const contentWidth = viewportWidth - sidebarWidth - 64;
+  // Roomier tiles on a big screen, a little tighter where space is short.
+  const minTileWidth = viewportWidth >= 1280 ? 260 : sidebarVisible ? 228 : 215;
+  return Math.min(5, Math.max(2, Math.floor(contentWidth / minTileWidth)));
+}
 
 /**
  * Real momentum physics instead of discrete page-jumps. Every page (one
@@ -174,6 +193,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   const {mounted: mobileFiltersMounted, entered: mobileFiltersEntered} = useDelayedMount(mobileFiltersOpen, 180);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [capacity, setCapacity] = useState(DESKTOP_CAPACITY);
+  const [columns, setColumns] = useState(DESKTOP_COLUMNS);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
   const thumbRef = useRef<HTMLDivElement | null>(null);
@@ -214,17 +234,24 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
 
   useEffect(() => {
     function updateCapacity() {
-      if (window.innerWidth < MOBILE_BREAKPOINT) {
-        setCapacity(MOBILE_CAPACITY);
-      } else {
-        setCapacity(sidebarCollapsed ? DESKTOP_CAPACITY_COLLAPSED : DESKTOP_CAPACITY);
-      }
+      const nextColumns = columnsFor(window.innerWidth, sidebarCollapsed);
+      const rows = window.innerWidth < MOBILE_BREAKPOINT ? MOBILE_ROWS : DESKTOP_ROWS;
+      setColumns(nextColumns);
+      setCapacity(nextColumns * rows);
     }
 
     updateCapacity();
     window.addEventListener("resize", updateCapacity);
     return () => window.removeEventListener("resize", updateCapacity);
   }, [sidebarCollapsed]);
+
+  function clearFilters() {
+    setSelectedMaterials([]);
+    setSelectedSizes([]);
+    setSelectedShapes([]);
+    setSelectedHandles([]);
+    setSelectedAccessoryCategories([]);
+  }
 
   function selectProductType(type: ShopProductType) {
     if (type === selectedProductType) {
@@ -506,7 +533,6 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   const maxPageIndex = pageCount - 1;
   const clampedPageIndex = Math.min(pageIndex, maxPageIndex);
   const clampedStart = clampedPageIndex * capacity;
-  const columnClass = capacity === DESKTOP_CAPACITY_COLLAPSED ? "sm:grid-cols-5" : "sm:grid-cols-4";
 
   // Keep refs in sync with the latest render so the long-lived rAF loop and
   // the wheel handler (both registered once via refs, not re-created every
@@ -754,6 +780,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   // top edge. This only ever shortens the panel  -  the catalogue strip beside
   // it, and its horizontal scrolling, are not touched.
   const sidebarRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const element = sidebarRef.current;
     if (!element) {
@@ -763,6 +790,21 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
       const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
       const top = element.getBoundingClientRect().top;
       element.style.maxHeight = `${Math.max(240, Math.floor(viewportHeight - top))}px`;
+
+      // The whole catalogue is sized from the header height, but the site
+      // header takes a little more room than that (its torn lower edge), so on
+      // the standalone page the catalogue used to end slightly below the fold.
+      // Now that the rows are sized to fill exactly the space they are given,
+      // clamp the catalogue to what is actually visible too, so the second row
+      // of names and prices is never cut off. The home page's embedded copy is
+      // sized by its own snap section and is left alone, as is the phone
+      // layout, which scrolls normally.
+      const root = rootRef.current;
+      if (root) {
+        const rootTop = root.getBoundingClientRect().top;
+        const clampRoot = hasInitialProducts && window.innerWidth >= MOBILE_BREAKPOINT;
+        root.style.maxHeight = clampRoot ? `${Math.max(360, Math.floor(viewportHeight - rootTop - 12))}px` : "";
+      }
     };
     clamp();
     window.addEventListener("resize", clamp);
@@ -775,8 +817,13 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
     };
   }, []);
 
+  // On a phone the shelf is a normal vertical page (natural row heights), so
+  // it is not pinned to the screen height there (max-sm below).
   return (
-    <div className="h-[calc(100dvh-var(--header-height))] overflow-hidden bg-[#f7f4ee]">
+    <div
+      ref={rootRef}
+      className="h-[calc(100dvh-var(--header-height))] overflow-hidden bg-[#f7f4ee] max-sm:h-auto max-sm:overflow-visible"
+    >
       {/*
         Deliberately a plain div, not <ScrollSection>  -  this is embedded
         inside app/page.tsx's own ScrollSection (the "/catalogue" snap
@@ -785,13 +832,121 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
         (100dvh minus the header), so it fits flush with no extra scroll.
       */}
       <div className="flex h-full flex-col">
+        <div className="flex min-h-0 flex-1">
+          <div
+            ref={sidebarRef}
+            className="relative hidden shrink-0 overflow-hidden lg:block lg:h-full"
+            style={{
+              width: sidebarCollapsed ? "3rem" : SIDEBAR_WIDTH,
+              transition: `width ${SIDEBAR_DURATION_MS}ms ${SIDEBAR_EASE}`
+            }}
+          >
+            <button
+              type="button"
+              aria-label="Show filters"
+              onClick={() => setSidebarCollapsed(false)}
+              className={`liquid-glass-on-light absolute inset-0 flex flex-col items-center justify-center gap-4 text-[#8a8a7a] backdrop-blur-[18px] backdrop-saturate-[160%] transition-opacity duration-300 hover:text-[#344332] ${
+                sidebarCollapsed ? "pointer-events-auto opacity-100 delay-150" : "pointer-events-none opacity-0"
+              }`}
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.3em]"
+                style={{writingMode: "vertical-rl"}}
+              >
+                Filters
+              </span>
+            </button>
+
+            <div
+              className={`absolute inset-0 overflow-hidden shadow-[inset_-1px_0_0_rgba(217,207,192,0.55)] transition-opacity duration-200 ${
+                sidebarCollapsed ? "pointer-events-none opacity-0" : "pointer-events-auto opacity-100 delay-150"
+              }`}
+            >
+              {/* The panel is exactly as tall as the catalogue area and never
+                  taller: whatever doesn't fit (an expanded section on a short
+                  screen) scrolls inside this region. data-scroll-lock-if-overflow
+                  hands wheel/touch to it instead of the catalogue's momentum
+                  scroll, which is untouched. */}
+              <div
+                data-scroll-lock-if-overflow
+                className="catalogue-filter-scroll h-full overflow-y-auto overscroll-contain px-6 py-6"
+              >
+              <FilterSidebar
+                locale={locale}
+                productType={selectedProductType}
+                products={typeProducts}
+                selectedMaterials={selectedMaterials}
+                selectedSizes={selectedSizes}
+                selectedShapes={selectedShapes}
+                selectedHandles={selectedHandles}
+                selectedAccessoryCategories={selectedAccessoryCategories}
+                onToggleMaterial={toggleMaterial}
+                onToggleSize={toggleSize}
+                onToggleShape={toggleShape}
+                onToggleHandle={toggleHandle}
+                onToggleAccessoryCategory={toggleAccessoryCategory}
+                onClearAll={clearFilters}
+                onCollapse={() => setSidebarCollapsed(true)}
+              />
+              </div>
+            </div>
+          </div>
+
+          {/* Rendered into <body>: the page content animates in with a transform,
+              which would otherwise make this "fixed" sheet size itself to the page
+              instead of the screen and hang below the fold. It starts under the
+              site header and fills the rest of the screen. */}
+          {mobileFiltersMounted
+            ? createPortal(
+            <div
+              data-scroll-lock
+              className={`fixed inset-x-0 bottom-0 top-[var(--header-height)] z-30 overflow-y-auto overscroll-contain bg-[#f5f0e4] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] transition-all lg:hidden ${
+                mobileFiltersEntered
+                  ? "translate-y-0 opacity-100 duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                  : "translate-y-4 opacity-0 duration-150 ease-in"
+              }`}
+            >
+              <button
+                type="button"
+                aria-label="Close filters"
+                onClick={() => setMobileFiltersOpen(false)}
+                className="liquid-glass-on-light relative mb-4 flex h-9 w-9 items-center justify-center rounded-full text-[#2e2e28] backdrop-blur-[18px] backdrop-saturate-[160%] transition-transform duration-200 active:scale-90"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <FilterSidebar
+                locale={locale}
+                productType={selectedProductType}
+                products={typeProducts}
+                selectedMaterials={selectedMaterials}
+                selectedSizes={selectedSizes}
+                selectedShapes={selectedShapes}
+                selectedHandles={selectedHandles}
+                selectedAccessoryCategories={selectedAccessoryCategories}
+                onToggleMaterial={toggleMaterial}
+                onToggleSize={toggleSize}
+                onToggleShape={toggleShape}
+                onToggleHandle={toggleHandle}
+                onToggleAccessoryCategory={toggleAccessoryCategory}
+                onClearAll={clearFilters}
+              />
+            </div>,
+            document.body
+          )
+        : null}
+
+          {/* Right-hand column: the category tabs and count/sort sit directly
+              above the grid, on the same left edge as the products. The wheel
+              handler stays on the inner div below, exactly where it was. */}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {/*
           The tabs pill and the count/sort controls used to be two stacked
           shrink-0 rows, each eating its own slice of the fixed-height
           budget this grid has to fit "2 rows of cards" into  -  merging them
           into one row gets that vertical space back for the grid itself.
         */}
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#e8e0cf] px-6 py-3 sm:px-10">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-5 pb-3 pt-5 sm:px-6 lg:px-8">
           <div
             ref={tabsRef}
             className="liquid-glass-on-light relative flex w-max items-center gap-1 overflow-x-auto rounded-full p-1.5 backdrop-blur-[18px] backdrop-saturate-[160%]"
@@ -942,103 +1097,8 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1">
-          <div
-            ref={sidebarRef}
-            className="relative hidden shrink-0 overflow-hidden lg:block lg:h-full"
-            style={{
-              width: sidebarCollapsed ? "3rem" : "20%",
-              transition: `width ${SIDEBAR_DURATION_MS}ms ${SIDEBAR_EASE}`
-            }}
-          >
-            <button
-              type="button"
-              aria-label="Show filters"
-              onClick={() => setSidebarCollapsed(false)}
-              className={`liquid-glass-on-light absolute inset-0 flex flex-col items-center justify-center gap-4 text-[#8a8a7a] backdrop-blur-[18px] backdrop-saturate-[160%] transition-opacity duration-300 hover:text-[#344332] ${
-                sidebarCollapsed ? "pointer-events-auto opacity-100 delay-150" : "pointer-events-none opacity-0"
-              }`}
-            >
-              <PanelLeftOpen className="h-4 w-4" />
-              <span
-                className="text-[10px] font-semibold uppercase tracking-[0.3em]"
-                style={{writingMode: "vertical-rl"}}
-              >
-                Filters
-              </span>
-            </button>
-
-            <div
-              className={`absolute inset-0 overflow-hidden bg-[#f5f0e4] shadow-[inset_-1px_0_0_rgba(217,207,192,0.5)] transition-opacity duration-200 ${
-                sidebarCollapsed ? "pointer-events-none opacity-0" : "pointer-events-auto opacity-100 delay-150"
-              }`}
-            >
-              {/* The panel is exactly as tall as the catalogue area and never
-                  taller: whatever doesn't fit (an expanded section on a short
-                  screen) scrolls inside this region. data-scroll-lock-if-overflow
-                  hands wheel/touch to it instead of the catalogue's momentum
-                  scroll, which is untouched. */}
-              <div
-                data-scroll-lock-if-overflow
-                className="catalogue-filter-scroll h-full overflow-y-auto overscroll-contain px-8 py-8"
-              >
-              <FilterSidebar
-                locale={locale}
-                productType={selectedProductType}
-                products={typeProducts}
-                selectedMaterials={selectedMaterials}
-                selectedSizes={selectedSizes}
-                selectedShapes={selectedShapes}
-                selectedHandles={selectedHandles}
-                selectedAccessoryCategories={selectedAccessoryCategories}
-                onToggleMaterial={toggleMaterial}
-                onToggleSize={toggleSize}
-                onToggleShape={toggleShape}
-                onToggleHandle={toggleHandle}
-                onToggleAccessoryCategory={toggleAccessoryCategory}
-                onCollapse={() => setSidebarCollapsed(true)}
-              />
-              </div>
-            </div>
-          </div>
-
-          {mobileFiltersMounted ? (
-            <div
-              data-scroll-lock
-              className={`fixed inset-0 z-30 overflow-y-auto overscroll-contain bg-[#f5f0e4] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] transition-all lg:hidden ${
-                mobileFiltersEntered
-                  ? "translate-y-0 opacity-100 duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                  : "translate-y-4 opacity-0 duration-150 ease-in"
-              }`}
-            >
-              <button
-                type="button"
-                aria-label="Close filters"
-                onClick={() => setMobileFiltersOpen(false)}
-                className="liquid-glass-on-light relative mb-4 flex h-9 w-9 items-center justify-center rounded-full text-[#2e2e28] backdrop-blur-[18px] backdrop-saturate-[160%] transition-transform duration-200 active:scale-90"
-              >
-                <X className="h-4 w-4" />
-              </button>
-              <FilterSidebar
-                locale={locale}
-                productType={selectedProductType}
-                products={typeProducts}
-                selectedMaterials={selectedMaterials}
-                selectedSizes={selectedSizes}
-                selectedShapes={selectedShapes}
-                selectedHandles={selectedHandles}
-                selectedAccessoryCategories={selectedAccessoryCategories}
-                onToggleMaterial={toggleMaterial}
-                onToggleSize={toggleSize}
-                onToggleShape={toggleShape}
-                onToggleHandle={toggleHandle}
-                onToggleAccessoryCategory={toggleAccessoryCategory}
-              />
-            </div>
-          ) : null}
-
           <div ref={contentRef} className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 overflow-hidden border-l border-t border-transparent">
+            <div className="min-h-0 flex-1 overflow-hidden">
               {productsLoading ? (
                 <div key="loading" className="flex h-full items-center justify-center">
                   <DaisyLoader layout="section" />
@@ -1046,14 +1106,12 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
               ) : filteredProducts.length ? (
                 <div key="cards" ref={trackRef} className="flex h-full" style={{width: `${pageCount * 100}%`}}>
                   {Array.from({length: pageCount}).map((_, pageIdx) => (
-                    <div
-                      key={pageIdx}
-                      className={`grid shrink-0 grid-cols-2 content-start ${columnClass}`}
-                      style={{width: `${100 / pageCount}%`}}
-                    >
-                      {filteredProducts.slice(pageIdx * capacity, pageIdx * capacity + capacity).map((product) => (
-                        <ShopProductCard key={product.slug} product={product} currency={currency} locale={locale} />
-                      ))}
+                    <div key={pageIdx} className="catalogue-page shrink-0" style={{width: `${100 / pageCount}%`}}>
+                      <div className="catalogue-grid" style={{"--cols": columns} as React.CSSProperties}>
+                        {filteredProducts.slice(pageIdx * capacity, pageIdx * capacity + capacity).map((product) => (
+                          <ShopProductCard key={product.slug} product={product} currency={currency} locale={locale} />
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1072,7 +1130,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
             </div>
 
             {maxPageIndex > 0 ? (
-              <div className="flex shrink-0 items-center px-6 py-4 sm:px-10">
+              <div className="flex shrink-0 items-center px-5 py-2 sm:px-6 lg:px-8">
                 <div
                   ref={progressTrackRef}
                   onPointerDown={handleProgressPointerDown}
@@ -1092,6 +1150,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
                 </div>
               </div>
             ) : null}
+          </div>
           </div>
         </div>
       </div>
