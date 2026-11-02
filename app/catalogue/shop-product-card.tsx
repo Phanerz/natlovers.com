@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type {CSSProperties} from "react";
+import {useCallback, useEffect, useRef, useState, type CSSProperties} from "react";
 import {Heart, ShoppingBag} from "lucide-react";
 import {ImageWithFallback} from "@/components/image-with-fallback";
 import {useStorefront} from "@/components/storefront-provider";
@@ -45,6 +45,45 @@ export function ShopProductCard({
   const favorited = isWishlisted(product.slug);
   const {addToCart} = useStorefront();
 
+  // Fit the photograph to its square tile. A shot whose proportions are close
+  // to the tile's fills it edge to edge (object-cover  -  at most a sliver of
+  // backdrop is trimmed); anything that would lose real content, such as a
+  // tall portrait or a wide landscape, is shown whole (object-contain) and
+  // centred instead. The tile's own proportions change with the screen (the
+  // rows share the available height), so the choice is re-made on resize.
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const [tileRatio, setTileRatio] = useState(1);
+  const [imageRatio, setImageRatio] = useState<number | null>(null);
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) {
+      return;
+    }
+    const measure = () => {
+      const {width, height} = stage.getBoundingClientRect();
+      if (width > 0 && height > 0) {
+        setTileRatio(Math.round((width / height) * 20) / 20);
+      }
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, []);
+
+  // A callback ref also catches an image that finished loading before React
+  // attached to it (server-rendered, cached), which onLoad alone would miss.
+  const readImageRatio = useCallback((image: HTMLImageElement | null) => {
+    if (image && image.complete && image.naturalWidth > 0 && image.naturalHeight > 0) {
+      setImageRatio(image.naturalWidth / image.naturalHeight);
+    }
+  }, []);
+
+  const MAX_TRIM = 0.14;
+  const trim = imageRatio === null ? 1 : 1 - Math.min(imageRatio / tileRatio, tileRatio / imageRatio);
+  const fitClass = trim <= MAX_TRIM ? "object-cover" : "object-contain";
+
   const attributes = [
     product.size ? sizeLabels[product.size][locale] : null,
     product.shape ? shapeLabels[product.shape][locale] : null,
@@ -71,14 +110,35 @@ export function ShopProductCard({
       style={{"--item-tint": tint.bg} as CSSProperties}
       aria-label={product.name}
     >
-      <div className="catalogue-item-stage">
+      <div ref={stageRef} className="catalogue-item-stage">
         <div className="catalogue-item-photo">
+          {/* A photo that has to be shown whole (a tall portrait, a wide landscape)
+              leaves bars at its sides; a soft blurred copy of the same photo behind
+              it tints them with its own colours, so the bars read as part of the
+              picture instead of a separate band. */}
+          {fitClass === "object-contain" && imageRatio !== null ? (
+            <ImageWithFallback
+              src={product.imageUrl}
+              alt=""
+              aria-hidden
+              fill
+              sizes="64px"
+              className="scale-125 object-cover opacity-80 blur-2xl"
+            />
+          ) : null}
           <ImageWithFallback
+            imageRef={readImageRatio}
             src={product.imageUrl}
             alt={product.name}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-            className="object-contain"
+            className={fitClass}
+            onLoad={(event) => {
+              const image = event.currentTarget;
+              if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+                setImageRatio(image.naturalWidth / image.naturalHeight);
+              }
+            }}
           />
         </div>
 
