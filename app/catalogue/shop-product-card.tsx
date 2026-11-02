@@ -52,6 +52,10 @@ export function ShopProductCard({
     product.accessoryCategory ? accessoryCategoryLabels[product.accessoryCategory][locale] : null
   ].filter((value): value is string => Boolean(value));
 
+  // "Rp2.250.000" -> a quiet currency mark beside a confident amount.
+  const price = formatCurrency(product.priceIdr, currency);
+  const priceParts = /^(\D+)(\d.*)$/.exec(price);
+
   const bagLabel = product.soldOut
     ? locale === "en"
       ? "Sold out"
@@ -114,7 +118,16 @@ export function ShopProductCard({
 
       <div className="catalogue-item-info">
         <p className="catalogue-item-name">{product.name}</p>
-        <p className="catalogue-item-price">{formatCurrency(product.priceIdr, currency)}</p>
+        <p className="catalogue-item-price">
+          {priceParts ? (
+            <>
+              <span className="catalogue-item-currency">{priceParts[1]}</span>
+              <span className="catalogue-item-amount">{priceParts[2]}</span>
+            </>
+          ) : (
+            price
+          )}
+        </p>
         {attributes.length ? <p className="catalogue-item-meta">{attributes.join(" · ")}</p> : null}
       </div>
     </Link>

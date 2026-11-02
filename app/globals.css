@@ -2739,13 +2739,15 @@ body:has(.outlets-stage--page) footer {
   overflow: hidden;
   border-radius: 22px;
   background: color-mix(in srgb, var(--item-tint, #eee7d8) 38%, #f1ebde);
-  box-shadow: inset 0 0 0 1px rgba(52, 67, 50, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(52, 67, 50, 0.07), 0 0 0 rgba(40, 55, 35, 0);
+  transition: transform 800ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 800ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .catalogue-item-photo {
   position: absolute;
   inset: 0;
-  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+  transition: transform 1100ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .catalogue-item-photo img {
@@ -2816,6 +2818,7 @@ body:has(.outlets-stage--page) footer {
 }
 
 .catalogue-item-name {
+  transition: color 500ms ease;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2826,10 +2829,31 @@ body:has(.outlets-stage--page) footer {
   color: #20241b;
 }
 
+/* The price: a warm forest green in a clean humanist sans, semibold with a
+   touch of tracking, and the currency mark set small and quiet beside it  -
+   confident and inviting rather than loud. */
 .catalogue-item-price {
-  font-size: clamp(12px, 0.95vw, 14px);
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 1px;
+  font-family: "Avenir Next", Avenir, "Gill Sans", "Trebuchet MS", "Segoe UI", sans-serif;
   line-height: 1.35;
-  color: #5a5a4e;
+  color: #344332;
+}
+
+.catalogue-item-currency {
+  font-size: clamp(10.5px, 0.8vw, 12px);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: #6b7a5f;
+}
+
+.catalogue-item-amount {
+  font-size: clamp(15px, 1.2vw, 18px);
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  font-variant-numeric: lining-nums tabular-nums;
 }
 
 .catalogue-item-meta {
@@ -2855,29 +2879,47 @@ body:has(.outlets-stage--page) footer {
   }
 }
 
+/* Hover: the tile rises a few pixels on a long, soft ease while its photograph
+   drifts in very slightly and a deep, diffuse shadow blooms beneath  -  slow
+   enough to feel unhurried, never snappy. The icons fade up gently. */
 @media (hover: hover) and (pointer: fine) {
+  .catalogue-item:hover .catalogue-item-stage,
+  .catalogue-item:focus-visible .catalogue-item-stage {
+    transform: translateY(-5px);
+    box-shadow: inset 0 0 0 1px rgba(52, 67, 50, 0.07), 0 26px 38px -26px rgba(40, 55, 35, 0.42);
+  }
+
   .catalogue-item:hover .catalogue-item-photo {
-    transform: scale(1.035);
+    transform: scale(1.045);
+  }
+
+  .catalogue-item:hover .catalogue-item-name {
+    color: #344332;
   }
 
   .catalogue-item-actions {
     opacity: 0;
-    transition: opacity 220ms ease;
+    transform: translateY(-4px);
+    transition: opacity 450ms cubic-bezier(0.16, 1, 0.3, 1), transform 450ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .catalogue-item:hover .catalogue-item-actions,
   .catalogue-item:focus-within .catalogue-item-actions {
     opacity: 1;
+    transform: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .catalogue-item-stage,
   .catalogue-item-photo,
+  .catalogue-item-name,
   .catalogue-item-actions,
   .catalogue-item-action {
     transition: none;
   }
 
+  .catalogue-item:hover .catalogue-item-stage,
   .catalogue-item:hover .catalogue-item-photo {
     transform: none;
   }
