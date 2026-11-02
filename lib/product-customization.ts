@@ -30,6 +30,8 @@ export function defaultConfigForProduct(product: {
   productType: string;
   shape: ShopShape | null;
   handle: ShopHandle | null;
+  // A multi-handle bag seeds Custom Studio with its first commissionable handle.
+  handles?: ShopHandle[];
   size: ShopSize | null;
   materials: ShopMaterial[];
 }): CustomConfig | null {
@@ -45,14 +47,14 @@ export function defaultConfigForProduct(product: {
     ) as typeof base.colour | undefined;
     return {
       ...base,
-      shape: product.shape && (customBagShapes as string[]).includes(product.shape) ? product.shape : base.shape,
+      shape: product.shape && (customBagShapes as string[]).includes(product.shape) ? (product.shape as typeof base.shape) : base.shape,
       colour: knownColour ?? base.colour,
       // Custom Studio's own form stopped asking for handle (see the comment
       // on bagConfigSchema in lib/custom-studio.ts), but the field itself is
       // still real and still priced/persisted end to end  -  the product page
       // is what sets it, seeded from the actual product's handle type.
       handle:
-        product.handle && (customBagHandles as string[]).includes(product.handle) ? product.handle : customBagHandles[0],
+        customBagHandles.find((handle) => (product.handles ?? [product.handle]).includes(handle)) ?? customBagHandles[0],
       size: product.size ?? base.size
     };
   }

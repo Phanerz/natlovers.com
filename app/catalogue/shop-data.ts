@@ -1,6 +1,6 @@
 import {Locale} from "@/lib/site";
 
-export type ShopMaterial = "Agel" | "Water Hyacinth" | "Gajih" | "Woven Fabric" | "Patchwork";
+export type ShopMaterial = "Agel" | "Mendong" | "Water Hyacinth" | "Gajih" | "Woven Fabric" | "Patchwork";
 
 // A coarse, admin-assigned browsing tag for Bags/Dolls  -  independent of a
 // product's real dimensions, which live on its assigned body (see
@@ -10,9 +10,9 @@ export type ShopMaterial = "Agel" | "Water Hyacinth" | "Gajih" | "Woven Fabric" 
 // three-value vocabulary.
 export type ShopSize = "Small" | "Medium" | "Large";
 
-export type ShopShape = "Rectangle" | "Round" | "House Shaped";
+export type ShopShape = "Rectangle" | "Round" | "House Shaped" | "Other";
 
-export type ShopHandle = "Handbag" | "Shoulder Bag" | "Sling Bag" | "Clutch";
+export type ShopHandle = "Handbag" | "Shoulder Bag" | "Sling Bag" | "Clutch" | "Backpack";
 
 export type AccessoryCategory = "Bracelet" | "Charm" | "Necklace";
 
@@ -30,7 +30,11 @@ export type ShopProduct = {
   productType: ShopProductType;
   size: ShopSize | null;
   shape: ShopShape | null;
+  // The first of `handles`, kept for the single-handle consumers (Custom
+  // Studio matching, card pill).
   handle: ShopHandle | null;
+  // A bag can carry several handle types at once (e.g. Handbag + Shoulder Bag).
+  handles: ShopHandle[];
   materials: ShopMaterial[];
   accessoryCategory: AccessoryCategory | null;
   soldOut?: boolean;
@@ -41,14 +45,15 @@ type BilingualLabel = {en: string; id: string};
 // Fixed, literal display order per group  -  Size stays in its given logical
 // order, everything else listed here is already alphabetical (by English
 // label) and stays fixed regardless of locale.
-export const bagMaterials: ShopMaterial[] = ["Agel", "Gajih", "Patchwork", "Water Hyacinth", "Woven Fabric"];
+export const bagMaterials: ShopMaterial[] = ["Agel", "Gajih", "Mendong", "Patchwork", "Water Hyacinth", "Woven Fabric"];
 export const shopSizes: ShopSize[] = ["Small", "Medium", "Large"];
-export const shopShapes: ShopShape[] = ["House Shaped", "Rectangle", "Round"];
-export const shopHandles: ShopHandle[] = ["Clutch", "Handbag", "Shoulder Bag", "Sling Bag"];
+export const shopShapes: ShopShape[] = ["House Shaped", "Rectangle", "Round", "Other"];
+export const shopHandles: ShopHandle[] = ["Backpack", "Clutch", "Handbag", "Shoulder Bag", "Sling Bag"];
 export const accessoryCategories: AccessoryCategory[] = ["Bracelet", "Charm", "Necklace"];
 
 export const materialLabels: Record<ShopMaterial, BilingualLabel> = {
   Agel: {en: "Agel", id: "Agel"},
+  Mendong: {en: "Mendong", id: "Mendong"},
   "Water Hyacinth": {en: "Water Hyacinth", id: "Enceng Gondok"},
   Gajih: {en: "Gajih", id: "Gajih"},
   "Woven Fabric": {en: "Woven Fabric", id: "Kain Tenun"},
@@ -64,14 +69,16 @@ export const sizeLabels: Record<ShopSize, BilingualLabel> = {
 export const shapeLabels: Record<ShopShape, BilingualLabel> = {
   Rectangle: {en: "Rectangle", id: "Persegi Panjang"},
   Round: {en: "Round", id: "Bulat"},
-  "House Shaped": {en: "House Shaped", id: "Bentuk Rumah"}
+  "House Shaped": {en: "House Shaped", id: "Bentuk Rumah"},
+  Other: {en: "Other / Irregular", id: "Lainnya / Tidak Beraturan"}
 };
 
 export const handleLabels: Record<ShopHandle, BilingualLabel> = {
   Handbag: {en: "Handbag", id: "Jinjing"},
   "Shoulder Bag": {en: "Shoulder Bag", id: "Bahu"},
   "Sling Bag": {en: "Sling Bag", id: "Slempang"},
-  Clutch: {en: "Clutch", id: "Clutch"}
+  Clutch: {en: "Clutch", id: "Clutch"},
+  Backpack: {en: "Backpack", id: "Ransel"}
 };
 
 export const accessoryCategoryLabels: Record<AccessoryCategory, BilingualLabel> = {
@@ -98,6 +105,7 @@ export const categoryPillStyle: TagStyle = {bg: "#EDE3EF", border: "#D2BCD8", te
 
 export const materialImageStyle: Record<ShopMaterial, {bg: string; border: string}> = {
   Agel: {bg: "#EFE3CE", border: "#D3BFA0"},
+  Mendong: {bg: "#EBE5CC", border: "#CFC59B"},
   "Water Hyacinth": {bg: "#E1EADD", border: "#B9CBB4"},
   Gajih: {bg: "#F3E2D6", border: "#DEBBA3"},
   "Woven Fabric": {bg: "#E7DEEC", border: "#C9B9DA"},
@@ -105,3 +113,20 @@ export const materialImageStyle: Record<ShopMaterial, {bg: string; border: strin
 };
 
 export const DEFAULT_IMAGE_STYLE = {bg: "#eee7d8", border: "#d9cfc0"};
+
+// A bag's handle types are stored in the single products.handle_type text
+// column as a comma-separated list ("Handbag,Shoulder Bag"), so a product
+// that predates multi-select (one plain value) reads back unchanged.
+export function parseHandles(stored: string | null | undefined): ShopHandle[] {
+  if (!stored) return [];
+  return stored
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value): value is ShopHandle => (shopHandles as string[]).includes(value));
+}
+
+export function serializeHandles(handles: readonly ShopHandle[]): string | null {
+  // Canonical (display) order, so the same selection always stores the same string.
+  const ordered = shopHandles.filter((handle) => handles.includes(handle));
+  return ordered.length ? ordered.join(",") : null;
+}

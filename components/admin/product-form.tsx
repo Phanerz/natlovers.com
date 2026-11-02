@@ -26,7 +26,9 @@ import {ProductStatusSidebar} from "./product-status-sidebar";
 import {RichTextEditor} from "./rich-text-editor";
 import {SelectField} from "./select-field";
 import {PillMultiSelect, PillSingleSelect} from "./pill-select";
-import {AdminProduct, PRODUCT_CODE_PREFIX, ProductFormState, ProductStatus} from "./types";
+import {skuProblem, suggestDesignAbbreviation} from "@/lib/product-sku";
+import {SkuField} from "./sku-field";
+import {AdminProduct, ProductFormState, ProductStatus, skuPartsFromForm} from "./types";
 
 function SectionCard({title, action, children}: {title: string; action?: ReactNode; children: ReactNode}) {
   return (
@@ -146,6 +148,21 @@ function AttributeFields({
           bodyShapes={bodyShapes}
           onChange={(value) => onChange({...form, bodyShapeId: value})}
         />
+        <div className="space-y-2">
+          <PillSingleSelect
+            label="Materials"
+            options={bagMaterials}
+            getLabel={(option) => materialLabels[option].en}
+            value={form.materials[0] ?? null}
+            onChange={(value) => onChange({...form, materials: [value]})}
+          />
+          {form.materials.length > 1 ? (
+            <p className="text-xs text-forest-500">
+              This product has {form.materials.length} materials saved. Only one can be kept now, so picking one replaces
+              the rest.
+            </p>
+          ) : null}
+        </div>
         <div className="grid gap-6 sm:grid-cols-3">
           <PillSingleSelect
             label="Size"
@@ -161,21 +178,14 @@ function AttributeFields({
             value={form.shape}
             onChange={(value) => onChange({...form, shape: value})}
           />
-          <PillSingleSelect
+          <PillMultiSelect
             label="Handle"
             options={shopHandles}
             getLabel={(option) => handleLabels[option].en}
-            value={form.handle}
-            onChange={(value) => onChange({...form, handle: value})}
+            value={form.handles}
+            onChange={(value) => onChange({...form, handles: value})}
           />
         </div>
-        <PillMultiSelect
-          label="Materials"
-          options={bagMaterials}
-          getLabel={(option) => materialLabels[option].en}
-          value={form.materials}
-          onChange={(value) => onChange({...form, materials: value})}
-        />
         <DimensionsOverrideField form={form} onChange={onChange} />
       </>
     );
@@ -275,12 +285,27 @@ export function ProductForm({
   bodyShapes: AdminBodyShape[];
 }) {
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
+  const [skuError, setSkuError] = useState<string | null>(null);
   const showAttributes =
     form.productType === "Bags" || form.productType === "Dolls" || form.productType === "Accessories";
   const productUrl = product ? `natlovers.com/catalogue/${product.slug}` : null;
 
+  // A new product, or one that already has a code, can't be saved with the
+  // generated SKU half-built; a legacy code is kept as-is and a code-less
+  // existing product may stay code-less.
+  function handleSubmit(event: FormEvent) {
+    const needsSku = !form.skuLegacyCode && (mode === "create" || Boolean(product?.productCode));
+    const problem = needsSku ? skuProblem(skuPartsFromForm(form)) : null;
+    setSkuError(problem);
+    if (problem) {
+      event.preventDefault();
+      return;
+    }
+    onSubmit(event);
+  }
+
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div>
         <p className="text-xs text-forest-500">
           Dashboard <span aria-hidden>&gt;</span> Catalogue <span aria-hidden>&gt;</span> Products{" "}
@@ -393,7 +418,16 @@ export function ProductForm({
                 <span className="muted">Product Name</span>
                 <input
                   value={form.name}
-                  onChange={(event) => onChange({...form, name: event.target.value})}
+                  onChange={(event) => {
+                    const name = event.target.value;
+                    // Suggest a design abbreviation for a new product, but never
+                    // overwrite one the admin has typed themselves.
+                    onChange((prev) =>
+                      mode === "create" && !prev.skuDesignTouched
+                        ? {...prev, name, skuDesign: suggestDesignAbbreviation(name)}
+                        : {...prev, name}
+                    );
+                  }}
                   required
                   placeholder="Enter product name"
                   className={fieldClass}
@@ -411,7 +445,7 @@ export function ProductForm({
               </label>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2">
               <label className="space-y-2 text-sm text-forest-700">
                 <span className="muted">Category</span>
                 <SelectField
@@ -439,18 +473,11 @@ export function ProductForm({
                 />
               </label>
 
-              <label className="space-y-2 text-sm text-forest-700">
-                <span className="muted">SKU</span>
-                <div className="flex items-center overflow-hidden rounded-lg border border-[#d4c5ab] bg-[#fffdf9] focus-within:border-forest-400">
-                  <span className="pl-4 text-base text-forest-500">{PRODUCT_CODE_PREFIX}</span>
-                  <input
-                    value={form.productCodeSuffix}
-                    onChange={(event) => onChange({...form, productCodeSuffix: event.target.value})}
-                    placeholder="BAG007"
-                    className="w-full min-w-0 bg-transparent py-3 pl-1 pr-4 text-base text-forest-900 outline-none"
-                  />
-                </div>
-              </label>
+            </div>
+
+            <div className="space-y-2">
+              <SkuField form={form} onChange={onChange} />
+              {skuError ? <p className="text-sm font-medium text-red-600">{skuError}</p> : null}
             </div>
 
             <label className="block max-w-xs space-y-2 text-sm text-forest-700">
@@ -481,15 +508,21 @@ export function ProductForm({
               <CharCount value={form.shortDescription} max={160} />
             </label>
 
-            <label className="block space-y-2 text-sm text-forest-700">
-              <span className="muted">Product Description (optional)</span>
+            {/* A div, not a <label>: a label forwards any click inside it (including the
+                mouseup that ends a drag-selection) to its first labelable descendant,
+                which here is the toolbar's Bold button. */}
+            <div className="block space-y-2 text-sm text-forest-700">
+              <span id="product-description-label" className="muted">
+                Product Description (optional)
+              </span>
               <RichTextEditor
+                labelledBy="product-description-label"
                 value={form.description}
                 onChange={(html) => onChange((prev) => ({...prev, description: html}))}
                 placeholder="Enter product description..."
                 maxLength={2000}
               />
-            </label>
+            </div>
           </SectionCard>
 
           {showAttributes ? (

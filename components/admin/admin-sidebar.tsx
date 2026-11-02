@@ -68,7 +68,7 @@ function AddLink({href, active, label}: {href: Route; active: boolean; label: st
     <Link
       href={href}
       aria-label={label}
-      className={`icon-button button-lift flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-transform duration-200 active:scale-90 ${
+      className={`icon-button button-lift flex aspect-square h-8 w-8 shrink-0 items-center justify-center rounded-full transition-transform duration-200 active:scale-90 ${
         active
           ? "flat-nav-active text-sand-50"
           : "border border-[#d4c5ab] bg-[#fffaf1] text-[#5c5c50] hover:text-[#344332]"

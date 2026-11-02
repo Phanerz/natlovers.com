@@ -63,8 +63,13 @@ export function ProductSpecsPanel({
     rows.push({key: "shape", icon: Shapes, label: "Shape", value: shapeLabels[product.shape][locale]});
   }
 
-  if (product.handle) {
-    rows.push({key: "handle", icon: Grip, label: "Handle Type", value: handleLabels[product.handle][locale]});
+  if (product.handles.length > 0) {
+    rows.push({
+      key: "handle",
+      icon: Grip,
+      label: product.handles.length > 1 ? "Handle Types" : "Handle Type",
+      value: product.handles.map((handle) => handleLabels[handle][locale]).join(", ")
+    });
   }
 
   if (product.accessoryCategory) {

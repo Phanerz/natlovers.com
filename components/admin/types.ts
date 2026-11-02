@@ -11,6 +11,7 @@ import {
   shopShapes,
   shopSizes
 } from "@/app/catalogue/shop-data";
+import {SKU_REGISTRATION_PLACEHOLDER, buildSku, parseSku} from "@/lib/product-sku";
 import type {AdminBodyShape} from "./body-shape-types";
 
 export type ColourOption = {label: string; hex: string};
@@ -47,6 +48,7 @@ export type AdminProduct = {
   size: ShopSize | null;
   shape: ShopShape | null;
   handle: ShopHandle | null;
+  handles: ShopHandle[];
   accessoryCategory: AccessoryCategory | null;
   tags: string[];
   collections: string[];
@@ -98,7 +100,8 @@ export type ProductFormState = {
   // above  -  see the comment on products.size in lib/db/schema.ts.
   size: ShopSize;
   shape: ShopShape;
-  handle: ShopHandle;
+  // Multi-select; the first-listed handle is never special.
+  handles: ShopHandle[];
   accessoryCategory: AccessoryCategory;
   materials: ShopMaterial[];
   tags: string;
@@ -113,9 +116,20 @@ export type ProductFormState = {
   stock: string;
   lowStockThreshold: string;
   allowBackorders: BackorderPolicy;
-  // Just the part after the fixed "NAT-" prefix  -  the prefix itself is
-  // rendered read-only in the form and re-joined in buildFormData.
-  productCodeSuffix: string;
+  // The SKU is built from these (see lib/product-sku.ts): the category,
+  // material, size and shape sections come from the fields above, so only
+  // the manually-owned sections are stored here.
+  skuDesign: string;
+  skuVariant: string;
+  skuRegistration: string;
+  // True once the admin has typed their own design abbreviation, so a later
+  // product-name change never overwrites it.
+  skuDesignTouched: boolean;
+  // A saved code that doesn't match what the attributes now generate (an
+  // older free-text code, or one whose digits no longer agree with the
+  // product). While set, it is kept exactly as saved instead of being
+  // regenerated  -  the admin opts in to regenerating it.
+  skuLegacyCode: string | null;
   vendor: string;
   // Free text, e.g. "Approx. 30 x 20 x 15 cm" or an override for an
   // irregular piece the assigned body's own L/W/H can't express. Empty
@@ -134,6 +148,45 @@ export type ProductFormState = {
   hasPersonalisation: boolean;
   personalisationOptions: string[];
 };
+
+export function skuPartsFromForm(form: ProductFormState) {
+  return {
+    productType: form.productType,
+    design: form.skuDesign,
+    variant: form.skuVariant,
+    material: form.materials[0] ?? null,
+    size: form.size,
+    shape: form.shape,
+    registration: form.skuRegistration
+  };
+}
+
+// The code that will be saved: a preserved legacy code as-is, otherwise the
+// generated one (null while incomplete).
+export function skuForForm(form: ProductFormState): string | null {
+  return form.skuLegacyCode ?? buildSku(skuPartsFromForm(form));
+}
+
+// A product with no code yet starts in generated mode. A saved code is only
+// re-generated automatically when doing so reproduces it exactly  -  anything
+// else is kept untouched until the admin chooses to regenerate it.
+function skuStateFromProduct(product: AdminProduct) {
+  const base = {skuDesign: "", skuVariant: "1", skuRegistration: SKU_REGISTRATION_PLACEHOLDER, skuDesignTouched: true};
+  if (!product.productCode) return {...base, skuDesignTouched: false, skuLegacyCode: null};
+  const parsed = parseSku(product.productCode, product.productType);
+  if (!parsed) return {...base, skuLegacyCode: product.productCode};
+  const next = {...base, skuDesign: parsed.design, skuVariant: parsed.variant, skuRegistration: parsed.registration};
+  const regenerated = buildSku({
+    productType: product.productType,
+    design: parsed.design,
+    variant: parsed.variant,
+    material: product.materials[0] ?? null,
+    size: product.size,
+    shape: product.shape,
+    registration: parsed.registration
+  });
+  return {...next, skuLegacyCode: regenerated === product.productCode ? null : product.productCode};
+}
 
 function toDatetimeLocal(iso: string | null): string {
   if (!iso) return "";
@@ -156,7 +209,7 @@ export function emptyForm(): ProductFormState {
     bodyShapeId: "",
     size: shopSizes[0],
     shape: shopShapes[0],
-    handle: shopHandles[0],
+    handles: ["Handbag"],
     accessoryCategory: accessoryCategories[0],
     materials: [],
     tags: "",
@@ -166,7 +219,11 @@ export function emptyForm(): ProductFormState {
     stock: "",
     lowStockThreshold: "",
     allowBackorders: "deny",
-    productCodeSuffix: "",
+    skuDesign: "",
+    skuVariant: "1",
+    skuRegistration: SKU_REGISTRATION_PLACEHOLDER,
+    skuDesignTouched: false,
+    skuLegacyCode: null,
     vendor: "",
     dimensions: "",
     status: "active",
@@ -183,6 +240,7 @@ export function emptyForm(): ProductFormState {
 }
 
 export function formFromProduct(product: AdminProduct): ProductFormState {
+  const sku = skuStateFromProduct(product);
   return {
     name: product.name,
     priceIdr: String(product.priceIdr),
@@ -195,7 +253,7 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     bodyShapeId: product.bodyShapeId ?? "",
     size: product.size ?? shopSizes[0],
     shape: product.shape ?? shopShapes[0],
-    handle: product.handle ?? shopHandles[0],
+    handles: product.handles.length ? product.handles : product.handle ? [product.handle] : [],
     accessoryCategory: product.accessoryCategory ?? accessoryCategories[0],
     materials: product.materials,
     tags: product.tags.join(", "),
@@ -205,7 +263,7 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     stock: product.stock !== null ? String(product.stock) : "",
     lowStockThreshold: product.lowStockThreshold !== null ? String(product.lowStockThreshold) : "",
     allowBackorders: product.allowBackorders,
-    productCodeSuffix: product.productCode ? product.productCode.slice(PRODUCT_CODE_PREFIX.length) : "",
+    ...sku,
     vendor: product.vendor ?? "",
     dimensions: product.dimensions ?? "",
     status: product.status,
@@ -241,7 +299,7 @@ export function buildFormData(form: ProductFormState) {
     if (form.bodyShapeId) formData.set("bodyShapeId", form.bodyShapeId);
     formData.set("size", form.size);
     formData.set("shape", form.shape);
-    formData.set("handle", form.handle);
+    form.handles.forEach((handle) => formData.append("handle", handle));
     form.materials.forEach((material) => formData.append("materials", material));
   } else if (form.productType === "Dolls") {
     if (form.bodyShapeId) formData.set("bodyShapeId", form.bodyShapeId);
@@ -263,7 +321,7 @@ export function buildFormData(form: ProductFormState) {
   formData.set("stock", form.stock.trim());
   formData.set("lowStockThreshold", form.lowStockThreshold.trim());
   formData.set("allowBackorders", form.allowBackorders);
-  formData.set("productCode", form.productCodeSuffix.trim() ? `${PRODUCT_CODE_PREFIX}${form.productCodeSuffix.trim()}` : "");
+  formData.set("productCode", skuForForm(form) ?? "");
   formData.set("vendor", form.vendor.trim());
   formData.set("dimensions", form.dimensions.trim());
 

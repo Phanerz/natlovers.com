@@ -183,7 +183,11 @@ export function ShopProductCard({
         <div className="scrollbar-hide pointer-events-auto mt-2 flex flex-nowrap gap-1.5 overflow-x-auto">
           {product.size ? <Pill style={sizePillStyle}>{sizeLabels[product.size][locale]}</Pill> : null}
           {product.shape ? <Pill style={shapePillStyle}>{shapeLabels[product.shape][locale]}</Pill> : null}
-          {product.handle ? <Pill style={handlePillStyle}>{handleLabels[product.handle][locale]}</Pill> : null}
+          {product.handles.map((handle) => (
+            <Pill key={handle} style={handlePillStyle}>
+              {handleLabels[handle][locale]}
+            </Pill>
+          ))}
           {product.accessoryCategory ? (
             <Pill style={categoryPillStyle}>{accessoryCategoryLabels[product.accessoryCategory][locale]}</Pill>
           ) : null}

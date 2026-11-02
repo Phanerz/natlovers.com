@@ -270,7 +270,7 @@ export function FilterSidebar({
   const materialCounts = countBy(products, bagMaterials, (product) => product.materials);
   const sizeCounts = countBy(products, shopSizes, (product) => product.size);
   const shapeCounts = countBy(products, shopShapes, (product) => product.shape);
-  const handleCounts = countBy(products, shopHandles, (product) => product.handle);
+  const handleCounts = countBy(products, shopHandles, (product) => product.handles);
 
   return (
     <aside className="relative w-full min-w-0 overflow-hidden">
