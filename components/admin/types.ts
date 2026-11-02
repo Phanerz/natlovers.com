@@ -12,24 +12,19 @@ import {
   shopSizes
 } from "@/app/catalogue/shop-data";
 import {SKU_REGISTRATION_PLACEHOLDER, buildSku, parseSku} from "@/lib/product-sku";
+import {DEFAULT_COLOUR_OPTIONS, upgradeLegacyColours, type ColourOption} from "@/lib/colour-library";
 import type {AdminBodyShape} from "./body-shape-types";
-
-export type ColourOption = {label: string; hex: string};
 
 export type ProductStatus = "active" | "draft" | "archived";
 export type BackorderPolicy = "deny" | "allow";
 
-// Quick-start palette offered in the admin colour editor and used to seed
-// new products  -  colour sections show by default (the admin toggle exists
-// to turn a section off for a product that genuinely has no colour choice,
-// not to opt in), and an empty "no colours added yet" section the moment
-// it's turned on would look broken, so it starts populated with these three
-// real brand colours instead.
-export const TEMPLATE_COLOUR_OPTIONS: ColourOption[] = [
-  {label: "Natlovers Green", hex: "#344332"},
-  {label: "Black", hex: "#000000"},
-  {label: "White", hex: "#FFFFFF"}
-];
+export type {ColourOption};
+
+// New products start with the three core brand colours from the master
+// library (lib/colour-library.ts)  -  colour sections show by default (the
+// admin toggle exists to turn a section off for a product that genuinely has
+// no colour choice, not to opt in), and an empty "no colours added yet"
+// section the moment it's turned on would look broken.
 
 export type AdminProduct = {
   slug: string;
@@ -231,9 +226,9 @@ export function emptyForm(): ProductFormState {
     metaTitle: "",
     metaDescription: "",
     hasBaseColour: true,
-    baseColourOptions: TEMPLATE_COLOUR_OPTIONS.map((option) => ({...option})),
+    baseColourOptions: DEFAULT_COLOUR_OPTIONS.map((option) => ({...option})),
     hasHandleColour: true,
-    handleColourOptions: TEMPLATE_COLOUR_OPTIONS.map((option) => ({...option})),
+    handleColourOptions: DEFAULT_COLOUR_OPTIONS.map((option) => ({...option})),
     hasPersonalisation: false,
     personalisationOptions: []
   };
@@ -271,9 +266,11 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     metaTitle: product.metaTitle ?? "",
     metaDescription: product.metaDescription ?? "",
     hasBaseColour: product.hasBaseColour,
-    baseColourOptions: product.baseColourOptions,
+    // Old starter-set names (Black, White, Natlovers Green) are moved to their
+    // library equivalents; hand-edited colours are left exactly as saved.
+    baseColourOptions: upgradeLegacyColours(product.baseColourOptions),
     hasHandleColour: product.hasHandleColour,
-    handleColourOptions: product.handleColourOptions,
+    handleColourOptions: upgradeLegacyColours(product.handleColourOptions),
     hasPersonalisation: product.hasPersonalisation,
     personalisationOptions: product.personalisationOptions
   };

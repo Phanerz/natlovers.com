@@ -22,7 +22,8 @@ import {
   shopSizes
 } from "@/app/catalogue/shop-data";
 
-export type ColourOption = {label: string; hex: string};
+export type {ColourOption} from "@/lib/colour-library";
+import type {ColourOption} from "@/lib/colour-library";
 
 export const productStatuses = ["active", "draft", "archived"] as const;
 export type ProductStatus = (typeof productStatuses)[number];
@@ -75,10 +76,20 @@ export const MAX_PRODUCT_IMAGES = 6;
 
 const HEX_COLOUR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
-const colourOptionSchema = z.object({
-  label: z.string().trim().min(1, "Every colour option needs a name."),
-  hex: z.string().trim().regex(HEX_COLOUR_PATTERN, "Colour must be a valid hex code, e.g. #B7924B or #FFF.")
-});
+// The multicolour swatch ("Colourful") has no single colour, so it carries an
+// empty hex and an explicit flag instead; every other option needs a real hex.
+const colourOptionSchema = z
+  .object({
+    label: z.string().trim().min(1, "Every colour option needs a name."),
+    hex: z.string().trim(),
+    multicolour: z.literal(true).optional()
+  })
+  .superRefine((option, context) => {
+    if (!option.multicolour && !HEX_COLOUR_PATTERN.test(option.hex)) {
+      context.addIssue({code: "custom", path: ["hex"], message: "Colour must be a valid hex code, e.g. #B7924B or #FFF."});
+    }
+  })
+  .transform((option): ColourOption => (option.multicolour ? {label: option.label, hex: "", multicolour: true} : {label: option.label, hex: option.hex}));
 
 // Every per-type attribute is optional at the schema level  -  which fields
 // are actually required is enforced per productType below, not here, since
