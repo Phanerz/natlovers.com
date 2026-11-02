@@ -4,6 +4,7 @@ import {AdminBodyShape, assertBodyShapeExists, getBodyShapeById} from "@/lib/adm
 import {db, bodyShapes, products} from "@/lib/db";
 import {sanitizeDescriptionHtml} from "@/lib/sanitize-html";
 import {invalidateTtlCache} from "@/lib/ttl-cache";
+import {resolveBagSize} from "@/lib/size-standard";
 import {
   AccessoryCategory,
   ShopHandle,
@@ -45,6 +46,10 @@ export type AdminProduct = ShopProduct & {
   lowStockThreshold: number | null;
   allowBackorders: BackorderPolicy;
   productCode: string | null;
+  // A manual size for a bag whose calculated size (lib/size-standard.ts) is
+  // misleading, with the admin's reason. Null = the saved size is calculated.
+  sizeOverride: ShopSize | null;
+  sizeOverrideReason: string | null;
   vendor: string | null;
   dimensions: string | null;
   bodyShapeId: string | null;
@@ -277,6 +282,8 @@ function toAdminProduct(row: typeof products.$inferSelect, bodyShape: AdminBodyS
     lowStockThreshold: row.lowStockThreshold,
     allowBackorders: row.allowBackorders as BackorderPolicy,
     productCode: row.productCode,
+    sizeOverride: (row.sizeOverride as ShopSize | null) ?? null,
+    sizeOverrideReason: row.sizeOverrideReason,
     vendor: row.vendor,
     dimensions: row.dimensions,
     bodyShapeId: row.bodyShapeId,
@@ -306,6 +313,49 @@ async function assertProductCodeAvailable(code: string, excludeSlug?: string) {
   if (existing && existing.slug !== excludeSlug) {
     throw new Error(`Product code "${code}" is already in use.`);
   }
+}
+
+// A bag's size is never typed in: it is calculated from its body's dimensions
+// (or the Dimensions Override) by the NATLOVERS size standard, unless the
+// admin has recorded a manual override with a reason. A bag whose size can't be
+// calculated keeps whatever size it already had (an existing product whose
+// body hasn't been assigned yet must stay saveable)  -  but a brand new one
+// can't be created without a size, and nothing is ever defaulted to Small.
+async function resolveBagSizeForSave(args: {
+  productType: ShopProductType;
+  formData: FormData;
+  bodyShapeId: string | null | undefined;
+  dimensions: string | null;
+  existing?: {size: string | null; sizeOverride: string | null; sizeOverrideReason: string | null};
+}): Promise<{size: ShopSize | undefined; sizeOverride: ShopSize | null; sizeOverrideReason: string | null}> {
+  if (args.productType !== "Bags") {
+    return {size: undefined, sizeOverride: null, sizeOverrideReason: null};
+  }
+
+  const submitted = args.formData.has("sizeOverride");
+  const rawOverride = submitted ? String(args.formData.get("sizeOverride") ?? "").trim() : (args.existing?.sizeOverride ?? "");
+  let sizeOverride: ShopSize | null = null;
+  if (rawOverride) {
+    if (!shopSizes.includes(rawOverride as ShopSize)) {
+      throw new Error("The manual size isn't a valid size.");
+    }
+    sizeOverride = rawOverride as ShopSize;
+  }
+  const reason = (submitted ? String(args.formData.get("sizeOverrideReason") ?? "") : (args.existing?.sizeOverrideReason ?? "")).trim();
+  if (sizeOverride && !reason) {
+    throw new Error("Add a reason for the manual size.");
+  }
+  if (reason.length > 300) {
+    throw new Error("The manual size reason must be 300 characters or fewer.");
+  }
+
+  const body = await getBodyShapeById(args.bodyShapeId ?? null);
+  const resolved = resolveBagSize({body, dimensionsOverride: args.dimensions ?? "", manualSize: sizeOverride});
+  const size = resolved.size ?? (args.existing?.size as ShopSize | null | undefined) ?? undefined;
+  if (!size) {
+    throw new Error("Size unavailable — check body dimensions.");
+  }
+  return {size, sizeOverride, sizeOverrideReason: sizeOverride ? reason : null};
 }
 
 // Each product type owns its own required-field set and its own valid
@@ -474,7 +524,13 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     personalisationOptions: formData.getAll("personalisationOptions").map(String)
   });
 
-  const attributes = attributesForType(parsed.productType, parsed, {requireBody: true, requireSize: true});
+  const bag = await resolveBagSizeForSave({
+    productType: parsed.productType,
+    formData,
+    bodyShapeId: parsed.bodyShapeId,
+    dimensions: parseDimensionsField(formData)
+  });
+  const attributes = attributesForType(parsed.productType, {...parsed, size: bag.size ?? parsed.size}, {requireBody: true, requireSize: true});
   if (attributes.bodyShapeId) {
     await assertBodyShapeExists(attributes.bodyShapeId);
   }
@@ -526,6 +582,8 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       materials: attributes.materials,
       bodyShapeId: attributes.bodyShapeId,
       size: attributes.size,
+      sizeOverride: bag.sizeOverride,
+      sizeOverrideReason: bag.sizeOverrideReason,
       shape: attributes.shape,
       handleType: attributes.handleType,
       accessoryCategory: attributes.accessoryCategory,
@@ -641,11 +699,18 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
   // a merge of new + existing values so an edit that only touches, say,
   // price doesn't spuriously fail attribute validation.
   const effectiveType = parsed.productType ?? (existing.productType as ShopProductType);
+  const bag = await resolveBagSizeForSave({
+    productType: effectiveType,
+    formData,
+    bodyShapeId: parsed.bodyShapeId ?? existing.bodyShapeId,
+    dimensions,
+    existing
+  });
   const attributes = attributesForType(
     effectiveType,
     {
       bodyShapeId: parsed.bodyShapeId ?? existing.bodyShapeId ?? undefined,
-      size: (parsed.size as ShopSize | undefined) ?? (existing.size as ShopSize | undefined) ?? undefined,
+      size: bag.size ?? (parsed.size as ShopSize | undefined) ?? (existing.size as ShopSize | undefined) ?? undefined,
       shape: (parsed.shape as ShopShape | undefined) ?? (existing.shape as ShopShape | undefined) ?? undefined,
       handles: (parsed.handles as ShopHandle[] | undefined) ?? parseHandles(existing.handleType),
       accessoryCategory:
@@ -679,6 +744,8 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       ...(parsed.metaDescription !== undefined ? {metaDescription: parsed.metaDescription} : {}),
       bodyShapeId: attributes.bodyShapeId,
       size: attributes.size,
+      sizeOverride: bag.sizeOverride,
+      sizeOverrideReason: bag.sizeOverrideReason,
       shape: attributes.shape,
       handleType: attributes.handleType,
       accessoryCategory: attributes.accessoryCategory,
@@ -799,11 +866,18 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
     : existing.lowStockThreshold;
 
   const effectiveType = parsed.productType ?? (existing.productType as ShopProductType);
+  const bag = await resolveBagSizeForSave({
+    productType: effectiveType,
+    formData,
+    bodyShapeId: parsed.bodyShapeId ?? existing.bodyShapeId,
+    dimensions,
+    existing
+  });
   const attributes = attributesForType(
     effectiveType,
     {
       bodyShapeId: parsed.bodyShapeId ?? existing.bodyShapeId ?? undefined,
-      size: (parsed.size as ShopSize | undefined) ?? (existing.size as ShopSize | undefined) ?? undefined,
+      size: bag.size ?? (parsed.size as ShopSize | undefined) ?? (existing.size as ShopSize | undefined) ?? undefined,
       shape: (parsed.shape as ShopShape | undefined) ?? (existing.shape as ShopShape | undefined) ?? undefined,
       handles: (parsed.handles as ShopHandle[] | undefined) ?? parseHandles(existing.handleType),
       accessoryCategory:

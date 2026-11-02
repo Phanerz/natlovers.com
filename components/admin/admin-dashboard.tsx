@@ -183,7 +183,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
     setCreating(true);
     setCreateProgress(0);
     try {
-      const result = await submitFormData("/api/admin/products", "POST", buildFormData(createForm), setCreateProgress);
+      const result = await submitFormData("/api/admin/products", "POST", buildFormData(createForm, bodyShapes), setCreateProgress);
       if (!result.ok) {
         setCreateError(result.data?.error ?? "Could not save product.");
         return;
@@ -247,7 +247,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
     try {
       const response = await fetch(`/api/admin/products?slug=${encodeURIComponent(editingProduct.slug)}&action=draft`, {
         method: "PATCH",
-        body: buildFormData(editForm)
+        body: buildFormData(editForm, bodyShapes)
       });
       if (!response.ok) {
         tab?.close();
@@ -294,7 +294,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
       const result = await submitFormData(
         `/api/admin/products?slug=${encodeURIComponent(editingProduct.slug)}`,
         "PATCH",
-        buildFormData(editForm),
+        buildFormData(editForm, bodyShapes),
         setEditProgress
       );
       if (!result.ok) {

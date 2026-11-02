@@ -115,6 +115,11 @@ export const products = pgTable(
     // or price delta  -  both of those were the old size system, which this
     // does not bring back.
     size: text("size"),
+    // A manual size classification for a bag whose proportions make the
+    // calculated one (lib/size-standard.ts) misleading. Null means the size
+    // above is the calculated one. The reason is required whenever it is set.
+    sizeOverride: text("size_override"),
+    sizeOverrideReason: text("size_override_reason"),
     materials: text("materials").array().notNull().default([]),
     // Free text rather than a structured column, so it can honestly express
     // handmade variance ("Approx. 30 x 20 x 15 cm") or an irregular piece

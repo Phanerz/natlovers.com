@@ -13,6 +13,7 @@ import {
 } from "@/app/catalogue/shop-data";
 import {SKU_REGISTRATION_PLACEHOLDER, buildSku, parseSku} from "@/lib/product-sku";
 import {DEFAULT_COLOUR_OPTIONS, upgradeLegacyColours, type ColourOption} from "@/lib/colour-library";
+import {resolveBagSize, type ResolvedBagSize} from "@/lib/size-standard";
 import type {AdminBodyShape} from "./body-shape-types";
 
 export type ProductStatus = "active" | "draft" | "archived";
@@ -55,6 +56,8 @@ export type AdminProduct = {
   lowStockThreshold: number | null;
   allowBackorders: BackorderPolicy;
   productCode: string | null;
+  sizeOverride: ShopSize | null;
+  sizeOverrideReason: string | null;
   vendor: string | null;
   dimensions: string | null;
   bodyShapeId: string | null;
@@ -94,6 +97,10 @@ export type ProductFormState = {
   // A coarse Small/Medium/Large browsing tag, independent of bodyShapeId
   // above  -  see the comment on products.size in lib/db/schema.ts.
   size: ShopSize;
+  // Bags only: a manual size (with the reason) that replaces the calculated
+  // one; null means "use the calculated size". See lib/size-standard.ts.
+  sizeOverride: ShopSize | null;
+  sizeOverrideReason: string;
   shape: ShopShape;
   // Multi-select; the first-listed handle is never special.
   handles: ShopHandle[];
@@ -144,13 +151,44 @@ export type ProductFormState = {
   personalisationOptions: string[];
 };
 
-export function skuPartsFromForm(form: ProductFormState) {
+export const LEGACY_SIZE_REASON = "Assigned before the automatic size standard; not yet reviewed.";
+
+// Bags are sized by the standard, not by hand. A saved bag whose size differs
+// from what the standard now calculates (or can't be calculated at all) is
+// carried forward as an explicit, visible manual size  -  never silently
+// replaced  -  until the admin chooses to apply the calculated one.
+function sizeStateFromProduct(product: AdminProduct) {
+  const none = {sizeOverride: null, sizeOverrideReason: ""};
+  if (product.productType !== "Bags") return none;
+  if (product.sizeOverride) {
+    return {sizeOverride: product.sizeOverride, sizeOverrideReason: product.sizeOverrideReason ?? ""};
+  }
+  const calculated = resolveBagSize({body: product.bodyShape, dimensionsOverride: product.dimensions ?? "", manualSize: null});
+  if (product.size && calculated.size !== product.size) {
+    return {sizeOverride: product.size, sizeOverrideReason: LEGACY_SIZE_REASON};
+  }
+  return none;
+}
+
+// Null for anything that isn't a bag (Dolls still pick a size by hand).
+export function bagSizeForForm(form: ProductFormState, bodyShapes: AdminBodyShape[]): ResolvedBagSize | null {
+  if (form.productType !== "Bags") return null;
+  return resolveBagSize({
+    body: bodyShapes.find((shape) => shape.id === form.bodyShapeId) ?? null,
+    dimensionsOverride: form.dimensions,
+    manualSize: form.sizeOverride
+  });
+}
+
+export function skuPartsFromForm(form: ProductFormState, bodyShapes: AdminBodyShape[]) {
+  const bag = bagSizeForForm(form, bodyShapes);
   return {
     productType: form.productType,
     design: form.skuDesign,
     variant: form.skuVariant,
     material: form.materials[0] ?? null,
-    size: form.size,
+    // Bags: the automatically classified size (null = unavailable). Dolls: the picked one.
+    size: bag ? bag.size : form.productType === "Dolls" ? form.size : null,
     shape: form.shape,
     registration: form.skuRegistration
   };
@@ -158,8 +196,8 @@ export function skuPartsFromForm(form: ProductFormState) {
 
 // The code that will be saved: a preserved legacy code as-is, otherwise the
 // generated one (null while incomplete).
-export function skuForForm(form: ProductFormState): string | null {
-  return form.skuLegacyCode ?? buildSku(skuPartsFromForm(form));
+export function skuForForm(form: ProductFormState, bodyShapes: AdminBodyShape[]): string | null {
+  return form.skuLegacyCode ?? buildSku(skuPartsFromForm(form, bodyShapes));
 }
 
 // A product with no code yet starts in generated mode. A saved code is only
@@ -203,6 +241,8 @@ export function emptyForm(): ProductFormState {
     subcategory: "",
     bodyShapeId: "",
     size: shopSizes[0],
+    sizeOverride: null,
+    sizeOverrideReason: "",
     shape: shopShapes[0],
     handles: ["Handbag"],
     accessoryCategory: accessoryCategories[0],
@@ -247,6 +287,7 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     subcategory: product.subcategory ?? "",
     bodyShapeId: product.bodyShapeId ?? "",
     size: product.size ?? shopSizes[0],
+    ...sizeStateFromProduct(product),
     shape: product.shape ?? shopShapes[0],
     handles: product.handles.length ? product.handles : product.handle ? [product.handle] : [],
     accessoryCategory: product.accessoryCategory ?? accessoryCategories[0],
@@ -281,7 +322,7 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
 // Accessory's never carries size/materials, and so on. That's what lets
 // lib/admin-products.ts's per-type validation work: it only ever sees the
 // fields that type actually owns.
-export function buildFormData(form: ProductFormState) {
+export function buildFormData(form: ProductFormState, bodyShapes: AdminBodyShape[]) {
   const formData = new FormData();
   formData.set("name", form.name);
   formData.set("priceIdr", form.priceIdr);
@@ -294,7 +335,10 @@ export function buildFormData(form: ProductFormState) {
 
   if (form.productType === "Bags") {
     if (form.bodyShapeId) formData.set("bodyShapeId", form.bodyShapeId);
-    formData.set("size", form.size);
+    // No size is sent: the server calculates it from the body, and only reads a
+    // manual size (with its reason) when one is set.
+    formData.set("sizeOverride", form.sizeOverride ?? "");
+    formData.set("sizeOverrideReason", form.sizeOverride ? form.sizeOverrideReason.trim() : "");
     formData.set("shape", form.shape);
     form.handles.forEach((handle) => formData.append("handle", handle));
     form.materials.forEach((material) => formData.append("materials", material));
@@ -318,7 +362,7 @@ export function buildFormData(form: ProductFormState) {
   formData.set("stock", form.stock.trim());
   formData.set("lowStockThreshold", form.lowStockThreshold.trim());
   formData.set("allowBackorders", form.allowBackorders);
-  formData.set("productCode", skuForForm(form) ?? "");
+  formData.set("productCode", skuForForm(form, bodyShapes) ?? "");
   formData.set("vendor", form.vendor.trim());
   formData.set("dimensions", form.dimensions.trim());
 

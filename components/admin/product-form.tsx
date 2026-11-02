@@ -27,8 +27,9 @@ import {RichTextEditor} from "./rich-text-editor";
 import {SelectField} from "./select-field";
 import {PillMultiSelect, PillSingleSelect} from "./pill-select";
 import {skuProblem, suggestDesignAbbreviation} from "@/lib/product-sku";
+import {describeDimensions} from "@/lib/size-standard";
 import {SkuField} from "./sku-field";
-import {AdminProduct, ProductFormState, ProductStatus, skuPartsFromForm} from "./types";
+import {AdminProduct, ProductFormState, ProductStatus, bagSizeForForm, skuPartsFromForm} from "./types";
 
 function SectionCard({
   title,
@@ -131,6 +132,113 @@ function DimensionsOverrideField({form, onChange}: {form: ProductFormState; onCh
   );
 }
 
+// A bag's size is calculated, not chosen: the NATLOVERS size standard reads
+// the assigned body's dimensions (or the Dimensions Override when one is set)
+// and classifies the finished bag. The admin sees the result and the numbers
+// behind it; the only way to change it is an explicit, reasoned manual size,
+// which is clearly marked and always shows the calculated size beside it.
+function BagSizeField({
+  form,
+  onChange,
+  bodyShapes,
+  error
+}: {
+  form: ProductFormState;
+  onChange: (next: ProductFormState) => void;
+  bodyShapes: AdminBodyShape[];
+  error: string | null;
+}) {
+  const resolved = bagSizeForForm(form, bodyShapes);
+  if (!resolved) return null;
+
+  const body = bodyShapes.find((shape) => shape.id === form.bodyShapeId) ?? null;
+  const source = resolved.basis === "override" ? "your Dimensions Override" : body ? body.name : null;
+  const numbers =
+    resolved.calculated && resolved.dimensions
+      ? `${describeDimensions(resolved.dimensions)} · volume ${resolved.calculated.volumeCm3.toLocaleString("en-US")} cm³ · longest side ${resolved.calculated.longestSideCm} cm`
+      : null;
+  const manual = form.sizeOverride !== null;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2.5">
+        {resolved.size ? (
+          <span className="rounded-full bg-forest-900 px-4 py-2 text-sm font-semibold text-[#fff8eb]">{resolved.size}</span>
+        ) : (
+          <span className="rounded-lg border border-dashed border-[#c9b98f] bg-[#fbf3dd] px-3 py-2 text-sm font-medium text-[#8a6d2f]">
+            Size unavailable — check body dimensions.
+          </span>
+        )}
+        {resolved.size ? (
+          <span
+            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${
+              manual ? "bg-[#f6ddc9] text-[#8a4a1f]" : "bg-[#e7efe3] text-[#3f5f3a]"
+            }`}
+          >
+            {manual ? "Manual override" : "Automatically classified"}
+          </span>
+        ) : null}
+      </div>
+
+      {numbers && source ? (
+        <p className="text-xs leading-relaxed text-forest-500">
+          {manual ? "Calculated size" : "Based on"} {source}: {manual && resolved.calculated ? `${resolved.calculated.size} · ` : ""}
+          {numbers}.{resolved.calculated?.promotedByLongestSide ? " Its longest side moves it up to Large." : ""}
+        </p>
+      ) : resolved.basis === "override" ? (
+        <p className="text-xs text-forest-500">
+          The Dimensions Override isn&apos;t in a form the size standard can read. Use three numbers such as 30 x 20 x 15 cm,
+          or Ø24 x 10 cm for a round piece.
+        </p>
+      ) : null}
+
+      {manual ? (
+        <div className="space-y-2 rounded-xl border border-[#e6dcc6] bg-[#fcf8ee] p-3">
+          <div className="flex flex-wrap gap-2">
+            {shopSizes.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => onChange({...form, sizeOverride: option})}
+                aria-pressed={form.sizeOverride === option}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium ${
+                  form.sizeOverride === option ? "glass-btn-primary text-[#fff8eb]" : "glass-btn-secondary text-forest-700"
+                }`}
+              >
+                {sizeLabels[option].en}
+              </button>
+            ))}
+          </div>
+          <input
+            value={form.sizeOverrideReason}
+            onChange={(event) => onChange({...form, sizeOverrideReason: event.target.value.slice(0, 300)})}
+            placeholder="Why is this size set manually? (required)"
+            aria-label="Reason for the manual size"
+            className={fieldClass}
+          />
+          <button
+            type="button"
+            onClick={() => onChange({...form, sizeOverride: null, sizeOverrideReason: ""})}
+            className="text-xs font-semibold text-forest-700 underline underline-offset-2 hover:text-forest-900"
+          >
+            Use the calculated size{resolved.calculated ? ` (${resolved.calculated.size})` : ""}
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onChange({...form, sizeOverride: resolved.size ?? "Medium", sizeOverrideReason: ""})}
+          className="text-xs font-semibold text-forest-700 underline underline-offset-2 hover:text-forest-900"
+        >
+          Set a manual size…
+        </button>
+      )}
+
+      {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
+    </div>
+  );
+}
+
 // One attribute per row: the name (and a short hint on how to choose) on the
 // left, the choices on the right, hairlines between rows. Stacks on narrow
 // screens. Every attribute reads the same way, so the section scans top to
@@ -158,11 +266,13 @@ function AttributeRow({label, hint, children}: {label: string; hint?: string; ch
 function AttributeFields({
   form,
   onChange,
-  bodyShapes
+  bodyShapes,
+  sizeError
 }: {
   form: ProductFormState;
   onChange: (next: ProductFormState) => void;
   bodyShapes: AdminBodyShape[];
+  sizeError: string | null;
 }) {
   const bodyRow = (
     <AttributeRow label="Body" hint="Sets the real dimensions">
@@ -213,7 +323,9 @@ function AttributeFields({
             </p>
           ) : null}
         </AttributeRow>
-        {sizeRow}
+        <AttributeRow label="Size" hint="Calculated from the body">
+          <BagSizeField form={form} onChange={onChange} bodyShapes={bodyShapes} error={sizeError} />
+        </AttributeRow>
         <AttributeRow label="Shape" hint="Choose one">
           <PillSingleSelect
             bare
@@ -325,6 +437,7 @@ export function ProductForm({
 }) {
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
   const [skuError, setSkuError] = useState<string | null>(null);
+  const [sizeError, setSizeError] = useState<string | null>(null);
   const showAttributes =
     form.productType === "Bags" || form.productType === "Dolls" || form.productType === "Accessories";
   const productUrl = product ? `natlovers.com/catalogue/${product.slug}` : null;
@@ -334,9 +447,21 @@ export function ProductForm({
   // existing product may stay code-less.
   function handleSubmit(event: FormEvent) {
     const needsSku = !form.skuLegacyCode && (mode === "create" || Boolean(product?.productCode));
-    const problem = needsSku ? skuProblem(skuPartsFromForm(form)) : null;
+    const problem = needsSku ? skuProblem(skuPartsFromForm(form, bodyShapes)) : null;
     setSkuError(problem);
-    if (problem) {
+
+    // A bag needs a size: a manual one must carry a reason, and a new bag whose
+    // size can't be calculated can't be saved (an existing one keeps its size).
+    const bag = bagSizeForForm(form, bodyShapes);
+    let sizeProblem: string | null = null;
+    if (bag && form.sizeOverride && !form.sizeOverrideReason.trim()) {
+      sizeProblem = "Add a reason for the manual size.";
+    } else if (bag && !bag.size && mode === "create") {
+      sizeProblem = "Size unavailable — check body dimensions.";
+    }
+    setSizeError(sizeProblem);
+
+    if (problem || sizeProblem) {
       event.preventDefault();
       return;
     }
@@ -515,7 +640,7 @@ export function ProductForm({
             </div>
 
             <div className="space-y-2">
-              <SkuField form={form} onChange={onChange} />
+              <SkuField form={form} bodyShapes={bodyShapes} onChange={onChange} />
               {skuError ? <p className="text-sm font-medium text-red-600">{skuError}</p> : null}
             </div>
 
@@ -566,7 +691,7 @@ export function ProductForm({
 
           {showAttributes ? (
             <SectionCard title="Attributes" description="Physical properties. Material, shape and size also build the SKU; handle does not.">
-              <AttributeFields form={form} onChange={onChange} bodyShapes={bodyShapes} />
+              <AttributeFields form={form} onChange={onChange} bodyShapes={bodyShapes} sizeError={sizeError} />
             </SectionCard>
           ) : null}
 
