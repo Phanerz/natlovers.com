@@ -8,6 +8,7 @@ import {
   normalizeVariant,
   skuSegments
 } from "@/lib/product-sku";
+import type {AdminBodyShape} from "./body-shape-types";
 import {ProductFormState, skuPartsFromForm} from "./types";
 
 const autoCell =
@@ -49,12 +50,14 @@ const dash = (
 // (not disabled inputs), so the generated parts can't be edited by accident.
 export function SkuField({
   form,
+  bodyShapes,
   onChange
 }: {
   form: ProductFormState;
+  bodyShapes: AdminBodyShape[];
   onChange: (updater: (prev: ProductFormState) => ProductFormState) => void;
 }) {
-  const segments = skuSegments(skuPartsFromForm(form));
+  const segments = skuSegments(skuPartsFromForm(form, bodyShapes));
   const byKey = Object.fromEntries(segments.map((segment) => [segment.key, segment]));
 
   function readOnly(key: string, hint: string) {

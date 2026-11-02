@@ -146,7 +146,9 @@ export function skuProblem(parts: SkuParts): string | null {
   if (!normalizeVariant(parts.variant)) return "Add a single-digit variant to generate the SKU.";
   const uses = typeUses[parts.productType];
   if (uses.material && !parts.material) return "Pick a material to complete the SKU.";
-  if (uses.size && !parts.size) return "Pick a size to complete the SKU.";
+  if (uses.size && !parts.size) {
+    return parts.productType === "Bags" ? "Size unavailable — check body dimensions." : "Pick a size to complete the SKU.";
+  }
   if (uses.shape && !parts.shape) return "Pick a shape to complete the SKU.";
   return null;
 }
