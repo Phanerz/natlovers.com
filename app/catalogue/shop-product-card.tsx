@@ -18,16 +18,14 @@ import {
   sizeLabels
 } from "./shop-data";
 
-// A piece in the catalogue, presented as an exhibit rather than a boxed card:
-// the photograph sits on a soft pool of light with a faint ground shadow, and
-// the name, price and a single understated attributes line sit directly under
-// it. All the visuals live in the .catalogue-item* classes in globals.css
+// A piece in the catalogue: a rounded photo tile with the name, price and a
+// single understated attributes line directly beneath it. All the visuals live in the .catalogue-item* classes in globals.css
 // (fixed light look in both themes, like the old name/price scrim).
 //
 // The grid this sits in is a fixed-height, two-rows-per-page momentum-scroll
-// strip (see CatalogueClient), so the item must stay exactly square and never
-// grow taller: the name, price and attributes are each capped to one line, and
-// the photo stage takes whatever height is left. The photograph itself is
+// strip (see CatalogueClient), so an item must never grow taller than its row:
+// the name, price and attributes are each capped to one line, and the photo
+// tile takes whatever height is left. The photograph itself is
 // object-contain  -  never cropped, stretched or replaced  -  so square and
 // portrait shots both sit centred on the same stage.
 export function ShopProductCard({
@@ -70,8 +68,6 @@ export function ShopProductCard({
       aria-label={product.name}
     >
       <div className="catalogue-item-stage">
-        <div className="catalogue-item-glow" aria-hidden />
-        <div className="catalogue-item-ground" aria-hidden />
         <div className="catalogue-item-photo">
           <ImageWithFallback
             src={product.imageUrl}

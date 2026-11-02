@@ -1,7 +1,7 @@
 "use client";
 
 import {useState} from "react";
-import {ChevronUp, PanelLeftClose} from "lucide-react";
+import {ChevronUp, PanelLeftClose, SlidersHorizontal} from "lucide-react";
 import {Locale} from "@/lib/site";
 import {
   AccessoryCategory,
@@ -38,6 +38,7 @@ type FilterSidebarProps = {
   onToggleShape: (value: ShopShape) => void;
   onToggleHandle: (value: ShopHandle) => void;
   onToggleAccessoryCategory: (value: AccessoryCategory) => void;
+  onClearAll?: () => void;
   onCollapse?: () => void;
 };
 
@@ -45,6 +46,8 @@ const copy = {
   en: {
     eyebrow: "Catalogue",
     tagline: "Handcrafted pieces, each with a story of its own.",
+    filter: "Filter",
+    clearAll: "Clear all",
     material: "Material",
     size: "Size",
     shape: "Shape",
@@ -55,6 +58,8 @@ const copy = {
   id: {
     eyebrow: "Katalog",
     tagline: "Karya tangan, masing-masing dengan kisahnya sendiri.",
+    filter: "Filter",
+    clearAll: "Hapus semua",
     material: "Bahan",
     size: "Ukuran",
     shape: "Bentuk",
@@ -105,25 +110,35 @@ function SidebarVine() {
   );
 }
 
-function FilterSection({title, children}: {title: string; children: React.ReactNode}) {
-  const [open, setOpen] = useState(true);
+// Sections start closed (a compact index of Material / Size / Shape / Handle)
+// unless something inside is already selected, and show how many selections
+// they hold, so nothing active is ever hidden.
+function FilterSection({title, activeCount = 0, children}: {title: string; activeCount?: number; children: React.ReactNode}) {
+  const [open, setOpen] = useState(activeCount > 0);
 
   return (
-    <div className="pb-2">
+    <div className="border-t border-[#e6dcc8] first:border-t-0">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between rounded-md py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#344332]/50"
+        className="flex w-full items-center justify-between rounded-md py-3.5 text-left lg:py-3 outline-none focus-visible:ring-2 focus-visible:ring-[#344332]/50"
       >
-        <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#2e2e28]">{title}</span>
+        <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#2e2e28]">
+          {title}
+          {activeCount > 0 ? (
+            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#344332] px-1 text-[10px] font-semibold tracking-normal text-[#f7f4ee]">
+              {activeCount}
+            </span>
+          ) : null}
+        </span>
         <ChevronUp
           className={`h-3.5 w-3.5 text-[#6b7a5f] transition-transform duration-300 ease-out ${open ? "" : "rotate-180"}`}
         />
       </button>
       <div
         className={`grid transition-all duration-300 ease-out ${
-          open ? "mt-1.5 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          open ? "grid-rows-[1fr] pb-2 opacity-100" : "grid-rows-[0fr] opacity-0"
         }`}
       >
         <div className="overflow-hidden">{children}</div>
@@ -134,10 +149,10 @@ function FilterSection({title, children}: {title: string; children: React.ReactN
 
 function FilterRow({active, label, count, onClick}: {active: boolean; label: string; count: number; onClick: () => void}) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-2 py-1 group">
+    <label className="group flex cursor-pointer items-center justify-between gap-2 py-2.5 lg:py-[5px]">
       <span className="flex items-center gap-2.5">
         <input type="checkbox" checked={active} onChange={onClick} className="catalogue-filter-check" />
-        <span className="text-[13.5px] text-[#3c3c34] transition-colors duration-150 group-hover:text-[#344332]">{label}</span>
+        <span className="text-[13px] text-[#3c3c34] transition-colors duration-150 group-hover:text-[#344332]">{label}</span>
       </span>
       <span className="text-[12px] text-[#a39d8d]">{count}</span>
     </label>
@@ -158,18 +173,25 @@ export function FilterSidebar({
   onToggleShape,
   onToggleHandle,
   onToggleAccessoryCategory,
+  onClearAll,
   onCollapse
 }: FilterSidebarProps) {
   const t = copy[locale];
+  const activeTotal =
+    selectedMaterials.length +
+    selectedSizes.length +
+    selectedShapes.length +
+    selectedHandles.length +
+    selectedAccessoryCategories.length;
 
   const header = (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
         <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-[#8a9a7c]">{t.eyebrow}</p>
-        <h1 className="mt-1 font-display text-[clamp(30px,3vw,42px)] leading-none text-[#20241b]">
+        <h1 className="mt-1 font-display text-[clamp(30px,2.6vw,40px)] leading-none text-[#20241b]">
           {productTypeLabels[productType][locale]}
         </h1>
-        <p className="mt-3 max-w-[22ch] font-display text-[15px] italic leading-snug text-[#6b6b5f]">{t.tagline}</p>
+        <p className="mt-2 max-w-[24ch] font-display text-[14.5px] italic leading-snug text-[#6b6b5f]">{t.tagline}</p>
       </div>
       <div className="flex shrink-0 items-center gap-1">
         {onCollapse ? (
@@ -183,6 +205,24 @@ export function FilterSidebar({
           </button>
         ) : null}
       </div>
+    </div>
+  );
+
+  const filterBar = (
+    <div className="mt-6 flex items-center justify-between border-b border-[#e6dcc8] pb-3">
+      <span className="flex items-center gap-2 text-[13px] font-medium text-[#2e2e28]">
+        <SlidersHorizontal className="h-3.5 w-3.5 text-[#6b7a5f]" />
+        {t.filter}
+      </span>
+      {activeTotal > 0 && onClearAll ? (
+        <button
+          type="button"
+          onClick={onClearAll}
+          className="rounded-md text-[12px] text-[#6b6b5f] underline-offset-2 outline-none transition-colors hover:text-[#344332] hover:underline focus-visible:ring-2 focus-visible:ring-[#344332]/50"
+        >
+          {t.clearAll}
+        </button>
+      ) : null}
     </div>
   );
 
@@ -203,8 +243,9 @@ export function FilterSidebar({
     return (
       <aside className="relative w-full min-w-0 overflow-hidden">
         {header}
-        <div className="mt-4">
-          <FilterSection title={t.category}>
+        {filterBar}
+        <div>
+          <FilterSection title={t.category} activeCount={selectedAccessoryCategories.length}>
             <div className="flex flex-col">
               {accessoryCategories.map((category) => (
                 <FilterRow
@@ -228,8 +269,9 @@ export function FilterSidebar({
     return (
       <aside className="relative w-full min-w-0 overflow-hidden">
         {header}
-        <div className="mt-4 space-y-3">
-          <FilterSection title={t.size}>
+        {filterBar}
+        <div>
+          <FilterSection title={t.size} activeCount={selectedSizes.length}>
             <div className="flex flex-col">
               {shopSizes.map((size) => (
                 <FilterRow
@@ -257,8 +299,9 @@ export function FilterSidebar({
   return (
     <aside className="relative w-full min-w-0 overflow-hidden">
       {header}
-      <div className="mt-4 space-y-3">
-        <FilterSection title={t.material}>
+      {filterBar}
+      <div>
+        <FilterSection title={t.material} activeCount={selectedMaterials.length}>
           <div className="flex flex-col">
             {bagMaterials.map((material) => (
               <FilterRow
@@ -272,7 +315,7 @@ export function FilterSidebar({
           </div>
         </FilterSection>
 
-        <FilterSection title={t.size}>
+        <FilterSection title={t.size} activeCount={selectedSizes.length}>
           <div className="flex flex-col">
             {shopSizes.map((size) => (
               <FilterRow
@@ -286,7 +329,7 @@ export function FilterSidebar({
           </div>
         </FilterSection>
 
-        <FilterSection title={t.shape}>
+        <FilterSection title={t.shape} activeCount={selectedShapes.length}>
           <div className="flex flex-col">
             {shopShapes.map((shape) => (
               <FilterRow
@@ -300,7 +343,7 @@ export function FilterSidebar({
           </div>
         </FilterSection>
 
-        <FilterSection title={t.handle}>
+        <FilterSection title={t.handle} activeCount={selectedHandles.length}>
           <div className="flex flex-col">
             {shopHandles.map((handle) => (
               <FilterRow
