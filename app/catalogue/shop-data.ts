@@ -12,7 +12,7 @@ export type ShopSize = "Small" | "Medium" | "Large";
 
 export type ShopShape = "Rectangle" | "Round" | "House Shaped" | "Other";
 
-export type ShopHandle = "Handbag" | "Shoulder Bag" | "Sling Bag" | "Clutch" | "Backpack";
+export type ShopHandle = "Handbag" | "Shoulder Bag" | "Sling Bag" | "Clutch" | "Rucksack";
 
 export type AccessoryCategory = "Bracelet" | "Charm" | "Necklace";
 
@@ -48,7 +48,7 @@ type BilingualLabel = {en: string; id: string};
 export const bagMaterials: ShopMaterial[] = ["Agel", "Gajih", "Mendong", "Patchwork", "Water Hyacinth", "Woven Fabric"];
 export const shopSizes: ShopSize[] = ["Small", "Medium", "Large"];
 export const shopShapes: ShopShape[] = ["House Shaped", "Rectangle", "Round", "Other"];
-export const shopHandles: ShopHandle[] = ["Backpack", "Clutch", "Handbag", "Shoulder Bag", "Sling Bag"];
+export const shopHandles: ShopHandle[] = ["Clutch", "Handbag", "Shoulder Bag", "Sling Bag", "Rucksack"];
 export const accessoryCategories: AccessoryCategory[] = ["Bracelet", "Charm", "Necklace"];
 
 export const materialLabels: Record<ShopMaterial, BilingualLabel> = {
@@ -78,7 +78,7 @@ export const handleLabels: Record<ShopHandle, BilingualLabel> = {
   "Shoulder Bag": {en: "Shoulder Bag", id: "Bahu"},
   "Sling Bag": {en: "Sling Bag", id: "Slempang"},
   Clutch: {en: "Clutch", id: "Clutch"},
-  Backpack: {en: "Backpack", id: "Ransel"}
+  Rucksack: {en: "Rucksack", id: "Ransel"}
 };
 
 export const accessoryCategoryLabels: Record<AccessoryCategory, BilingualLabel> = {
@@ -121,7 +121,9 @@ export function parseHandles(stored: string | null | undefined): ShopHandle[] {
   if (!stored) return [];
   return stored
     .split(",")
-    .map((value) => value.trim())
+    // "Backpack" was this option's name before it became "Rucksack"; read it as
+    // the same option so nothing saved under the old name is lost.
+    .map((value) => (value.trim() === "Backpack" ? "Rucksack" : value.trim()))
     .filter((value): value is ShopHandle => (shopHandles as string[]).includes(value));
 }
 

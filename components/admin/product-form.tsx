@@ -25,8 +25,8 @@ import {ProductOptionsCard} from "./product-options-card";
 import {ProductStatusSidebar} from "./product-status-sidebar";
 import {RichTextEditor} from "./rich-text-editor";
 import {SelectField} from "./select-field";
-import {PillMultiSelect, PillSingleSelect} from "./pill-select";
-import {skuProblem, suggestDesignAbbreviation} from "@/lib/product-sku";
+import {PillMultiSelect, PillOption, PillSingleSelect, pillClassName} from "./pill-select";
+import {materialCodes, shapeCodes, sizeCodes, skuProblem, suggestDesignAbbreviation} from "@/lib/product-sku";
 import {describeDimensions} from "@/lib/size-standard";
 import {SkuField} from "./sku-field";
 import {AdminProduct, ProductFormState, ProductStatus, bagSizeForForm, skuPartsFromForm} from "./types";
@@ -163,7 +163,7 @@ function BagSizeField({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2.5">
         {resolved.size ? (
-          <span className="rounded-full bg-forest-900 px-4 py-2 text-sm font-semibold text-[#fff8eb]">{resolved.size}</span>
+          <span className={pillClassName(true)}>{resolved.size}</span>
         ) : (
           <span className="rounded-lg border border-dashed border-[#c9b98f] bg-[#fbf3dd] px-3 py-2 text-sm font-medium text-[#8a6d2f]">
             Size unavailable — check body dimensions.
@@ -196,17 +196,13 @@ function BagSizeField({
         <div className="space-y-2 rounded-xl border border-[#e6dcc6] bg-[#fcf8ee] p-3">
           <div className="flex flex-wrap gap-2">
             {shopSizes.map((option) => (
-              <button
+              <PillOption
                 key={option}
-                type="button"
+                label={sizeLabels[option].en}
+                code={sizeCodes[option]}
+                active={form.sizeOverride === option}
                 onClick={() => onChange({...form, sizeOverride: option})}
-                aria-pressed={form.sizeOverride === option}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium ${
-                  form.sizeOverride === option ? "glass-btn-primary text-[#fff8eb]" : "glass-btn-secondary text-forest-700"
-                }`}
-              >
-                {sizeLabels[option].en}
-              </button>
+              />
             ))}
           </div>
           <input
@@ -238,6 +234,10 @@ function BagSizeField({
     </div>
   );
 }
+
+// Numbered options read in numeric order (1, 2, 3...), whatever order the
+// storefront filter lists them in.
+const materialsByCode = [...bagMaterials].sort((a, b) => Number(materialCodes[a]) - Number(materialCodes[b]));
 
 // One attribute per row: the name (and a short hint on how to choose) on the
 // left, the choices on the right, hairlines between rows. Stacks on narrow
@@ -291,6 +291,7 @@ function AttributeFields({
         label="Size"
         options={shopSizes}
         getLabel={(option) => sizeLabels[option].en}
+        getCode={(option) => sizeCodes[option]}
         value={form.size}
         onChange={(value) => onChange({...form, size: value})}
       />
@@ -311,8 +312,9 @@ function AttributeFields({
           <PillSingleSelect
             bare
             label="Material"
-            options={bagMaterials}
+            options={materialsByCode}
             getLabel={(option) => materialLabels[option].en}
+            getCode={(option) => materialCodes[option]}
             value={form.materials[0] ?? null}
             onChange={(value) => onChange({...form, materials: [value]})}
           />
@@ -332,6 +334,7 @@ function AttributeFields({
             label="Shape"
             options={shopShapes}
             getLabel={(option) => shapeLabels[option].en}
+            getCode={(option) => shapeCodes[option]}
             value={form.shape}
             onChange={(value) => onChange({...form, shape: value})}
           />
