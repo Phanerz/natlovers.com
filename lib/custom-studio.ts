@@ -54,10 +54,10 @@ export const customTypeTabLabel: Record<CustomProductType, string> = {
 // preview able to find a genuine photograph of the combination being
 // configured instead of an approximation.
 // Custom Studio only offers the three commissionable silhouettes, narrower than
-// the catalogue's own shape / handle taxonomies (which add Other / Backpack).
+// the catalogue's own shape / handle taxonomies (which add Other / Rucksack).
 export const customBagShapes: Exclude<ShopShape, "Other">[] = ["Rectangle", "Round", "House Shaped"];
 
-export const customBagHandles: Exclude<ShopHandle, "Backpack">[] = ["Handbag", "Shoulder Bag", "Sling Bag", "Clutch"];
+export const customBagHandles: Exclude<ShopHandle, "Rucksack">[] = ["Handbag", "Shoulder Bag", "Sling Bag", "Clutch"];
 
 export const customBagSizes: ShopSize[] = ["Small", "Medium", "Large"];
 
