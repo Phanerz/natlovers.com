@@ -139,7 +139,7 @@ export function ImageDropzone({
               <Image src={url} alt={`Product image ${index + 1}`} fill sizes="160px" className="object-cover" />
 
               <div className="absolute left-1.5 top-1.5 flex items-center gap-1">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black/55 text-[10px] font-semibold text-white">
+                <span className="flex aspect-square h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black/55 text-[10px] font-semibold text-white">
                   {index + 1}
                 </span>
                 {index === 0 ? (
@@ -162,7 +162,7 @@ export function ImageDropzone({
                 type="button"
                 onClick={() => removeImage(index)}
                 aria-label="Remove image"
-                className="icon-button absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                className="icon-button absolute right-1.5 top-1.5 flex aspect-square h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -173,7 +173,7 @@ export function ImageDropzone({
                   onClick={() => move(index, -1)}
                   disabled={index === 0}
                   aria-label="Move earlier"
-                  className="icon-button flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="icon-button flex aspect-square h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
                 </button>
@@ -182,14 +182,14 @@ export function ImageDropzone({
                   onClick={() => move(index, 1)}
                   disabled={index === images.length - 1}
                   aria-label="Move later"
-                  className="icon-button flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="icon-button flex aspect-square h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <ArrowRight className="h-3.5 w-3.5" />
                 </button>
               </div>
 
               <div
-                className="absolute bottom-1.5 right-1.5 flex h-6 w-6 cursor-grab items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition-opacity duration-150 active:cursor-grabbing group-hover:opacity-100"
+                className="absolute bottom-1.5 right-1.5 flex aspect-square h-6 w-6 shrink-0 cursor-grab items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition-opacity duration-150 active:cursor-grabbing group-hover:opacity-100"
                 aria-hidden
                 title="Drag to reorder"
               >

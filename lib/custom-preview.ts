@@ -52,6 +52,11 @@ const noMatch: PreviewMatch = {product: null, quality: "none", matched: [], unma
 // in lib/db/schema.ts), which happens to share Custom Studio's own sizing
 // vocabulary  -  not the real measurements on the product's assigned body
 // (see lib/body-shapes.ts), which has no equivalent in Custom Studio.
+// handleType stores a comma-separated list for multi-handle bags.
+function hasHandle(product: PreviewProduct, handle: string) {
+  return (product.handleType ?? "").split(",").some((stored) => stored.trim() === handle);
+}
+
 function scoreBag(product: PreviewProduct, config: Extract<CustomConfig, {productType: "Bags"}>) {
   const matched: string[] = [];
   const unmatched: string[] = [];
@@ -60,7 +65,7 @@ function scoreBag(product: PreviewProduct, config: Extract<CustomConfig, {produc
   else unmatched.push("shape");
 
   if (config.handle) {
-    if (product.handleType === config.handle) matched.push("handle");
+    if (hasHandle(product, config.handle)) matched.push("handle");
     else unmatched.push("handle");
   }
 
@@ -75,7 +80,7 @@ function scoreBag(product: PreviewProduct, config: Extract<CustomConfig, {produc
   // fibre is a far more useful reference than the reverse.
   const score =
     (product.shape === config.shape ? 8 : 0) +
-    (config.handle && product.handleType === config.handle ? 6 : 0) +
+    (config.handle && hasHandle(product, config.handle) ? 6 : 0) +
     (product.materials.includes(config.colour) ? 3 : 0) +
     (product.size === config.size ? 1 : 0);
 

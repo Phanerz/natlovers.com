@@ -94,7 +94,7 @@ export function HeroImageDropzone({
                   onFilesChange([]);
                 }}
                 aria-label="Remove image"
-                className="icon-button absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                className="icon-button absolute right-1.5 top-1.5 flex aspect-square h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
               >
                 <X className="h-3.5 w-3.5" />
               </button>

@@ -107,7 +107,7 @@ export function ColourOptionsEditor({
                   type="button"
                   onClick={() => removeOption(index)}
                   aria-label="Remove colour"
-                  className="icon-button flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-forest-500 hover:text-red-600"
+                  className="icon-button flex aspect-square h-8 w-8 shrink-0 items-center justify-center rounded-full text-forest-500 hover:text-red-600"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

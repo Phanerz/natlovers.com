@@ -467,7 +467,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
         return false;
       }
 
-      if (selectedHandles.length && (!product.handle || !selectedHandles.includes(product.handle))) {
+      if (selectedHandles.length && !product.handles.some((handle) => selectedHandles.includes(handle))) {
         return false;
       }
 

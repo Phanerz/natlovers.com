@@ -23,7 +23,8 @@ export function PillSingleSelect<T extends string>({
   label: string;
   options: readonly T[];
   getLabel: (option: T) => string;
-  value: T;
+  // null = nothing picked yet (no pill shows as selected).
+  value: T | null;
   onChange: (value: T) => void;
 }) {
   return (

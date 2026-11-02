@@ -14,6 +14,8 @@ import {
   ShopSize,
   accessoryCategories,
   bagMaterials,
+  parseHandles,
+  serializeHandles,
   shopHandles,
   shopProductTypes,
   shopShapes,
@@ -89,7 +91,7 @@ const shopProductInputSchema = z.object({
   bodyShapeId: z.string().trim().min(1).optional(),
   size: (z.enum(shopSizes as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopSize>).optional(),
   shape: (z.enum(shopShapes as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopShape>).optional(),
-  handle: (z.enum(shopHandles as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopHandle>).optional(),
+  handles: z.array(z.enum(shopHandles as unknown as [string, ...string[]]) as unknown as z.ZodType<ShopHandle>).optional(),
   accessoryCategory: (
     z.enum(accessoryCategories as unknown as [string, ...string[]]) as unknown as z.ZodType<AccessoryCategory>
   ).optional(),
@@ -251,7 +253,8 @@ function toAdminProduct(row: typeof products.$inferSelect, bodyShape: AdminBodyS
     materials: row.materials as ShopMaterial[],
     size: (row.size as ShopSize) ?? null,
     shape: (row.shape as ShopShape) ?? null,
-    handle: (row.handleType as ShopHandle) ?? null,
+    handle: parseHandles(row.handleType)[0] ?? null,
+    handles: parseHandles(row.handleType),
     accessoryCategory: (row.accessoryCategory as AccessoryCategory) ?? null,
     tags: row.tags,
     collections: row.collections,
@@ -310,7 +313,7 @@ function attributesForType(
     bodyShapeId?: string;
     size?: ShopSize;
     shape?: ShopShape;
-    handle?: ShopHandle;
+    handles?: ShopHandle[];
     accessoryCategory?: AccessoryCategory;
     materials?: string[];
   },
@@ -319,12 +322,13 @@ function attributesForType(
   bodyShapeId: string | null;
   size: ShopSize | null;
   shape: ShopShape | null;
-  handleType: ShopHandle | null;
+  // Comma-separated, see serializeHandles.
+  handleType: string | null;
   accessoryCategory: AccessoryCategory | null;
   materials: ShopMaterial[];
 } {
   if (productType === "Bags") {
-    if (!parsed.shape || !parsed.handle) {
+    if (!parsed.shape || !parsed.handles?.length) {
       throw new Error("Shape and handle are required for bags.");
     }
     if (options.requireBody && !parsed.bodyShapeId) {
@@ -343,7 +347,7 @@ function attributesForType(
       bodyShapeId: parsed.bodyShapeId ?? null,
       size: parsed.size ?? null,
       shape: parsed.shape,
-      handleType: parsed.handle,
+      handleType: serializeHandles(parsed.handles),
       accessoryCategory: null,
       materials
     };
@@ -444,7 +448,7 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
     bodyShapeId: formData.get("bodyShapeId") || undefined,
     size: formData.get("size") || undefined,
     shape: formData.get("shape") || undefined,
-    handle: formData.get("handle") || undefined,
+    handles: formData.getAll("handle").map(String).filter(Boolean),
     accessoryCategory: formData.get("accessoryCategory") || undefined,
     materials: formData.getAll("materials").map(String),
     tags: formData.getAll("tags").map(String),
@@ -554,7 +558,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
   if (formData.has("bodyShapeId")) raw.bodyShapeId = formData.get("bodyShapeId") || undefined;
   if (formData.has("size")) raw.size = formData.get("size") || undefined;
   if (formData.has("shape")) raw.shape = formData.get("shape") || undefined;
-  if (formData.has("handle")) raw.handle = formData.get("handle") || undefined;
+  if (formData.has("handle")) raw.handles = formData.getAll("handle").map(String).filter(Boolean);
   if (formData.has("accessoryCategory")) raw.accessoryCategory = formData.get("accessoryCategory") || undefined;
   if (formData.getAll("materials").length) raw.materials = formData.getAll("materials").map(String);
   if (formData.getAll("tags").length) raw.tags = formData.getAll("tags").map(String);
@@ -632,7 +636,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       bodyShapeId: parsed.bodyShapeId ?? existing.bodyShapeId ?? undefined,
       size: (parsed.size as ShopSize | undefined) ?? (existing.size as ShopSize | undefined) ?? undefined,
       shape: (parsed.shape as ShopShape | undefined) ?? (existing.shape as ShopShape | undefined) ?? undefined,
-      handle: (parsed.handle as ShopHandle | undefined) ?? (existing.handleType as ShopHandle | undefined) ?? undefined,
+      handles: (parsed.handles as ShopHandle[] | undefined) ?? parseHandles(existing.handleType),
       accessoryCategory:
         (parsed.accessoryCategory as AccessoryCategory | undefined) ??
         (existing.accessoryCategory as AccessoryCategory | undefined) ??
@@ -728,7 +732,7 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
   if (formData.has("bodyShapeId")) raw.bodyShapeId = formData.get("bodyShapeId") || undefined;
   if (formData.has("size")) raw.size = formData.get("size") || undefined;
   if (formData.has("shape")) raw.shape = formData.get("shape") || undefined;
-  if (formData.has("handle")) raw.handle = formData.get("handle") || undefined;
+  if (formData.has("handle")) raw.handles = formData.getAll("handle").map(String).filter(Boolean);
   if (formData.has("accessoryCategory")) raw.accessoryCategory = formData.get("accessoryCategory") || undefined;
   if (formData.getAll("materials").length) raw.materials = formData.getAll("materials").map(String);
   if (formData.getAll("tags").length) raw.tags = formData.getAll("tags").map(String);
@@ -790,7 +794,7 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
       bodyShapeId: parsed.bodyShapeId ?? existing.bodyShapeId ?? undefined,
       size: (parsed.size as ShopSize | undefined) ?? (existing.size as ShopSize | undefined) ?? undefined,
       shape: (parsed.shape as ShopShape | undefined) ?? (existing.shape as ShopShape | undefined) ?? undefined,
-      handle: (parsed.handle as ShopHandle | undefined) ?? (existing.handleType as ShopHandle | undefined) ?? undefined,
+      handles: (parsed.handles as ShopHandle[] | undefined) ?? parseHandles(existing.handleType),
       accessoryCategory:
         (parsed.accessoryCategory as AccessoryCategory | undefined) ??
         (existing.accessoryCategory as AccessoryCategory | undefined) ??
@@ -822,7 +826,8 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
     materials: attributes.materials,
     size: attributes.size,
     shape: attributes.shape,
-    handle: attributes.handleType,
+    handle: parseHandles(attributes.handleType)[0] ?? null,
+    handles: parseHandles(attributes.handleType),
     accessoryCategory: attributes.accessoryCategory,
     tags: parsed.tags ?? existing.tags,
     collections: parsed.collections ?? existing.collections,
