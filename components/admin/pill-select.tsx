@@ -13,12 +13,15 @@ function PillOption({label, active, onClick}: {label: string; active: boolean; o
   );
 }
 
+// `bare` renders just the pills, for a caller that supplies its own label
+// (the attribute rows in product-form.tsx).
 export function PillSingleSelect<T extends string>({
   label,
   options,
   getLabel,
   value,
-  onChange
+  onChange,
+  bare
 }: {
   label: string;
   options: readonly T[];
@@ -26,11 +29,12 @@ export function PillSingleSelect<T extends string>({
   // null = nothing picked yet (no pill shows as selected).
   value: T | null;
   onChange: (value: T) => void;
+  bare?: boolean;
 }) {
   return (
     <div className="space-y-2">
-      <span className="muted">{label}</span>
-      <div className="flex flex-wrap gap-2">
+      {bare ? null : <span className="muted">{label}</span>}
+      <div role="group" aria-label={label} className="flex flex-wrap gap-2">
         {options.map((option) => (
           <PillOption key={option} label={getLabel(option)} active={option === value} onClick={() => onChange(option)} />
         ))}
@@ -44,13 +48,15 @@ export function PillMultiSelect<T extends string>({
   options,
   getLabel,
   value,
-  onChange
+  onChange,
+  bare
 }: {
   label: string;
   options: readonly T[];
   getLabel: (option: T) => string;
   value: T[];
   onChange: (value: T[]) => void;
+  bare?: boolean;
 }) {
   function toggle(option: T) {
     onChange(value.includes(option) ? value.filter((item) => item !== option) : [...value, option]);
@@ -58,8 +64,8 @@ export function PillMultiSelect<T extends string>({
 
   return (
     <div className="space-y-2">
-      <span className="muted">{label}</span>
-      <div className="flex flex-wrap gap-2">
+      {bare ? null : <span className="muted">{label}</span>}
+      <div role="group" aria-label={label} className="flex flex-wrap gap-2">
         {options.map((option) => (
           <PillOption key={option} label={getLabel(option)} active={value.includes(option)} onClick={() => toggle(option)} />
         ))}

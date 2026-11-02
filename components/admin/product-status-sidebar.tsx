@@ -16,9 +16,9 @@ const statusOptions: {value: ProductStatus; label: string}[] = [
 ];
 
 const statusPillClassName: Record<ProductStatus, string> = {
-  active: "bg-[#dcecd8] text-[#2b5c2a] hover:bg-[#cfe6ca]",
-  draft: "bg-[#eee1c4] text-forest-800 hover:bg-[#e6d6ac]",
-  archived: "bg-[#e6e0d8] text-forest-500 hover:bg-[#dcd4c8]"
+  active: "bg-[#dcecd8] text-[#2b5c2a]",
+  draft: "bg-[#eee1c4] text-forest-800",
+  archived: "bg-[#e6e0d8] text-forest-500"
 };
 
 function SidebarCard({title, action, children}: {title: string; action?: React.ReactNode; children: React.ReactNode}) {
@@ -73,14 +73,17 @@ export function ProductStatusSidebar({
   return (
     <div className="space-y-6">
       <SidebarCard title="Product Status">
-        <Field label="Status">
+        {/* A div, not Field's <label>: a label would forward any click on its
+            text or menu padding to the dropdown trigger. */}
+        <div className="block space-y-1.5 text-sm text-forest-700">
+          <span className="muted">Status</span>
           <PillDropdown
             value={form.status}
             options={statusOptions}
             pillClassName={statusPillClassName[form.status]}
             onChange={(value) => onChange((prev) => ({...prev, status: value}))}
           />
-        </Field>
+        </div>
 
         <Field label="Published on">
           <p className="rounded-lg border border-[#d4c5ab] bg-[#f2ecdc] px-3.5 py-2.5 text-sm text-forest-600">

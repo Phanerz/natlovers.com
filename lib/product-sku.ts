@@ -1,6 +1,6 @@
 import type {ShopMaterial, ShopProductType, ShopShape, ShopSize} from "@/app/catalogue/shop-data";
 
-// NAT-[CATEGORY]-[DESIGN]-[VARIANT][MATERIAL][SIZE][SHAPE]-[REGISTRATION]
+// NAT-[CATEGORY]-[DESIGN]-[VARIANT][MATERIAL][SHAPE][SIZE]-[SERIAL]
 //
 // Every lookup lives in this one file: adding a material, size, shape or
 // category later is a one-line change to the matching table below  -  the
@@ -114,15 +114,15 @@ export function skuSegments(parts: SkuParts): SkuSegment[] {
     {key: "design", label: "Design", value: design || "????", auto: false, pending: !design},
     {key: "variant", label: "Variant", value: variant || SKU_UNSET, auto: false, pending: !variant},
     {key: "material", label: "Material", value: digit(uses.material, parts.material, materialCodes), auto: true, pending: false},
-    {key: "size", label: "Size", value: digit(uses.size, parts.size, sizeCodes), auto: true, pending: false},
     {key: "shape", label: "Shape", value: digit(uses.shape, parts.shape, shapeCodes), auto: true, pending: false},
-    {key: "registration", label: "Registration", value: normalizeRegistration(parts.registration), auto: false, pending: false}
+    {key: "size", label: "Size", value: digit(uses.size, parts.size, sizeCodes), auto: true, pending: false},
+    {key: "registration", label: "Serial No.", value: normalizeRegistration(parts.registration), auto: false, pending: false}
   ].map((segment) => ({...segment, pending: segment.pending || segment.value.includes(SKU_UNSET)}));
 }
 
 function assemble(segments: SkuSegment[]): string {
   const value = (key: string) => segments.find((segment) => segment.key === key)!.value;
-  const attributes = `${value("variant")}${value("material")}${value("size")}${value("shape")}`;
+  const attributes = `${value("variant")}${value("material")}${value("shape")}${value("size")}`;
   return [value("brand"), value("category"), value("design"), attributes, value("registration")].join("-");
 }
 
@@ -161,7 +161,7 @@ const SKU_PATTERN = /^NAT-([A-Z]{2})-([A-Z0-9]{1,4})-(\d)(\d)(\d)(\d)-([A-Z0-9]{
 export function parseSku(code: string, productType: ShopProductType): Omit<SkuParts, "productType"> | null {
   const match = SKU_PATTERN.exec(code);
   if (!match) return null;
-  const [, category, design, variant, material, size, shape, registration] = match;
+  const [, category, design, variant, material, shape, size, registration] = match;
   if (category !== categoryCodes[productType]) return null;
   return {
     design,

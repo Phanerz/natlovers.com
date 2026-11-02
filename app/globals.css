@@ -698,9 +698,11 @@ button {
   --toggle-w: 54px;
   --toggle-h: 32px;
   --toggle-inset: 3px;
-  --thumb-w: 34px;
+  /* The thumb rests as a perfect circle (width = height) and only stretches
+     into a capsule while pressed. */
+  --thumb-w: 26px;
   --thumb-h: 26px;
-  --thumb-press-w: 41px;
+  --thumb-press-w: 34px;
   position: relative;
   width: var(--toggle-w);
   height: var(--toggle-h);
@@ -718,9 +720,9 @@ button {
   --toggle-w: 44px;
   --toggle-h: 26px;
   --toggle-inset: 2.5px;
-  --thumb-w: 28px;
+  --thumb-w: 20px;
   --thumb-h: 20px;
-  --thumb-press-w: 34px;
+  --thumb-press-w: 28px;
 }
 
 .glass-toggle[data-on="true"] {
@@ -761,7 +763,7 @@ button {
 .glass-toggle-thumb::before {
   content: "";
   position: absolute;
-  inset: 1.5px 6px auto 6px;
+  inset: 1.5px 4px auto 4px;
   height: 42%;
   border-radius: 9999px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0));
