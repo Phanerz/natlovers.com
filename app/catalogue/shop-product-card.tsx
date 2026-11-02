@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type {CSSProperties} from "react";
 import {Heart, ShoppingBag} from "lucide-react";
 import {ImageWithFallback} from "@/components/image-with-fallback";
 import {useStorefront} from "@/components/storefront-provider";
@@ -11,34 +12,24 @@ import {
   DEFAULT_IMAGE_STYLE,
   ShopProduct,
   accessoryCategoryLabels,
-  categoryPillStyle,
   handleLabels,
-  handlePillStyle,
   materialImageStyle,
   shapeLabels,
-  shapePillStyle,
-  sizeLabels,
-  sizePillStyle
+  sizeLabels
 } from "./shop-data";
 
-type TagStyle = {bg: string; border: string; text: string};
-
-// Shared shrink-0/pill styling for every tag row below, so Size/Shape/
-// Handle/Category always render as visually identical pills that only
-// differ in colour  -  this is what a shopper actually confirms a filter
-// against (e.g. picking "House Shaped" in the sidebar and then seeing that
-// exact tag on the resulting cards).
-function Pill({style, children}: {style: TagStyle; children: React.ReactNode}) {
-  return (
-    <span
-      className="shrink-0 rounded-full border px-2.5 py-1 text-[13px] leading-none sm:px-3 sm:text-[14px]"
-      style={{backgroundColor: style.bg, borderColor: style.border, color: style.text}}
-    >
-      {children}
-    </span>
-  );
-}
-
+// A piece in the catalogue, presented as an exhibit rather than a boxed card:
+// the photograph sits on a soft pool of light with a faint ground shadow, and
+// the name, price and a single understated attributes line sit directly under
+// it. All the visuals live in the .catalogue-item* classes in globals.css
+// (fixed light look in both themes, like the old name/price scrim).
+//
+// The grid this sits in is a fixed-height, two-rows-per-page momentum-scroll
+// strip (see CatalogueClient), so the item must stay exactly square and never
+// grow taller: the name, price and attributes are each capped to one line, and
+// the photo stage takes whatever height is left. The photograph itself is
+// object-contain  -  never cropped, stretched or replaced  -  so square and
+// portrait shots both sit centred on the same stage.
 export function ShopProductCard({
   product,
   currency,
@@ -48,152 +39,88 @@ export function ShopProductCard({
   currency: CurrencyCode;
   locale: Locale;
 }) {
-  const imageStyle = product.materials[0] ? materialImageStyle[product.materials[0]] : DEFAULT_IMAGE_STYLE;
+  // The old per-material backdrop colour now only tints the pool of light
+  // behind the photo, so each piece keeps a hint of its fibre's colour without
+  // sitting in a coloured block.
+  const tint = product.materials[0] ? materialImageStyle[product.materials[0]] : DEFAULT_IMAGE_STYLE;
   const {isWishlisted, toggle} = useWishlist();
   const favorited = isWishlisted(product.slug);
   const {addToCart} = useStorefront();
 
+  const attributes = [
+    product.size ? sizeLabels[product.size][locale] : null,
+    product.shape ? shapeLabels[product.shape][locale] : null,
+    ...product.handles.map((handle) => handleLabels[handle][locale]),
+    product.accessoryCategory ? accessoryCategoryLabels[product.accessoryCategory][locale] : null
+  ].filter((value): value is string => Boolean(value));
+
+  const bagLabel = product.soldOut
+    ? locale === "en"
+      ? "Sold out"
+      : "Habis terjual"
+    : locale === "en"
+      ? "Add to bag"
+      : "Tambah ke tas";
+
   return (
-    // className="contents" makes this <a> layout-invisible (display:
-    // contents), so the <article> below is still the direct grid child for
-    // sizing purposes  -  the Link only adds click-through behavior, it
-    // never participates in the grid/flow itself.
-    // self-start opts this card out of CSS Grid's default align-items:
-    // stretch  -  without it, if anything in the row makes the row taller
-    // than one card's own aspect-square height, every card in that row
-    // gets silently stretched past aspect-square to match, tearing the
-    // bottom-anchored overlay/ribbon away from the image above it.
-    // self-start makes the card's own aspect ratio the only thing that
-    // decides its height, full stop.
-    //
-    // overflow-hidden is back here as a defensive backstop, not a load-
-    // bearing fix: the overlay below is now built to never need more than
-    // aspect-square affords in the first place (truncated name, tags in a
-    // single non-wrapping scrollable row)  -  this card sits in a fixed-
-    // height, two-rows-per-page grid, so growing even slightly taller
-    // doesn't just clip locally, it pushes the next row down far enough
-    // that the *page's* own fixed-height container clips it instead,
-    // which is a worse bug in a different place. This is the last line of
-    // defense against that, not the primary mechanism.
-    <Link href={`/catalogue/${product.slug}`} className="contents">
-    <article className="group relative aspect-square self-start overflow-hidden border-b border-r border-[#d9cfc0] transition-colors duration-300 hover:border-[#344332]">
-      <div className="absolute inset-0 overflow-hidden" style={{backgroundColor: imageStyle.bg}}>
-        <div className="absolute inset-0 flex items-center justify-center p-6 sm:p-8">
-          <div className="relative h-full w-full">
-            <ImageWithFallback
-              src={product.imageUrl}
-              alt={product.name}
-              fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-              className="object-contain transition-all duration-500 ease-out group-hover:scale-[1.06] group-hover:brightness-[1.03] group-hover:saturate-[1.12]"
-            />
-          </div>
-        </div>
-
-        <div className="pointer-events-none absolute inset-0 bg-[#344332] opacity-0 transition-opacity duration-500 group-hover:opacity-[0.04]" />
-
-        {product.soldOut ? (
-          // A rotated diagonal ribbon here used to be sized as a fraction of
-          // the card (h/w-2/5) so it would scale with the card  -  but that
-          // made its footprint grow right along with the card, so at the
-          // 2-col mobile width it swelled large enough to crowd the
-          // heart/bag buttons in the opposite corner, and its rotated edges
-          // always looked slightly different (never quite as crisp) at
-          // every other card size in between. A flat, fixed-size badge in
-          // the same top-left slot has a constant footprint no matter how
-          // wide the card is, so it never grows into the icons' corner and
-          // renders identically  -  same shape, same clearance  -  on every
-          // layout instead of just the size it happened to be tuned for.
-          <div className="pointer-events-none absolute left-2.5 top-2.5 z-20 sm:left-3 sm:top-3">
-            {/* h-8 matches the heart/bag buttons' own h-8 exactly, so this
-                sits on the same vertical center as them instead of its
-                height being whatever the text/padding happened to add up
-                to. */}
-            <span className="inline-flex h-8 items-center whitespace-nowrap rounded-full bg-gradient-to-b from-[#3d5140] to-[#26301f] px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f7f4ee] shadow-[0_4px_12px_rgba(0,0,0,0.06)] ring-1 ring-inset ring-white/15">
-              {locale === "en" ? "Sold Out" : "Habis Terjual"}
-            </span>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-2 sm:right-3 sm:top-3">
-        <button
-          type="button"
-          aria-label={favorited ? "Remove from wishlist" : "Add to wishlist"}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            toggle(product.slug);
-          }}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/85 shadow-[0_4px_12px_rgba(0,0,0,0.06)] backdrop-blur transition-all duration-200 hover:bg-white active:scale-90"
-        >
-          <Heart
-            className={`h-4 w-4 transition-colors duration-200 ${favorited ? "fill-[#344332] text-[#344332]" : "text-[#344332]"}`}
+    <Link
+      href={`/catalogue/${product.slug}`}
+      className="catalogue-item group"
+      style={{"--item-tint": tint.bg} as CSSProperties}
+      aria-label={product.name}
+    >
+      <div className="catalogue-item-stage">
+        <div className="catalogue-item-glow" aria-hidden />
+        <div className="catalogue-item-ground" aria-hidden />
+        <div className="catalogue-item-photo">
+          <ImageWithFallback
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+            className="object-contain"
           />
-        </button>
+        </div>
 
-        <button
-          type="button"
-          disabled={product.soldOut}
-          title={product.soldOut ? (locale === "en" ? "Sold out" : "Habis terjual") : (locale === "en" ? "Add to bag" : "Tambah ke tas")}
-          aria-label={product.soldOut ? (locale === "en" ? "Sold out" : "Habis terjual") : (locale === "en" ? "Add to bag" : "Tambah ke tas")}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            addToCart(product.slug);
-          }}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/85 shadow-[0_4px_12px_rgba(0,0,0,0.06)] backdrop-blur transition-all duration-200 hover:bg-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-        >
-          <ShoppingBag className="h-4 w-4" />
-        </button>
-      </div>
+        {product.soldOut ? <span className="catalogue-item-soldout">{locale === "en" ? "Sold Out" : "Habis Terjual"}</span> : null}
 
-      {/*
-        This card has to stay exactly aspect-square  -  it's laid out inside
-        a fixed-height, two-rows-per-page momentum-scroll grid, so a card
-        that grows even slightly taller pushes the next row's cards down
-        far enough that the *page's* own fixed-height clipping cuts off
-        their bottom edge instead (that's what "cut off below" was:
-        letting this overlay grow to fit long tags pushed the problem up
-        to the page level). The only way to satisfy both "stay square" and
-        "never invisibly clip a tag" is to make the overlay's own height
-        fixed and predictable no matter what it contains: the name is
-        capped to one line (truncate), and tags run in a single
-        horizontally-scrollable row (flex-nowrap + overflow-x-auto)
-        instead of wrapping  -  so however many tags there are, or however
-        long they run, they add width, never height.
-      */}
-      {/*
-        catalogue-card-scrim/-name/-price are dedicated classes (globals.css),
-        not the Tailwind arbitrary-hex classes used elsewhere  -  deliberately
-        so this card's own white-background/black-text look stays fixed in
-        both themes instead of picking up the site-wide dark-mode overrides
-        that key off those literal hex classes. The product photo and its
-        colour-coded backdrop already carry the visual identity here; the
-        name/price/tags strip reads as a plain label underneath it, same as
-        it did before dark mode existed.
-      */}
-      <div className="catalogue-card-scrim pointer-events-none absolute inset-x-0 bottom-0 overflow-hidden px-3 pb-3 pt-10 sm:px-4 sm:pb-4">
-        <p className="catalogue-card-name truncate font-display text-[17px] font-semibold leading-tight sm:text-[21px]">
-          {product.name}
-        </p>
-        <p className="catalogue-card-price mt-1 text-[15px] font-medium sm:text-[17px]">
-          {formatCurrency(product.priceIdr, currency)}
-        </p>
-        <div className="scrollbar-hide pointer-events-auto mt-2 flex flex-nowrap gap-1.5 overflow-x-auto">
-          {product.size ? <Pill style={sizePillStyle}>{sizeLabels[product.size][locale]}</Pill> : null}
-          {product.shape ? <Pill style={shapePillStyle}>{shapeLabels[product.shape][locale]}</Pill> : null}
-          {product.handles.map((handle) => (
-            <Pill key={handle} style={handlePillStyle}>
-              {handleLabels[handle][locale]}
-            </Pill>
-          ))}
-          {product.accessoryCategory ? (
-            <Pill style={categoryPillStyle}>{accessoryCategoryLabels[product.accessoryCategory][locale]}</Pill>
-          ) : null}
+        <div className="catalogue-item-actions">
+          <button
+            type="button"
+            aria-label={favorited ? "Remove from wishlist" : "Add to wishlist"}
+            aria-pressed={favorited}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              toggle(product.slug);
+            }}
+            className="catalogue-item-action liquid-glass-on-light"
+          >
+            <Heart className={`h-4 w-4 ${favorited ? "fill-[#344332] text-[#344332]" : "text-[#344332]"}`} />
+          </button>
+
+          <button
+            type="button"
+            disabled={product.soldOut}
+            title={bagLabel}
+            aria-label={bagLabel}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              addToCart(product.slug);
+            }}
+            className="catalogue-item-action liquid-glass-on-light"
+          >
+            <ShoppingBag className="h-4 w-4 text-[#344332]" />
+          </button>
         </div>
       </div>
-    </article>
+
+      <div className="catalogue-item-info">
+        <p className="catalogue-item-name">{product.name}</p>
+        <p className="catalogue-item-price">{formatCurrency(product.priceIdr, currency)}</p>
+        {attributes.length ? <p className="catalogue-item-meta">{attributes.join(" · ")}</p> : null}
+      </div>
     </Link>
   );
 }
