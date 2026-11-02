@@ -2829,7 +2829,7 @@ body:has(.outlets-stage--page) footer {
   color: #20241b;
 }
 
-/* The price: a warm forest green in a clean humanist sans, semibold with a
+/* The price: a classic book serif (Palatino, then Georgia), regular weight, with a
    touch of tracking, and the currency mark set small and quiet beside it  -
    confident and inviting rather than loud. */
 .catalogue-item-price {
@@ -2837,23 +2837,23 @@ body:has(.outlets-stage--page) footer {
   align-items: baseline;
   gap: 5px;
   margin-top: 1px;
-  font-family: "Avenir Next", Avenir, "Gill Sans", "Trebuchet MS", "Segoe UI", sans-serif;
+  font-family: "Palatino Linotype", Palatino, "Book Antiqua", "Iowan Old Style", Georgia, serif;
   line-height: 1.35;
   color: #344332;
 }
 
 .catalogue-item-currency {
-  font-size: clamp(10.5px, 0.8vw, 12px);
-  font-weight: 500;
-  letter-spacing: 0.12em;
+  font-size: clamp(11px, 0.85vw, 13px);
+  font-weight: 400;
+  letter-spacing: 0.1em;
   color: #6b7a5f;
 }
 
 .catalogue-item-amount {
-  font-size: clamp(15px, 1.2vw, 18px);
-  font-weight: 600;
-  letter-spacing: 0.025em;
-  font-variant-numeric: lining-nums tabular-nums;
+  font-size: clamp(16px, 1.3vw, 19px);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  font-variant-numeric: lining-nums;
 }
 
 .catalogue-item-meta {

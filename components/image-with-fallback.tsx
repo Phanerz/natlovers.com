@@ -1,7 +1,7 @@
 "use client";
 
 import Image, {ImageProps} from "next/image";
-import {useState} from "react";
+import {Ref, useState} from "react";
 import {ImageOff} from "lucide-react";
 
 // Product images live on Vercel Blob storage  -  a deleted/moved blob 404s,
@@ -11,7 +11,9 @@ import {ImageOff} from "lucide-react";
 // Scoped to the customer-facing surfaces most visible to a shopper (product
 // cards, product gallery)  -  see the mobile-performance audit for the full
 // inventory of the other 20+ <Image> usages this doesn't yet cover.
-export function ImageWithFallback(props: ImageProps) {
+// imageRef is handed to the underlying <img>, for callers that need to read its
+// natural size (see the catalogue tile, which fits each photo to its tile).
+export function ImageWithFallback({imageRef, ...props}: ImageProps & {imageRef?: Ref<HTMLImageElement>}) {
   const [failed, setFailed] = useState(false);
 
   if (failed) {
@@ -22,5 +24,5 @@ export function ImageWithFallback(props: ImageProps) {
     );
   }
 
-  return <Image {...props} onError={() => setFailed(true)} />;
+  return <Image {...props} ref={imageRef} onError={() => setFailed(true)} />;
 }
