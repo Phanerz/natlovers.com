@@ -5,7 +5,7 @@ import {useRouter, useSearchParams} from "next/navigation";
 import {submitFormData} from "@/lib/xhr-form-submit";
 import {AdminBodyShape, BodyShapeFormState, buildBodyShapeFormData, emptyBodyShapeForm, formFromBodyShape} from "./body-shape-types";
 import {BodyShapeForm} from "./body-shape-form";
-import {isValidHex} from "./colour-options-editor";
+import {isValidColour} from "@/lib/colour-library";
 import {DashboardHome} from "./dashboard-home";
 import {AdminHeroCard, HeroCardFormState, buildHeroCardFormData, emptyHeroCardForm} from "./hero-card-types";
 import {HeroCardForm} from "./hero-card-form";
@@ -59,7 +59,7 @@ function validateColourOptions(form: ProductFormState): string | null {
       if (!option.label.trim()) {
         return `Every ${group.name} option needs a name.`;
       }
-      if (!isValidHex(option.hex)) {
+      if (!isValidColour(option)) {
         return `"${option.label || option.hex}" needs a valid hex code, e.g. #B7924B.`;
       }
     }

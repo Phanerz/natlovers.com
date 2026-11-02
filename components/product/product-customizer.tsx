@@ -1,6 +1,6 @@
 "use client";
 
-import type {ColourOption} from "@/lib/admin-products";
+import {colourSwatchStyle, type ColourOption} from "@/lib/colour-library";
 
 // The product page's own customiser: base colour, handle colour, and
 // personalisation, each entirely optional per product (see the admin
@@ -70,7 +70,7 @@ export function ProductCustomizer({
                   className={`h-8 w-8 rounded-full border-2 transition-all duration-150 ${
                     active ? "border-forest-700 ring-2 ring-forest-700 ring-offset-2 ring-offset-[#fbf3e2]" : "border-white/80 hover:border-forest-300"
                   }`}
-                  style={{backgroundColor: option.hex}}
+                  style={colourSwatchStyle(option)}
                 />
               );
             })}
@@ -98,7 +98,7 @@ export function ProductCustomizer({
                   className={`h-8 w-8 rounded-full border-2 transition-all duration-150 ${
                     active ? "border-forest-700 ring-2 ring-forest-700 ring-offset-2 ring-offset-[#fbf3e2]" : "border-white/80 hover:border-forest-300"
                   }`}
-                  style={{backgroundColor: option.hex}}
+                  style={colourSwatchStyle(option)}
                 />
               );
             })}
