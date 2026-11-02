@@ -747,6 +747,34 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
     setPageIndex(target);
   }
 
+  // The filter panel must never run past the bottom of the screen. Its
+  // container is sized from the header height, but the page can start a little
+  // lower than that (and the visible height shrinks with mobile browser
+  // chrome), so clamp the panel to whatever is actually visible below its own
+  // top edge. This only ever shortens the panel  -  the catalogue strip beside
+  // it, and its horizontal scrolling, are not touched.
+  const sidebarRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const element = sidebarRef.current;
+    if (!element) {
+      return;
+    }
+    const clamp = () => {
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const top = element.getBoundingClientRect().top;
+      element.style.maxHeight = `${Math.max(240, Math.floor(viewportHeight - top))}px`;
+    };
+    clamp();
+    window.addEventListener("resize", clamp);
+    window.addEventListener("scroll", clamp, {passive: true, capture: true});
+    window.visualViewport?.addEventListener("resize", clamp);
+    return () => {
+      window.removeEventListener("resize", clamp);
+      window.removeEventListener("scroll", clamp, {capture: true});
+      window.visualViewport?.removeEventListener("resize", clamp);
+    };
+  }, []);
+
   return (
     <div className="h-[calc(100dvh-var(--header-height))] overflow-hidden bg-[#f7f4ee]">
       {/*
@@ -763,7 +791,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
           budget this grid has to fit "2 rows of cards" into  -  merging them
           into one row gets that vertical space back for the grid itself.
         */}
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#d9cfc0] px-6 py-3 sm:px-10">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#e8e0cf] px-6 py-3 sm:px-10">
           <div
             ref={tabsRef}
             className="liquid-glass-on-light relative flex w-max items-center gap-1 overflow-x-auto rounded-full p-1.5 backdrop-blur-[18px] backdrop-saturate-[160%]"
@@ -916,6 +944,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
 
         <div className="flex min-h-0 flex-1">
           <div
+            ref={sidebarRef}
             className="relative hidden shrink-0 overflow-hidden lg:block lg:h-full"
             style={{
               width: sidebarCollapsed ? "3rem" : "20%",
@@ -940,10 +969,19 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
             </button>
 
             <div
-              className={`absolute inset-0 overflow-hidden bg-[#f2ecdc] shadow-[inset_-1px_0_0_rgba(217,207,192,0.7)] transition-opacity duration-200 lg:py-8 lg:pl-8 lg:pr-8 ${
+              className={`absolute inset-0 overflow-hidden bg-[#f5f0e4] shadow-[inset_-1px_0_0_rgba(217,207,192,0.5)] transition-opacity duration-200 ${
                 sidebarCollapsed ? "pointer-events-none opacity-0" : "pointer-events-auto opacity-100 delay-150"
               }`}
             >
+              {/* The panel is exactly as tall as the catalogue area and never
+                  taller: whatever doesn't fit (an expanded section on a short
+                  screen) scrolls inside this region. data-scroll-lock-if-overflow
+                  hands wheel/touch to it instead of the catalogue's momentum
+                  scroll, which is untouched. */}
+              <div
+                data-scroll-lock-if-overflow
+                className="catalogue-filter-scroll h-full overflow-y-auto overscroll-contain px-8 py-8"
+              >
               <FilterSidebar
                 locale={locale}
                 productType={selectedProductType}
@@ -960,13 +998,14 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
                 onToggleAccessoryCategory={toggleAccessoryCategory}
                 onCollapse={() => setSidebarCollapsed(true)}
               />
+              </div>
             </div>
           </div>
 
           {mobileFiltersMounted ? (
             <div
               data-scroll-lock
-              className={`fixed inset-0 z-30 overflow-y-auto bg-[#f7f4ee] px-6 py-6 transition-all lg:hidden ${
+              className={`fixed inset-0 z-30 overflow-y-auto overscroll-contain bg-[#f5f0e4] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] transition-all lg:hidden ${
                 mobileFiltersEntered
                   ? "translate-y-0 opacity-100 duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
                   : "translate-y-4 opacity-0 duration-150 ease-in"
@@ -999,7 +1038,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
           ) : null}
 
           <div ref={contentRef} className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 overflow-hidden border-l border-t border-[#d9cfc0]">
+            <div className="min-h-0 flex-1 overflow-hidden border-l border-t border-transparent">
               {productsLoading ? (
                 <div key="loading" className="flex h-full items-center justify-center">
                   <DaisyLoader layout="section" />

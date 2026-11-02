@@ -2646,3 +2646,239 @@ body:has(.outlets-stage--page) footer {
     animation: none;
   }
 }
+
+/* ============================================================
+   Catalogue item (app/catalogue/shop-product-card.tsx)  -  a piece shown as
+   an exhibit, not a boxed card: the photo on a soft pool of light with a faint
+   ground shadow, then name / price / one attributes line. The item stays
+   exactly square because the grid it lives in is a fixed-height, two-rows-
+   per-page strip; the photo stage simply takes the height the text leaves.
+   Fixed light look in both themes, like the scrim it replaced.
+   ============================================================ */
+.catalogue-item {
+  --item-tint: #eee7d8;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: clamp(6px, 0.9vw, 12px) clamp(8px, 1.3vw, 18px) clamp(6px, 0.8vw, 12px);
+  color: inherit;
+  text-decoration: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.catalogue-item:focus-visible {
+  outline: 2px solid #344332;
+  outline-offset: -4px;
+  border-radius: 14px;
+}
+
+.catalogue-item-stage {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* A soft pool of warm light behind the piece, tinted faintly by its fibre. */
+.catalogue-item-glow {
+  position: absolute;
+  inset: 2% 0 6%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--item-tint) 55%, #fffaf0) 0%,
+    color-mix(in srgb, var(--item-tint) 22%, transparent) 62%,
+    transparent 100%
+  );
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.catalogue-item-ground {
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  bottom: 1%;
+  height: 7%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(52, 67, 50, 0.2), transparent);
+  pointer-events: none;
+}
+
+/* The photograph: object-contain inside this box, so portrait and square
+   shots are centred and never cropped. */
+.catalogue-item-photo {
+  position: absolute;
+  inset: 0 0 4%;
+  transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.catalogue-item-photo img {
+  mix-blend-mode: multiply;
+}
+
+.catalogue-item-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+}
+
+.catalogue-item-action {
+  position: relative;
+  display: flex;
+  aspect-ratio: 1 / 1;
+  width: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 0;
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  transition: transform 200ms ease;
+}
+
+.catalogue-item-action:active {
+  transform: scale(0.92);
+}
+
+.catalogue-item-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.catalogue-item-action:focus-visible {
+  outline: 2px solid #344332;
+  outline-offset: 2px;
+}
+
+.catalogue-item-soldout {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  z-index: 2;
+  border-radius: 9999px;
+  background: rgba(38, 48, 31, 0.86);
+  padding: 5px 10px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: #f7f4ee;
+}
+
+.catalogue-item-info {
+  flex: none;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+  padding-top: clamp(2px, 0.4vw, 6px);
+}
+
+.catalogue-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(14px, 1.3vw, 20px);
+  font-weight: 500;
+  line-height: 1.25;
+  color: #20241b;
+}
+
+.catalogue-item-price {
+  font-size: clamp(12px, 1vw, 14.5px);
+  line-height: 1.35;
+  color: #5a5a4e;
+}
+
+.catalogue-item-meta {
+  display: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: #8a8a7a;
+}
+
+@media (min-width: 640px) {
+  .catalogue-item-meta {
+    display: block;
+  }
+
+  .catalogue-item-action {
+    width: 32px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .catalogue-item:hover .catalogue-item-photo {
+    transform: translateY(-5px) scale(1.025);
+  }
+
+  .catalogue-item-actions {
+    opacity: 0;
+    transition: opacity 220ms ease;
+  }
+
+  .catalogue-item:hover .catalogue-item-actions,
+  .catalogue-item:focus-within .catalogue-item-actions {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalogue-item-photo,
+  .catalogue-item-actions,
+  .catalogue-item-action {
+    transition: none;
+  }
+
+  .catalogue-item:hover .catalogue-item-photo {
+    transform: none;
+  }
+}
+
+/* The filter panel scrolls inside itself when a section is open on a short
+   screen; a slim scrollbar keeps that from looking like a second page. */
+.catalogue-filter-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cfc5ad transparent;
+}
+
+/* Filter panel: understated custom tick instead of the browser checkbox. */
+.catalogue-filter-check {
+  appearance: none;
+  -webkit-appearance: none;
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  border-radius: 9999px;
+  border: 1px solid #bfb49a;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.catalogue-filter-check:checked {
+  border-color: #344332;
+  background: #344332;
+  box-shadow: inset 0 0 0 3px #f5f0e4;
+}
+
+.catalogue-filter-check:focus-visible {
+  outline: 2px solid #344332;
+  outline-offset: 2px;
+}

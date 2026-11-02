@@ -43,6 +43,8 @@ type FilterSidebarProps = {
 
 const copy = {
   en: {
+    eyebrow: "Catalogue",
+    tagline: "Handcrafted pieces, each with a story of its own.",
     material: "Material",
     size: "Size",
     shape: "Shape",
@@ -51,6 +53,8 @@ const copy = {
     apparelComingSoon: "Our apparel collection is being handwoven right now. New pieces are coming soon."
   },
   id: {
+    eyebrow: "Katalog",
+    tagline: "Karya tangan, masing-masing dengan kisahnya sendiri.",
     material: "Bahan",
     size: "Ukuran",
     shape: "Bentuk",
@@ -81,27 +85,6 @@ function countBy<T extends string>(products: ShopProduct[], values: readonly T[]
   return counts;
 }
 
-function SidebarSprig() {
-  return (
-    <svg
-      viewBox="0 0 64 64"
-      className="h-12 w-12 shrink-0 text-[#8a9a7c]"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.3"
-      strokeLinecap="round"
-    >
-      <path d="M32 58 C30 44 34 30 30 14" />
-      <path d="M30 14 C24 16 18 14 14 8" />
-      <path d="M30 14 C36 12 40 6 40 2" />
-      <path d="M31 30 C25 30 20 26 18 22" />
-      <path d="M31 30 C37 28 41 24 42 20" />
-      <path d="M31 44 C26 45 22 42 20 38" />
-      <path d="M31 44 C36 43 40 40 41 36" />
-    </svg>
-  );
-}
-
 function SidebarVine() {
   return (
     <svg
@@ -126,15 +109,16 @@ function FilterSection({title, children}: {title: string; children: React.ReactN
   const [open, setOpen] = useState(true);
 
   return (
-    <div className="border-b border-[#d9cfc0] pb-3">
+    <div className="pb-2">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between text-left transition-transform duration-200 active:scale-[0.98]"
+        aria-expanded={open}
+        className="flex w-full items-center justify-between rounded-md py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#344332]/50"
       >
-        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#2e2e28]">{title}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#2e2e28]">{title}</span>
         <ChevronUp
-          className={`h-3.5 w-3.5 text-[#344332] transition-transform duration-300 ease-out ${open ? "" : "rotate-180"}`}
+          className={`h-3.5 w-3.5 text-[#6b7a5f] transition-transform duration-300 ease-out ${open ? "" : "rotate-180"}`}
         />
       </button>
       <div
@@ -152,12 +136,7 @@ function FilterRow({active, label, count, onClick}: {active: boolean; label: str
   return (
     <label className="flex cursor-pointer items-center justify-between gap-2 py-1 group">
       <span className="flex items-center gap-2.5">
-        <input
-          type="checkbox"
-          checked={active}
-          onChange={onClick}
-          className="h-[15px] w-[15px] shrink-0 cursor-pointer rounded-[3px] border border-[#c9bfa8] accent-[#344332]"
-        />
+        <input type="checkbox" checked={active} onChange={onClick} className="catalogue-filter-check" />
         <span className="text-[13.5px] text-[#3c3c34] transition-colors duration-150 group-hover:text-[#344332]">{label}</span>
       </span>
       <span className="text-[12px] text-[#a39d8d]">{count}</span>
@@ -185,11 +164,14 @@ export function FilterSidebar({
 
   const header = (
     <div className="flex items-start justify-between gap-3">
-      <h1 className="font-display text-[26px] uppercase tracking-[0.08em] text-[#2e2e28]">
-        {productTypeLabels[productType][locale]}
-      </h1>
-      <div className="flex items-center gap-1">
-        <SidebarSprig />
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-[#8a9a7c]">{t.eyebrow}</p>
+        <h1 className="mt-1 font-display text-[clamp(30px,3vw,42px)] leading-none text-[#20241b]">
+          {productTypeLabels[productType][locale]}
+        </h1>
+        <p className="mt-3 max-w-[22ch] font-display text-[15px] italic leading-snug text-[#6b6b5f]">{t.tagline}</p>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
         {onCollapse ? (
           <button
             type="button"
