@@ -30,11 +30,24 @@ import {skuProblem, suggestDesignAbbreviation} from "@/lib/product-sku";
 import {SkuField} from "./sku-field";
 import {AdminProduct, ProductFormState, ProductStatus, skuPartsFromForm} from "./types";
 
-function SectionCard({title, action, children}: {title: string; action?: ReactNode; children: ReactNode}) {
+function SectionCard({
+  title,
+  description,
+  action,
+  children
+}: {
+  title: string;
+  description?: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <div className="card space-y-5 p-6 sm:p-8">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="font-display text-xl text-forest-900">{title}</h2>
+    <div className="card space-y-6 p-6 sm:p-8">
+      <div className="flex items-start justify-between gap-3 border-b border-[#eadfc9] pb-4">
+        <div className="space-y-1">
+          <h2 className="font-display text-xl text-forest-900">{title}</h2>
+          {description ? <p className="text-xs text-forest-500">{description}</p> : null}
+        </div>
         {action}
       </div>
       {children}
@@ -79,22 +92,19 @@ function BodyShapeField({
 
   if (!active.length) {
     return (
-      <div className="space-y-2 text-sm text-forest-700">
-        <span className="muted">Body</span>
-        <div className="rounded-lg border border-dashed border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-sm text-forest-500">
-          No body shapes in the catalog yet.{" "}
-          <Link href="/mimin?tab=add-body-shape" className="font-semibold text-forest-700 underline underline-offset-2">
-            Add one
-          </Link>{" "}
-          before saving this product.
-        </div>
+      <div className="rounded-lg border border-dashed border-[#d4c5ab] bg-[#fffdf9] px-4 py-3 text-sm text-forest-500">
+        No body shapes in the catalog yet.{" "}
+        <Link href="/mimin?tab=add-body-shape" className="font-semibold text-forest-700 underline underline-offset-2">
+          Add one
+        </Link>{" "}
+        before saving this product.
       </div>
     );
   }
 
   return (
-    <label className="space-y-2 text-sm text-forest-700">
-      <span className="muted">Body</span>
+    <label className="block">
+      <span className="sr-only">Body</span>
       <SelectField value={bodyShapeId} onChange={onChange}>
         {!bodyShapeId ? <option value="">— Unassigned, pick a body —</option> : null}
         {active.map((shape) => (
@@ -111,15 +121,29 @@ function BodyShapeField({
 
 function DimensionsOverrideField({form, onChange}: {form: ProductFormState; onChange: (next: ProductFormState) => void}) {
   return (
-    <label className="block space-y-2 text-sm text-forest-700">
-      <span className="muted">Dimensions override (optional)</span>
-      <input
-        value={form.dimensions}
-        onChange={(event) => onChange({...form, dimensions: event.target.value})}
-        placeholder="e.g. Approx. 30 x 20 x 15 cm  -  for an irregular piece the assigned body's own dimensions can't express"
-        className={fieldClass}
-      />
-    </label>
+    <input
+      value={form.dimensions}
+      onChange={(event) => onChange({...form, dimensions: event.target.value})}
+      aria-label="Dimensions override (optional)"
+      placeholder="e.g. Approx. 30 x 20 x 15 cm  -  for an irregular piece the assigned body's own dimensions can't express"
+      className={fieldClass}
+    />
+  );
+}
+
+// One attribute per row: the name (and a short hint on how to choose) on the
+// left, the choices on the right, hairlines between rows. Stacks on narrow
+// screens. Every attribute reads the same way, so the section scans top to
+// bottom instead of being a mix of columns and wrapped pills.
+function AttributeRow({label, hint, children}: {label: string; hint?: string; children: ReactNode}) {
+  return (
+    <div className="grid gap-3 py-5 first:pt-0 last:pb-0 sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:gap-8">
+      <div className="sm:pt-2">
+        <span className="muted block">{label}</span>
+        {hint ? <span className="mt-1 block text-xs text-forest-400">{hint}</span> : null}
+      </div>
+      <div className="min-w-0">{children}</div>
+    </div>
   );
 }
 
@@ -140,88 +164,103 @@ function AttributeFields({
   onChange: (next: ProductFormState) => void;
   bodyShapes: AdminBodyShape[];
 }) {
+  const bodyRow = (
+    <AttributeRow label="Body" hint="Sets the real dimensions">
+      <BodyShapeField
+        bodyShapeId={form.bodyShapeId}
+        bodyShapes={bodyShapes}
+        onChange={(value) => onChange({...form, bodyShapeId: value})}
+      />
+    </AttributeRow>
+  );
+
+  const sizeRow = (
+    <AttributeRow label="Size" hint="Choose one">
+      <PillSingleSelect
+        bare
+        label="Size"
+        options={shopSizes}
+        getLabel={(option) => sizeLabels[option].en}
+        value={form.size}
+        onChange={(value) => onChange({...form, size: value})}
+      />
+    </AttributeRow>
+  );
+
+  const dimensionsRow = (
+    <AttributeRow label="Dimensions" hint="Optional override">
+      <DimensionsOverrideField form={form} onChange={onChange} />
+    </AttributeRow>
+  );
+
   if (form.productType === "Bags") {
     return (
-      <>
-        <BodyShapeField
-          bodyShapeId={form.bodyShapeId}
-          bodyShapes={bodyShapes}
-          onChange={(value) => onChange({...form, bodyShapeId: value})}
-        />
-        <div className="space-y-2">
+      <div className="divide-y divide-[#eadfc9]">
+        {bodyRow}
+        <AttributeRow label="Material" hint="Choose one">
           <PillSingleSelect
-            label="Materials"
+            bare
+            label="Material"
             options={bagMaterials}
             getLabel={(option) => materialLabels[option].en}
             value={form.materials[0] ?? null}
             onChange={(value) => onChange({...form, materials: [value]})}
           />
           {form.materials.length > 1 ? (
-            <p className="text-xs text-forest-500">
+            <p className="mt-2 text-xs text-forest-500">
               This product has {form.materials.length} materials saved. Only one can be kept now, so picking one replaces
               the rest.
             </p>
           ) : null}
-        </div>
-        <div className="grid gap-6 sm:grid-cols-3">
+        </AttributeRow>
+        {sizeRow}
+        <AttributeRow label="Shape" hint="Choose one">
           <PillSingleSelect
-            label="Size"
-            options={shopSizes}
-            getLabel={(option) => sizeLabels[option].en}
-            value={form.size}
-            onChange={(value) => onChange({...form, size: value})}
-          />
-          <PillSingleSelect
+            bare
             label="Shape"
             options={shopShapes}
             getLabel={(option) => shapeLabels[option].en}
             value={form.shape}
             onChange={(value) => onChange({...form, shape: value})}
           />
+        </AttributeRow>
+        <AttributeRow label="Handle" hint="Choose any that apply">
           <PillMultiSelect
+            bare
             label="Handle"
             options={shopHandles}
             getLabel={(option) => handleLabels[option].en}
             value={form.handles}
             onChange={(value) => onChange({...form, handles: value})}
           />
-        </div>
-        <DimensionsOverrideField form={form} onChange={onChange} />
-      </>
+        </AttributeRow>
+        {dimensionsRow}
+      </div>
     );
   }
 
   if (form.productType === "Dolls") {
     return (
-      <>
-        <div className="grid gap-6 sm:grid-cols-2">
-          <BodyShapeField
-            bodyShapeId={form.bodyShapeId}
-            bodyShapes={bodyShapes}
-            onChange={(value) => onChange({...form, bodyShapeId: value})}
-          />
-          <PillSingleSelect
-            label="Size"
-            options={shopSizes}
-            getLabel={(option) => sizeLabels[option].en}
-            value={form.size}
-            onChange={(value) => onChange({...form, size: value})}
-          />
-        </div>
-        <DimensionsOverrideField form={form} onChange={onChange} />
-      </>
+      <div className="divide-y divide-[#eadfc9]">
+        {bodyRow}
+        {sizeRow}
+        {dimensionsRow}
+      </div>
     );
   }
 
   if (form.productType === "Accessories") {
     return (
-      <PillSingleSelect
-        label="Accessory Category"
-        options={accessoryCategories}
-        getLabel={(option) => accessoryCategoryLabels[option].en}
-        value={form.accessoryCategory}
-        onChange={(value) => onChange({...form, accessoryCategory: value})}
-      />
+      <AttributeRow label="Category" hint="Choose one">
+        <PillSingleSelect
+          bare
+          label="Accessory category"
+          options={accessoryCategories}
+          getLabel={(option) => accessoryCategoryLabels[option].en}
+          value={form.accessoryCategory}
+          onChange={(value) => onChange({...form, accessoryCategory: value})}
+        />
+      </AttributeRow>
     );
   }
 
@@ -526,7 +565,7 @@ export function ProductForm({
           </SectionCard>
 
           {showAttributes ? (
-            <SectionCard title="Attributes">
+            <SectionCard title="Attributes" description="Physical properties. Material, shape and size also build the SKU; handle does not.">
               <AttributeFields form={form} onChange={onChange} bodyShapes={bodyShapes} />
             </SectionCard>
           ) : null}

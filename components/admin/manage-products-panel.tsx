@@ -19,8 +19,8 @@ const activeStateOptions: {value: ActiveState; label: string}[] = [
 ];
 
 const activeStatePillClassName: Record<ActiveState, string> = {
-  active: "bg-[#dcecd8] text-[#2b5c2a] hover:bg-[#cfe6ca]",
-  inactive: "bg-[#f6ddc9] text-[#8a4a1f] hover:bg-[#f0cdb0]"
+  active: "bg-[#dcecd8] text-[#2b5c2a]",
+  inactive: "bg-[#f6ddc9] text-[#8a4a1f]"
 };
 
 type StatusFilter = "all" | "active" | "inactive";

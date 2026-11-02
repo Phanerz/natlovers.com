@@ -2,17 +2,17 @@
 
 import {useRef, useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
-import {ChevronDown} from "lucide-react";
+import {Check, ChevronDown} from "lucide-react";
 import {useClickOutside} from "@/components/use-click-outside";
 
 // A pill control: reads as a status badge at rest, opens a small floating
 // menu on click instead of rendering as a boxy native <select>. Used for
 // anything that's really "pick one of a few states" (Active/Draft/
 // Archived, Active/Inactive) rather than a long list, since the trigger
-// itself has to stay pill-shaped and readable as a badge. Shares its press
-// feedback with every other button site-wide (.button-lift) and its open/
-// close motion with the confirm dialog (short, easeOut), rather than
-// inventing a one-off animation language just for this control.
+// itself has to stay pill-shaped and readable as a badge. Deliberately has
+// no hover or press motion  -  the trigger sits perfectly still until it is
+// clicked, and only the menu itself animates in and out (short, easeOut,
+// the same as the confirm dialog).
 export function PillDropdown<T extends string>({
   value,
   options,
@@ -45,10 +45,11 @@ export function PillDropdown<T extends string>({
         onClick={() => setOpen((next) => !next)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={`button-lift flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${pillClassName}`}
+        className={`inline-flex items-center gap-2 transition-none rounded-full px-3.5 py-1.5 text-xs font-semibold leading-none ring-1 ring-inset ring-black/[0.07] outline-none focus-visible:ring-2 focus-visible:ring-forest-400 disabled:cursor-not-allowed disabled:opacity-50 ${pillClassName}`}
       >
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden />
         {current?.label ?? value}
-        <ChevronDown className={`h-3 w-3 shrink-0 transition-transform duration-150 ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`h-3 w-3 shrink-0 opacity-70 ${open ? "rotate-180" : ""}`} />
       </button>
 
       <AnimatePresence>
@@ -60,7 +61,7 @@ export function PillDropdown<T extends string>({
             animate={{opacity: 1, scale: 1, y: 0}}
             exit={{opacity: 0, scale: 0.97, y: -2}}
             transition={{duration: 0.14, ease: "easeOut"}}
-            className={`absolute top-full z-20 mt-1.5 min-w-[8rem] origin-top space-y-0.5 rounded-xl border border-[#d7cab2] bg-[#fffaf1] p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.06)] ${
+            className={`absolute top-full z-20 mt-1.5 min-w-[9.5rem] origin-top space-y-0.5 rounded-2xl border border-[#e0d4bb] bg-[#fffdf8] p-1.5 shadow-[0_12px_28px_-8px_rgba(40,50,30,0.22),0_2px_6px_rgba(40,50,30,0.06)] ${
               align === "right" ? "right-0" : "left-0"
             }`}
           >
@@ -76,11 +77,12 @@ export function PillDropdown<T extends string>({
                     onChange(option.value);
                   }
                 }}
-                className={`block w-full whitespace-nowrap rounded-lg px-3 py-1.5 text-left text-xs font-medium transition-colors duration-150 ${
-                  option.value === value ? "bg-forest-900 text-sand-50" : "text-forest-700 hover:bg-[#f0e7d4]"
+                className={`flex w-full items-center justify-between gap-3 whitespace-nowrap rounded-xl px-3 py-2 text-left text-xs font-medium ${
+                  option.value === value ? "bg-[#f1ead9] text-forest-900" : "text-forest-700 hover:bg-[#f7f1e2]"
                 }`}
               >
                 {option.label}
+                {option.value === value ? <Check className="h-3.5 w-3.5 text-forest-600" /> : null}
               </button>
             ))}
           </motion.div>

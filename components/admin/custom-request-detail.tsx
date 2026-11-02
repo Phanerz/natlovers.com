@@ -29,12 +29,12 @@ import {useConfirm} from "./use-confirm";
 // the literal class strings in source to generate them, not a value
 // computed at runtime from the same palette.
 const statusDropdownPillClassName: Record<CustomRequestStatus, string> = {
-  draft: "bg-[#EFEDE6] text-[#4B4A42] hover:brightness-95",
-  submitted: "bg-[#DCE6EA] text-[#2A3D42] hover:brightness-95",
-  under_review: "bg-[#DCE6EA] text-[#2A3D42] hover:brightness-95",
-  approved: "bg-[#DDE8DA] text-[#2F4A2C] hover:brightness-95",
-  completed: "bg-[#DDE8DA] text-[#2F4A2C] hover:brightness-95",
-  cancelled: "bg-[#F0DEE0] text-[#5C2E33] hover:brightness-95"
+  draft: "bg-[#EFEDE6] text-[#4B4A42]",
+  submitted: "bg-[#DCE6EA] text-[#2A3D42]",
+  under_review: "bg-[#DCE6EA] text-[#2A3D42]",
+  approved: "bg-[#DDE8DA] text-[#2F4A2C]",
+  completed: "bg-[#DDE8DA] text-[#2F4A2C]",
+  cancelled: "bg-[#F0DEE0] text-[#5C2E33]"
 };
 
 function formatDateTime(value: string | null) {
