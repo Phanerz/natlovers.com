@@ -168,9 +168,9 @@ export function ProductPurchasePanel({
           aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
           aria-pressed={wishlisted}
           title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          className="glass-btn-secondary flex h-9 w-9 items-center justify-center rounded-full text-forest-700 transition-colors duration-200 hover:text-forest-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
+          className="pdp-heart glass-btn-secondary flex h-9 w-9 items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
         >
-          <Heart className={`h-4 w-4 transition-colors duration-200 ${wishlisted ? "fill-forest-900 text-forest-900" : "text-forest-500"}`} />
+          <Heart className="h-4 w-4" />
         </button>
         <button
           type="button"

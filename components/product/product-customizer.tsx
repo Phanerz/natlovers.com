@@ -80,10 +80,16 @@ export function ProductCustomizer({
 
   return (
     <section id="customise" className="pdp-customise" aria-labelledby="customise-title">
-      <h2 id="customise-title" className="pdp-section-title">
+      <p className="pdp-note-eyebrow">
+        <span>Natlovers</span>
+        <span aria-hidden>·</span>
+        <span>Atelier note</span>
+      </p>
+      <h2 id="customise-title" className="pdp-note-title">
         Make it yours
       </h2>
-      <p className="pdp-customise-lede">Choose your colours and add a personal note. Your choices travel with your order.</p>
+      <p className="pdp-customise-lede">Choose your colours and leave a personal note. Your choices travel with your order.</p>
+      <div className="pdp-note-rule" aria-hidden />
 
       <div className="mt-6 space-y-7">
         {hasBaseColour ? (
@@ -114,6 +120,9 @@ export function ProductCustomizer({
           </div>
         ) : null}
       </div>
+
+      <div className="pdp-note-rule mt-7" aria-hidden />
+      <p className="pdp-note-sign">Handcrafted to your choosing</p>
     </section>
   );
 }

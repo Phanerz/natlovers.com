@@ -4014,7 +4014,7 @@ body:has(.outlets-stage--page) footer {
 
 .pdp-prose {
   margin-top: 1.25rem;
-  max-width: 62ch;
+  max-width: 78ch;
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   font-size: 1.05rem;
   line-height: 1.8;
@@ -4051,12 +4051,76 @@ body:has(.outlets-stage--page) footer {
   color: var(--pdp-soft);
 }
 
-/* Personalisation card */
+.pdp-heart svg {
+  color: #d6455d;
+  stroke: #d6455d;
+  fill: transparent;
+  transition: fill 0.2s;
+}
+.pdp-heart[aria-pressed="true"] svg {
+  fill: #d6455d;
+}
+
+/* Personalisation: a slightly tilted note on grainy, warm paper. The paper
+   keeps its own light colours in both themes (it is a physical object), so it
+   redefines the ink variables for everything inside it. */
 .pdp-customise {
-  border: 1px solid var(--pdp-line);
-  border-radius: 18px;
-  background: var(--pdp-surface);
-  padding: 1.75rem 1.75rem 2rem;
+  --pdp-ink: #2b241a;
+  --pdp-soft: #4a4132;
+  --pdp-muted: #7b705c;
+  --pdp-line: rgba(70, 56, 36, 0.28);
+  position: relative;
+  transform: rotate(-1.6deg);
+  padding: 2rem 1.9rem 1.75rem;
+  border-radius: 3px 3px 6px 6px;
+  color: var(--pdp-ink);
+  background-color: #f6efe0;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.27 0 0 0 0 0.15 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E"),
+    radial-gradient(120% 90% at 20% 0%, rgba(255, 255, 255, 0.55), transparent 60%),
+    linear-gradient(180deg, #f8f2e4, #efe5d0);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 2px 3px rgba(20, 14, 6, 0.18),
+    0 18px 40px -12px rgba(20, 14, 6, 0.45);
+}
+@media (max-width: 1023px) {
+  .pdp-customise {
+    transform: rotate(-0.8deg);
+  }
+}
+
+.pdp-note-eyebrow {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--pdp-muted);
+}
+
+.pdp-note-title {
+  margin-top: 0.7rem;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-size: 2rem;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--pdp-ink);
+}
+
+.pdp-note-rule {
+  margin-top: 1.1rem;
+  border-top: 1px dashed var(--pdp-line);
+}
+
+.pdp-note-sign {
+  margin-top: 0.9rem;
+  text-align: center;
+  font-size: 0.68rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--pdp-muted);
 }
 
 .pdp-customise-lede {
