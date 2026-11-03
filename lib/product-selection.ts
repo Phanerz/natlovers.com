@@ -1,4 +1,5 @@
 import {z} from "zod";
+import {optionAnswersSchema, resolvedLineSchema} from "@/lib/product-options";
 
 // A cart/order line's saved configuration used to only ever be a Custom
 // Studio CustomConfig (lib/custom-studio.ts) - a rigid, per-type enum shape.
@@ -20,7 +21,18 @@ export const productSelectionSchema = z.object({
   // turned on (see products.hasPersonalisation) - frozen into the order at
   // checkout the same as every other config field, so it can't be changed
   // after purchase.
-  personalisationNote: z.string().trim().max(500).optional()
+  personalisationNote: z.string().trim().max(500).optional(),
+  // Choices made through the admin-defined options on the product page (see
+  // lib/product-options.ts). `answers` is what the customer picked; `lines`
+  // and `extraIdr` are the readable receipt and the extra cost, recomputed on
+  // the server when the order is placed so they can never be tampered with.
+  custom: z
+    .object({
+      answers: optionAnswersSchema,
+      lines: z.array(resolvedLineSchema).max(60).optional(),
+      extraIdr: z.number().int().min(0).optional()
+    })
+    .optional()
 });
 
 export type ProductSelection = z.infer<typeof productSelectionSchema>;

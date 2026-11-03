@@ -5,6 +5,7 @@ import {db, bodyShapes, products} from "@/lib/db";
 import {sanitizeDescriptionHtml} from "@/lib/sanitize-html";
 import {invalidateTtlCache} from "@/lib/ttl-cache";
 import {resolveBagSize} from "@/lib/size-standard";
+import {ProductOptions, productOptionsSchema} from "@/lib/product-options";
 import {
   AccessoryCategory,
   ShopHandle,
@@ -71,6 +72,9 @@ export type AdminProduct = ShopProduct & {
   handleColourOptions: ColourOption[];
   hasPersonalisation: boolean;
   personalisationOptions: string[];
+  // Admin-built extras (dolls, pets, per-part colours, reference photos). Null
+  // when the product has none  -  every product created before this existed.
+  customisation: ProductOptions | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -234,6 +238,25 @@ function parseImagesField(formData: FormData): string[] {
 // carry an ordered array of {label, hex} objects) and are re-validated here
 // regardless of what the admin form already checked client-side - a hex
 // value never reaches the database unvalidated.
+// The whole definition travels as one JSON field. An empty field clears it.
+function parseCustomisationField(formData: FormData): ProductOptions | null {
+  const raw = formData.get("customisation");
+  if (raw === null || raw.toString().trim() === "") {
+    return null;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw.toString());
+  } catch {
+    throw new Error("Customisation options were malformed.");
+  }
+  const result = productOptionsSchema.safeParse(parsed);
+  if (!result.success) {
+    throw new Error(result.error.issues[0]?.message ?? "Invalid customisation option.");
+  }
+  return result.data.fields.length ? result.data : null;
+}
+
 function parseColourOptionsField(formData: FormData, field: string): ColourOption[] {
   const raw = formData.get(field);
   if (raw === null || raw.toString().trim() === "") {
@@ -296,6 +319,7 @@ function toAdminProduct(row: typeof products.$inferSelect, bodyShape: AdminBodyS
     handleColourOptions: (row.handleColourOptions as ColourOption[] | null) ?? [],
     hasPersonalisation: row.hasPersonalisation,
     personalisationOptions: (row.personalisationOptions as string[] | null) ?? [],
+    customisation: (row.customisation as ProductOptions | null) ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString()
   };
@@ -605,7 +629,8 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       hasHandleColour,
       handleColourOptions,
       hasPersonalisation,
-      personalisationOptions
+      personalisationOptions,
+      customisation: parseCustomisationField(formData)
     })
     .returning();
 
@@ -770,6 +795,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       handleColourOptions,
       hasPersonalisation,
       personalisationOptions,
+      ...(formData.has("customisation") ? {customisation: parseCustomisationField(formData)} : {}),
       // A real publish supersedes any staged preview draft  -  keeps the
       // preview route from ever showing edits older than what's now live.
       draftData: null,
@@ -931,7 +957,8 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
     hasHandleColour,
     handleColourOptions,
     hasPersonalisation,
-    personalisationOptions
+    personalisationOptions,
+    customisation: formData.has("customisation") ? parseCustomisationField(formData) : (existing.customisation as ProductOptions | null) ?? null
   };
 
   await db.update(products).set({draftData: draft}).where(eq(products.slug, slug));

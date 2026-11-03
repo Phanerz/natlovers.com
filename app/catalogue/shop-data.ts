@@ -45,6 +45,8 @@ export type ShopProduct = {
   images?: string[];
   hasBaseColour?: boolean;
   baseColourOptions?: ColourOption[];
+  // Admin-built extras (see lib/product-options.ts); null/absent = none.
+  customisation?: import("@/lib/product-options").ProductOptions | null;
   hasHandleColour?: boolean;
   handleColourOptions?: ColourOption[];
 };

@@ -21,6 +21,7 @@ import {
   User
 } from "lucide-react";
 import {AddressesManager} from "@/components/addresses-manager";
+import {OrderItemDetails} from "@/components/order-item-details";
 import {AdminWidgetPicker} from "@/components/admin-widget-picker";
 import {KpiCard} from "@/components/admin/kpi-card";
 import {CustomRequestsHistory} from "@/components/custom-requests-history";
@@ -401,11 +402,14 @@ function AccountContent() {
                     </p>
                     <div className="mt-3 space-y-1.5 border-t border-[#e4d9c1] pt-3">
                       {order.items.map((item) => (
-                        <div key={item.slug} className="flex items-center justify-between text-sm text-forest-700">
-                          <span>
-                            {item.name} <span className="text-forest-500">&times;{item.quantity}</span>
-                          </span>
-                          <span>{formatCurrency(item.priceIdr * item.quantity, currency)}</span>
+                        <div key={item.slug} className="text-sm text-forest-700">
+                          <div className="flex items-center justify-between">
+                            <span>
+                              {item.name} <span className="text-forest-500">&times;{item.quantity}</span>
+                            </span>
+                            <span>{formatCurrency(item.priceIdr * item.quantity, currency)}</span>
+                          </div>
+                          <OrderItemDetails config={item.config} formatMoney={(amount) => formatCurrency(amount, currency)} className="text-forest-600" />
                         </div>
                       ))}
                     </div>

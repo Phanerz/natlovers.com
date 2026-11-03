@@ -20,11 +20,13 @@ import {ProductSpecsPanel} from "@/components/product/product-specs-panel";
 export function ProductPurchasePanel({
   product,
   selection,
-  hasCustomisation
+  hasCustomisation,
+  extraIdr = 0
 }: {
   product: AdminProduct;
   selection?: ProductSelection;
   hasCustomisation: boolean;
+  extraIdr?: number;
 }) {
   const router = useRouter();
   const {status} = useSession();
@@ -118,7 +120,8 @@ export function ProductPurchasePanel({
       <p className="pdp-eyebrow">Handcrafted in Indonesia</p>
       <h1 className="pdp-title">{product.name}</h1>
       <p className="pdp-price">
-        {formatCurrency(product.priceIdr, currency)}
+        {formatCurrency(product.priceIdr + extraIdr, currency)}
+        {extraIdr > 0 ? <span className="pdp-price-extra">includes {formatCurrency(extraIdr, currency)} of customisation</span> : null}
         {product.compareAtPriceIdr && product.compareAtPriceIdr > product.priceIdr ? (
           <span className="pdp-price-was">{formatCurrency(product.compareAtPriceIdr, currency)}</span>
         ) : null}

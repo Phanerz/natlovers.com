@@ -2,6 +2,7 @@
 
 import {useState} from "react";
 import {ChevronDown} from "lucide-react";
+import {CustomisationBuilder} from "./customisation-builder";
 import {ColourOptionsEditor} from "./colour-options-editor";
 import {GlassToggle} from "./glass-toggle";
 import {ProductFormState} from "./types";
@@ -61,7 +62,7 @@ export function ProductOptionsCard({
   onChange: (next: ProductFormState | ((prev: ProductFormState) => ProductFormState)) => void;
 }) {
   const [openRows, setOpenRows] = useState<Set<string>>(new Set());
-  const allRowKeys = ["base", "handle", "personalisation"];
+  const allRowKeys = ["base", "handle", "personalisation", "custom"];
   const allOpen = allRowKeys.every((key) => openRows.has(key));
 
   function toggleRow(key: string) {
@@ -161,6 +162,23 @@ export function ProductOptionsCard({
             label="Offer personalisation"
           />
         </div>
+      </OptionRow>
+
+      <OptionRow
+        label="Custom Options & Extras"
+        badge="Optional"
+        summary={
+          form.customisation.enabled
+            ? `On - ${form.customisation.fields.length} ${form.customisation.fields.length === 1 ? "field" : "fields"}`
+            : "Off"
+        }
+        open={openRows.has("custom")}
+        onToggle={() => toggleRow("custom")}
+      >
+        <CustomisationBuilder
+          value={form.customisation}
+          onChange={(customisation) => onChange((prev) => ({...prev, customisation}))}
+        />
       </OptionRow>
     </div>
   );

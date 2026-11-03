@@ -2,12 +2,13 @@
 
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {CheckCircle2, Clock, Truck} from "lucide-react";
+import {OrderItemDetails} from "@/components/order-item-details";
 import {orderStatusLabels} from "@/lib/order-status";
 import {DEFAULT_PAGE_SIZE, PageSize, PaginationBar} from "./pagination-bar";
 import {Toast, ToastState} from "./toast";
 import {useConfirm} from "./use-confirm";
 
-type AdminOrderItem = {slug: string; name: string; priceIdr: number; quantity: number};
+type AdminOrderItem = {slug: string; name: string; priceIdr: number; quantity: number; config?: unknown};
 
 type AdminOrder = {
   id: string;
@@ -236,6 +237,7 @@ export function ManageOrdersPanel() {
                       {order.items.map((item) => (
                         <li key={item.slug}>
                           {item.name} <span className="text-forest-500">×{item.quantity}</span>
+                          <OrderItemDetails config={item.config} formatMoney={formatIdr} className="text-forest-600" />
                         </li>
                       ))}
                     </ul>

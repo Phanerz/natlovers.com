@@ -12,6 +12,8 @@ export type ProductCard = {
   materials: string[];
   collection: CollectionSlug;
   featured?: boolean;
+  // Admin-built custom options (extra dolls, pets…); used to price and list a cart line.
+  customisation?: import("@/lib/product-options").ProductOptions | null;
 };
 
 export const featuredProducts: Record<Locale, ProductCard[]> = {

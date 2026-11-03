@@ -9,6 +9,7 @@ import type {PointerEvent as ReactPointerEvent} from "react";
 import {ChevronDown, Menu, Search, ShoppingBag, User, X} from "lucide-react";
 import {signOut, useSession} from "next-auth/react";
 import {formatCurrency} from "@/lib/format";
+import {selectionExtras} from "@/lib/product-options";
 import {htmlToPlainText} from "@/lib/html-text";
 import {ShoppingBagDrawer} from "@/components/shopping-bag-drawer";
 import {getDictionary} from "@/lib/translations";
@@ -461,7 +462,12 @@ export function Header() {
   const cartProducts = cartItems
     .map((item) => {
       const product = resolveProduct(item.slug, locale);
-      return product ? {...product, quantity: item.quantity, config: item.config} : null;
+      if (!product) {
+        return null;
+      }
+      // Custom options (extra dolls, pets…) change the line's price and are listed under it.
+      const extras = selectionExtras(product.customisation, item.config);
+      return {...product, priceIdr: product.priceIdr + extras.extraIdr, details: extras.lines, quantity: item.quantity, config: item.config};
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
@@ -471,7 +477,11 @@ export function Header() {
     checkoutDraft?.items
       .map((item) => {
         const product = resolveProduct(item.slug, locale);
-        return product ? {...product, quantity: item.quantity, config: item.config} : null;
+        if (!product) {
+          return null;
+        }
+        const extras = selectionExtras(product.customisation, item.config);
+        return {...product, priceIdr: product.priceIdr + extras.extraIdr, details: extras.lines, quantity: item.quantity, config: item.config};
       })
       .filter((item): item is NonNullable<typeof item> => item !== null) ?? [];
   const checkoutTotalIdr = checkoutProducts.reduce(
@@ -842,6 +852,16 @@ export function Header() {
                     <p className="text-xs uppercase tracking-[0.24em] text-sand-100/68">
                       Qty {item.quantity}
                     </p>
+                    {item.details.length ? (
+                      <ul className="mt-1 space-y-0.5 text-xs text-sand-100/80">
+                        {item.details.map((line, index) => (
+                          <li key={`${line.label}-${index}`}>
+                            {line.label}: {line.value}
+                            {line.extraIdr > 0 ? ` (+${formatCurrency(line.extraIdr, currency)})` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </div>
                   <span className="shrink-0">{formatCurrency(item.priceIdr * item.quantity, currency)}</span>
                 </div>

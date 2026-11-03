@@ -225,6 +225,13 @@
       "when": 1793672295315,
       "tag": "0031_tranquil_pride",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793688620955,
+      "tag": "0032_clumsy_rhodey",
+      "breakpoints": true
     }
   ]
 }

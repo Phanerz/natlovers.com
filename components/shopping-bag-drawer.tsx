@@ -16,6 +16,8 @@ export type BagItem = {
   imageUrl?: string;
   priceIdr: number;
   quantity: number;
+  // What the customer chose through the product's custom options, if any.
+  details?: {label: string; value: string; extraIdr: number}[];
 };
 
 // The Shopping Bag drawer: purely presentational. The cart itself (items,
@@ -110,6 +112,16 @@ export function ShoppingBagDrawer({
                           {item.title}
                         </button>
                         <p className="bag-item-desc">{htmlToPlainText(item.description, {firstParagraph: true})}</p>
+                        {item.details?.length ? (
+                          <ul className="bag-item-details">
+                            {item.details.map((line, index) => (
+                              <li key={`${line.label}-${index}`}>
+                                <span>{line.label}</span> {line.value}
+                                {line.extraIdr > 0 ? <em>+{formatCurrency(line.extraIdr, currency)}</em> : null}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
                       </div>
                       <button
                         type="button"

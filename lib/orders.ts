@@ -3,6 +3,7 @@ import {AddressInput, createAddress, getDefaultAddress, updateAddress} from "@/l
 import {clearCart} from "@/lib/cart";
 import {db, orderItems, orders, products, users} from "@/lib/db";
 import type {CartConfig} from "@/lib/cart";
+import {resolveOptions, type ProductOptions} from "@/lib/product-options";
 
 export {orderStatusLabels} from "@/lib/order-status";
 
@@ -49,7 +50,7 @@ export async function createOrder(
   }
 
   const catalogue = await db
-    .select({slug: products.slug, name: products.name, priceIdr: products.priceIdr})
+    .select({slug: products.slug, name: products.name, priceIdr: products.priceIdr, customisation: products.customisation})
     .from(products)
     .where(inArray(products.slug, slugs));
   const catalogueBySlug = new Map(catalogue.map((row) => [row.slug, row]));
@@ -60,12 +61,31 @@ export async function createOrder(
       if (!product || requested.quantity <= 0) {
         return null;
       }
+      // Custom options (extra dolls, pets, part colours, photos): the price
+      // and the readable receipt are worked out here from the product's own
+      // definition, never taken from the request, so an order always charges
+      // exactly what the options cost and the studio reads exactly what was
+      // chosen. A product with the options off ignores any such answers.
+      const definition = product.customisation as ProductOptions | null;
+      let config = requested.config ?? null;
+      let unitPrice = product.priceIdr;
+      if (config && "kind" in config && config.kind === "productSelection") {
+        if (config.custom && definition?.enabled) {
+          const resolved = resolveOptions(definition, config.custom.answers);
+          config = {...config, custom: {answers: config.custom.answers, lines: resolved.lines, extraIdr: resolved.extraIdr}};
+          unitPrice += resolved.extraIdr;
+        } else if (config.custom) {
+          const {custom: _dropped, ...rest} = config;
+          void _dropped;
+          config = rest;
+        }
+      }
       return {
         productSlug: product.slug,
         productName: product.name,
-        priceIdr: product.priceIdr,
+        priceIdr: unitPrice,
         quantity: requested.quantity,
-        config: requested.config ?? null
+        config
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);

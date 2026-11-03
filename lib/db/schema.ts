@@ -145,6 +145,10 @@ export const products = pgTable(
     // colour axes above, since it doesn't apply to most products.
     hasPersonalisation: boolean("has_personalisation").notNull().default(false),
     personalisationOptions: jsonb("personalisation_options").$type<string[]>(),
+    // Admin-built customisation (see lib/product-options.ts): extra dolls,
+    // pets, per-part colours, reference photos, with prices. Null = none, which
+    // is how every existing product behaves.
+    customisation: jsonb("customisation").$type<import("@/lib/product-options").ProductOptions>(),
     // Accessories-only.
     accessoryCategory: text("accessory_category"),
     productType: text("product_type").notNull(),

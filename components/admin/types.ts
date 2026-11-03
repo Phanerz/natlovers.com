@@ -1,3 +1,4 @@
+import {EMPTY_PRODUCT_OPTIONS, type ProductOptions} from "@/lib/product-options";
 import {
   AccessoryCategory,
   ShopHandle,
@@ -70,6 +71,7 @@ export type AdminProduct = {
   handleColourOptions: ColourOption[];
   hasPersonalisation: boolean;
   personalisationOptions: string[];
+  customisation?: ProductOptions | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -149,6 +151,7 @@ export type ProductFormState = {
   handleColourOptions: ColourOption[];
   hasPersonalisation: boolean;
   personalisationOptions: string[];
+  customisation: ProductOptions;
 };
 
 export const LEGACY_SIZE_REASON = "Assigned before the automatic size standard; not yet reviewed.";
@@ -270,7 +273,8 @@ export function emptyForm(): ProductFormState {
     hasHandleColour: true,
     handleColourOptions: DEFAULT_COLOUR_OPTIONS.map((option) => ({...option})),
     hasPersonalisation: false,
-    personalisationOptions: []
+    personalisationOptions: [],
+    customisation: {...EMPTY_PRODUCT_OPTIONS}
   };
 }
 
@@ -313,7 +317,8 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     hasHandleColour: product.hasHandleColour,
     handleColourOptions: upgradeLegacyColours(product.handleColourOptions),
     hasPersonalisation: product.hasPersonalisation,
-    personalisationOptions: product.personalisationOptions
+    personalisationOptions: product.personalisationOptions,
+    customisation: product.customisation ?? {...EMPTY_PRODUCT_OPTIONS}
   };
 }
 
@@ -377,6 +382,7 @@ export function buildFormData(form: ProductFormState, bodyShapes: AdminBodyShape
   formData.set("handleColourOptions", JSON.stringify(form.handleColourOptions));
   formData.set("hasPersonalisation", String(form.hasPersonalisation));
   form.personalisationOptions.forEach((option) => formData.append("personalisationOptions", option));
+  formData.set("customisation", form.customisation.fields.length ? JSON.stringify(form.customisation) : "");
 
   return formData;
 }

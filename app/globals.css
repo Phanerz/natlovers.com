@@ -3933,6 +3933,12 @@ body:has(.outlets-stage--page) footer {
   color: var(--pdp-ink);
 }
 
+.pdp-price-extra {
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: var(--pdp-muted);
+}
+
 .pdp-price-was {
   font-size: 1.1rem;
   color: var(--pdp-muted);
@@ -4511,4 +4517,176 @@ body:has(.outlets-stage--page) footer {
 .pdp-customise .pdp-swatch {
   height: 3.1rem;
   width: 3.1rem;
+}
+
+/* Custom options on the paper note: choice chips, add-on stepper and copies,
+   reference photos, and the receipt that adds up as the customer chooses. */
+.pdp-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.5rem 0.95rem;
+  border: 1px solid var(--pdp-line);
+  border-radius: 9999px;
+  font-size: 0.98rem;
+  color: var(--pdp-ink);
+  background: rgba(255, 255, 255, 0.35);
+  transition: border-color 0.2s, background 0.2s;
+}
+.pdp-chip:hover {
+  border-color: var(--pdp-ink);
+}
+.pdp-chip[aria-pressed="true"] {
+  border-color: var(--pdp-ink);
+  background: var(--pdp-ink);
+  color: #f6efe0;
+}
+.pdp-chip-price {
+  font-size: 0.82rem;
+  opacity: 0.8;
+}
+
+.pdp-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--pdp-line);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.35);
+}
+.pdp-stepper button {
+  display: flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--pdp-ink);
+}
+.pdp-stepper button:disabled {
+  opacity: 0.3;
+}
+.pdp-stepper output {
+  min-width: 1.8rem;
+  text-align: center;
+  font-size: 1.1rem;
+  color: var(--pdp-ink);
+}
+
+.pdp-item {
+  border-left: 2px solid var(--pdp-line);
+  padding: 0.2rem 0 0.2rem 1rem;
+}
+.pdp-item-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.9rem;
+  font-size: 0.74rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--pdp-muted);
+}
+.pdp-item-title span {
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 0.9rem;
+}
+
+.pdp-customise .pdp-input-line {
+  line-height: 2.1rem;
+  border-bottom: 1px solid rgba(70, 56, 36, 0.3);
+  background-image: none;
+}
+
+.pdp-photo {
+  position: relative;
+  height: 4.5rem;
+  width: 4.5rem;
+  overflow: hidden;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(70, 56, 36, 0.25), 0 2px 4px rgba(20, 14, 6, 0.2);
+}
+.pdp-photo img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+.pdp-photo button {
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  display: flex;
+  height: 1.3rem;
+  width: 1.3rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgba(30, 24, 14, 0.7);
+  color: #fff;
+}
+.pdp-photo-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 4.5rem;
+  padding: 0 1.1rem;
+  border: 1px dashed var(--pdp-line);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: var(--pdp-soft);
+}
+.pdp-photo-add:hover {
+  border-color: var(--pdp-ink);
+  color: var(--pdp-ink);
+}
+
+.pdp-receipt {
+  margin-top: 1.1rem;
+  font-size: 1rem;
+  color: var(--pdp-soft);
+}
+.pdp-receipt > div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.25rem 0;
+}
+.pdp-receipt dt {
+  flex: 0 1 auto;
+}
+.pdp-receipt > div::after {
+  content: "";
+  order: 1;
+  flex: 1;
+  border-bottom: 1px dotted rgba(70, 56, 36, 0.4);
+  transform: translateY(-0.25em);
+}
+.pdp-receipt dd {
+  order: 2;
+  color: var(--pdp-ink);
+}
+.pdp-receipt-total {
+  margin-top: 0.4rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--pdp-ink);
+}
+
+/* Choices listed under a bag line (custom options). */
+.bag-item-details {
+  margin-top: 0.45rem;
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  list-style: none;
+  padding: 0;
+  opacity: 0.9;
+}
+.bag-item-details span {
+  font-weight: 600;
+}
+.bag-item-details em {
+  margin-left: 0.35rem;
+  font-style: normal;
+  opacity: 0.8;
 }

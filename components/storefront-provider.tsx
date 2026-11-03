@@ -3,6 +3,7 @@
 import {createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState} from "react";
 import {usePathname, useRouter} from "next/navigation";
 import {useSession} from "next-auth/react";
+import {selectionExtras} from "@/lib/product-options";
 import type {ProductCard as ProductCardType} from "@/lib/data";
 import {Locale} from "@/lib/site";
 import type {AdminProduct} from "@/lib/admin-products";
@@ -56,7 +57,8 @@ function toProductCard(product: AdminProduct): ProductCardType {
     imageUrl: product.images[0] ?? product.imageUrl,
     story: product.description ?? "",
     materials: product.materials,
-    collection: "bags"
+    collection: "bags",
+    customisation: product.customisation ?? null
   };
 }
 
@@ -211,7 +213,7 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
     // Locale param kept for call-site compatibility; pricing is locale-independent now.
     return cartItems.reduce((sum, item) => {
       const product = resolveProduct(item.slug);
-      return product ? sum + product.priceIdr * item.quantity : sum;
+      return product ? sum + (product.priceIdr + selectionExtras(product.customisation, item.config).extraIdr) * item.quantity : sum;
     }, 0);
   }
 

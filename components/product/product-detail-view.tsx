@@ -3,6 +3,8 @@
 import {useState} from "react";
 import type {ProductSelection} from "@/lib/product-selection";
 import type {AdminProduct} from "@/lib/admin-products";
+import {defaultAnswers, isOptionsEnabled, resolveOptions, type OptionAnswers} from "@/lib/product-options";
+import {CustomOptionsNote} from "@/components/product/custom-options-note";
 import {ProductCustomizer} from "@/components/product/product-customizer";
 import {ProductGallery} from "@/components/product/product-gallery";
 import {ProductInfoSection} from "@/components/product/product-info-section";
@@ -23,8 +25,16 @@ export function ProductDetailView({product, images, tintHex}: {product: AdminPro
   const [handleColour, setHandleColour] = useState<string | null>(product.handleColourOptions[0]?.label ?? null);
   const [personalisationNote, setPersonalisationNote] = useState("");
 
-  const hasCustomisation = product.hasBaseColour || product.hasHandleColour || product.hasPersonalisation;
-  const selection: ProductSelection | undefined = hasCustomisation
+  // The admin-built options (extra dolls, pets, part colours, photos) replace
+  // the simple colour/note card on a product that has them switched on.
+  const customOptions = isOptionsEnabled(product.customisation) ? product.customisation : null;
+  const [answers, setAnswers] = useState<OptionAnswers>(() => (customOptions ? defaultAnswers(customOptions) : {}));
+  const resolved = resolveOptions(customOptions, answers);
+
+  const hasCustomisation = Boolean(customOptions) || product.hasBaseColour || product.hasHandleColour || product.hasPersonalisation;
+  const selection: ProductSelection | undefined = customOptions
+    ? {kind: "productSelection", custom: {answers, lines: resolved.lines, extraIdr: resolved.extraIdr}}
+    : hasCustomisation
     ? {
         kind: "productSelection",
         ...(product.hasBaseColour && baseColour ? {baseColour} : {}),
@@ -39,13 +49,15 @@ export function ProductDetailView({product, images, tintHex}: {product: AdminPro
         <div className="flex flex-col">
           <ProductGallery images={images} name={product.name} tintHex={tintHex} zoomEnabled={product.imageZoomEnabled} />
         </div>
-        <ProductPurchasePanel product={product} selection={selection} hasCustomisation={hasCustomisation} />
+        <ProductPurchasePanel product={product} selection={selection} hasCustomisation={hasCustomisation} extraIdr={resolved.extraIdr} />
       </div>
 
       <ProductInfoSection
         product={product}
         customiser={
-          hasCustomisation ? (
+          customOptions ? (
+            <CustomOptionsNote options={customOptions} answers={answers} onChange={setAnswers} basePriceIdr={product.priceIdr} />
+          ) : hasCustomisation ? (
             <ProductCustomizer
               hasBaseColour={product.hasBaseColour}
               baseColourOptions={product.baseColourOptions}
