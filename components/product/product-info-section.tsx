@@ -1,3 +1,4 @@
+import type {ReactNode} from "react";
 import {ProductAccordionRow} from "@/components/product/product-accordion-row";
 import type {AdminProduct} from "@/lib/admin-products";
 import {sanitizeDescriptionHtml} from "@/lib/sanitize-html";
@@ -10,13 +11,21 @@ const SHIPPING_AND_RETURNS_COPY = [
   "As each item is handmade, we do not accept returns or exchanges on standard purchases. Custom and commissioned pieces cannot be returned once production has begun."
 ];
 
-export function ProductInfoSection({product}: {product: AdminProduct}) {
+// Below the fold: the story of the piece on the left (with its care and
+// shipping notes), and  -  when the piece offers it  -  personalisation on the
+// right, in the same two columns as the gallery and buying column above. A
+// piece with nothing to personalise gives the story the full width.
+export function ProductInfoSection({product, customiser}: {product: AdminProduct; customiser?: ReactNode}) {
   const hasMaterials = product.materials.length > 0;
 
   return (
-    <div className="mt-14 grid gap-8 rounded-xl border border-forest-100 bg-[#fffdf9] p-6 sm:p-8 lg:grid-cols-2 lg:gap-12">
-      <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-forest-800">Product Details</h2>
+    <div
+      className={`pdp-details ${
+        customiser ? "lg:grid-cols-[1.2fr_0.8fr] lg:gap-[30px] xl:gap-[48px]" : "lg:grid-cols-1"
+      }`}
+    >
+      <div className="min-w-0">
+        <h2 className="pdp-section-title">Product Details</h2>
         {product.description?.trim() ? (
           // Re-sanitized here too (not just on write in lib/admin-products.ts)
           // as defense in depth  -  render-site sanitization stays correct even
@@ -24,32 +33,34 @@ export function ProductInfoSection({product}: {product: AdminProduct}) {
           // pre-wrap is kept so a pre-rich-text-editor plain-text description
           // (no markup, just line breaks) still renders exactly as before.
           <div
-            className="prose-description whitespace-pre-wrap text-sm leading-relaxed text-forest-600"
+            className="prose-description pdp-prose whitespace-pre-wrap"
             dangerouslySetInnerHTML={{__html: sanitizeDescriptionHtml(product.description)}}
           />
         ) : (
-          <p className="text-sm leading-relaxed text-forest-600">No description provided yet.</p>
+          <p className="pdp-prose">No description provided yet.</p>
         )}
-      </div>
 
-      <div>
-        {/* The material names themselves, size and dimensions now live in the
-            specs panel up in the purchase column (see product-specs-panel.tsx)
-            - this row is just the care note that panel has no room for. */}
-        {hasMaterials ? (
-          <ProductAccordionRow title="Material & Care">
-            <p>Undyed natural fibre, handwoven. The material is the colour.</p>
+        <div className="pdp-accordions">
+          {/* The material names themselves, size and dimensions live in the
+              specs panel in the purchase column (see product-specs-panel.tsx)
+              - this row is just the care note that panel has no room for. */}
+          {hasMaterials ? (
+            <ProductAccordionRow title="Material & Care">
+              <p>Undyed natural fibre, handwoven. The material is the colour.</p>
+            </ProductAccordionRow>
+          ) : null}
+
+          <ProductAccordionRow title="Shipping & Returns">
+            {SHIPPING_AND_RETURNS_COPY.map((paragraph) => (
+              <p key={paragraph} className="mt-2 first:mt-0">
+                {paragraph}
+              </p>
+            ))}
           </ProductAccordionRow>
-        ) : null}
-
-        <ProductAccordionRow title="Shipping & Returns">
-          {SHIPPING_AND_RETURNS_COPY.map((paragraph) => (
-            <p key={paragraph} className="mt-1.5 first:mt-0">
-              {paragraph}
-            </p>
-          ))}
-        </ProductAccordionRow>
+        </div>
       </div>
+
+      {customiser ? <div className="min-w-0">{customiser}</div> : null}
     </div>
   );
 }

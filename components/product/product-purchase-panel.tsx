@@ -13,30 +13,25 @@ import {LOCAL_CUSTOM_DRAFT_KEY, type LocalCustomDraft} from "@/lib/custom-studio
 import {defaultConfigForProduct} from "@/lib/product-customization";
 import type {ProductSelection} from "@/lib/product-selection";
 import type {AdminProduct} from "@/lib/admin-products";
-import {ProductCustomizer} from "@/components/product/product-customizer";
 import {ProductSpecsPanel} from "@/components/product/product-specs-panel";
 
-export function ProductPurchasePanel({product}: {product: AdminProduct}) {
+// The colour/note selection is owned by ProductDetailView (the customiser sits
+// in the details section below); this column only carries it to the bag.
+export function ProductPurchasePanel({
+  product,
+  selection,
+  hasCustomisation
+}: {
+  product: AdminProduct;
+  selection?: ProductSelection;
+  hasCustomisation: boolean;
+}) {
   const router = useRouter();
   const {status} = useSession();
   const signedIn = status === "authenticated";
   const {currency, locale} = useSitePreferences();
   const {addToCart} = useStorefront();
   const {isWishlisted, toggle: toggleWishlist} = useWishlist();
-
-  const [baseColour, setBaseColour] = useState<string | null>(product.baseColourOptions[0]?.label ?? null);
-  const [handleColour, setHandleColour] = useState<string | null>(product.handleColourOptions[0]?.label ?? null);
-  const [personalisationNote, setPersonalisationNote] = useState("");
-
-  const hasSelection = product.hasBaseColour || product.hasHandleColour || product.hasPersonalisation;
-  const selection: ProductSelection | undefined = hasSelection
-    ? {
-        kind: "productSelection",
-        ...(product.hasBaseColour && baseColour ? {baseColour} : {}),
-        ...(product.hasHandleColour && handleColour ? {handleColour} : {}),
-        ...(product.hasPersonalisation && personalisationNote.trim() ? {personalisationNote: personalisationNote.trim()} : {})
-      }
-    : undefined;
 
   // Whether Custom Studio supports this product's type at all (Bags/Dolls/
   // Apparels  -  see lib/custom-studio.ts) decides whether "Customise This
@@ -119,7 +114,7 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
   }
 
   return (
-    <div className="lg:sticky lg:top-24">
+    <div className="flex h-full flex-col">
       <p className="pdp-eyebrow">Handcrafted in Indonesia</p>
       <h1 className="pdp-title">{product.name}</h1>
       <p className="pdp-price">
@@ -133,25 +128,14 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
 
       <ProductSpecsPanel product={product} outOfStock={outOfStock} stockLabel={stockLabel} locale={locale} />
 
-      <div className="mt-5">
-        <ProductCustomizer
-          hasBaseColour={product.hasBaseColour}
-          baseColourOptions={product.baseColourOptions}
-          baseColour={baseColour}
-          onBaseColourChange={setBaseColour}
-          hasHandleColour={product.hasHandleColour}
-          handleColourOptions={product.handleColourOptions}
-          handleColour={handleColour}
-          onHandleColourChange={setHandleColour}
-          hasPersonalisation={product.hasPersonalisation}
-          personalisationNote={personalisationNote}
-          onPersonalisationNoteChange={setPersonalisationNote}
-        />
-      </div>
+      {hasCustomisation ? (
+        <a href="#customise" className="pdp-customise-link">
+          Choose colours &amp; personalise
+          <span aria-hidden>↓</span>
+        </a>
+      ) : null}
 
-      <hr className="mt-5 border-forest-100" />
-
-      <div className="mt-4 flex flex-col gap-3">
+      <div className="mt-auto flex flex-col gap-3 border-t border-[color:var(--pdp-line)] pt-6">
         {customStudioBase ? (
           <button
             type="button"
