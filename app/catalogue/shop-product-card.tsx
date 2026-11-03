@@ -162,7 +162,7 @@ export function ShopProductCard({
   // Mouse drag-to-swipe (touch already swipes natively): the strip follows the
   // pointer, then eases to the photo it was dragged towards. A drag never counts
   // as a click on the card.
-  const dragRef = useRef<{startX: number; startLeft: number; moved: boolean} | null>(null);
+  const dragRef = useRef<{startX: number; lastX: number; startLeft: number; moved: boolean} | null>(null);
   const suppressClickRef = useRef(false);
 
   function handleDragStart(event: React.PointerEvent<HTMLDivElement>) {
@@ -170,7 +170,7 @@ export function ShopProductCard({
     if (!gallery || images.length < 2 || event.pointerType !== "mouse" || event.button !== 0) {
       return;
     }
-    dragRef.current = {startX: event.clientX, startLeft: gallery.scrollLeft, moved: false};
+    dragRef.current = {startX: event.clientX, lastX: event.clientX, startLeft: gallery.scrollLeft, moved: false};
     try {
       gallery.setPointerCapture(event.pointerId);
     } catch {
@@ -187,6 +187,7 @@ export function ShopProductCard({
     if (!gallery || !drag) {
       return;
     }
+    drag.lastX = event.clientX;
     const delta = event.clientX - drag.startX;
     if (Math.abs(delta) > 5) {
       drag.moved = true;
@@ -205,7 +206,10 @@ export function ShopProductCard({
       gallery.releasePointerCapture(event.pointerId);
     }
     const width = gallery.clientWidth || 1;
-    const delta = event.clientX - drag.startX;
+    // Use the last position seen while dragging: a cancelled pointer (which the
+    // browser fires if it starts a native link drag) reports no usable position,
+    // and reading it made every drag look like a swipe in the same direction.
+    const delta = drag.lastX - drag.startX;
     const startIndex = Math.round(drag.startLeft / width);
     const target = Math.min(images.length - 1, Math.max(0, delta < -40 ? startIndex + 1 : delta > 40 ? startIndex - 1 : startIndex));
     gallery.style.scrollSnapType = "";
@@ -245,6 +249,8 @@ export function ShopProductCard({
     <Link
       href={`/catalogue/${product.slug}`}
       className="catalogue-item group"
+      draggable={false}
+      onDragStart={(event) => event.preventDefault()}
       style={{"--item-tint": tint.bg} as CSSProperties}
       aria-label={product.name}
       onPointerEnter={images.length > 1 ? openGallery : undefined}
