@@ -2805,7 +2805,6 @@ body:has(.outlets-stage--page) footer {
   overscroll-behavior-x: contain;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
-  will-change: transform;
   transition: transform 1100ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -2827,10 +2826,6 @@ body:has(.outlets-stage--page) footer {
   scroll-snap-stop: always;
 }
 
-.catalogue-gallery-slide img {
-  mix-blend-mode: multiply;
-}
-
 .catalogue-item-actions {
   position: absolute;
   top: 8px;
@@ -2840,10 +2835,14 @@ body:has(.outlets-stage--page) footer {
   gap: 6px;
 }
 
+/* Glass without a blur layer per card (dozens of live blurs are what makes a
+   grid janky on phones and older laptops): a translucent fill, a fine rim and a
+   specular highlight carry the look. */
 .catalogue-item-action,
 .catalogue-item-arrow {
-  background: var(--cat-glass);
+  background: linear-gradient(180deg, var(--cat-glass), color-mix(in srgb, var(--cat-glass) 70%, transparent));
   border: 1px solid var(--cat-glass-border);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 4px 12px -4px rgba(0, 0, 0, 0.3);
   color: var(--cat-glass-ink);
 }
 
@@ -2875,8 +2874,6 @@ body:has(.outlets-stage--page) footer {
   justify-content: center;
   border-radius: 9999px;
   padding: 0;
-  backdrop-filter: blur(10px) saturate(150%);
-  -webkit-backdrop-filter: blur(10px) saturate(150%);
   transition: transform 200ms ease;
 }
 
@@ -3076,6 +3073,7 @@ body:has(.outlets-stage--page) footer {
   }
 
   .catalogue-item:hover .catalogue-gallery {
+    will-change: transform;
     transform: scale(1.04);
   }
 
@@ -3377,7 +3375,8 @@ body:has(.outlets-stage--page) footer {
    hard-coded Tailwind colours can't touch it.
    ============================================================ */
 .bag-overlay {
-  background: rgba(7, 14, 9, 0.5);
+  background: rgba(7, 14, 9, 0.58);
+  overscroll-behavior: contain;
 }
 
 .bag-drawer {
@@ -3386,9 +3385,12 @@ body:has(.outlets-stage--page) footer {
   width: 100%;
   flex-direction: column;
   overflow: hidden;
-  background: #25331f;
+  /* A single soft pool of light high on the left gives the glass pieces
+     something to catch; static, so it costs nothing to scroll. */
+  background: radial-gradient(130% 55% at 15% 0%, #33452b 0%, #25331f 62%);
   color: #f3ecd9;
   border-left: 1px solid rgba(243, 236, 217, 0.12);
+  overscroll-behavior: contain;
   box-shadow: -18px 0 40px -24px rgba(0, 0, 0, 0.55);
   padding: max(1.25rem, env(safe-area-inset-top)) 1.25rem max(1.25rem, env(safe-area-inset-bottom));
 }
@@ -3461,17 +3463,18 @@ body:has(.outlets-stage--page) footer {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(243, 236, 217, 0.28);
+  border: 1px solid rgba(243, 236, 217, 0.22);
   border-radius: 9999px;
-  background: transparent;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 6px 14px -8px rgba(0, 0, 0, 0.5);
   color: #f3ecd9;
   outline: none;
   transition: background-color 200ms ease, border-color 200ms ease;
 }
 
 .bag-close:hover {
-  background: rgba(243, 236, 217, 0.08);
-  border-color: rgba(243, 236, 217, 0.45);
+  border-color: rgba(243, 236, 217, 0.4);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.07));
 }
 
 .bag-close:focus-visible,
@@ -3569,12 +3572,15 @@ body:has(.outlets-stage--page) footer {
   list-style: none;
 }
 
+/* The pieces you have chosen: frosted-glass panels (fill, hairline rim, top
+   highlight, soft drop) rather than flat boxes. */
 .bag-item {
   display: flex;
   gap: 1rem;
-  border: 1px solid rgba(243, 236, 217, 0.2);
-  border-radius: 12px;
-  background: #2d3b27;
+  border: 1px solid rgba(243, 236, 217, 0.16);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.03));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 14px 28px -18px rgba(0, 0, 0, 0.6);
   padding: 0.9rem;
 }
 
@@ -3648,16 +3654,17 @@ body:has(.outlets-stage--page) footer {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(243, 236, 217, 0.22);
+  border: 1px solid rgba(243, 236, 217, 0.2);
   border-radius: 9999px;
-  background: transparent;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
   color: #e6dec6;
   outline: none;
   transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
 }
 
 .bag-icon-btn:hover {
-  background: rgba(243, 236, 217, 0.08);
+  background: linear-gradient(180deg, rgba(243, 180, 160, 0.16), rgba(243, 180, 160, 0.05));
   color: #f3b4a0;
   border-color: rgba(243, 180, 160, 0.5);
 }
@@ -3672,8 +3679,10 @@ body:has(.outlets-stage--page) footer {
 .bag-stepper {
   display: inline-flex;
   align-items: center;
-  border: 1px solid rgba(243, 236, 217, 0.28);
+  border: 1px solid rgba(243, 236, 217, 0.2);
   border-radius: 9999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
   padding: 0.2rem;
 }
 
@@ -3816,14 +3825,15 @@ body:has(.outlets-stage--page) footer {
 }
 
 .bag-btn-secondary {
-  border: 1px solid rgba(243, 236, 217, 0.4);
-  background: transparent;
+  border: 1px solid rgba(243, 236, 217, 0.28);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
   color: #f3ecd9;
 }
 
 .bag-btn-secondary:hover {
-  background: rgba(243, 236, 217, 0.07);
-  border-color: rgba(243, 236, 217, 0.6);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06));
+  border-color: rgba(243, 236, 217, 0.45);
 }
 
 @media (prefers-reduced-motion: reduce) {

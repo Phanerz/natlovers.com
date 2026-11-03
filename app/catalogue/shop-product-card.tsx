@@ -295,7 +295,7 @@ export function ShopProductCard({
                 event.stopPropagation();
                 step(-1);
               }}
-              className="catalogue-item-arrow catalogue-item-arrow-prev liquid-glass-on-light backdrop-blur-[10px] backdrop-saturate-[150%]"
+              className="catalogue-item-arrow catalogue-item-arrow-prev"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -308,7 +308,7 @@ export function ShopProductCard({
                 event.stopPropagation();
                 step(1);
               }}
-              className="catalogue-item-arrow catalogue-item-arrow-next liquid-glass-on-light backdrop-blur-[10px] backdrop-saturate-[150%]"
+              className="catalogue-item-arrow catalogue-item-arrow-next"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -325,7 +325,7 @@ export function ShopProductCard({
               event.stopPropagation();
               toggle(product.slug);
             }}
-            className="catalogue-item-action liquid-glass-on-light backdrop-blur-[10px] backdrop-saturate-[150%]"
+            className="catalogue-item-action"
           >
             <Heart className="h-4 w-4" />
           </button>
@@ -340,7 +340,7 @@ export function ShopProductCard({
               event.stopPropagation();
               addToCart(product.slug);
             }}
-            className="catalogue-item-action liquid-glass-on-light backdrop-blur-[10px] backdrop-saturate-[150%]"
+            className="catalogue-item-action"
           >
             <ShoppingBag className="h-4 w-4" />
           </button>

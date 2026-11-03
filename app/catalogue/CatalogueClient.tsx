@@ -328,11 +328,10 @@ export function CatalogueContent({
     if (!mobileFiltersMounted) {
       return;
     }
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
+    // Same reasoning as the Shopping Bag drawer: no body overflow lock (it moves
+    // the page); the sheet's data-scroll-lock and overscroll containment keep the
+    // page still behind it.
+    return undefined;
   }, [mobileFiltersMounted]);
 
   useEffect(() => {
