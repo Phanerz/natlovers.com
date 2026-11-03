@@ -221,6 +221,23 @@ body::-webkit-scrollbar {
   background-color: var(--cat-surface);
 }
 
+/* Product page tokens (light and dark). */
+:root {
+  --pdp-ink: #1f2a1c;
+  --pdp-soft: #4a5240;
+  --pdp-muted: #6b6f5e;
+  --pdp-line: rgba(52, 67, 50, 0.16);
+  --pdp-surface: rgba(255, 251, 243, 0.62);
+}
+
+.dark {
+  --pdp-ink: #f4ecd8;
+  --pdp-soft: #d6cdb4;
+  --pdp-muted: #aea68f;
+  --pdp-line: rgba(243, 236, 217, 0.16);
+  --pdp-surface: rgba(255, 255, 255, 0.045);
+}
+
 .catalogue-sheet-surface {
   background-color: var(--cat-sheet);
 }
@@ -3845,3 +3862,295 @@ body:has(.outlets-stage--page) footer {
   }
 }
 
+
+/* ============================================================
+   Product page (components/product/*): an editorial serif for the name, price
+   and facts, calm hairlines instead of boxes, and a photo rail that always shows
+   every photograph whole.
+   ============================================================ */
+.pdp-eyebrow {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--pdp-muted);
+}
+
+.pdp-title {
+  margin-top: 0.6rem;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-size: clamp(2.4rem, 4.2vw, 3.4rem);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.012em;
+  color: var(--pdp-ink);
+}
+
+.pdp-price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  margin-top: 0.7rem;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-size: 1.75rem;
+  letter-spacing: 0.02em;
+  color: var(--pdp-ink);
+}
+
+.pdp-price-was {
+  font-size: 1.1rem;
+  color: var(--pdp-muted);
+  text-decoration: line-through;
+}
+
+.pdp-lede {
+  margin-top: 1rem;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-size: 1.1rem;
+  line-height: 1.65;
+  color: var(--pdp-soft);
+}
+
+.pdp-specs {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--pdp-line);
+}
+
+.pdp-spec-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  border-bottom: 1px solid var(--pdp-line);
+  padding: 0.95rem 0.1rem;
+}
+
+.pdp-spec-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--pdp-muted);
+}
+
+.pdp-spec-icon {
+  display: flex;
+  height: 1.9rem;
+  width: 1.9rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--pdp-line);
+  border-radius: 9999px;
+  color: var(--pdp-soft);
+}
+
+.pdp-spec-value {
+  text-align: right;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-size: 1.1rem;
+  line-height: 1.35;
+  color: var(--pdp-ink);
+}
+
+.pdp-options {
+  margin-top: 1.5rem;
+  border: 1px solid var(--pdp-line);
+  border-radius: 14px;
+  background: var(--pdp-surface);
+  padding: 1.15rem 1.25rem;
+}
+
+.pdp-option-title {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-size: 1.1rem;
+  color: var(--pdp-ink);
+}
+
+/* Photo rail: equal squares, every photograph whole, no scrolling. */
+.pdp-thumbs {
+  position: relative;
+}
+
+.pdp-thumbs-inner {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3.5rem, 4.75rem));
+  gap: 0.6rem;
+}
+
+@media (min-width: 1024px) {
+  .pdp-thumbs {
+    width: 5.25rem;
+    flex-shrink: 0;
+  }
+
+  .pdp-thumbs-inner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .pdp-thumbs-inner::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.pdp-thumb {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  flex: none;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #efe8d6;
+  opacity: 0.68;
+  outline: none;
+  transition: opacity 250ms ease, box-shadow 250ms ease;
+}
+
+.pdp-thumb:hover {
+  opacity: 1;
+}
+
+.pdp-thumb[aria-current="true"] {
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--pdp-ink);
+}
+
+.pdp-thumb:focus-visible {
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--pdp-ink), 0 0 0 4px rgba(243, 230, 200, 0.5);
+}
+
+/* Glass controls that stay visible on any photo: a dark tint, a fine light rim
+   and a soft highlight  -  never see-through on a white wall. */
+.pdp-zoom {
+  display: flex;
+  aspect-ratio: 1 / 1;
+  width: 2.6rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 9999px;
+  background: linear-gradient(180deg, rgba(34, 46, 31, 0.66), rgba(22, 31, 20, 0.58));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 8px 18px -8px rgba(0, 0, 0, 0.5);
+  color: #f7f0de;
+  outline: none;
+  transition: background-color 250ms ease, transform 150ms ease;
+}
+
+.pdp-zoom:hover {
+  background: linear-gradient(180deg, rgba(44, 58, 40, 0.74), rgba(28, 38, 25, 0.66));
+}
+
+.pdp-zoom:active {
+  transform: scale(0.94);
+}
+
+.pdp-zoom:focus-visible {
+  outline: 2px solid #f3e6c8;
+  outline-offset: 2px;
+}
+
+/* Image viewer: the page softly dims and blurs behind the photograph, which
+   floats at its natural proportions with a rounded edge and a deep, quiet shadow. */
+.pdp-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  height: 100dvh;
+  align-items: center;
+  justify-content: center;
+  padding: max(1.5rem, env(safe-area-inset-top)) 1.25rem max(2.75rem, env(safe-area-inset-bottom));
+  background: rgba(12, 17, 11, 0.7);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  animation: pdpFade 320ms ease both;
+}
+
+.pdp-lightbox-stage {
+  position: relative;
+  height: min(100%, 86dvh);
+  width: min(94vw, 62rem);
+  animation: pdpRise 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.pdp-lightbox-image {
+  border-radius: 14px;
+  filter: drop-shadow(0 30px 50px rgba(0, 0, 0, 0.45));
+}
+
+.pdp-lightbox-close {
+  position: absolute;
+  top: max(1rem, env(safe-area-inset-top));
+  right: 1rem;
+  z-index: 2;
+}
+
+.pdp-lightbox-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+}
+
+.pdp-lightbox-arrow:active {
+  transform: translateY(-50%) scale(0.94);
+}
+
+.pdp-lightbox-prev {
+  left: 1rem;
+}
+
+.pdp-lightbox-next {
+  right: 1rem;
+}
+
+.pdp-lightbox-count {
+  position: absolute;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  color: rgba(247, 240, 222, 0.8);
+}
+
+@keyframes pdpFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pdpRise {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdp-lightbox,
+  .pdp-lightbox-stage,
+  .pdp-thumb,
+  .pdp-zoom {
+    animation: none;
+    transition: none;
+  }
+}

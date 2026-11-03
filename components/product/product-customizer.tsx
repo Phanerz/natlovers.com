@@ -49,11 +49,11 @@ export function ProductCustomizer({
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-[#ecdfc4] bg-[#fbf3e2] p-3.5 sm:p-4">
+    <div className="pdp-options space-y-5">
       {hasBaseColour ? (
         <div>
           <div className="flex items-baseline justify-between">
-            <p className="text-sm font-semibold text-forest-900">{baseColourStep}. Base colour</p>
+            <p className="pdp-option-title">{baseColourStep}. Base colour</p>
             <span className="text-[11px] text-forest-400">Optional</span>
           </div>
           <div className="mt-2 flex flex-wrap gap-2.5">
@@ -81,7 +81,7 @@ export function ProductCustomizer({
       {hasHandleColour ? (
         <div>
           <div className="flex items-baseline justify-between">
-            <p className="text-sm font-semibold text-forest-900">{handleColourStep}. Handle colour</p>
+            <p className="pdp-option-title">{handleColourStep}. Handle colour</p>
             <span className="text-[11px] text-forest-400">Optional</span>
           </div>
           <div className="mt-2 flex flex-wrap gap-2.5">
