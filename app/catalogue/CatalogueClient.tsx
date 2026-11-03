@@ -9,6 +9,8 @@ import {DaisyLoader} from "@/components/daisy-loader";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {useClickOutside} from "@/components/use-click-outside";
 import {useDelayedMount} from "@/components/use-delayed-mount";
+import {PublicBanner, bannerColumnSpan, interleaveBanners, paginateEntries} from "@/lib/catalogue-banners";
+import {CatalogueBanner} from "./catalogue-banner";
 import {FilterSidebar} from "./filter-sidebar";
 import {ShopProductCard} from "./shop-product-card";
 import {
@@ -53,7 +55,6 @@ const MOBILE_BREAKPOINT = 640;
 const DESKTOP_COLUMNS = 4;
 const DESKTOP_ROWS = 2;
 const MOBILE_ROWS = 3;
-const DESKTOP_CAPACITY = DESKTOP_COLUMNS * DESKTOP_ROWS;
 
 // The filter panel is a controlled width (about 19% of the screen, never
 // narrower than 240px or wider than 276px). columnsFor mirrors that same clamp
@@ -116,7 +117,13 @@ function isScrollLocked(target: EventTarget | null) {
   return Boolean(conditional && conditional.scrollHeight > conditional.clientHeight + 1);
 }
 
-export function CatalogueContent({initialProducts}: {initialProducts?: ShopProduct[]} = {}) {
+export function CatalogueContent({
+  initialProducts,
+  initialBanners
+}: {
+  initialProducts?: ShopProduct[];
+  initialBanners?: PublicBanner[];
+} = {}) {
   const {currency, locale} = useSitePreferences();
   const searchParams = useSearchParams();
 
@@ -129,6 +136,8 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   // section (below the fold, not LCP-relevant) still renders this with no
   // prop and relies entirely on the client fetch below, same as before.
   const [products, setProducts] = useState<ShopProduct[]>(initialProducts ?? []);
+  // Editorial collection banners slotted in between the products.
+  const [banners, setBanners] = useState<PublicBanner[]>(initialBanners ?? []);
   const hasInitialProducts = initialProducts !== undefined;
   // Only the home-page embed fetches client-side; until that fetch settles the
   // grid shows the loader instead of a misleading empty shelf.
@@ -146,6 +155,15 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
     }
 
     let cancelled = false;
+
+    fetch("/api/admin/banners", {cache: "no-store"})
+      .then((response) => (response.ok ? response.json() : []))
+      .then((data: unknown) => {
+        if (!cancelled && Array.isArray(data)) {
+          setBanners(data as PublicBanner[]);
+        }
+      })
+      .catch(() => {});
 
     fetch("/api/admin/products", {cache: "no-store"})
       .then((response) => (response.ok ? response.json() : []))
@@ -192,8 +210,8 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const {mounted: mobileFiltersMounted, entered: mobileFiltersEntered} = useDelayedMount(mobileFiltersOpen, 180);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [capacity, setCapacity] = useState(DESKTOP_CAPACITY);
   const [columns, setColumns] = useState(DESKTOP_COLUMNS);
+  const [isMobile, setIsMobile] = useState(false);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
   const thumbRef = useRef<HTMLDivElement | null>(null);
@@ -234,16 +252,121 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
 
   useEffect(() => {
     function updateCapacity() {
-      const nextColumns = columnsFor(window.innerWidth, sidebarCollapsed);
-      const rows = window.innerWidth < MOBILE_BREAKPOINT ? MOBILE_ROWS : DESKTOP_ROWS;
-      setColumns(nextColumns);
-      setCapacity(nextColumns * rows);
+      setColumns(columnsFor(window.innerWidth, sidebarCollapsed));
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
     }
 
     updateCapacity();
     window.addEventListener("resize", updateCapacity);
     return () => window.removeEventListener("resize", updateCapacity);
   }, [sidebarCollapsed]);
+
+  // ---- Filter & Sort bottom sheet (phones and tablets) ------------------------------
+  // The sheet edits a draft, and nothing changes in the catalogue until Apply;
+  // Reset clears the draft. While it is open the page behind it cannot scroll,
+  // Escape and the browser/Android back gesture close it, and it respects the
+  // iOS safe area.
+  type SheetDraft = {
+    materials: ShopMaterial[];
+    sizes: ShopSize[];
+    shapes: ShopShape[];
+    handles: ShopHandle[];
+    categories: AccessoryCategory[];
+    sort: SortOption;
+  };
+  const [draft, setDraft] = useState<SheetDraft>({
+    materials: [],
+    sizes: [],
+    shapes: [],
+    handles: [],
+    categories: [],
+    sort: "newest"
+  });
+  const sheetHistoryRef = useRef(false);
+
+  function toggleDraft<T>(list: T[], value: T): T[] {
+    return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
+  }
+
+  function openSheet() {
+    setDraft({
+      materials: selectedMaterials,
+      sizes: selectedSizes,
+      shapes: selectedShapes,
+      handles: selectedHandles,
+      categories: selectedAccessoryCategories,
+      sort
+    });
+    window.history.pushState(null, "", window.location.href);
+    sheetHistoryRef.current = true;
+    setMobileFiltersOpen(true);
+  }
+
+  function closeSheet() {
+    if (sheetHistoryRef.current) {
+      sheetHistoryRef.current = false;
+      window.history.back();
+    }
+    setMobileFiltersOpen(false);
+  }
+
+  function applySheet() {
+    setSelectedMaterials(draft.materials);
+    setSelectedSizes(draft.sizes);
+    setSelectedShapes(draft.shapes);
+    setSelectedHandles(draft.handles);
+    setSelectedAccessoryCategories(draft.categories);
+    setSort(draft.sort);
+    closeSheet();
+  }
+
+  function resetSheet() {
+    setDraft({materials: [], sizes: [], shapes: [], handles: [], categories: [], sort: "newest"});
+  }
+
+  useEffect(() => {
+    if (!mobileFiltersMounted) {
+      return;
+    }
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileFiltersMounted]);
+
+  useEffect(() => {
+    if (!mobileFiltersOpen) {
+      return;
+    }
+    const handlePopState = () => {
+      if (sheetHistoryRef.current) {
+        sheetHistoryRef.current = false;
+        setMobileFiltersOpen(false);
+      }
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeSheet();
+      }
+    };
+    // The sheet is for narrow screens; if the window grows to show the
+    // sidebar, close it.
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        closeSheet();
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("keydown", handleKey);
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("keydown", handleKey);
+      window.removeEventListener("resize", handleResize);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mobileFiltersOpen]);
 
   function clearFilters() {
     setSelectedMaterials([]);
@@ -529,10 +652,30 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
     sort
   ]);
 
-  const pageCount = Math.max(1, Math.ceil(filteredProducts.length / capacity));
+  // Banners for the category on show, slotted in after the Nth displayed
+  // product, then packed into pages of grid rows. A banner is never a product:
+  // it moves with the displayed list but never changes counts, order or prices.
+  const visibleBanners = useMemo(
+    () => banners.filter((banner) => banner.category === null || banner.category === selectedProductType),
+    [banners, selectedProductType]
+  );
+  const pages = useMemo(
+    () =>
+      paginateEntries(
+        interleaveBanners(filteredProducts, visibleBanners),
+        columns,
+        isMobile ? MOBILE_ROWS : DESKTOP_ROWS,
+        isMobile
+      ),
+    [filteredProducts, visibleBanners, columns, isMobile]
+  );
+  const pageCount = Math.max(1, pages.length);
   const maxPageIndex = pageCount - 1;
   const clampedPageIndex = Math.min(pageIndex, maxPageIndex);
-  const clampedStart = clampedPageIndex * capacity;
+  const productsBeforePage = pages
+    .slice(0, clampedPageIndex)
+    .reduce((total, page) => total + page.filter((entry) => entry.kind === "product").length, 0);
+  const productsOnPage = (pages[clampedPageIndex] ?? []).filter((entry) => entry.kind === "product").length;
 
   // Keep refs in sync with the latest render so the long-lived rAF loop and
   // the wheel handler (both registered once via refs, not re-created every
@@ -587,7 +730,9 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
     selectedHandles,
     selectedAccessoryCategories,
     sort,
-    capacity
+    columns,
+    isMobile,
+    visibleBanners
   ]);
 
   useEffect(() => stopPhysicsLoop, []);
@@ -708,8 +853,8 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
     return () => node.removeEventListener("wheel", handleWheel);
   }, []);
 
-  const rangeStart = filteredProducts.length ? clampedStart + 1 : 0;
-  const rangeEnd = Math.min(clampedStart + capacity, filteredProducts.length);
+  const rangeStart = filteredProducts.length ? productsBeforePage + 1 : 0;
+  const rangeEnd = productsBeforePage + productsOnPage;
   const thumbLeftPct = (clampedPageIndex / pageCount) * 100;
   const thumbWidthPct = (1 / pageCount) * 100;
 
@@ -894,52 +1039,160 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
           </div>
 
           {/* Rendered into <body>: the page content animates in with a transform,
-              which would otherwise make this "fixed" sheet size itself to the page
-              instead of the screen and hang below the fold. It starts under the
-              site header and fills the rest of the screen. */}
+              which would otherwise make these "fixed" layers size themselves to the
+              page instead of the screen. */}
           {mobileFiltersMounted
             ? createPortal(
-            <div
-              data-scroll-lock
-              className={`fixed inset-x-0 bottom-0 top-[var(--header-height)] z-30 overflow-y-auto overscroll-contain bg-[#f5f0e4] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] transition-all lg:hidden ${
-                mobileFiltersEntered
-                  ? "translate-y-0 opacity-100 duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                  : "translate-y-4 opacity-0 duration-150 ease-in"
-              }`}
-            >
-              <button
-                type="button"
-                aria-label="Close filters"
-                onClick={() => setMobileFiltersOpen(false)}
-                className="liquid-glass-on-light relative mb-4 flex h-9 w-9 items-center justify-center rounded-full text-[#2e2e28] backdrop-blur-[18px] backdrop-saturate-[160%] transition-transform duration-200 active:scale-90"
-              >
-                <X className="h-4 w-4" />
-              </button>
-              <FilterSidebar
-                locale={locale}
-                productType={selectedProductType}
-                products={typeProducts}
-                selectedMaterials={selectedMaterials}
-                selectedSizes={selectedSizes}
-                selectedShapes={selectedShapes}
-                selectedHandles={selectedHandles}
-                selectedAccessoryCategories={selectedAccessoryCategories}
-                onToggleMaterial={toggleMaterial}
-                onToggleSize={toggleSize}
-                onToggleShape={toggleShape}
-                onToggleHandle={toggleHandle}
-                onToggleAccessoryCategory={toggleAccessoryCategory}
-                onClearAll={clearFilters}
-              />
-            </div>,
-            document.body
-          )
-        : null}
+                <>
+                  <div
+                    aria-hidden
+                    onClick={closeSheet}
+                    className={`fixed inset-0 z-40 bg-[#1a2318]/45 transition-opacity lg:hidden ${
+                      mobileFiltersEntered ? "opacity-100 duration-300" : "opacity-0 duration-150"
+                    }`}
+                  />
+                  <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Filter and sort"
+                    data-scroll-lock
+                    className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[88dvh] flex-col rounded-t-[20px] bg-[#f8f2e8] shadow-[0_-18px_40px_-20px_rgba(20,32,18,0.45)] transition-transform lg:hidden ${
+                      mobileFiltersEntered
+                        ? "translate-y-0 duration-[380ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+                        : "translate-y-full duration-200 ease-in"
+                    }`}
+                  >
+                    <div className="flex shrink-0 flex-col items-center px-5 pt-2.5">
+                      <span className="h-1 w-10 rounded-full bg-[#d9cfc0]" aria-hidden />
+                      <div className="mt-3 flex w-full items-center justify-between pb-3">
+                        <h2 className="font-display text-xl text-[#20241b]">Filter &amp; Sort</h2>
+                        <button
+                          type="button"
+                          aria-label="Close filters"
+                          onClick={closeSheet}
+                          className="flex aspect-square h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#2e2e28] outline-none transition-colors hover:bg-[#eee7d8] focus-visible:ring-2 focus-visible:ring-[#344332]/50"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t border-[#e6dcc8] px-5 pb-4">
+                      <fieldset className="border-b border-[#e6dcc8] py-4">
+                        <legend className="sr-only">Sort by</legend>
+                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#2e2e28]">Sort by</p>
+                        <div className="flex flex-col">
+                          {sortOptions.map((option) => (
+                            <label key={option.value} className="group flex cursor-pointer items-center gap-3 py-2.5">
+                              <input
+                                type="radio"
+                                name="catalogue-sort"
+                                checked={draft.sort === option.value}
+                                onChange={() => setDraft((current) => ({...current, sort: option.value}))}
+                                className="catalogue-filter-check"
+                              />
+                              <span className="text-[14px] text-[#3c3c34]">{option.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+
+                      <FilterSidebar
+                        compact
+                        locale={locale}
+                        productType={selectedProductType}
+                        products={typeProducts}
+                        selectedMaterials={draft.materials}
+                        selectedSizes={draft.sizes}
+                        selectedShapes={draft.shapes}
+                        selectedHandles={draft.handles}
+                        selectedAccessoryCategories={draft.categories}
+                        onToggleMaterial={(value) => setDraft((current) => ({...current, materials: toggleDraft(current.materials, value)}))}
+                        onToggleSize={(value) => setDraft((current) => ({...current, sizes: toggleDraft(current.sizes, value)}))}
+                        onToggleShape={(value) => setDraft((current) => ({...current, shapes: toggleDraft(current.shapes, value)}))}
+                        onToggleHandle={(value) => setDraft((current) => ({...current, handles: toggleDraft(current.handles, value)}))}
+                        onToggleAccessoryCategory={(value) =>
+                          setDraft((current) => ({...current, categories: toggleDraft(current.categories, value)}))
+                        }
+                      />
+                    </div>
+
+                    <div className="flex shrink-0 gap-3 border-t border-[#e6dcc8] bg-[#f8f2e8] px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+                      <button
+                        type="button"
+                        onClick={resetSheet}
+                        className="flex-1 rounded-full border border-[#cdbfa6] bg-transparent px-5 py-3 text-sm font-semibold text-[#344332] outline-none transition-colors hover:bg-[#eee7d8] focus-visible:ring-2 focus-visible:ring-[#344332]/50"
+                      >
+                        Reset
+                      </button>
+                      <button
+                        type="button"
+                        onClick={applySheet}
+                        className="flex-[1.4] rounded-full bg-[#24351f] px-5 py-3 text-sm font-semibold text-[#f8f2e8] outline-none transition-colors hover:bg-[#2f4529] focus-visible:ring-2 focus-visible:ring-[#344332]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f8f2e8]"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                </>,
+                document.body
+              )
+            : null}
 
           {/* Right-hand column: the category tabs and count/sort sit directly
               above the grid, on the same left edge as the products. The wheel
               handler stays on the inner div below, exactly where it was. */}
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {/* Phone: plain text category tabs under the header, then the editorial
+            introduction, as in the reference. (The glass pill with the drag
+            indicator below is the tablet/desktop version of the same control.) */}
+        <div className="sm:hidden">
+          <nav aria-label="Categories" className="flex items-end justify-between border-b border-[#e6dcc8] px-5">
+            {shopProductTypes.map((type) => {
+              const active = type === selectedProductType;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => selectProductType(type)}
+                  className={`relative px-1 pb-3 pt-3.5 font-display text-[15px] outline-none transition-colors focus-visible:text-[#24351f] ${
+                    active ? "font-semibold text-[#20241b]" : "italic text-[#6b6b5f]"
+                  }`}
+                >
+                  {productTypeLabels[type][locale]}
+                  {active ? <span className="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-[#24351f]" aria-hidden /> : null}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="relative overflow-hidden px-5 pb-4 pt-6">
+            <svg
+              viewBox="0 0 140 110"
+              aria-hidden
+              className="pointer-events-none absolute -right-3 top-0 h-28 w-36 text-[#8a9a7c] opacity-40"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.1"
+              strokeLinecap="round"
+            >
+              <path d="M138 4 C110 18 96 40 92 70" />
+              <path d="M118 14 C104 8 92 12 84 22 C98 26 110 24 118 14 Z" />
+              <path d="M108 30 C96 30 86 38 82 50 C96 50 106 44 108 30 Z" />
+              <path d="M98 50 C88 54 82 64 82 74 C94 70 100 62 98 50 Z" />
+              <path d="M126 22 C130 36 124 48 112 56 C108 44 114 30 126 22 Z" />
+            </svg>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-[#6b6b5f]">
+              {locale === "en" ? "Catalogue" : "Katalog"}
+            </p>
+            <h1 className="mt-1 font-display text-[44px] leading-none text-[#20241b]">{productTypeLabels[selectedProductType][locale]}</h1>
+            <p className="mt-3 max-w-[22ch] font-display text-[16px] italic leading-snug text-[#4a4a3f]">
+              {locale === "en" ? "Handcrafted pieces, each with a story of its own." : "Karya tangan, masing-masing dengan kisahnya sendiri."}
+            </p>
+          </div>
+        </div>
+
         {/*
           The tabs pill and the count/sort controls used to be two stacked
           shrink-0 rows, each eating its own slice of the fixed-height
@@ -949,7 +1202,7 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-5 pb-3 pt-5 sm:px-6 lg:px-8">
           <div
             ref={tabsRef}
-            className="liquid-glass-on-light relative flex w-max items-center gap-1 overflow-x-auto rounded-full p-1.5 backdrop-blur-[18px] backdrop-saturate-[160%]"
+            className="liquid-glass-on-light relative hidden w-max items-center gap-1 overflow-x-auto rounded-full p-1.5 backdrop-blur-[18px] backdrop-saturate-[160%] sm:flex"
           >
             {tabIndicator
               ? (() => {
@@ -1044,19 +1297,47 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
             })}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 max-sm:w-full max-sm:justify-between">
             <button
               type="button"
-              onClick={() => setMobileFiltersOpen(true)}
-              className="liquid-glass-on-light relative flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-[#2e2e28] backdrop-blur-[18px] backdrop-saturate-[160%] transition-transform duration-200 active:scale-95 lg:hidden"
+              onClick={openSheet}
+              aria-haspopup="dialog"
+              className="liquid-glass-on-light relative flex items-center rounded-full py-2 pl-4 pr-4 text-sm text-[#2e2e28] outline-none backdrop-blur-[18px] backdrop-saturate-[160%] transition-transform duration-200 focus-visible:ring-2 focus-visible:ring-[#344332]/50 active:scale-[0.98] lg:hidden max-sm:flex-1 max-sm:py-2.5"
             >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              Filters
+              <span className="flex items-center gap-2">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                <span className="sm:hidden">Filter</span>
+                <span className="max-sm:hidden">Filter &amp; Sort</span>
+                {selectedMaterials.length +
+                  selectedSizes.length +
+                  selectedShapes.length +
+                  selectedHandles.length +
+                  selectedAccessoryCategories.length >
+                0 ? (
+                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#344332] px-1 text-[10px] font-semibold text-[#f7f4ee]">
+                    {selectedMaterials.length +
+                      selectedSizes.length +
+                      selectedShapes.length +
+                      selectedHandles.length +
+                      selectedAccessoryCategories.length}
+                  </span>
+                ) : null}
+              </span>
+              <span className="mx-3 h-4 w-px bg-[#cdbfa6] sm:hidden" aria-hidden />
+              <span className="flex items-center gap-1.5 sm:hidden">
+                Sort: <span className="font-medium">{sortOptions.find((option) => option.value === sort)?.label.split(":")[0]}</span>
+                <ChevronDown className="h-3.5 w-3.5" />
+              </span>
             </button>
-            <p className="text-xs text-[#8a8a7a]">
-              {filteredProducts.length ? `${rangeStart}–${rangeEnd}` : "0"} of {filteredProducts.length}
+            <p className="shrink-0 text-xs text-[#8a8a7a]">
+              <span className="max-sm:hidden">
+                {filteredProducts.length ? `${rangeStart}–${rangeEnd}` : "0"} of {filteredProducts.length}
+              </span>
+              <span className="sm:hidden">
+                {filteredProducts.length} {filteredProducts.length === 1 ? "item" : "items"}
+              </span>
             </p>
-            <div className="relative" ref={sortMenuRef}>
+            <div className="relative max-sm:hidden" ref={sortMenuRef}>
               <button
                 type="button"
                 onClick={() => setSortOpen((open) => !open)}
@@ -1105,12 +1386,32 @@ export function CatalogueContent({initialProducts}: {initialProducts?: ShopProdu
                 </div>
               ) : filteredProducts.length ? (
                 <div key="cards" ref={trackRef} className="flex h-full" style={{width: `${pageCount * 100}%`}}>
-                  {Array.from({length: pageCount}).map((_, pageIdx) => (
+                  {pages.map((page, pageIdx) => (
                     <div key={pageIdx} className="catalogue-page shrink-0" style={{width: `${100 / pageCount}%`}}>
                       <div className="catalogue-grid" style={{"--cols": columns} as React.CSSProperties}>
-                        {filteredProducts.slice(pageIdx * capacity, pageIdx * capacity + capacity).map((product) => (
-                          <ShopProductCard key={product.slug} product={product} currency={currency} locale={locale} />
-                        ))}
+                        {page.map((entry, entryIdx) =>
+                          entry.kind === "product" ? (
+                            <ShopProductCard
+                              key={entry.product.slug}
+                              product={entry.product}
+                              currency={currency}
+                              locale={locale}
+                              priority={pageIdx === 0 && entryIdx < 4}
+                            />
+                          ) : (
+                            <div
+                              key={`banner-${entry.banner.id}`}
+                              className="catalogue-grid-cell-banner"
+                              style={{gridColumn: `span ${bannerColumnSpan(entry.banner, columns, isMobile)}`}}
+                            >
+                              <CatalogueBanner
+                                banner={entry.banner}
+                                priority={pageIdx === 0}
+                                layout={!isMobile ? "grid" : entry.banner.mobileSpan === "full" ? "feature" : "feature-narrow"}
+                              />
+                            </div>
+                          )
+                        )}
                       </div>
                     </div>
                   ))}

@@ -2,59 +2,112 @@
 
 import Link from "next/link";
 import {useCallback, useEffect, useRef, useState, type CSSProperties} from "react";
-import {Heart, ShoppingBag} from "lucide-react";
+import {ChevronLeft, ChevronRight, Heart, ShoppingBag} from "lucide-react";
 import {ImageWithFallback} from "@/components/image-with-fallback";
 import {useStorefront} from "@/components/storefront-provider";
 import {useWishlist} from "@/components/use-wishlist";
+import {colourSwatchStyle} from "@/lib/colour-library";
 import {formatCurrency} from "@/lib/format";
+import {galleryImagesFor, swatchesForProduct} from "@/lib/product-swatches";
 import {CurrencyCode, Locale} from "@/lib/site";
-import {
-  DEFAULT_IMAGE_STYLE,
-  ShopProduct,
-  accessoryCategoryLabels,
-  handleLabels,
-  materialImageStyle,
-  shapeLabels,
-  sizeLabels
-} from "./shop-data";
+import {DEFAULT_IMAGE_STYLE, ShopProduct, materialImageStyle} from "./shop-data";
 
-// A piece in the catalogue: a rounded photo tile with the name, price and a
-// single understated attributes line directly beneath it. All the visuals live in the .catalogue-item* classes in globals.css
-// (fixed light look in both themes, like the old name/price scrim).
+const MAX_SWATCHES = 5;
+// How much of a photograph may be trimmed to fill the tile edge to edge.
+const MAX_TRIM = 0.14;
+
+// One photograph in the tile. A shot whose proportions are close to the tile's
+// fills it (object-cover  -  at most a sliver of backdrop is trimmed); anything
+// that would lose real content, such as a tall portrait or a wide landscape, is
+// shown whole (object-contain) over a soft blurred copy of itself, so the bars
+// at its sides read as part of the picture.
+function TileImage({
+  src,
+  alt,
+  tileRatio,
+  priority,
+  sizes
+}: {
+  src: string;
+  alt: string;
+  tileRatio: number;
+  priority: boolean;
+  sizes: string;
+}) {
+  const [ratio, setRatio] = useState<number | null>(null);
+
+  // A callback ref also catches an image that finished loading before React
+  // attached to it (server-rendered, cached), which onLoad alone would miss.
+  const readRatio = useCallback((image: HTMLImageElement | null) => {
+    if (image && image.complete && image.naturalWidth > 0 && image.naturalHeight > 0) {
+      setRatio(image.naturalWidth / image.naturalHeight);
+    }
+  }, []);
+
+  const trim = ratio === null ? 1 : 1 - Math.min(ratio / tileRatio, tileRatio / ratio);
+  const fits = trim <= MAX_TRIM;
+
+  return (
+    <>
+      {!fits && ratio !== null ? (
+        <ImageWithFallback src={src} alt="" aria-hidden fill sizes="64px" className="scale-125 object-cover opacity-80 blur-2xl" />
+      ) : null}
+      <ImageWithFallback
+        imageRef={readRatio}
+        src={src}
+        alt={alt}
+        fill
+        sizes={sizes}
+        priority={priority}
+        className={fits ? "object-cover" : "object-contain"}
+        onLoad={(event) => {
+          const image = event.currentTarget;
+          if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+            setRatio(image.naturalWidth / image.naturalHeight);
+          }
+        }}
+      />
+    </>
+  );
+}
+
+// A piece in the catalogue: a rounded photo tile (swipeable when the piece has
+// several photographs), then its name, its price and the colours it comes in.
+// All the visuals live in the .catalogue-item* classes in globals.css (fixed
+// light look in both themes).
 //
-// The grid this sits in is a fixed-height, two-rows-per-page momentum-scroll
-// strip (see CatalogueClient), so an item must never grow taller than its row:
-// the name, price and attributes are each capped to one line, and the photo
-// tile takes whatever height is left. The photograph itself is
-// object-contain  -  never cropped, stretched or replaced  -  so square and
-// portrait shots both sit centred on the same stage.
+// On desktop the grid this sits in is a fixed-height, two-rows-per-page
+// momentum-scroll strip (see CatalogueClient), so an item must never grow
+// taller than its row: the name is capped to a line and the photo tile takes
+// whatever height is left. On a phone rows simply take their natural height.
 export function ShopProductCard({
   product,
   currency,
-  locale
+  locale,
+  priority = false
 }: {
   product: ShopProduct;
   currency: CurrencyCode;
   locale: Locale;
+  // The first screenful of photographs load eagerly; everything else is lazy.
+  priority?: boolean;
 }) {
-  // The old per-material backdrop colour now only tints the pool of light
-  // behind the photo, so each piece keeps a hint of its fibre's colour without
-  // sitting in a coloured block.
+  // The old per-material backdrop colour only tints the tile behind the photo,
+  // so each piece keeps a hint of its fibre's colour.
   const tint = product.materials[0] ? materialImageStyle[product.materials[0]] : DEFAULT_IMAGE_STYLE;
   const {isWishlisted, toggle} = useWishlist();
   const favorited = isWishlisted(product.slug);
   const {addToCart} = useStorefront();
 
-  // Fit the photograph to its square tile. A shot whose proportions are close
-  // to the tile's fills it edge to edge (object-cover  -  at most a sliver of
-  // backdrop is trimmed); anything that would lose real content, such as a
-  // tall portrait or a wide landscape, is shown whole (object-contain) and
-  // centred instead. The tile's own proportions change with the screen (the
-  // rows share the available height), so the choice is re-made on resize.
+  const images = galleryImagesFor(product);
+  const swatches = swatchesForProduct(product);
+  const shownSwatches = swatches.slice(0, MAX_SWATCHES);
+  const hiddenSwatches = swatches.length - shownSwatches.length;
+
+  // The tile's own proportions change with the screen (the rows share the
+  // available height), so the photo-fit choice is re-made as it resizes.
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [tileRatio, setTileRatio] = useState(1);
-  const [imageRatio, setImageRatio] = useState<number | null>(null);
-
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage) {
@@ -72,26 +125,48 @@ export function ShopProductCard({
     return () => observer.disconnect();
   }, []);
 
-  // A callback ref also catches an image that finished loading before React
-  // attached to it (server-rendered, cached), which onLoad alone would miss.
-  const readImageRatio = useCallback((image: HTMLImageElement | null) => {
-    if (image && image.complete && image.naturalWidth > 0 && image.naturalHeight > 0) {
-      setImageRatio(image.naturalWidth / image.naturalHeight);
+  // Gallery: native scroll-snap does the swiping, so it is as light as it gets
+  // and vertical page scrolling is never fought over. The extra photographs are
+  // only mounted once someone touches, hovers or focuses the tile, so a page of
+  // products loads one photograph each, not every gallery up front.
+  const galleryRef = useRef<HTMLDivElement | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [galleryOpened, setGalleryOpened] = useState(false);
+  const scrollFrame = useRef<number | null>(null);
+
+  const openGallery = useCallback(() => setGalleryOpened(true), []);
+
+  const handleScroll = useCallback(() => {
+    if (scrollFrame.current !== null) {
+      return;
     }
+    scrollFrame.current = requestAnimationFrame(() => {
+      scrollFrame.current = null;
+      const gallery = galleryRef.current;
+      if (gallery && gallery.clientWidth > 0) {
+        setActiveIndex(Math.round(gallery.scrollLeft / gallery.clientWidth));
+      }
+    });
   }, []);
 
-  const MAX_TRIM = 0.14;
-  const trim = imageRatio === null ? 1 : 1 - Math.min(imageRatio / tileRatio, tileRatio / imageRatio);
-  const fitClass = trim <= MAX_TRIM ? "object-cover" : "object-contain";
+  useEffect(
+    () => () => {
+      if (scrollFrame.current !== null) {
+        cancelAnimationFrame(scrollFrame.current);
+      }
+    },
+    []
+  );
 
-  const attributes = [
-    product.size ? sizeLabels[product.size][locale] : null,
-    product.shape ? shapeLabels[product.shape][locale] : null,
-    ...product.handles.map((handle) => handleLabels[handle][locale]),
-    product.accessoryCategory ? accessoryCategoryLabels[product.accessoryCategory][locale] : null
-  ].filter((value): value is string => Boolean(value));
+  function step(direction: -1 | 1) {
+    const gallery = galleryRef.current;
+    if (gallery) {
+      setGalleryOpened(true);
+      gallery.scrollBy({left: direction * gallery.clientWidth, behavior: "smooth"});
+    }
+  }
 
-  // "Rp2.250.000" -> a quiet currency mark beside a confident amount.
+  // "Rp2.250.000" -> a quiet currency mark beside the amount.
   const price = formatCurrency(product.priceIdr, currency);
   const priceParts = /^(\D+)(\d.*)$/.exec(price);
 
@@ -103,46 +178,67 @@ export function ShopProductCard({
       ? "Add to bag"
       : "Tambah ke tas";
 
+  const sizes = "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw";
+
   return (
     <Link
       href={`/catalogue/${product.slug}`}
       className="catalogue-item group"
       style={{"--item-tint": tint.bg} as CSSProperties}
       aria-label={product.name}
+      onPointerEnter={images.length > 1 ? openGallery : undefined}
+      onTouchStart={images.length > 1 ? openGallery : undefined}
+      onFocus={images.length > 1 ? openGallery : undefined}
     >
       <div ref={stageRef} className="catalogue-item-stage">
-        <div className="catalogue-item-photo">
-          {/* A photo that has to be shown whole (a tall portrait, a wide landscape)
-              leaves bars at its sides; a soft blurred copy of the same photo behind
-              it tints them with its own colours, so the bars read as part of the
-              picture instead of a separate band. */}
-          {fitClass === "object-contain" && imageRatio !== null ? (
-            <ImageWithFallback
-              src={product.imageUrl}
-              alt=""
-              aria-hidden
-              fill
-              sizes="64px"
-              className="scale-125 object-cover opacity-80 blur-2xl"
-            />
-          ) : null}
-          <ImageWithFallback
-            imageRef={readImageRatio}
-            src={product.imageUrl}
-            alt={product.name}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-            className={fitClass}
-            onLoad={(event) => {
-              const image = event.currentTarget;
-              if (image.naturalWidth > 0 && image.naturalHeight > 0) {
-                setImageRatio(image.naturalWidth / image.naturalHeight);
-              }
-            }}
-          />
+        <div ref={galleryRef} className="catalogue-gallery" onScroll={images.length > 1 ? handleScroll : undefined}>
+          {images.map((src, index) => (
+            <div key={src} className="catalogue-gallery-slide">
+              {index === 0 || galleryOpened ? (
+                <TileImage
+                  src={src}
+                  alt={index === 0 ? product.name : `${product.name}, photo ${index + 1}`}
+                  tileRatio={tileRatio}
+                  priority={priority && index === 0}
+                  sizes={sizes}
+                />
+              ) : null}
+            </div>
+          ))}
         </div>
 
         {product.soldOut ? <span className="catalogue-item-soldout">{locale === "en" ? "Sold Out" : "Habis Terjual"}</span> : null}
+
+        {images.length > 1 ? (
+          <>
+            <button
+              type="button"
+              aria-label="Previous photo"
+              disabled={activeIndex === 0}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                step(-1);
+              }}
+              className="catalogue-item-arrow catalogue-item-arrow-prev liquid-glass-on-light"
+            >
+              <ChevronLeft className="h-4 w-4 text-[#344332]" />
+            </button>
+            <button
+              type="button"
+              aria-label="Next photo"
+              disabled={activeIndex >= images.length - 1}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                step(1);
+              }}
+              className="catalogue-item-arrow catalogue-item-arrow-next liquid-glass-on-light"
+            >
+              <ChevronRight className="h-4 w-4 text-[#344332]" />
+            </button>
+          </>
+        ) : null}
 
         <div className="catalogue-item-actions">
           <button
@@ -176,6 +272,16 @@ export function ShopProductCard({
         </div>
       </div>
 
+      {/* Photo position dots. The row is always reserved (blank for a single
+          photo) so every card in a row has the same height. */}
+      <div className="catalogue-item-dots" aria-hidden>
+        {images.length > 1
+          ? images.slice(0, 6).map((src, index) => (
+              <span key={src} className="catalogue-item-dot" data-active={index === Math.min(activeIndex, 5)} />
+            ))
+          : null}
+      </div>
+
       <div className="catalogue-item-info">
         <p className="catalogue-item-name">{product.name}</p>
         <p className="catalogue-item-price">
@@ -188,7 +294,27 @@ export function ShopProductCard({
             price
           )}
         </p>
-        {attributes.length ? <p className="catalogue-item-meta">{attributes.join(" · ")}</p> : null}
+        {shownSwatches.length ? (
+          <ul className="catalogue-swatches" aria-label={locale === "en" ? "Available colours" : "Warna tersedia"}>
+            {shownSwatches.map((colour) => (
+              <li
+                key={colour.label}
+                role="img"
+                aria-label={colour.label}
+                title={colour.label}
+                className="catalogue-swatch"
+                style={colourSwatchStyle(colour)}
+              />
+            ))}
+            {hiddenSwatches > 0 ? (
+              <li className="catalogue-swatch-more" aria-label={`${hiddenSwatches} more colours`}>
+                +{hiddenSwatches}
+              </li>
+            ) : null}
+          </ul>
+        ) : (
+          <div className="catalogue-swatches-empty" aria-hidden />
+        )}
       </div>
     </Link>
   );
