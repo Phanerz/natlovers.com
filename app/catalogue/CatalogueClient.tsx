@@ -947,14 +947,24 @@ export function CatalogueContent({
       if (root) {
         const rootTop = root.getBoundingClientRect().top;
         const clampRoot = hasInitialProducts && window.innerWidth >= MOBILE_BREAKPOINT;
-        root.style.maxHeight = clampRoot ? `${Math.max(360, Math.floor(viewportHeight - rootTop - 12))}px` : "";
+        // Fill exactly to the bottom edge: a leftover strip shows the page
+        // background below the panel as a gap.
+        const fit = clampRoot ? `${Math.max(360, Math.floor(viewportHeight - rootTop))}px` : "";
+        root.style.maxHeight = fit;
+        root.style.height = fit;
       }
     };
     clamp();
+    // The page slides in (a transform), which shifts the measured top for a moment;
+    // measure again once it has settled so the panel meets the bottom edge.
+    const settle = window.setTimeout(clamp, 900);
+    document.addEventListener("animationend", clamp, true);
     window.addEventListener("resize", clamp);
     window.addEventListener("scroll", clamp, {passive: true, capture: true});
     window.visualViewport?.addEventListener("resize", clamp);
     return () => {
+      window.clearTimeout(settle);
+      document.removeEventListener("animationend", clamp, true);
       window.removeEventListener("resize", clamp);
       window.removeEventListener("scroll", clamp, {capture: true});
       window.visualViewport?.removeEventListener("resize", clamp);
