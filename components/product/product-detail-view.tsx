@@ -35,7 +35,7 @@ export function ProductDetailView({product, images, tintHex}: {product: AdminPro
 
   return (
     <>
-      <div className="grid items-stretch gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:gap-[30px] xl:gap-[48px]">
+      <div className="grid items-stretch gap-6 lg:grid-cols-2 lg:gap-[30px] xl:gap-[48px]">
         <div className="flex flex-col">
           <ProductGallery images={images} name={product.name} tintHex={tintHex} zoomEnabled={product.imageZoomEnabled} />
         </div>

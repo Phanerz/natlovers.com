@@ -22,7 +22,7 @@ export function ProductInfoSection({product, customiser}: {product: AdminProduct
     <div
       id="details"
       className={`pdp-details ${
-        customiser ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,25rem)] lg:gap-10 xl:gap-14" : "lg:grid-cols-1"
+        customiser ? "lg:grid-cols-2 lg:gap-[30px] xl:gap-[48px]" : "lg:grid-cols-1"
       }`}
     >
       <div className="min-w-0">
