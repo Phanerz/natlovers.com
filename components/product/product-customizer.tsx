@@ -83,12 +83,12 @@ export function ProductCustomizer({
       <p className="pdp-note-eyebrow">
         <span>Natlovers</span>
         <span aria-hidden>·</span>
-        <span>Atelier note</span>
+        <span>Order note</span>
       </p>
       <h2 id="customise-title" className="pdp-note-title">
         Make it yours
       </h2>
-      <p className="pdp-customise-lede">Choose your colours and leave a personal note. Your choices travel with your order.</p>
+      <p className="pdp-customise-lede">Pick the colours you would like below. If you want anything added or changed, write it on the lines.</p>
       <div className="pdp-note-rule" aria-hidden />
 
       <div className="mt-6 space-y-7">
@@ -104,7 +104,7 @@ export function ProductCustomizer({
           <div>
             <div className="flex items-baseline justify-between gap-3">
               <label htmlFor="personal-note" className="pdp-option-title">
-                A personal note
+                Your note
               </label>
               <span className="pdp-option-value">{personalisationNote.length} / 500</span>
             </div>
@@ -113,16 +113,16 @@ export function ProductCustomizer({
               value={personalisationNote}
               onChange={(event) => onPersonalisationNoteChange(event.target.value.slice(0, 500))}
               rows={3}
-              placeholder="A message or request for this piece…"
+              placeholder="Anything you would like us to know…"
               className="pdp-input mt-3"
             />
-            <p className="pdp-fineprint">This note cannot be changed once your order is placed.</p>
+            <p className="pdp-fineprint">Once you place your order, this note cannot be edited.</p>
           </div>
         ) : null}
       </div>
 
       <div className="pdp-note-rule mt-7" aria-hidden />
-      <p className="pdp-note-sign">Handcrafted to your choosing</p>
+      <p className="pdp-note-sign">Made by hand, just for you</p>
     </section>
   );
 }

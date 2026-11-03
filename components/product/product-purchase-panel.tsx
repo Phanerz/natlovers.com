@@ -128,20 +128,43 @@ export function ProductPurchasePanel({
 
       <ProductSpecsPanel product={product} outOfStock={outOfStock} stockLabel={stockLabel} locale={locale} />
 
-      {hasCustomisation ? (
-        <a href="#details" className="pdp-customise-link">
-          Choose colours &amp; personalise
-          <span aria-hidden>↓</span>
-        </a>
-      ) : null}
+      <div className="mt-5 flex items-center justify-between gap-4">
+        {hasCustomisation ? (
+          <a href="#details" className="pdp-customise-link !mt-0">
+            Choose colours &amp; personalise
+            <span aria-hidden>↓</span>
+          </a>
+        ) : null}
+        <div className="ml-auto flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => toggleWishlist(product.slug)}
+            aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            aria-pressed={wishlisted}
+            title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            className="pdp-heart glass-btn-secondary flex h-9 w-9 items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
+          >
+            <Heart className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleShare()}
+            aria-label="Share this product"
+            className="flex items-center gap-2 text-sm text-forest-700 transition-colors duration-200 hover:text-forest-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
+          >
+            <Share2 className="h-4 w-4 text-forest-500" />
+            Share
+          </button>
+        </div>
+      </div>
 
-      <div className="mt-auto flex flex-col gap-3 border-t border-[color:var(--pdp-line)] pt-6">
+      <div className="mt-auto flex flex-col gap-3 pt-5">
         {customStudioBase ? (
           <button
             type="button"
             onClick={() => void handleCustomiseThisBag()}
             disabled={customising}
-            className="liquid-glass-dark button-lift w-full rounded-full px-6 py-3.5 text-sm font-semibold text-sand-50 backdrop-blur-[14px] backdrop-saturate-[160%] disabled:cursor-not-allowed disabled:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
+            className="liquid-glass-dark button-lift w-full rounded-full px-6 py-3 text-sm font-semibold text-sand-50 backdrop-blur-[14px] backdrop-saturate-[160%] disabled:cursor-not-allowed disabled:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
           >
             {customising ? "One moment..." : "Customise This Bag"}
           </button>
@@ -153,33 +176,11 @@ export function ProductPurchasePanel({
           disabled={outOfStock}
           className={
             customStudioBase
-              ? "glass-btn-secondary w-full rounded-full px-6 py-3.5 text-sm font-semibold text-forest-900 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
-              : "liquid-glass-dark button-lift w-full rounded-full px-6 py-3.5 text-sm font-semibold text-sand-50 backdrop-blur-[14px] backdrop-saturate-[160%] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
+              ? "glass-btn-secondary w-full rounded-full px-6 py-3 text-sm font-semibold text-forest-900 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
+              : "liquid-glass-dark button-lift w-full rounded-full px-6 py-3 text-sm font-semibold text-sand-50 backdrop-blur-[14px] backdrop-saturate-[160%] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
           }
         >
           {outOfStock ? "Sold Out" : addedNotice ? "Added to Bag" : "Add to Bag"}
-        </button>
-      </div>
-
-      <div className="mt-4 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => toggleWishlist(product.slug)}
-          aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          aria-pressed={wishlisted}
-          title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          className="pdp-heart glass-btn-secondary flex h-9 w-9 items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
-        >
-          <Heart className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleShare()}
-          aria-label="Share this product"
-          className="flex items-center gap-2 text-sm text-forest-700 transition-colors duration-200 hover:text-forest-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
-        >
-          <Share2 className="h-4 w-4 text-forest-500" />
-          Share
         </button>
       </div>
 

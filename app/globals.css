@@ -3879,7 +3879,7 @@ body:has(.outlets-stage--page) footer {
 .pdp-title {
   margin-top: 0.6rem;
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-  font-size: clamp(1.7rem, 2.5vw, 2.4rem);
+  font-size: clamp(1.65rem, 2.3vw, 2.2rem);
   line-height: 1.3;
   padding-bottom: 0.12em;
   /* a hair of stroke thickens the classic serif without a synthetic bold */
@@ -3910,7 +3910,7 @@ body:has(.outlets-stage--page) footer {
 }
 
 .pdp-lede {
-  margin-top: 1rem;
+  margin-top: 0.8rem;
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   font-size: 1.1rem;
   line-height: 1.65;
@@ -3918,7 +3918,7 @@ body:has(.outlets-stage--page) footer {
 }
 
 .pdp-specs {
-  margin-top: 1.5rem;
+  margin-top: 1.1rem;
   border-top: 1px solid var(--pdp-line);
 }
 
@@ -3928,7 +3928,7 @@ body:has(.outlets-stage--page) footer {
   justify-content: space-between;
   gap: 1.25rem;
   border-bottom: 1px solid var(--pdp-line);
-  padding: 0.7rem 0.1rem;
+  padding: 0.4rem 0.1rem;
 }
 
 .pdp-spec-label {
@@ -3972,12 +3972,12 @@ body:has(.outlets-stage--page) footer {
 
 .pdp-option-title {
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-  font-size: 1.3rem;
+  font-size: 1.15rem;
   color: var(--pdp-ink);
 }
 
 .pdp-option-value {
-  font-size: 1rem;
+  font-size: 0.9rem;
   letter-spacing: 0.04em;
   color: var(--pdp-muted);
 }
@@ -4134,8 +4134,8 @@ body:has(.outlets-stage--page) footer {
   --pdp-muted: #5f5543;
   --pdp-line: rgba(70, 56, 36, 0.28);
   position: relative;
-  transform: rotate(-0.7deg);
-  padding: 2.4rem 2.2rem 2rem;
+  transform: rotate(-0.4deg);
+  padding: 2.2rem 2rem 1.8rem;
   border-radius: 3px 3px 6px 6px;
   color: var(--pdp-ink);
   background-color: #f6efe0;
@@ -4150,14 +4150,14 @@ body:has(.outlets-stage--page) footer {
 }
 @media (max-width: 1023px) {
   .pdp-customise {
-    transform: rotate(-0.5deg);
+    transform: rotate(-0.3deg);
   }
 }
 
 .pdp-note-eyebrow {
   display: flex;
   gap: 0.5rem;
-  font-size: 0.82rem;
+  font-size: 0.74rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--pdp-muted);
@@ -4166,7 +4166,7 @@ body:has(.outlets-stage--page) footer {
 .pdp-note-title {
   margin-top: 0.7rem;
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-  font-size: 2.6rem;
+  font-size: 2.15rem;
   font-style: italic;
   font-weight: 400;
   line-height: 1.1;
@@ -4181,7 +4181,7 @@ body:has(.outlets-stage--page) footer {
 .pdp-note-sign {
   margin-top: 0.9rem;
   text-align: center;
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--pdp-muted);
@@ -4189,7 +4189,7 @@ body:has(.outlets-stage--page) footer {
 
 .pdp-customise-lede {
   margin-top: 0.5rem;
-  font-size: 1.1rem;
+  font-size: 1rem;
   line-height: 1.6;
   color: var(--pdp-soft);
 }
@@ -4248,7 +4248,7 @@ body:has(.outlets-stage--page) footer {
 
 .pdp-fineprint {
   margin-top: 0.6rem;
-  font-size: 0.92rem;
+  font-size: 0.85rem;
   color: var(--pdp-soft);
 }
 
@@ -4265,7 +4265,7 @@ body:has(.outlets-stage--page) footer {
 
 @media (min-width: 1024px) {
   .pdp-thumbs {
-    width: 5.25rem;
+    width: 4.25rem;
     flex-shrink: 0;
   }
 
@@ -4462,7 +4462,7 @@ body:has(.outlets-stage--page) footer {
   border: 0;
   border-radius: 0;
   padding: 0 0.1rem;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   line-height: 2.1rem;
   background-image: repeating-linear-gradient(transparent 0, transparent calc(2.1rem - 1px), rgba(70, 56, 36, 0.3) calc(2.1rem - 1px), rgba(70, 56, 36, 0.3) 2.1rem);
   background-attachment: local;
