@@ -4690,3 +4690,55 @@ body:has(.outlets-stage--page) footer {
   font-style: normal;
   opacity: 0.8;
 }
+
+/* Admin pill dropdown menu: colours live here, not in utility classes, because
+   the global dark-mode remap of hard-coded colours left the selected row with
+   light text on a light highlight. */
+.pill-menu {
+  border: 1px solid #e0d4bb;
+  background: #fffdf8;
+  box-shadow: 0 12px 28px -8px rgba(40, 50, 30, 0.22), 0 2px 6px rgba(40, 50, 30, 0.06);
+}
+.pill-option {
+  color: #3f5238;
+}
+.pill-option:hover {
+  background: #f7f1e2;
+}
+.pill-option[aria-selected="true"] {
+  background: #f1ead9;
+  color: #1f2a1c;
+}
+.pill-option-check {
+  color: #4f6a45;
+}
+.dark .pill-menu {
+  border-color: rgba(243, 236, 217, 0.22);
+  background: #2f2d24;
+  box-shadow: 0 14px 30px -8px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.dark .pill-option {
+  color: #e6dfca;
+}
+.dark .pill-option:hover {
+  background: rgba(243, 236, 217, 0.08);
+}
+.dark .pill-option[aria-selected="true"] {
+  background: rgba(243, 236, 217, 0.16);
+  color: #fbf6e6;
+}
+.dark .pill-option-check {
+  color: #b7d9a4;
+}
+
+/* Native <select> lists (admin filters, page size, forms): the popup is drawn
+   by the browser, so in dark mode it needs its own dark surface or the light
+   text lands on white. */
+.dark select {
+  color-scheme: dark;
+}
+.dark select option,
+.dark select optgroup {
+  background-color: #2f2d24;
+  color: #f3ecd9;
+}
