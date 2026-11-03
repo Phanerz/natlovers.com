@@ -59,6 +59,7 @@ function TileImage({
         fill
         sizes={sizes}
         priority={priority}
+        draggable={false}
         className={fits ? "object-cover" : "object-contain"}
         onLoad={(event) => {
           const image = event.currentTarget;
@@ -158,6 +159,66 @@ export function ShopProductCard({
     []
   );
 
+  // Mouse drag-to-swipe (touch already swipes natively): the strip follows the
+  // pointer, then eases to the photo it was dragged towards. A drag never counts
+  // as a click on the card.
+  const dragRef = useRef<{startX: number; startLeft: number; moved: boolean} | null>(null);
+  const suppressClickRef = useRef(false);
+
+  function handleDragStart(event: React.PointerEvent<HTMLDivElement>) {
+    const gallery = galleryRef.current;
+    if (!gallery || images.length < 2 || event.pointerType !== "mouse" || event.button !== 0) {
+      return;
+    }
+    dragRef.current = {startX: event.clientX, startLeft: gallery.scrollLeft, moved: false};
+    try {
+      gallery.setPointerCapture(event.pointerId);
+    } catch {
+      // Capture is only a convenience (keeps the drag going outside the tile).
+    }
+    gallery.style.scrollSnapType = "none";
+    gallery.style.cursor = "grabbing";
+    setGalleryOpened(true);
+  }
+
+  function handleDragMove(event: React.PointerEvent<HTMLDivElement>) {
+    const gallery = galleryRef.current;
+    const drag = dragRef.current;
+    if (!gallery || !drag) {
+      return;
+    }
+    const delta = event.clientX - drag.startX;
+    if (Math.abs(delta) > 5) {
+      drag.moved = true;
+    }
+    gallery.scrollLeft = drag.startLeft - delta;
+  }
+
+  function handleDragEnd(event: React.PointerEvent<HTMLDivElement>) {
+    const gallery = galleryRef.current;
+    const drag = dragRef.current;
+    if (!gallery || !drag) {
+      return;
+    }
+    dragRef.current = null;
+    if (gallery.hasPointerCapture(event.pointerId)) {
+      gallery.releasePointerCapture(event.pointerId);
+    }
+    const width = gallery.clientWidth || 1;
+    const delta = event.clientX - drag.startX;
+    const startIndex = Math.round(drag.startLeft / width);
+    const target = Math.min(images.length - 1, Math.max(0, delta < -40 ? startIndex + 1 : delta > 40 ? startIndex - 1 : startIndex));
+    gallery.style.scrollSnapType = "";
+    gallery.style.cursor = "";
+    gallery.scrollTo({left: target * width, behavior: "smooth"});
+    if (drag.moved) {
+      suppressClickRef.current = true;
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 0);
+    }
+  }
+
   function step(direction: -1 | 1) {
     const gallery = galleryRef.current;
     if (gallery) {
@@ -189,9 +250,23 @@ export function ShopProductCard({
       onPointerEnter={images.length > 1 ? openGallery : undefined}
       onTouchStart={images.length > 1 ? openGallery : undefined}
       onFocus={images.length > 1 ? openGallery : undefined}
+      onClickCapture={(event) => {
+        if (suppressClickRef.current) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}
     >
       <div ref={stageRef} className="catalogue-item-stage">
-        <div ref={galleryRef} className="catalogue-gallery" onScroll={images.length > 1 ? handleScroll : undefined}>
+        <div
+          ref={galleryRef}
+          className="catalogue-gallery"
+          onScroll={images.length > 1 ? handleScroll : undefined}
+          onPointerDown={handleDragStart}
+          onPointerMove={handleDragMove}
+          onPointerUp={handleDragEnd}
+          onPointerCancel={handleDragEnd}
+        >
           {images.map((src, index) => (
             <div key={src} className="catalogue-gallery-slide">
               {index === 0 || galleryOpened ? (
