@@ -6,19 +6,11 @@ import Link from "next/link";
 import {usePathname, useRouter} from "next/navigation";
 import {useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
 import type {PointerEvent as ReactPointerEvent} from "react";
-import {
-  ChevronDown,
-  Menu,
-  Minus,
-  Plus,
-  Search,
-  ShoppingBag,
-  Trash2,
-  User,
-  X
-} from "lucide-react";
+import {ChevronDown, Menu, Search, ShoppingBag, User, X} from "lucide-react";
 import {signOut, useSession} from "next-auth/react";
 import {formatCurrency} from "@/lib/format";
+import {htmlToPlainText} from "@/lib/html-text";
+import {ShoppingBagDrawer} from "@/components/shopping-bag-drawer";
 import {getDictionary} from "@/lib/translations";
 import {FlagIcon} from "@/components/flag-icon";
 import {NavAccountMenu} from "@/components/nav-account-menu";
@@ -166,6 +158,57 @@ export function Header() {
   const {mounted: searchMounted, entered: searchEntered} = useDelayedMount(searchOpen);
   const {mounted: cabinetMounted, entered: cabinetEntered} = useDelayedMount(cabinetOpen);
   const {mounted: mobileMounted, entered: mobileEntered} = useDelayedMount(mobileOpen);
+
+  // Shopping Bag drawer: the page behind cannot scroll, focus moves into the
+  // drawer and is kept there, Escape closes it, and focus goes back to
+  // whatever opened it.
+  const bagPanelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!cabinetMounted) {
+      return;
+    }
+    const opener = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const frame = requestAnimationFrame(() => {
+      bagPanelRef.current?.querySelector<HTMLElement>("[data-bag-close]")?.focus();
+    });
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeCabinet();
+        closeAllCabinetViews();
+        return;
+      }
+      if (event.key !== "Tab" || !bagPanelRef.current) {
+        return;
+      }
+      const focusable = Array.from(
+        bagPanelRef.current.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), input, select, textarea, [tabindex]:not([tabindex="-1"])')
+      ).filter((element) => element.offsetParent !== null);
+      if (!focusable.length) {
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      cancelAnimationFrame(frame);
+      document.body.style.overflow = previousOverflow;
+      opener?.focus?.();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cabinetMounted]);
 
   const dict = getDictionary(locale);
   const navItems: Array<{href: Route; label: string}> = [
@@ -718,338 +761,181 @@ export function Header() {
       ) : null}
 
       {cabinetMounted ? (
-        <div
-          data-scroll-lock
-          onClick={() => {
+        <ShoppingBagDrawer
+          entered={cabinetEntered}
+          panelRef={bagPanelRef}
+          items={cartProducts}
+          currency={currency}
+          subtotalIdr={subtotalIdr}
+          onClose={() => {
             closeCabinet();
             closeAllCabinetViews();
           }}
-          className={`fixed inset-0 z-50 bg-[rgba(7,18,12,0.36)] backdrop-blur-lg transition-opacity duration-200 ${
-            cabinetEntered ? "opacity-100" : "opacity-0"
-          } ${!cabinetEntered ? "pointer-events-none" : ""}`}
+          onOpenPreview={openPreview}
+          onRemove={removeFromCart}
+          onQuantity={updateQuantity}
+          onCheckout={startBankTransferForCart}
         >
-          <div
-            onClick={(event) => event.stopPropagation()}
-            className={`ml-auto flex h-full w-full max-w-[33rem] flex-col border-l border-[#d7cab2] bg-[rgba(247,240,227,0.97)] p-6 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-transform ${
-              cabinetEntered
-                ? "translate-x-0 duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
-                : "translate-x-full duration-200 ease-in"
-            }`}
-          >
-            <div className="flex items-start justify-between gap-4">
+        {previewProduct ? (
+          <div className="bag-panel mt-5 flex-none p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="bag-label">Preview</p>
+              <button type="button" onClick={closePreview} className="bag-link">
+                Close
+              </button>
+            </div>
+            <div className="mt-3 overflow-hidden rounded-xl border border-white/15">
+              <div
+                className="aspect-[4/3] w-full bg-[#efe8d6] bg-contain bg-center bg-no-repeat"
+                style={{backgroundImage: `url(${previewProduct.imageUrl})`}}
+                role="img"
+                aria-label={previewProduct.title}
+              />
+            </div>
+            <p className="bag-panel-title mt-4">{previewProduct.title}</p>
+            <p className="bag-text mt-2 line-clamp-4">{htmlToPlainText(previewProduct.story)}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {previewProduct.materials.map((material) => (
+                <span key={material} className="bag-chip">
+                  {material}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {checkoutDraft ? (
+          <div className="mt-5 rounded-xl border border-[#32503b] bg-[#102418] p-5 text-sand-50 shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="muted">Collector Cabinet</p>
-                <h2 className="mt-2 font-display text-3xl text-forest-900">
-                  Your collection bag
-                </h2>
+                <p className="text-[11px] uppercase tracking-[0.28em] text-sand-200/80">
+                  Bank transfer checkout
+                </p>
+                <p className="mt-2 font-display text-2xl">Review your transfer</p>
               </div>
               <button
                 type="button"
                 onClick={() => {
-                  closeCabinet();
-                  closeAllCabinetViews();
+                  clearCheckoutDraft();
+                  setCheckoutState(null);
+                  setAddressError(null);
                 }}
-                className="glass-icon-btn rounded-full p-3 text-forest-900"
+                className="text-sm font-medium text-sand-100/85 hover:text-sand-50"
               >
-                <X className="h-5 w-5" />
+                Clear
               </button>
             </div>
-
-            <div className="card mt-4 px-4 py-4 text-sm text-forest-700">
-              <span>Bag, preview, and bank-transfer checkout are live now.</span>
+            <div className="mt-4 space-y-3 text-sm text-sand-100/90">
+              {checkoutProducts.map((item) => (
+                <div
+                  key={item.slug}
+                  className="flex items-center gap-4 rounded-xl border border-white/18 bg-white/8 px-3 py-3"
+                >
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-white/10">
+                    {item.imageUrl ? (
+                      <Image src={item.imageUrl} alt="" fill sizes="56px" className="object-contain p-1" />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-sand-50">{item.title}</p>
+                    <p className="text-xs uppercase tracking-[0.24em] text-sand-100/68">
+                      Qty {item.quantity}
+                    </p>
+                  </div>
+                  <span className="shrink-0">{formatCurrency(item.priceIdr * item.quantity, currency)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex items-center justify-between text-sm text-sand-50">
+              <span>Total</span>
+              <span>{formatCurrency(checkoutTotalIdr, currency)}</span>
             </div>
 
-            {previewProduct ? (
-              <div className="mt-5 rounded-xl border border-[#d2c3a8] bg-[#fffaf2] p-4 shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="muted">Preview</p>
-                  <button
-                    type="button"
-                    onClick={closePreview}
-                    className="text-sm font-medium text-forest-700 hover:text-forest-900"
-                  >
-                    Close
-                  </button>
-                </div>
-                <div className="mt-3 overflow-hidden rounded-xl border border-[#d2c3a8] shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
-                  <div
-                    className="aspect-[4/3] w-full bg-cover bg-center"
-                    style={{backgroundImage: `url(${previewProduct.imageUrl})`}}
+            {!checkoutState ? (
+              <div className="mt-4 space-y-3 border-t border-white/15 pt-4">
+                <p className="text-[11px] uppercase tracking-[0.28em] text-sand-200/80">Shipping address</p>
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  <input
+                    value={addressForm.recipientName}
+                    onChange={(event) => setAddressForm((current) => ({...current, recipientName: event.target.value}))}
+                    placeholder="Recipient name"
+                    className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                  />
+                  <input
+                    value={addressForm.phone}
+                    onChange={(event) => setAddressForm((current) => ({...current, phone: event.target.value}))}
+                    placeholder="Phone (for WhatsApp)"
+                    className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                  />
+                  <input
+                    value={addressForm.street}
+                    onChange={(event) => setAddressForm((current) => ({...current, street: event.target.value}))}
+                    placeholder="Street address"
+                    className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60 sm:col-span-2"
+                  />
+                  <input
+                    value={addressForm.city}
+                    onChange={(event) => setAddressForm((current) => ({...current, city: event.target.value}))}
+                    placeholder="City"
+                    className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                  />
+                  <input
+                    value={addressForm.province}
+                    onChange={(event) => setAddressForm((current) => ({...current, province: event.target.value}))}
+                    placeholder="Province / state (optional)"
+                    className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                  />
+                  <input
+                    value={addressForm.postalCode}
+                    onChange={(event) => setAddressForm((current) => ({...current, postalCode: event.target.value}))}
+                    placeholder="Postal code"
+                    className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
+                  />
+                  <input
+                    value={addressForm.country}
+                    onChange={(event) => setAddressForm((current) => ({...current, country: event.target.value}))}
+                    placeholder="Country"
+                    className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
                   />
                 </div>
-                <p className="mt-4 font-display text-2xl text-forest-900">
-                  {previewProduct.title}
-                </p>
-                <p className="mt-2 text-sm leading-7 text-forest-700">
-                  {previewProduct.story}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {previewProduct.materials.map((material) => (
-                    <span
-                      key={material}
-                      className="rounded-full border border-[#d5c8b1] bg-[#fffdf8] px-3 py-1 text-xs text-forest-700"
-                    >
-                      {material}
-                    </span>
-                  ))}
-                </div>
               </div>
             ) : null}
 
-            {checkoutDraft ? (
-              <div className="mt-5 rounded-xl border border-[#32503b] bg-[#102418] p-5 text-sand-50 shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.28em] text-sand-200/80">
-                      Bank transfer checkout
-                    </p>
-                    <p className="mt-2 font-display text-2xl">Review your transfer</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      clearCheckoutDraft();
-                      setCheckoutState(null);
-                      setAddressError(null);
-                    }}
-                    className="text-sm font-medium text-sand-100/85 hover:text-sand-50"
-                  >
-                    Clear
-                  </button>
-                </div>
-                <div className="mt-4 space-y-3 text-sm text-sand-100/90">
-                  {checkoutProducts.map((item) => (
-                    <div
-                      key={item.slug}
-                      className="flex items-center gap-4 rounded-xl border border-white/18 bg-white/8 px-3 py-3"
-                    >
-                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-white/10">
-                        {item.imageUrl ? (
-                          <Image src={item.imageUrl} alt="" fill sizes="56px" className="object-contain p-1" />
-                        ) : null}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-sand-50">{item.title}</p>
-                        <p className="text-xs uppercase tracking-[0.24em] text-sand-100/68">
-                          Qty {item.quantity}
-                        </p>
-                      </div>
-                      <span className="shrink-0">{formatCurrency(item.priceIdr * item.quantity, currency)}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 flex items-center justify-between text-sm text-sand-50">
-                  <span>Total</span>
-                  <span>{formatCurrency(checkoutTotalIdr, currency)}</span>
-                </div>
+            {addressError ? <p className="mt-3 text-sm text-[#f3b4a0]">{addressError}</p> : null}
 
-                {!checkoutState ? (
-                  <div className="mt-4 space-y-3 border-t border-white/15 pt-4">
-                    <p className="text-[11px] uppercase tracking-[0.28em] text-sand-200/80">Shipping address</p>
-                    <div className="grid gap-2.5 sm:grid-cols-2">
-                      <input
-                        value={addressForm.recipientName}
-                        onChange={(event) => setAddressForm((current) => ({...current, recipientName: event.target.value}))}
-                        placeholder="Recipient name"
-                        className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
-                      />
-                      <input
-                        value={addressForm.phone}
-                        onChange={(event) => setAddressForm((current) => ({...current, phone: event.target.value}))}
-                        placeholder="Phone (for WhatsApp)"
-                        className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
-                      />
-                      <input
-                        value={addressForm.street}
-                        onChange={(event) => setAddressForm((current) => ({...current, street: event.target.value}))}
-                        placeholder="Street address"
-                        className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60 sm:col-span-2"
-                      />
-                      <input
-                        value={addressForm.city}
-                        onChange={(event) => setAddressForm((current) => ({...current, city: event.target.value}))}
-                        placeholder="City"
-                        className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
-                      />
-                      <input
-                        value={addressForm.province}
-                        onChange={(event) => setAddressForm((current) => ({...current, province: event.target.value}))}
-                        placeholder="Province / state (optional)"
-                        className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
-                      />
-                      <input
-                        value={addressForm.postalCode}
-                        onChange={(event) => setAddressForm((current) => ({...current, postalCode: event.target.value}))}
-                        placeholder="Postal code"
-                        className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
-                      />
-                      <input
-                        value={addressForm.country}
-                        onChange={(event) => setAddressForm((current) => ({...current, country: event.target.value}))}
-                        placeholder="Country"
-                        className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
-                      />
-                    </div>
-                  </div>
-                ) : null}
-
-                {addressError ? <p className="mt-3 text-sm text-[#f3b4a0]">{addressError}</p> : null}
-
-                {!checkoutState ? (
-                  <button
-                    type="button"
-                    onClick={confirmBankTransfer}
-                    disabled={checkoutLoading || !addressComplete}
-                    className="glass-btn-secondary mt-4 w-full rounded-full px-5 py-3 text-sm font-semibold text-forest-900 disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {checkoutLoading
-                      ? "Preparing transfer details..."
-                      : addressComplete
-                        ? "Generate bank transfer instructions"
-                        : "Fill in your shipping address to continue"}
-                  </button>
-                ) : null}
-                {checkoutState ? (
-                  <div className="mt-4 rounded-xl border border-white/16 bg-white/10 p-4 text-sm leading-7 text-sand-50/94">
-                    <p className="font-medium">Order ref: {checkoutState.orderRef}</p>
-                    <p className="mt-2">Bank: {checkoutState.bankName}</p>
-                    <p>Account name: {checkoutState.accountName}</p>
-                    <p>Account number: {checkoutState.accountNumber}</p>
-                    <p>
-                      Transfer total: {formatCurrency(checkoutState.total, currency)}
-                    </p>
-                    <p className="mt-2 text-sand-100/78">
-                      Use this reference when sending payment confirmation to WhatsApp.
-                    </p>
-                  </div>
-                ) : null}
+            {!checkoutState ? (
+              <button
+                type="button"
+                onClick={confirmBankTransfer}
+                disabled={checkoutLoading || !addressComplete}
+                className="glass-btn-secondary mt-4 w-full rounded-full px-5 py-3 text-sm font-semibold text-forest-900 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {checkoutLoading
+                  ? "Preparing transfer details..."
+                  : addressComplete
+                    ? "Generate bank transfer instructions"
+                    : "Fill in your shipping address to continue"}
+              </button>
+            ) : null}
+            {checkoutState ? (
+              <div className="mt-4 rounded-xl border border-white/16 bg-white/10 p-4 text-sm leading-7 text-sand-50/94">
+                <p className="font-medium">Order ref: {checkoutState.orderRef}</p>
+                <p className="mt-2">Bank: {checkoutState.bankName}</p>
+                <p>Account name: {checkoutState.accountName}</p>
+                <p>Account number: {checkoutState.accountNumber}</p>
+                <p>
+                  Transfer total: {formatCurrency(checkoutState.total, currency)}
+                </p>
+                <p className="mt-2 text-sand-100/78">
+                  Use this reference when sending payment confirmation to WhatsApp.
+                </p>
               </div>
             ) : null}
-
-            {/*
-              A card's rounded corner and shadow sitting flush against a
-              plain overflow:auto edge gets sliced by a hard rectangular
-              boundary the instant the list scrolls even slightly  -  reading
-              as the product card being "cut off" rather than just scrolled.
-              Fading the scrollable area's own top/bottom edges via mask-
-              image means whatever card is nearest that edge dissolves out
-              gracefully instead of being hard-clipped.
-            */}
-            <div
-              // pt-4 (16px), not py-1  -  the mask below fades the first 14px
-              // of this container to transparent, so the first card's own
-              // top edge (and anything pinned to its corner, like the
-              // remove button) needs to clear that band or it reads as
-              // clipped rather than gracefully fading, which is only
-              // meant to happen once a card scrolls up near that edge.
-              className="mt-6 flex-1 overflow-y-auto pb-1 pr-1 pt-4"
-              style={{
-                maskImage: "linear-gradient(to bottom, transparent, black 14px, black calc(100% - 14px), transparent)",
-                WebkitMaskImage:
-                  "linear-gradient(to bottom, transparent, black 14px, black calc(100% - 14px), transparent)"
-              }}
-            >
-              {cartProducts.length ? (
-                <div className="space-y-4">
-                  {cartProducts.map((item) => (
-                    <div
-                      key={item.slug}
-                      className="motion-card flex gap-4 rounded-xl border border-[#d2c3a8] bg-[#fffaf2] p-4 shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => openPreview(item.slug)}
-                        className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-[#d5c8b1] bg-[#eee4cd] shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]"
-                      >
-                        {item.imageUrl ? (
-                          <Image src={item.imageUrl} alt="" fill sizes="96px" className="object-contain p-1.5" />
-                        ) : null}
-                      </button>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <button
-                              type="button"
-                              onClick={() => openPreview(item.slug)}
-                              className="block w-full truncate text-left font-display text-xl text-forest-900 hover:text-forest-700"
-                            >
-                              {item.title}
-                            </button>
-                            <p className="mt-1 truncate text-sm text-forest-600">{item.description}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeFromCart(item.slug)}
-                            className="glass-icon-btn is-danger shrink-0 rounded-full p-2 text-forest-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                        <div className="mt-3 flex items-center justify-between gap-3">
-                          <div className="glass-stepper flex items-center gap-2 rounded-full px-2 py-2">
-                            <button
-                              type="button"
-                              onClick={() => updateQuantity(item.slug, item.quantity - 1)}
-                              className="glass-stepper-btn rounded-full p-1 text-forest-900"
-                            >
-                              <Minus className="h-4 w-4" />
-                            </button>
-                            <span className="min-w-8 text-center text-sm font-medium text-forest-900">
-                              {item.quantity}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => updateQuantity(item.slug, item.quantity + 1)}
-                              className="glass-stepper-btn rounded-full p-1 text-forest-900"
-                            >
-                              <Plus className="h-4 w-4" />
-                            </button>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs uppercase tracking-[0.22em] text-forest-500">
-                              Total
-                            </p>
-                            <p className="mt-1 text-sm font-semibold text-forest-900">
-                              {formatCurrency(item.priceIdr * item.quantity, currency)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-[#d2c3a8] bg-[#fffaf2] p-6 text-sm leading-7 text-forest-700 shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
-                  Your cabinet is empty. Add a piece from the catalogue, then preview it or take it straight to bank transfer checkout here.
-                </div>
-              )}
-            </div>
-
-            <div className="mt-5 space-y-4 border-t border-[#d8ccb6] pt-5">
-              <div className="flex items-center justify-between text-sm text-forest-700">
-                <span>Subtotal</span>
-                <span>{formatCurrency(subtotalIdr, currency)}</span>
-              </div>
-              <div className="grid gap-3">
-                <button
-                  type="button"
-                  onClick={startBankTransferForCart}
-                  disabled={!cartProducts.length}
-                  className="glass-btn-primary rounded-full px-5 py-3 text-sm font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Checkout with bank transfer
-                </button>
-                <Link
-                  href="/catalogue"
-                  onClick={closeCabinet}
-                  className="glass-btn-secondary rounded-full px-5 py-3 text-center text-sm text-forest-700"
-                >
-                  Continue shopping
-                </Link>
-              </div>
-            </div>
           </div>
-        </div>
+        ) : null}
+
+
+        </ShoppingBagDrawer>
       ) : null}
 
       {mobileMounted ? (

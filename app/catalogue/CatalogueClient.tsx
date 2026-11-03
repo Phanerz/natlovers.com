@@ -1226,7 +1226,7 @@ export function CatalogueContent({
                       onPointerMove={handleTabIndicatorPointerMove}
                       onPointerUp={handleTabIndicatorPointerUp}
                       onPointerCancel={handleTabIndicatorPointerUp}
-                      className={`liquid-glass-active-on-light top-1.5 h-[calc(100%-0.75rem)] backdrop-blur-[14px] backdrop-saturate-[160%] ${
+                      className={`liquid-glass-active-on-light catalogue-tab-lens top-1.5 h-[calc(100%-0.75rem)] backdrop-blur-[3px] backdrop-saturate-[140%] ${
                         isTabDragging ? "is-dragging" : "cursor-grab active:cursor-grabbing"
                       }`}
                       style={{
