@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   LogOut,
   MapPin,
+  Newspaper,
   Palette,
   PlusCircle,
   Receipt,
@@ -128,6 +129,7 @@ export function AdminSidebar() {
   const isAdd = onDashboardRoute && tab === "add";
   const isManageHero = onDashboardRoute && tab === "manage-hero-cards";
   const isAddHero = onDashboardRoute && tab === "add-hero-card";
+  const isBanners = onDashboardRoute && tab === "banners";
   const isManageBodyShapes = onDashboardRoute && (tab === "manage-body-shapes" || tab === "edit-body-shape");
   const isAddBodyShape = onDashboardRoute && tab === "add-body-shape";
 
@@ -199,6 +201,10 @@ export function AdminSidebar() {
             </div>
             <AddLink href="/mimin?tab=add-hero-card" active={isAddHero} label="Add hero card" />
           </div>
+
+          <NavLink href="/mimin?tab=banners" active={isBanners} icon={Newspaper}>
+            Editorial Banners
+          </NavLink>
 
           <div className="flex items-center gap-1">
             <div className="min-w-0 flex-1">

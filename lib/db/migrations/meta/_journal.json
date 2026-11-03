@@ -218,6 +218,13 @@
       "when": 1793616824006,
       "tag": "0030_vengeful_betty_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793672295315,
+      "tag": "0031_tranquil_pride",
+      "breakpoints": true
     }
   ]
 }

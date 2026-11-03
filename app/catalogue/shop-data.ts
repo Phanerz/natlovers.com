@@ -1,3 +1,4 @@
+import type {ColourOption} from "@/lib/colour-library";
 import {Locale} from "@/lib/site";
 
 export type ShopMaterial = "Agel" | "Mendong" | "Water Hyacinth" | "Gajih" | "Woven Fabric" | "Patchwork";
@@ -38,6 +39,14 @@ export type ShopProduct = {
   materials: ShopMaterial[];
   accessoryCategory: AccessoryCategory | null;
   soldOut?: boolean;
+  // The catalogue also receives these (they ride along on the product record):
+  // the full photo gallery and the colours the product offers, used for the
+  // swipeable card gallery and the swatches under the price.
+  images?: string[];
+  hasBaseColour?: boolean;
+  baseColourOptions?: ColourOption[];
+  hasHandleColour?: boolean;
+  handleColourOptions?: ColourOption[];
 };
 
 type BilingualLabel = {en: string; id: string};

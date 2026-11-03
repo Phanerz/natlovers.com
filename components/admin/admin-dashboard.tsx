@@ -10,6 +10,7 @@ import {DashboardHome} from "./dashboard-home";
 import {AdminHeroCard, HeroCardFormState, buildHeroCardFormData, emptyHeroCardForm} from "./hero-card-types";
 import {HeroCardForm} from "./hero-card-form";
 import {ManageBodyShapesPanel} from "./manage-body-shapes-panel";
+import {ManageBannersPanel} from "./manage-banners-panel";
 import {ManageHeroCardsPanel} from "./manage-hero-cards-panel";
 import {ManageProductsPanel} from "./manage-products-panel";
 import {ProductForm} from "./product-form";
@@ -23,6 +24,7 @@ type Tab =
   | "manage"
   | "add-hero-card"
   | "manage-hero-cards"
+  | "banners"
   | "add-body-shape"
   | "manage-body-shapes"
   | "edit-body-shape";
@@ -33,6 +35,7 @@ const validTabs: Tab[] = [
   "manage",
   "add-hero-card",
   "manage-hero-cards",
+  "banners",
   "add-body-shape",
   "manage-body-shapes",
   "edit-body-shape"
@@ -630,6 +633,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
     manage: "Manage Products",
     "add-hero-card": "Add Hero Card",
     "manage-hero-cards": "Manage Hero Cards",
+    banners: "Editorial Banners",
     "add-body-shape": "Add Body Shape",
     "manage-body-shapes": "Manage Body Shapes",
     "edit-body-shape": "Edit Body Shape"
@@ -719,6 +723,8 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
             busyId={busyHeroCardId}
           />
         ) : null}
+
+        {tab === "banners" ? <ManageBannersPanel /> : null}
 
         {tab === "add-body-shape" ? (
           <BodyShapeForm

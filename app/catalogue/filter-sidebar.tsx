@@ -40,6 +40,9 @@ type FilterSidebarProps = {
   onToggleAccessoryCategory: (value: AccessoryCategory) => void;
   onClearAll?: () => void;
   onCollapse?: () => void;
+  // Just the filter sections: no catalogue intro, no Filter / Clear all bar
+  // (the bottom sheet has its own title and Reset).
+  compact?: boolean;
 };
 
 const copy = {
@@ -174,7 +177,8 @@ export function FilterSidebar({
   onToggleHandle,
   onToggleAccessoryCategory,
   onClearAll,
-  onCollapse
+  onCollapse,
+  compact = false
 }: FilterSidebarProps) {
   const t = copy[locale];
   const activeTotal =
@@ -229,7 +233,7 @@ export function FilterSidebar({
   if (productType === "Apparels") {
     return (
       <aside className="relative flex h-full w-full min-w-0 flex-col overflow-hidden">
-        {header}
+        {compact ? null : header}
         <div className="mt-8 flex flex-1 items-center justify-center text-center">
           <p className="max-w-[22ch] text-sm leading-6 text-[#6b6b5f]">{t.apparelComingSoon}</p>
         </div>
@@ -242,8 +246,8 @@ export function FilterSidebar({
     const categoryCounts = countBy(products, accessoryCategories, (product) => product.accessoryCategory);
     return (
       <aside className="relative w-full min-w-0 overflow-hidden">
-        {header}
-        {filterBar}
+        {compact ? null : header}
+        {compact ? null : filterBar}
         <div>
           <FilterSection title={t.category} activeCount={selectedAccessoryCategories.length}>
             <div className="flex flex-col">
@@ -268,8 +272,8 @@ export function FilterSidebar({
     const sizeCounts = countBy(products, shopSizes, (product) => product.size);
     return (
       <aside className="relative w-full min-w-0 overflow-hidden">
-        {header}
-        {filterBar}
+        {compact ? null : header}
+        {compact ? null : filterBar}
         <div>
           <FilterSection title={t.size} activeCount={selectedSizes.length}>
             <div className="flex flex-col">
@@ -298,8 +302,8 @@ export function FilterSidebar({
 
   return (
     <aside className="relative w-full min-w-0 overflow-hidden">
-      {header}
-      {filterBar}
+      {compact ? null : header}
+      {compact ? null : filterBar}
       <div>
         <FilterSection title={t.material} activeCount={selectedMaterials.length}>
           <div className="flex flex-col">

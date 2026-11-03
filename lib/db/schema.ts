@@ -215,6 +215,48 @@ export const products = pgTable(
   ]
 ).enableRLS();
 
+// Editorial collection banners shown between the products in the catalogue
+// grid (e.g. "The Garden Collection"). A banner is never a product: it is
+// slotted into the displayed list after insert_after products (0 = before the
+// first), optionally only in one category, and spans desktop_span grid cells on
+// large screens and mobile_span on phones. Rows are ordered by display_order.
+export const catalogueBanners = pgTable(
+  "catalogue_banners",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    eyebrow: text("eyebrow"),
+    title: text("title").notNull(),
+    description: text("description"),
+    imageUrl: text("image_url").notNull(),
+    ctaLabel: text("cta_label"),
+    // An internal path ("/catalogue?type=Bags") or an https URL.
+    destinationUrl: text("destination_url"),
+    isActive: boolean("is_active").notNull().default(true),
+    // Null = shown in every category; otherwise a product type ("Bags", ...).
+    category: text("category"),
+    insertAfter: integer("insert_after").notNull().default(6),
+    // '1x1' | '2x1' | 'full'
+    desktopSpan: text("desktop_span").notNull().default("2x1"),
+    // 'full' | 'single'
+    mobileSpan: text("mobile_span").notNull().default("full"),
+    // 'dark' | 'light' | 'none'  -  the wash laid over the image behind the text.
+    overlay: text("overlay").notNull().default("dark"),
+    displayOrder: integer("display_order").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow()
+  },
+  () => [
+    pgPolicy("Public can view active catalogue banners", {
+      as: "permissive",
+      for: "select",
+      to: "anon",
+      using: sql`is_active = true`
+    })
+  ]
+).enableRLS();
+
 // Hero card stack (Tinder-style swipeable deck on the homepage hero). Rows
 // are shown in displayOrder; card_type picks which field the card renders
 // from ('color' -> colorValue, 'image' -> imageUrl).

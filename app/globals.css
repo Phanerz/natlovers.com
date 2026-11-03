@@ -2649,7 +2649,8 @@ body:has(.outlets-stage--page) footer {
 
 /* ============================================================
    Catalogue (app/catalogue)  -  a curated shelf: every piece is a rounded photo
-   tile with its name, price and one attributes line directly beneath.
+   tile (swipeable when it has several photographs) with its name, price and the
+   colours it comes in directly beneath.
 
    Layout: each page of the momentum-scroll strip is a size container, and its
    grid derives the row height from the column width (a square tile + the text
@@ -2665,11 +2666,10 @@ body:has(.outlets-stage--page) footer {
 
 .catalogue-grid {
   --cols: 4;
-  --rows: 2;
-  --pad-x: 20px;
-  --gap-x: 14px;
-  --gap-y: 14px;
-  --info: 40px;
+  --pad-x: 16px;
+  --gap-x: 12px;
+  --gap-y: 22px;
+  --info: 100px;
   display: grid;
   height: 100%;
   align-content: start;
@@ -2687,7 +2687,7 @@ body:has(.outlets-stage--page) footer {
     --pad-x: 24px;
     --gap-x: 18px;
     --gap-y: 18px;
-    --info: 66px;
+    --info: 108px;
   }
 }
 
@@ -2713,6 +2713,11 @@ body:has(.outlets-stage--page) footer {
   }
 }
 
+.catalogue-grid-cell-banner {
+  min-width: 0;
+  min-height: 0;
+}
+
 .catalogue-item {
   display: flex;
   min-width: 0;
@@ -2729,35 +2734,60 @@ body:has(.outlets-stage--page) footer {
   outline-offset: 3px;
 }
 
-/* The tile: soft parchment (faintly tinted by the piece's fibre), rounded,
-   clipping the photograph. The photo is object-contain, so square and portrait
-   shots both sit whole and centred; nothing is cropped or stretched. */
+/* The tile: warm neutral (faintly tinted by the piece's fibre), gently rounded,
+   clipping the photograph. */
 .catalogue-item-stage {
   position: relative;
   flex: 1 1 0;
   min-height: 0;
   overflow: hidden;
-  border-radius: 22px;
-  background: color-mix(in srgb, var(--item-tint, #eee7d8) 38%, #f1ebde);
-  box-shadow: inset 0 0 0 1px rgba(52, 67, 50, 0.07), 0 0 0 rgba(40, 55, 35, 0);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--item-tint, #eee7d8) 34%, #f1ebde);
+  box-shadow: inset 0 0 0 1px rgba(52, 67, 50, 0.06), 0 0 0 rgba(40, 55, 35, 0);
   transition: transform 800ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 800ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.catalogue-item-photo {
+@media (max-width: 639px) {
+  .catalogue-item-stage {
+    border-radius: 6px;
+  }
+}
+
+/* The photographs sit side by side in a native scroll-snap strip: swiping is
+   the browser's own, and vertical scrolling of the page is never fought over. */
+.catalogue-gallery {
   position: absolute;
   inset: 0;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
   will-change: transform;
   transition: transform 1100ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.catalogue-item-photo img {
+.catalogue-gallery::-webkit-scrollbar {
+  display: none;
+}
+
+.catalogue-gallery-slide {
+  position: relative;
+  flex: 0 0 100%;
+  min-width: 0;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+}
+
+.catalogue-gallery-slide img {
   mix-blend-mode: multiply;
 }
 
 .catalogue-item-actions {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 8px;
+  right: 8px;
   z-index: 2;
   display: flex;
   gap: 6px;
@@ -2767,7 +2797,7 @@ body:has(.outlets-stage--page) footer {
   position: relative;
   display: flex;
   aspect-ratio: 1 / 1;
-  width: 36px;
+  width: 32px;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
@@ -2787,15 +2817,41 @@ body:has(.outlets-stage--page) footer {
   opacity: 0.5;
 }
 
-.catalogue-item-action:focus-visible {
+.catalogue-item-action:focus-visible,
+.catalogue-item-arrow:focus-visible {
   outline: 2px solid #344332;
   outline-offset: 2px;
 }
 
+/* Mouse users get arrows (touch users swipe); they appear on hover. */
+.catalogue-item-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: none;
+  aspect-ratio: 1 / 1;
+  width: 30px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 0;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 450ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.catalogue-item-arrow-prev {
+  left: 8px;
+}
+
+.catalogue-item-arrow-next {
+  right: 8px;
+}
+
 .catalogue-item-soldout {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 10px;
+  left: 10px;
   z-index: 2;
   border-radius: 9999px;
   background: rgba(38, 48, 31, 0.86);
@@ -2808,13 +2864,36 @@ body:has(.outlets-stage--page) footer {
   color: #f7f4ee;
 }
 
+/* Photo position dots. The row is always there so cards stay level. */
+.catalogue-item-dots {
+  display: flex;
+  height: 14px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.catalogue-item-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: #cfc6b0;
+  transition: background-color 300ms ease, transform 300ms ease;
+}
+
+.catalogue-item-dot[data-active="true"] {
+  background: #344332;
+  transform: scale(1.15);
+}
+
 .catalogue-item-info {
   flex: none;
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: 1px;
-  padding: 9px 6px 0;
+  padding: 0 4px;
 }
 
 .catalogue-item-name {
@@ -2829,9 +2908,9 @@ body:has(.outlets-stage--page) footer {
   color: #20241b;
 }
 
-/* The price: a classic book serif (Palatino, then Georgia), regular weight, with a
-   touch of tracking, and the currency mark set small and quiet beside it  -
-   confident and inviting rather than loud. */
+/* The price: a classic book serif (Palatino, falling back to Georgia) in warm
+   forest green at regular weight  -  elegant and unhurried, with the currency
+   mark set small and quiet beside it. */
 .catalogue-item-price {
   display: flex;
   align-items: baseline;
@@ -2856,45 +2935,84 @@ body:has(.outlets-stage--page) footer {
   font-variant-numeric: lining-nums;
 }
 
-.catalogue-item-meta {
-  display: none;
-  margin-top: 1px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  line-height: 1.5;
-  text-transform: uppercase;
-  color: #8a8a7a;
+/* The colours this piece comes in: small round swatches with a fine outline. */
+.catalogue-swatches,
+.catalogue-swatches-empty {
+  display: flex;
+  min-height: 22px;
+  margin-top: 5px;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
 }
 
-@media (min-width: 640px) {
-  .catalogue-item-meta {
-    display: block;
+.catalogue-swatch {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 1px rgba(30, 40, 25, 0.22);
+}
+
+.catalogue-swatch-more {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: #6b6b5f;
+}
+
+/* Phones: names may take two lines, and everything is centred under the photo,
+   as in the editorial reference. */
+@media (max-width: 639px) {
+  .catalogue-item-info {
+    align-items: center;
+    text-align: center;
   }
 
-  .catalogue-item-action {
-    width: 32px;
+  .catalogue-item-name {
+    display: -webkit-box;
+    min-height: 2.5em;
+    white-space: normal;
+    font-size: 15px;
+    line-height: 1.25;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .catalogue-item-price {
+    justify-content: center;
+  }
+
+  .catalogue-swatches,
+  .catalogue-swatches-empty {
+    justify-content: center;
+  }
+
+  .catalogue-swatch {
+    width: 20px;
+    height: 20px;
   }
 }
 
-/* Hover: the tile rises a few pixels on a long, soft ease while its photograph
-   drifts in very slightly and a deep, diffuse shadow blooms beneath  -  slow
-   enough to feel unhurried, never snappy. The icons fade up gently. */
+/* Hover (mouse only): the tile rises a few pixels on a long, soft ease while its
+   photograph drifts in very slightly and a deep, diffuse shadow blooms beneath
+   -  slow enough to feel unhurried, never snappy. The controls fade up gently. */
 @media (hover: hover) and (pointer: fine) {
   .catalogue-item:hover .catalogue-item-stage,
   .catalogue-item:focus-visible .catalogue-item-stage {
     transform: translateY(-5px);
-    box-shadow: inset 0 0 0 1px rgba(52, 67, 50, 0.07), 0 26px 38px -26px rgba(40, 55, 35, 0.42);
+    box-shadow: inset 0 0 0 1px rgba(52, 67, 50, 0.06), 0 26px 38px -26px rgba(40, 55, 35, 0.42);
   }
 
-  .catalogue-item:hover .catalogue-item-photo {
-    transform: scale(1.045);
+  .catalogue-item:hover .catalogue-gallery {
+    transform: scale(1.04);
   }
 
   .catalogue-item:hover .catalogue-item-name {
     color: #344332;
+  }
+
+  .catalogue-item-arrow {
+    display: flex;
   }
 
   .catalogue-item-actions {
@@ -2908,19 +3026,26 @@ body:has(.outlets-stage--page) footer {
     opacity: 1;
     transform: none;
   }
+
+  .catalogue-item:hover .catalogue-item-arrow:not(:disabled),
+  .catalogue-item:focus-within .catalogue-item-arrow:not(:disabled) {
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .catalogue-item-stage,
-  .catalogue-item-photo,
+  .catalogue-gallery,
   .catalogue-item-name,
   .catalogue-item-actions,
-  .catalogue-item-action {
+  .catalogue-item-action,
+  .catalogue-item-arrow,
+  .catalogue-item-dot {
     transition: none;
   }
 
   .catalogue-item:hover .catalogue-item-stage,
-  .catalogue-item:hover .catalogue-item-photo {
+  .catalogue-item:hover .catalogue-gallery {
     transform: none;
   }
 }
@@ -2955,4 +3080,187 @@ body:has(.outlets-stage--page) footer {
 .catalogue-filter-check:focus-visible {
   outline: 2px solid #344332;
   outline-offset: 2px;
+}
+
+/* ============================================================
+   Catalogue editorial banner (app/catalogue/catalogue-banner.tsx)  -  a
+   collection feature set between products. On desktop ("grid") it fills the
+   grid area it spans (its height is the row's height); on a phone ("feature")
+   it takes a fixed editorial proportion across the full width.
+   ============================================================ */
+.catalogue-banner {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  isolation: isolate;
+  height: 100%;
+  min-height: 0;
+  container-type: inline-size;
+  border-radius: 10px;
+  background: #24351f;
+  color: #f8f2e8;
+  text-decoration: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.catalogue-banner:focus-visible {
+  outline: 2px solid #344332;
+  outline-offset: 3px;
+}
+
+.catalogue-banner-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.catalogue-banner-wash {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.catalogue-banner[data-overlay="dark"] .catalogue-banner-wash {
+  background: linear-gradient(90deg, rgba(20, 32, 18, 0.82) 0%, rgba(20, 32, 18, 0.46) 52%, rgba(20, 32, 18, 0.04) 100%);
+}
+
+.catalogue-banner[data-overlay="light"] {
+  color: #20241b;
+}
+
+.catalogue-banner[data-overlay="light"] .catalogue-banner-wash {
+  background: linear-gradient(90deg, rgba(248, 242, 232, 0.93) 0%, rgba(248, 242, 232, 0.58) 52%, rgba(248, 242, 232, 0) 100%);
+}
+
+.catalogue-banner[data-overlay="none"] .catalogue-banner-copy {
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.45);
+}
+
+.catalogue-banner-copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 100%;
+  max-width: min(26rem, 64%);
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(18px, 2.4vw, 40px);
+}
+
+.catalogue-banner-eyebrow {
+  margin-bottom: 0.7rem;
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  opacity: 0.88;
+}
+
+.catalogue-banner-title {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(26px, 3vw, 46px);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.05;
+}
+
+.catalogue-banner-description {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 0.8rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(13px, 1.1vw, 16px);
+  font-style: italic;
+  line-height: 1.45;
+  opacity: 0.9;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.catalogue-banner-cta {
+  align-self: flex-start;
+  margin-top: 1.2rem;
+  border-radius: 3px;
+  background: #f8f2e8;
+  padding: 10px 18px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #24351f;
+  transition: background-color 400ms ease, color 400ms ease;
+}
+
+.catalogue-banner[data-overlay="light"] .catalogue-banner-cta {
+  background: #24351f;
+  color: #f8f2e8;
+}
+
+/* Phone: a deliberate editorial feature, not a squashed grid cell. */
+.catalogue-banner[data-layout="feature"],
+.catalogue-banner[data-layout="feature-narrow"] {
+  height: auto;
+  aspect-ratio: 20 / 19;
+  border-radius: 6px;
+}
+
+.catalogue-banner[data-layout="feature-narrow"] {
+  aspect-ratio: 4 / 5;
+}
+
+.catalogue-banner[data-layout="feature"] .catalogue-banner-copy {
+  max-width: 72%;
+}
+
+.catalogue-banner[data-layout="feature"] .catalogue-banner-title {
+  font-size: clamp(28px, 8vw, 36px);
+}
+
+/* A banner that has to live in a single narrow column. */
+@container (max-width: 280px) {
+  .catalogue-banner-copy {
+    max-width: 100%;
+    padding: 14px;
+  }
+
+  .catalogue-banner-title {
+    font-size: 22px;
+  }
+
+  .catalogue-banner-description {
+    -webkit-line-clamp: 2;
+    font-size: 12px;
+  }
+
+  .catalogue-banner-cta {
+    margin-top: 0.8rem;
+    padding: 8px 12px;
+    font-size: 10px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  a.catalogue-banner:hover .catalogue-banner-image {
+    transform: scale(1.035);
+  }
+
+  a.catalogue-banner:hover .catalogue-banner-cta {
+    background: #fff;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalogue-banner-image,
+  .catalogue-banner-cta {
+    transition: none;
+  }
+
+  a.catalogue-banner:hover .catalogue-banner-image {
+    transform: none;
+  }
 }
