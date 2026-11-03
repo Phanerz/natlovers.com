@@ -159,7 +159,7 @@ export function Header() {
   const {mounted: cabinetMounted, entered: cabinetEntered} = useDelayedMount(cabinetOpen);
   const {mounted: mobileMounted, entered: mobileEntered} = useDelayedMount(mobileOpen);
 
-  // Shopping Bag drawer: the page behind cannot scroll, focus moves into the
+  // Shopping Bag drawer: focus moves into the
   // drawer and is kept there, Escape closes it, and focus goes back to
   // whatever opened it.
   const bagPanelRef = useRef<HTMLDivElement | null>(null);
@@ -167,11 +167,13 @@ export function Header() {
     if (!cabinetMounted) {
       return;
     }
+    // (No body overflow lock here: this site scrolls through its own section
+    // navigator, and changing the body's overflow made the page jump back to the
+    // top and drop the navbar. The overlay's data-scroll-lock already stops the
+    // page scrolling behind the drawer. Focus never scrolls either.)
     const opener = document.activeElement as HTMLElement | null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const frame = requestAnimationFrame(() => {
-      bagPanelRef.current?.querySelector<HTMLElement>("[data-bag-close]")?.focus();
+      bagPanelRef.current?.querySelector<HTMLElement>("[data-bag-close]")?.focus({preventScroll: true});
     });
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -204,8 +206,7 @@ export function Header() {
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       cancelAnimationFrame(frame);
-      document.body.style.overflow = previousOverflow;
-      opener?.focus?.();
+      opener?.focus?.({preventScroll: true});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cabinetMounted]);

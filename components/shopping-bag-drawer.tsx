@@ -52,7 +52,7 @@ export function ShoppingBagDrawer({
     <div
       data-scroll-lock
       onClick={onClose}
-      className={`bag-overlay fixed inset-0 z-50 backdrop-blur-sm transition-opacity duration-200 ${
+      className={`bag-overlay fixed inset-0 z-50 transition-opacity duration-200 ${
         entered ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
     >
@@ -69,12 +69,12 @@ export function ShoppingBagDrawer({
         <div className="bag-header">
           <div className="min-w-0">
             <p className="bag-eyebrow">
-              <span>Your</span>
               <ShoppingBag aria-hidden />
+              <span>Shopping Bag</span>
               <span className="bag-eyebrow-line" aria-hidden />
             </p>
             <h2 id="bag-title" className="bag-title">
-              Shopping Bag
+              Your Selections
             </h2>
             <p className="bag-subtitle">Review your selected pieces before checkout.</p>
           </div>
