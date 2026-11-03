@@ -143,6 +143,39 @@ function KeepSized() {
   return null;
 }
 
+// On a touchscreen the map sits inside a page that scrolls and snaps by swipe,
+// so a one-finger drag on it must scroll the page, not get trapped by the map.
+// Two fingers move and zoom the map (as in Google Maps embeds); a brief hint
+// explains this the first time someone drags with one finger.
+function TouchHint() {
+  const map = useMap();
+  const [visible, setVisible] = useState(false);
+  const shownRef = useRef(false);
+
+  useEffect(() => {
+    const container = map.getContainer();
+    let timer: number | undefined;
+    const onTouch = (event: TouchEvent) => {
+      if (event.touches.length === 1 && !shownRef.current) {
+        shownRef.current = true;
+        setVisible(true);
+        timer = window.setTimeout(() => setVisible(false), 2200);
+      }
+    };
+    container.addEventListener("touchmove", onTouch, {passive: true});
+    return () => {
+      container.removeEventListener("touchmove", onTouch);
+      window.clearTimeout(timer);
+    };
+  }, [map]);
+
+  return (
+    <div className={`outlets-touch-hint${visible ? " is-visible" : ""}`} aria-hidden>
+      Use two fingers to move the map
+    </div>
+  );
+}
+
 export function OutletsMapInner({
   locationList,
   activeIndex = 0,
@@ -152,6 +185,10 @@ export function OutletsMapInner({
   onShowAll
 }: OutletsMapProps) {
   const [tileMode, setTileMode] = useState<TileMode>("map");
+  const [touchOnly, setTouchOnly] = useState(false);
+  useEffect(() => {
+    setTouchOnly(window.matchMedia("(pointer: coarse)").matches);
+  }, []);
   const tile = TILE_LAYERS[tileMode];
   const activeLocation = locationList[activeIndex] ?? locationList[0];
 
@@ -160,11 +197,13 @@ export function OutletsMapInner({
       center={[activeLocation.latitude, activeLocation.longitude]}
       zoom={ZOOM_ON_LOCATION}
       scrollWheelZoom={false}
+      dragging={!touchOnly}
       className="h-full w-full"
     >
       <TileLayer key={tileMode} attribution={tile.attribution} url={tile.url} />
       <MapControls mode={tileMode} onChange={setTileMode} onShowAll={locationList.length > 1 ? onShowAll : undefined} />
       <KeepSized />
+      {touchOnly ? <TouchHint /> : null}
       <FlyToActive location={activeLocation} tick={focusTick} />
       <FitAll locationList={locationList} tick={showAllTick} />
       {locationList.map((location, index) => (

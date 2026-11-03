@@ -24,7 +24,8 @@ export default function HomePage() {
         </Suspense>
       </ScrollSection>
 
-      <ScrollSection navHref="/custom" className="snap-page">
+      {/* On phones and tablets Custom Studio stays its own page (via the menu), not a section of the home scroll. */}
+      <ScrollSection navHref="/custom" className="snap-page max-lg:hidden">
         <CustomStudioSection />
       </ScrollSection>
 

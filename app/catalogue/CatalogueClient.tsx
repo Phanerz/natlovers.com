@@ -976,7 +976,7 @@ export function CatalogueContent({
   return (
     <div
       ref={rootRef}
-      className="catalogue-surface h-[calc(100dvh-var(--header-height))] overflow-hidden max-sm:h-auto max-sm:overflow-visible"
+      className="catalogue-surface h-[calc(100svh-var(--header-height))] overflow-hidden"
     >
       {/*
         Deliberately a plain div, not <ScrollSection>  -  this is embedded
@@ -1393,6 +1393,24 @@ export function CatalogueContent({
                 <div key="loading" className="flex h-full items-center justify-center">
                   <DaisyLoader layout="section" />
                 </div>
+              ) : filteredProducts.length && isMobile ? (
+                // Phones: one row of pieces swiped left and right (native scroll-snap),
+                // the next piece peeking in from the edge, instead of a long vertical shelf.
+                <div key="mobile-strip" className="catalogue-mobile-strip">
+                  {pages
+                    .flat()
+                    .map((entry, entryIdx) =>
+                      entry.kind === "product" ? (
+                        <div key={entry.product.slug} className="catalogue-grid catalogue-mobile-slide" style={{"--cols": 1} as React.CSSProperties}>
+                          <ShopProductCard product={entry.product} currency={currency} locale={locale} priority={entryIdx < 2} />
+                        </div>
+                      ) : (
+                        <div key={`banner-${entry.banner.id}`} className="catalogue-mobile-slide catalogue-mobile-banner">
+                          <CatalogueBanner banner={entry.banner} priority={entryIdx < 2} layout="feature-narrow" />
+                        </div>
+                      )
+                    )}
+                </div>
               ) : filteredProducts.length ? (
                 <div key="cards" ref={trackRef} className="flex h-full" style={{width: `${pageCount * 100}%`}}>
                   {pages.map((page, pageIdx) => (
@@ -1439,7 +1457,7 @@ export function CatalogueContent({
               )}
             </div>
 
-            {maxPageIndex > 0 ? (
+            {maxPageIndex > 0 && !isMobile ? (
               <div className="flex shrink-0 items-center px-5 py-2 sm:px-6 lg:px-8">
                 <div
                   ref={progressTrackRef}

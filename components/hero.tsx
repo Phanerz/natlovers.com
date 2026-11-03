@@ -100,15 +100,15 @@ const cardTransform = useMemo(() => {
           <div className="ambient-orb alt right-12 top-20 h-36 w-36 bg-forest-200/12" />
         </div>
 
-        <div className="relative z-10 mx-auto flex h-full w-full max-w-[1680px] flex-col justify-center px-4 py-5 sm:px-6 md:px-8 lg:px-10 xl:px-14">
-          <div className="grid h-full items-center gap-[21px] lg:grid-cols-[minmax(0,1.618fr)_minmax(360px,1fr)] lg:gap-[34px] xl:gap-[55px]">
+        <div className="relative z-10 mx-auto flex h-full w-full max-w-[1680px] flex-col justify-center px-4 py-5 max-sm:py-3 sm:px-6 md:px-8 lg:px-10 xl:px-14">
+          <div className="grid h-full items-center gap-[21px] max-sm:gap-4 lg:grid-cols-[minmax(0,1.618fr)_minmax(360px,1fr)] lg:gap-[34px] xl:gap-[55px]">
             <div className="flex min-w-0 flex-col justify-center">
               <div className="header-text-shadow inline-flex w-fit rounded-full border border-[#f3e7cf]/38 bg-black/24 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.3em] text-white backdrop-blur-sm shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
                 {locale === "en" ? "Handcrafted in Indonesia" : "Dibuat tangan di Indonesia"}
               </div>
 
               <div
-                className="museum-panel relative overflow-hidden transition-transform duration-300 ease-out mt-[21px] rounded-xl border border-[#efe3cb]/20 bg-[linear-gradient(135deg,rgba(255,248,238,0.15),rgba(255,255,255,0.08))] px-5 py-6 text-white backdrop-blur-sm shadow-[0_4px_12px_rgba(0,0,0,0.06)] sm:px-7 sm:py-7 lg:px-[34px] lg:py-[34px] xl:px-[55px] xl:py-[34px]"
+                className="museum-panel relative overflow-hidden transition-transform duration-300 ease-out mt-[21px] max-sm:mt-3 rounded-xl border border-[#efe3cb]/20 bg-[linear-gradient(135deg,rgba(255,248,238,0.15),rgba(255,255,255,0.08))] px-5 py-6 max-sm:py-4 text-white backdrop-blur-sm shadow-[0_4px_12px_rgba(0,0,0,0.06)] sm:px-7 sm:py-7 lg:px-[34px] lg:py-[34px] xl:px-[55px] xl:py-[34px]"
                 style={{ transform: titleTransform, transformStyle: "preserve-3d" }}
               >
                 {/* glass light sweep */}
@@ -158,9 +158,9 @@ const cardTransform = useMemo(() => {
               </div>
             </div>
 
-            <div className="flex min-w-0 items-center lg:justify-center">
+            <div className="flex min-w-0 items-center justify-center max-lg:pb-2">
               <div
-                className="floating-panel will-change-transform transition-transform duration-300 ease-out w-full max-w-[24rem] p-5 sm:p-6"
+                className="floating-panel will-change-transform transition-transform duration-300 ease-out w-full max-w-[24rem] p-5 max-lg:max-w-[15rem] max-lg:p-3 max-sm:max-w-[10rem] max-sm:p-2 sm:p-6"
                 style={{ transform: cardTransform, transformStyle: "preserve-3d" }}
               >
                 <HeroCardStack />

@@ -104,6 +104,31 @@ html {
   }
 }
 
+/*
+ * Phones and tablets get the same full-page snapping as the laptop: one swipe
+ * moves exactly one section (scroll-snap-stop: always stops a hard flick from
+ * skipping past it). A section taller than the screen is not locked: the
+ * browser lets you scroll freely through it and snaps again at its edges, so
+ * the next swipe past its end moves the whole page. Pure CSS, no scroll
+ * hijacking. The footer is a snap point too, so the very bottom stays reachable.
+ */
+@media (max-width: 1023px) {
+  html {
+    scroll-snap-type: y mandatory;
+    scroll-padding-top: var(--header-height);
+  }
+
+  .snap-page {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    min-height: calc(100svh - var(--header-height));
+  }
+
+  body:has(.snap-page) footer {
+    scroll-snap-align: end;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -4793,4 +4818,66 @@ body:has(.outlets-stage--page) footer {
 .dark .apill-code-on {
   background: rgba(255, 255, 255, 0.22);
   color: #fff8eb;
+}
+
+/* Phones: the catalogue is a single row swiped sideways, one piece at a time,
+   with the next one peeking in so it is clear there is more. */
+.catalogue-mobile-strip {
+  --slide-w: clamp(11rem, min(64vw, calc(100svh - var(--header-height) - 25rem)), 19rem);
+  display: flex;
+  height: 100%;
+  align-items: flex-start;
+  gap: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px max(18px, calc((100vw - var(--slide-w)) / 2)) 14px;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 max(18px, calc((100vw - var(--slide-w)) / 2));
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.catalogue-mobile-strip::-webkit-scrollbar {
+  display: none;
+}
+.catalogue-mobile-strip .catalogue-mobile-slide {
+  flex: 0 0 var(--slide-w);
+  width: var(--slide-w);
+  height: auto;
+  padding: 0;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+}
+
+/* Touchscreens: the map never captures a one-finger swipe (the page scrolls),
+   controls are finger-sized, and a short hint explains the two-finger move. */
+.outlets-touch-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  z-index: 800;
+  transform: translateX(-50%);
+  padding: 0.5rem 0.95rem;
+  border-radius: 9999px;
+  background: rgba(23, 32, 21, 0.82);
+  color: #f6efdc;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.outlets-touch-hint.is-visible {
+  opacity: 1;
+}
+@media (pointer: coarse) {
+  .outlets-map-frame .leaflet-bar a {
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    font-size: 20px;
+  }
+  .outlets-map-frame {
+    min-height: 15rem;
+  }
 }
