@@ -21,6 +21,20 @@ export function swatchesForProduct(product: Pick<ShopProduct, "hasBaseColour" | 
   });
 }
 
+// Bags only: the base colours on offer (the handle is a detail, the body colour
+// is what a shopper compares), de-duplicated, in the admin's order.
+export function baseSwatchesForProduct(product: Pick<ShopProduct, "hasBaseColour" | "baseColourOptions">): ColourOption[] {
+  const seen = new Set<string>();
+  return (product.hasBaseColour ? (product.baseColourOptions ?? []) : []).filter((option) => {
+    const key = option.label.trim().toLowerCase();
+    if (!key || seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
 // The product's photographs, main image first, without repeats.
 export function galleryImagesFor(product: Pick<ShopProduct, "imageUrl" | "images">): string[] {
   const all = [product.imageUrl, ...(product.images ?? [])].filter((url): url is string => Boolean(url));

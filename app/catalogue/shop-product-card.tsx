@@ -8,7 +8,7 @@ import {useStorefront} from "@/components/storefront-provider";
 import {useWishlist} from "@/components/use-wishlist";
 import {colourSwatchStyle} from "@/lib/colour-library";
 import {formatCurrency} from "@/lib/format";
-import {galleryImagesFor, swatchesForProduct} from "@/lib/product-swatches";
+import {baseSwatchesForProduct, galleryImagesFor, swatchesForProduct} from "@/lib/product-swatches";
 import {CurrencyCode, Locale} from "@/lib/site";
 import {DEFAULT_IMAGE_STYLE, ShopProduct, materialImageStyle} from "./shop-data";
 
@@ -101,7 +101,9 @@ export function ShopProductCard({
   const {addToCart} = useStorefront();
 
   const images = galleryImagesFor(product);
-  const swatches = swatchesForProduct(product);
+  const isBag = product.productType === "Bags";
+  const swatches = isBag ? baseSwatchesForProduct(product) : swatchesForProduct(product);
+  const sizeLetter = isBag && product.size ? product.size.charAt(0) : null;
   const shownSwatches = swatches.slice(0, MAX_SWATCHES);
   const hiddenSwatches = swatches.length - shownSwatches.length;
 
@@ -375,8 +377,18 @@ export function ShopProductCard({
             price
           )}
         </p>
-        {shownSwatches.length ? (
-          <ul className="catalogue-swatches" aria-label={locale === "en" ? "Available colours" : "Warna tersedia"}>
+        {shownSwatches.length || sizeLetter ? (
+          <ul className="catalogue-swatches" aria-label={locale === "en" ? "Size and available colours" : "Ukuran dan warna tersedia"}>
+            {sizeLetter ? (
+              <li
+                role="img"
+                aria-label={locale === "en" ? `Size ${product.size}` : `Ukuran ${product.size}`}
+                title={`Size ${product.size}`}
+                className={`catalogue-size catalogue-size-${sizeLetter.toLowerCase()}`}
+              >
+                {sizeLetter}
+              </li>
+            ) : null}
             {shownSwatches.map((colour) => (
               <li
                 key={colour.label}
