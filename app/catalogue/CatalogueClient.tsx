@@ -967,7 +967,7 @@ export function CatalogueContent({
   return (
     <div
       ref={rootRef}
-      className="h-[calc(100dvh-var(--header-height))] overflow-hidden bg-[#f7f4ee] max-sm:h-auto max-sm:overflow-visible"
+      className="catalogue-surface h-[calc(100dvh-var(--header-height))] overflow-hidden max-sm:h-auto max-sm:overflow-visible"
     >
       {/*
         Deliberately a plain div, not <ScrollSection>  -  this is embedded
@@ -1056,7 +1056,7 @@ export function CatalogueContent({
                     aria-modal="true"
                     aria-label="Filter and sort"
                     data-scroll-lock
-                    className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[88dvh] flex-col rounded-t-[20px] bg-[#f8f2e8] shadow-[0_-18px_40px_-20px_rgba(20,32,18,0.45)] transition-transform lg:hidden ${
+                    className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[88dvh] flex-col catalogue-sheet-surface rounded-t-[20px] shadow-[0_-18px_40px_-20px_rgba(20,32,18,0.45)] transition-transform lg:hidden ${
                       mobileFiltersEntered
                         ? "translate-y-0 duration-[380ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
                         : "translate-y-full duration-200 ease-in"
@@ -1117,7 +1117,7 @@ export function CatalogueContent({
                       />
                     </div>
 
-                    <div className="flex shrink-0 gap-3 border-t border-[#e6dcc8] bg-[#f8f2e8] px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+                    <div className="flex shrink-0 gap-3 catalogue-sheet-surface border-t border-[#e6dcc8] px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
                       <button
                         type="button"
                         onClick={resetSheet}
@@ -1128,7 +1128,7 @@ export function CatalogueContent({
                       <button
                         type="button"
                         onClick={applySheet}
-                        className="flex-[1.4] rounded-full bg-[#24351f] px-5 py-3 text-sm font-semibold text-[#f8f2e8] outline-none transition-colors hover:bg-[#2f4529] focus-visible:ring-2 focus-visible:ring-[#344332]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f8f2e8]"
+                        className="flex-[1.4] rounded-full bg-[#24351f] px-5 py-3 text-sm font-semibold text-[#f8f2e8] outline-none transition-colors hover:bg-[#2f4529] focus-visible:ring-2 focus-visible:ring-[#344332]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--cat-sheet)]"
                       >
                         Apply
                       </button>
