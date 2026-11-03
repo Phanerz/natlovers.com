@@ -11,12 +11,14 @@ import {
 import type {AdminBodyShape} from "./body-shape-types";
 import {ProductFormState, skuPartsFromForm} from "./types";
 
+// Colours live in .sku-* (globals.css) so dark mode can restyle every part;
+// the hard-coded utility colours were remapped there and left digits unreadable.
 const autoCell =
-  "flex h-9 min-w-9 items-center justify-center rounded-md bg-[#f1ead9] px-2 font-mono text-[15px] tracking-wider text-forest-700 select-none";
+  "sku-cell flex h-9 min-w-9 items-center justify-center rounded-md px-2 font-mono text-[15px] tracking-wider select-none";
 const pendingCell =
-  "flex h-9 min-w-9 items-center justify-center rounded-md border border-dashed border-[#c9b98f] bg-[#fbf3dd] px-2 font-mono text-[15px] tracking-wider text-[#8a6d2f] select-none";
+  "sku-cell-pending flex h-9 min-w-9 items-center justify-center rounded-md border border-dashed px-2 font-mono text-[15px] tracking-wider select-none";
 const inputCell =
-  "h-9 rounded-md border border-[#d4c5ab] bg-white px-2 text-center font-mono text-[15px] uppercase tracking-wider text-forest-900 outline-none placeholder:text-forest-300 focus:border-forest-400 focus:ring-2 focus:ring-forest-400/30";
+  "sku-input h-9 rounded-md border px-2 text-center font-mono text-[15px] uppercase tracking-wider outline-none focus:ring-2 focus:ring-forest-400/30";
 
 // One part of the code with its name printed underneath, so the structure is
 // readable at a glance without a separate legend to decode.
@@ -24,7 +26,7 @@ function Part({label, children}: {label: string; children: ReactNode}) {
   return (
     <div className="flex flex-col items-center gap-1.5">
       {children}
-      <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-forest-400">{label}</span>
+      <span className="sku-label text-[10px] font-medium uppercase tracking-[0.14em]">{label}</span>
     </div>
   );
 }
@@ -41,7 +43,7 @@ function Unit({children}: {children: ReactNode}) {
 }
 
 const dash = (
-  <span className="flex h-9 select-none items-center font-mono text-forest-300" aria-hidden>
+  <span className="sku-dash flex h-9 select-none items-center font-mono" aria-hidden>
     -
   </span>
 );
@@ -96,7 +98,7 @@ export function SkuField({
   return (
     <div className="space-y-2 text-sm text-forest-700">
       <span className="muted">SKU</span>
-      <div className="flex flex-wrap items-start gap-x-2 gap-y-3 rounded-lg border border-[#d4c5ab] bg-[#fffdf9] px-4 pb-3 pt-3.5">
+      <div className="flex flex-wrap items-start gap-x-2 gap-y-3 rounded-lg border px-4 pb-3 pt-3.5 sku-box">
         {readOnly("brand", "brand identifier")}
         <Unit>{readOnly("category", "set automatically from the product category")}</Unit>
         <Unit>

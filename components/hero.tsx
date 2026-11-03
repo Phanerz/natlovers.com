@@ -101,7 +101,7 @@ const cardTransform = useMemo(() => {
         </div>
 
         <div className="relative z-10 mx-auto flex h-full w-full max-w-[1680px] flex-col justify-center px-4 py-5 max-sm:py-3 sm:px-6 md:px-8 lg:px-10 xl:px-14">
-          <div className="grid h-full items-center gap-[21px] max-sm:gap-4 lg:grid-cols-[minmax(0,1.618fr)_minmax(360px,1fr)] lg:gap-[34px] xl:gap-[55px]">
+          <div className="grid h-full items-center gap-[21px] max-sm:gap-10 lg:grid-cols-[minmax(0,1.618fr)_minmax(360px,1fr)] lg:gap-[34px] xl:gap-[55px]">
             <div className="flex min-w-0 flex-col justify-center">
               <div className="header-text-shadow inline-flex w-fit rounded-full border border-[#f3e7cf]/38 bg-black/24 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.3em] text-white backdrop-blur-sm shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
                 {locale === "en" ? "Handcrafted in Indonesia" : "Dibuat tangan di Indonesia"}
@@ -141,16 +141,16 @@ const cardTransform = useMemo(() => {
                   </p>
                 </div>
 
-                <div className="mt-[21px] flex flex-wrap gap-[13px]">
+                <div className="mt-[21px] grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-[13px]">
                   <Link
                     href="/catalogue"
-                    className="glass-btn-secondary inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-forest-900"
+                    className="glass-btn-secondary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-center text-sm font-semibold text-forest-900 max-sm:px-3 max-sm:text-[11px] max-sm:leading-tight"
                   >
                     EXPLORE CATALOGUE <ArrowRight className="h-4 w-4" />
                   </Link>
                   <Link
                     href="/custom"
-                    className="liquid-glass button-lift inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white"
+                    className="liquid-glass button-lift inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-center text-sm font-semibold text-white max-sm:px-3 max-sm:text-[11px] max-sm:leading-tight"
                   >
                     REQUEST A CUSTOM PIECE
                   </Link>
@@ -160,7 +160,7 @@ const cardTransform = useMemo(() => {
 
             <div className="flex min-w-0 items-center justify-center max-lg:pb-2">
               <div
-                className="floating-panel will-change-transform transition-transform duration-300 ease-out w-full max-w-[24rem] p-5 max-lg:max-w-[15rem] max-lg:p-3 max-sm:max-w-[10rem] max-sm:p-2 sm:p-6"
+                className="floating-panel will-change-transform transition-transform duration-300 ease-out w-full max-w-[24rem] p-5 max-lg:max-w-[17rem] max-lg:p-3 max-sm:max-w-[14.5rem] max-sm:p-2.5 sm:p-6"
                 style={{ transform: cardTransform, transformStyle: "preserve-3d" }}
               >
                 <HeroCardStack />

@@ -40,12 +40,9 @@ export const COLOUR_LIBRARY: readonly ColourOption[] = [
   {label: MULTICOLOUR_LABEL, hex: "", multicolour: true}
 ];
 
-// What a brand-new product starts with (the three core brand colours).
-export const DEFAULT_COLOUR_OPTIONS: readonly ColourOption[] = [
-  COLOUR_LIBRARY[0],
-  COLOUR_LIBRARY[2],
-  COLOUR_LIBRARY[3]
-];
+// What a brand-new product starts with: just the one natural colour. Add
+// more from the library when the piece really comes in more.
+export const DEFAULT_COLOUR_OPTIONS: readonly ColourOption[] = [COLOUR_LIBRARY[1]];
 
 // The old three-colour starter set, before the library existed. A product
 // option that still matches one of these exactly (name AND hex) is moved to

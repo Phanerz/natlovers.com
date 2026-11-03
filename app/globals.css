@@ -114,18 +114,27 @@ html {
  */
 @media (max-width: 1023px) {
   html {
-    scroll-snap-type: y mandatory;
+    /* proximity, not mandatory: sections still settle neatly when you stop near
+       one, but a long section is just scrolled through at the finger's own
+       pace instead of being yanked to a snap point (the cutting / teleporting
+       that mandatory snapping caused on touch). */
+    scroll-snap-type: y proximity;
     scroll-padding-top: var(--header-height);
+    scroll-behavior: auto;
   }
 
   .snap-page {
     scroll-snap-align: start;
-    scroll-snap-stop: always;
     min-height: calc(100svh - var(--header-height));
   }
 
-  body:has(.snap-page) footer {
-    scroll-snap-align: end;
+  .snap-page .outlets-stage--embedded {
+    height: auto;
+    min-height: calc(100svh - var(--header-height));
+  }
+
+  .snap-page .outlets-stage--embedded .outlets-map-frame {
+    min-height: 18rem;
   }
 }
 
@@ -1232,7 +1241,7 @@ button {
   }
 
   .hero-definition {
-    max-width: 30ch;
+    max-width: none;
   }
 }
 
@@ -1242,7 +1251,7 @@ button {
   }
 
   .hero-definition {
-    max-width: 24ch;
+    max-width: none;
   }
 }
 
@@ -4820,33 +4829,33 @@ body:has(.outlets-stage--page) footer {
   color: #fff8eb;
 }
 
-/* Phones: the catalogue is a single row swiped sideways, one piece at a time,
-   with the next one peeking in so it is clear there is more. */
+/* Phones: the catalogue is pages of four (two by two) swiped sideways. The next
+   page peeks in from the right edge through a soft fade, so it is clear there is
+   more; the fade follows the scroll (CatalogueClient sets --fade-l / --fade-r). */
 .catalogue-mobile-strip {
-  --slide-w: clamp(11rem, min(64vw, calc(100svh - var(--header-height) - 25rem)), 19rem);
+  --fade-l: 0rem;
+  --fade-r: 3.5rem;
   display: flex;
-  height: 100%;
   align-items: flex-start;
-  gap: 14px;
+  gap: 12px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 6px max(18px, calc((100vw - var(--slide-w)) / 2)) 14px;
+  padding: 6px 16px 18px;
   scroll-snap-type: x mandatory;
-  scroll-padding: 0 max(18px, calc((100vw - var(--slide-w)) / 2));
+  scroll-padding: 0 16px;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
 }
 .catalogue-mobile-strip::-webkit-scrollbar {
   display: none;
 }
-.catalogue-mobile-strip .catalogue-mobile-slide {
-  flex: 0 0 var(--slide-w);
-  width: var(--slide-w);
-  height: auto;
-  padding: 0;
-  scroll-snap-align: center;
-  scroll-snap-stop: always;
+.catalogue-mobile-page {
+  flex: 0 0 calc(100vw - 4.5rem);
+  width: calc(100vw - 4.5rem);
+  scroll-snap-align: start;
 }
 
 /* Touchscreens: the map never captures a one-finger swipe (the page scrolls),
@@ -4880,4 +4889,66 @@ body:has(.outlets-stage--page) footer {
   .outlets-map-frame {
     min-height: 15rem;
   }
+}
+
+/* SKU builder (admin product form): every part readable in light and dark. */
+.sku-box {
+  border-color: #d4c5ab;
+  background: #fffdf9;
+}
+.sku-cell {
+  background: #f1ead9;
+  color: #3f5238;
+}
+.sku-cell-pending {
+  border-color: #c9b98f;
+  background: #fbf3dd;
+  color: #8a6d2f;
+}
+.sku-input {
+  border-color: #d4c5ab;
+  background: #fff;
+  color: #1f2a1c;
+}
+.sku-input::placeholder {
+  color: #a9b3a3;
+}
+.sku-input:focus {
+  border-color: #6b8a5f;
+}
+.sku-label {
+  color: #7d8f77;
+}
+.sku-dash {
+  color: #a9b3a3;
+}
+.dark .sku-box {
+  border-color: rgba(243, 236, 217, 0.22);
+  background: rgba(20, 20, 14, 0.35);
+}
+.dark .sku-cell {
+  background: rgba(243, 236, 217, 0.14);
+  color: #f6efdc;
+}
+.dark .sku-cell-pending {
+  border-color: rgba(229, 189, 67, 0.6);
+  background: rgba(229, 189, 67, 0.14);
+  color: #f1d27a;
+}
+.dark .sku-input {
+  border-color: rgba(243, 236, 217, 0.28);
+  background: rgba(243, 236, 217, 0.08);
+  color: #fbf6e6;
+}
+.dark .sku-input::placeholder {
+  color: rgba(243, 236, 217, 0.4);
+}
+.dark .sku-input:focus {
+  border-color: rgba(243, 236, 217, 0.6);
+}
+.dark .sku-label {
+  color: rgba(243, 236, 217, 0.65);
+}
+.dark .sku-dash {
+  color: rgba(243, 236, 217, 0.45);
 }

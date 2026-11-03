@@ -54,7 +54,7 @@ const productTypeIcons: Record<ShopProductType, typeof ShoppingBag> = {
 const MOBILE_BREAKPOINT = 640;
 const DESKTOP_COLUMNS = 4;
 const DESKTOP_ROWS = 2;
-const MOBILE_ROWS = 3;
+const MOBILE_ROWS = 2;
 
 // The filter panel is a controlled width (about 19% of the screen, never
 // narrower than 240px or wider than 276px). columnsFor mirrors that same clamp
@@ -923,6 +923,15 @@ export function CatalogueContent({
   // chrome), so clamp the panel to whatever is actually visible below its own
   // top edge. This only ever shortens the panel  -  the catalogue strip beside
   // it, and its horizontal scrolling, are not touched.
+  // Phone strip: the edge fade only shows on a side that has more to reveal.
+  const mobileStripRef = useRef<HTMLDivElement | null>(null);
+  function handleMobileStripScroll() {
+    const strip = mobileStripRef.current;
+    if (!strip) return;
+    const maxScroll = strip.scrollWidth - strip.clientWidth;
+    strip.style.setProperty("--fade-l", strip.scrollLeft > 8 ? "2.5rem" : "0rem");
+    strip.style.setProperty("--fade-r", strip.scrollLeft < maxScroll - 8 ? "3.5rem" : "0rem");
+  }
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -976,7 +985,7 @@ export function CatalogueContent({
   return (
     <div
       ref={rootRef}
-      className="catalogue-surface h-[calc(100svh-var(--header-height))] overflow-hidden"
+      className="catalogue-surface h-[calc(100svh-var(--header-height))] overflow-hidden max-sm:h-auto max-sm:min-h-[calc(100svh-var(--header-height))] max-sm:overflow-visible"
     >
       {/*
         Deliberately a plain div, not <ScrollSection>  -  this is embedded
@@ -1396,20 +1405,36 @@ export function CatalogueContent({
               ) : filteredProducts.length && isMobile ? (
                 // Phones: one row of pieces swiped left and right (native scroll-snap),
                 // the next piece peeking in from the edge, instead of a long vertical shelf.
-                <div key="mobile-strip" className="catalogue-mobile-strip">
-                  {pages
-                    .flat()
-                    .map((entry, entryIdx) =>
-                      entry.kind === "product" ? (
-                        <div key={entry.product.slug} className="catalogue-grid catalogue-mobile-slide" style={{"--cols": 1} as React.CSSProperties}>
-                          <ShopProductCard product={entry.product} currency={currency} locale={locale} priority={entryIdx < 2} />
-                        </div>
-                      ) : (
-                        <div key={`banner-${entry.banner.id}`} className="catalogue-mobile-slide catalogue-mobile-banner">
-                          <CatalogueBanner banner={entry.banner} priority={entryIdx < 2} layout="feature-narrow" />
-                        </div>
-                      )
-                    )}
+                <div key="mobile-strip" className="catalogue-mobile-strip" onScroll={handleMobileStripScroll} ref={mobileStripRef}>
+                  {pages.map((page, pageIdx) => (
+                    <div key={pageIdx} className="catalogue-mobile-page">
+                      <div className="catalogue-grid" style={{"--cols": columns, "--pad-x": "0px"} as React.CSSProperties}>
+                        {page.map((entry, entryIdx) =>
+                          entry.kind === "product" ? (
+                            <ShopProductCard
+                              key={entry.product.slug}
+                              product={entry.product}
+                              currency={currency}
+                              locale={locale}
+                              priority={pageIdx === 0 && entryIdx < 4}
+                            />
+                          ) : (
+                            <div
+                              key={`banner-${entry.banner.id}`}
+                              className="catalogue-grid-cell-banner"
+                              style={{gridColumn: `span ${bannerColumnSpan(entry.banner, columns, isMobile)}`}}
+                            >
+                              <CatalogueBanner
+                                banner={entry.banner}
+                                priority={pageIdx === 0}
+                                layout={entry.banner.mobileSpan === "full" ? "feature" : "feature-narrow"}
+                              />
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : filteredProducts.length ? (
                 <div key="cards" ref={trackRef} className="flex h-full" style={{width: `${pageCount * 100}%`}}>
