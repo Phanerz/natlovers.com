@@ -89,7 +89,7 @@ export default async function ProductPage({
 
       <ProductDetailView product={product} images={images} tintHex={tint.bg} />
 
-      <div className="mt-8">
+      <div>
         <ReassuranceBar />
       </div>
     </main>

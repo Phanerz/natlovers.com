@@ -129,7 +129,7 @@ export function ProductPurchasePanel({
       <ProductSpecsPanel product={product} outOfStock={outOfStock} stockLabel={stockLabel} locale={locale} />
 
       {hasCustomisation ? (
-        <a href="#customise" className="pdp-customise-link">
+        <a href="#details" className="pdp-customise-link">
           Choose colours &amp; personalise
           <span aria-hidden>↓</span>
         </a>

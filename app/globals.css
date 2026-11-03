@@ -3879,7 +3879,10 @@ body:has(.outlets-stage--page) footer {
 .pdp-title {
   margin-top: 0.6rem;
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-  font-size: clamp(2rem, 3.2vw, 2.7rem);
+  font-size: clamp(1.55rem, 2.15vw, 2.05rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-weight: 400;
   line-height: 1.04;
   letter-spacing: -0.012em;
@@ -3922,7 +3925,7 @@ body:has(.outlets-stage--page) footer {
   justify-content: space-between;
   gap: 1.25rem;
   border-bottom: 1px solid var(--pdp-line);
-  padding: 0.95rem 0.1rem;
+  padding: 0.7rem 0.1rem;
 }
 
 .pdp-spec-label {
@@ -3997,6 +4000,7 @@ body:has(.outlets-stage--page) footer {
 
 /* Below the fold: description + care on the left, personalisation on the right. */
 .pdp-details {
+  scroll-margin-top: 8.5rem;
   display: grid;
   gap: 2.5rem;
   margin-top: 4.5rem;
@@ -4049,6 +4053,63 @@ body:has(.outlets-stage--page) footer {
   font-size: 0.95rem;
   line-height: 1.75;
   color: var(--pdp-soft);
+}
+
+/* Closing strip: three quiet promises between hairlines, no box. */
+.pdp-promises {
+  display: grid;
+  margin-top: 4rem;
+  border-top: 1px solid var(--pdp-line);
+  border-bottom: 1px solid var(--pdp-line);
+  list-style: none;
+  padding: 0;
+}
+@media (min-width: 768px) {
+  .pdp-promises {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .pdp-promise + .pdp-promise {
+    border-left: 1px solid var(--pdp-line);
+  }
+}
+.pdp-promise {
+  display: flex;
+  gap: 1rem;
+  padding: 1.75rem 1.5rem;
+}
+@media (max-width: 767px) {
+  .pdp-promise + .pdp-promise {
+    border-top: 1px solid var(--pdp-line);
+  }
+}
+@media (min-width: 768px) {
+  .pdp-promise:first-child {
+    padding-left: 0;
+  }
+  .pdp-promise:last-child {
+    padding-right: 0;
+  }
+}
+.pdp-promise svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+  color: var(--pdp-soft);
+  stroke-width: 1.4;
+}
+.pdp-promise-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--pdp-muted);
+}
+.pdp-promise-text {
+  margin-top: 0.5rem;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--pdp-ink);
 }
 
 .pdp-heart svg {
