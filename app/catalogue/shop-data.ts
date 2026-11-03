@@ -67,7 +67,7 @@ export const materialLabels: Record<ShopMaterial, BilingualLabel> = {
   Mendong: {en: "Mendong", id: "Mendong"},
   "Water Hyacinth": {en: "Water Hyacinth", id: "Enceng Gondok"},
   Gajih: {en: "Gajih", id: "Gajih"},
-  "Woven Fabric": {en: "Woven Fabric", id: "Kain Tenun"},
+  "Woven Fabric": {en: "Tenun", id: "Tenun"},
   Patchwork: {en: "Patchwork", id: "Patchwork"}
 };
 

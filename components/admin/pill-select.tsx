@@ -8,20 +8,16 @@ const pillBase =
   "inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-medium leading-none outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-forest-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fffdf9]";
 
 export function pillClassName(active: boolean): string {
-  return `${pillBase} ${
-    active
-      ? "border-forest-900 bg-forest-900 text-[#fff8eb] shadow-[0_1px_2px_rgba(23,32,21,0.25)]"
-      : "border-[#dccfb4] bg-[#fffdf9] text-forest-700 hover:border-[#c4b48f] hover:bg-[#f8f2e3]"
-  }`;
+  // Colours live in .apill (globals.css) so dark mode can restyle every state;
+  // hard-coded utility colours were remapped there and left some text unreadable.
+  return `${pillBase} apill${active ? " apill-on" : ""}`;
 }
 
 // The small numbered badge on a pill whose choice becomes a digit in the SKU.
 export function PillCode({code, active}: {code: string; active: boolean}) {
   return (
     <span
-      className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold tabular-nums ${
-        active ? "bg-white/20 text-[#fff8eb]" : "bg-[#efe7d3] text-forest-600"
-      }`}
+      className={`apill-code flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold tabular-nums${active ? " apill-code-on" : ""}`}
       aria-hidden
     >
       {code}

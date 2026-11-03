@@ -4742,3 +4742,55 @@ body:has(.outlets-stage--page) footer {
   background-color: #2f2d24;
   color: #f3ecd9;
 }
+
+/* Admin attribute pills (Material, Size, Shape, Handle…) and their SKU digit
+   badge, themed for light and dark so no state loses its text. */
+.apill {
+  border-color: #dccfb4;
+  background: #fffdf9;
+  color: #3f5238;
+}
+.apill:hover {
+  border-color: #c4b48f;
+  background: #f8f2e3;
+}
+.apill-on,
+.apill-on:hover {
+  border-color: #1f2a1c;
+  background: #1f2a1c;
+  color: #fff8eb;
+  box-shadow: 0 1px 2px rgba(23, 32, 21, 0.25);
+}
+.apill-code {
+  background: #efe7d3;
+  color: #4f6a45;
+}
+.apill-code-on {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff8eb;
+}
+.dark .apill {
+  border-color: rgba(243, 236, 217, 0.28);
+  background: #3a382f;
+  color: #ece5d0;
+}
+.dark .apill:hover {
+  border-color: rgba(243, 236, 217, 0.5);
+  background: #48453a;
+  color: #fbf6e6;
+}
+.dark .apill-on,
+.dark .apill-on:hover {
+  border-color: rgba(243, 236, 217, 0.3);
+  background: #131f15;
+  color: #fff8eb;
+  box-shadow: none;
+}
+.dark .apill-code {
+  background: rgba(243, 236, 217, 0.18);
+  color: #f6efdc;
+}
+.dark .apill-code-on {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff8eb;
+}

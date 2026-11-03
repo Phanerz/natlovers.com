@@ -28,8 +28,8 @@ export const materialCodes: Record<ShopMaterial, string> = {
   Mendong: "2",
   Gajih: "3",
   Patchwork: "4",
-  "Water Hyacinth": "5",
-  "Woven Fabric": "6"
+  "Water Hyacinth": "6",
+  "Woven Fabric": "5"
 };
 
 export const sizeCodes: Record<ShopSize, string> = {Small: "1", Medium: "2", Large: "3"};
