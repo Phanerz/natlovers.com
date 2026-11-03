@@ -56,7 +56,7 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
   const stockLabel = product.soldOut
     ? "Sold out"
     : product.stock === null
-      ? "Stock not tracked"
+      ? "Available to order"
       : product.stock <= 0
         ? "Out of stock"
         : `${product.stock} in stock`;
@@ -120,20 +120,16 @@ export function ProductPurchasePanel({product}: {product: AdminProduct}) {
 
   return (
     <div className="lg:sticky lg:top-24">
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-forest-600">Handcrafted in Indonesia</p>
-      <h1 className="mt-2 font-display text-4xl leading-[1.05] tracking-tight text-forest-900 sm:text-5xl">{product.name}</h1>
-      <p className="mt-1 flex items-baseline gap-2 font-display text-2xl text-forest-800">
+      <p className="pdp-eyebrow">Handcrafted in Indonesia</p>
+      <h1 className="pdp-title">{product.name}</h1>
+      <p className="pdp-price">
         {formatCurrency(product.priceIdr, currency)}
         {product.compareAtPriceIdr && product.compareAtPriceIdr > product.priceIdr ? (
-          <span className="font-body text-base font-normal text-forest-400 line-through">
-            {formatCurrency(product.compareAtPriceIdr, currency)}
-          </span>
+          <span className="pdp-price-was">{formatCurrency(product.compareAtPriceIdr, currency)}</span>
         ) : null}
       </p>
 
-      {product.shortDescription ? (
-        <p className="mt-3 line-clamp-2 text-sm leading-6 text-forest-600">{product.shortDescription}</p>
-      ) : null}
+      {product.shortDescription ? <p className="pdp-lede">{product.shortDescription}</p> : null}
 
       <ProductSpecsPanel product={product} outOfStock={outOfStock} stockLabel={stockLabel} locale={locale} />
 

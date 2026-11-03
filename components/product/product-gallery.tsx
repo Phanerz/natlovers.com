@@ -1,6 +1,7 @@
 "use client";
 
 import {useEffect, useRef, useState} from "react";
+import {createPortal} from "react-dom";
 import {ChevronLeft, ChevronRight, Maximize2, X} from "lucide-react";
 import {ImageWithFallback} from "@/components/image-with-fallback";
 
@@ -31,12 +32,14 @@ function Lightbox({
     return () => window.removeEventListener("keydown", handleKey);
   }, [index, images.length, onIndexChange, onClose]);
 
-  return (
+  // Rendered into <body>: the page content animates in with a transform, which
+  // would make a "fixed" viewer size itself to the page and sit off-screen.
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-label={`${name} image viewer`}
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4 backdrop-blur-xl"
+      className="pdp-lightbox backdrop-blur-[14px]"
       onClick={onClose}
     >
       <button
@@ -46,7 +49,7 @@ function Lightbox({
           onClose();
         }}
         aria-label="Close image viewer"
-        className="liquid-glass icon-button absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full text-[#fff7e5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        className="pdp-zoom pdp-lightbox-close"
       >
         <X className="h-5 w-5" />
       </button>
@@ -60,7 +63,7 @@ function Lightbox({
               onIndexChange((index - 1 + images.length) % images.length);
             }}
             aria-label="Previous image"
-            className="liquid-glass icon-button absolute left-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-[#fff7e5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="pdp-zoom pdp-lightbox-arrow pdp-lightbox-prev"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -71,19 +74,33 @@ function Lightbox({
               onIndexChange((index + 1) % images.length);
             }}
             aria-label="Next image"
-            className="liquid-glass icon-button absolute right-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-[#fff7e5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="pdp-zoom pdp-lightbox-arrow pdp-lightbox-next"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
         </>
       ) : null}
 
-      <div className="relative h-[80vh] w-full max-w-3xl" onClick={(event) => event.stopPropagation()}>
+      <div className="pdp-lightbox-stage" onClick={(event) => event.stopPropagation()}>
         {images[index] ? (
-          <ImageWithFallback src={images[index]} alt={`${name} ${index + 1}`} fill sizes="90vw" className="object-contain" />
+          <ImageWithFallback
+            key={images[index]}
+            src={images[index]}
+            alt={`${name} ${index + 1}`}
+            fill
+            sizes="90vw"
+            className="pdp-lightbox-image object-contain"
+          />
         ) : null}
       </div>
-    </div>
+
+      {images.length > 1 ? (
+        <p className="pdp-lightbox-count" aria-live="polite">
+          {index + 1} / {images.length}
+        </p>
+      ) : null}
+    </div>,
+    document.body
   );
 }
 
@@ -128,21 +145,24 @@ export function ProductGallery({
       {images.length > 1 ? (
         // Horizontal strip on mobile, vertical scrollable rail on desktop  - 
         // real DB order (array order), no reordering.
-        <div className="order-2 flex max-h-none gap-3 overflow-x-auto pb-1 lg:order-1 lg:h-[520px] lg:w-20 lg:shrink-0 lg:flex-col lg:overflow-x-visible lg:overflow-y-auto lg:pb-0">
-          {images.map((url, index) => (
-            <button
-              key={`${url}-${index}`}
-              type="button"
-              aria-label={`${name} image ${index + 1}`}
-              aria-current={index === activeImage}
-              onClick={() => selectImage(index)}
-              className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl transition-all duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700 lg:h-20 lg:w-20 ${
-                index === activeImage ? "ring-2 ring-forest-900" : "opacity-70 hover:opacity-100"
-              }`}
-            >
-              <ImageWithFallback src={url} alt={`${name} ${index + 1}`} fill sizes="80px" className="object-cover" />
-            </button>
-          ))}
+        // Every photo shown whole in an equal square, never a side scroll: a
+        // wrapping grid on phones, and on desktop a rail exactly as tall as the
+        // main photo (its own height never stretches the row).
+        <div className="pdp-thumbs order-2 lg:order-1">
+          <div className="pdp-thumbs-inner">
+            {images.map((url, index) => (
+              <button
+                key={`${url}-${index}`}
+                type="button"
+                aria-label={`${name} image ${index + 1}`}
+                aria-current={index === activeImage}
+                onClick={() => selectImage(index)}
+                className="pdp-thumb"
+              >
+                <ImageWithFallback src={url} alt={`${name} ${index + 1}`} fill sizes="84px" className="object-contain" />
+              </button>
+            ))}
+          </div>
         </div>
       ) : null}
 
@@ -187,7 +207,7 @@ export function ProductGallery({
             type="button"
             onClick={() => setLightboxOpen(true)}
             aria-label="View full image"
-            className="liquid-glass-on-light icon-button absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full text-forest-800 backdrop-blur-[18px] backdrop-saturate-[160%] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
+            className="pdp-zoom absolute right-3 top-3 backdrop-blur-[6px]"
           >
             <Maximize2 className="h-4 w-4" />
           </button>

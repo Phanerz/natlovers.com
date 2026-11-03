@@ -86,18 +86,18 @@ export function ProductSpecsPanel({
   }
 
   return (
-    <div className="card mt-5 divide-y divide-forest-100 px-4 py-1 sm:px-5">
+    <dl className="pdp-specs">
       {rows.map((row) => (
-        <div key={row.key} className="flex items-center justify-between gap-4 py-2.5">
-          <span className="flex items-center gap-2 text-[12.5px] font-medium uppercase tracking-[0.07em] text-forest-500">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-forest-50">
-              <row.icon className="h-3.5 w-3.5 text-forest-600" aria-hidden />
+        <div key={row.key} className="pdp-spec-row">
+          <dt className="pdp-spec-label">
+            <span className="pdp-spec-icon">
+              <row.icon className="h-4 w-4" aria-hidden />
             </span>
             {row.label}
-          </span>
-          <span className="text-right text-[13.5px] font-medium text-forest-900">{row.value}</span>
+          </dt>
+          <dd className="pdp-spec-value">{row.value}</dd>
         </div>
       ))}
-    </div>
+    </dl>
   );
 }
