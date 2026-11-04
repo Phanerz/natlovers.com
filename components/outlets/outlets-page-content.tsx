@@ -119,7 +119,12 @@ export function OutletsPageContent({locationList, embedded = false}: {locationLi
   // flag keeps the two from chasing each other.
   const onRailScroll = useCallback(() => {
     const rail = railRef.current;
-    if (!rail || railDriven.current || rail.children.length < 2) return;
+    if (!rail || rail.children.length < 2) return;
+    // The soft fade shows only on the side that still has cards to reveal.
+    const maxScroll = rail.scrollWidth - rail.clientWidth;
+    rail.style.setProperty("--fade-l", rail.scrollLeft > 8 ? "2.2rem" : "0rem");
+    rail.style.setProperty("--fade-r", rail.scrollLeft < maxScroll - 8 ? "2.8rem" : "0rem");
+    if (railDriven.current) return;
     const first = rail.children[0] as HTMLElement;
     const second = rail.children[1] as HTMLElement;
     const pitch = second.offsetLeft - first.offsetLeft;

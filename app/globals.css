@@ -5017,124 +5017,308 @@ body:has(.outlets-stage--page) footer {
   }
 }
 
-/* Phones and tablets, under the hero: values as a quiet editorial row, then the
-   impact section. Restrained on purpose: type, hairlines and spacing, no cards. */
-.home-values {
-  padding: 1.6rem 1.1rem 2.4rem;
-  background: var(--cat-surface, #efe7d4);
-  color: #2f3d2a;
+
+/* ---------------------------------------------------------------------------
+   Phone hero (components/hero.tsx, .m-hero). One screen: the photograph fades
+   into the cream page, then definition, actions, values and the three UN goals.
+   Heights come from the visible viewport (svh) so it always fits.
+   --------------------------------------------------------------------------- */
+.m-hero {
+  --m-bg: #f4ecd9;
+  --m-ink: #1e3a26;
+  --m-soft: #51604a;
+  --m-line: rgba(30, 58, 38, 0.2);
+  display: flex;
+  flex-direction: column;
+  height: calc(100svh - var(--header-height));
+  min-height: 34rem;
+  background: var(--m-bg);
+  color: var(--m-ink);
 }
-.home-values__list {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.dark .m-hero {
+  --m-bg: #182016;
+  --m-ink: #f1e9d3;
+  --m-soft: #c9c3ac;
+  --m-line: rgba(241, 233, 211, 0.22);
 }
-.home-values__list li {
-  padding: 0 0.7rem;
-  border-left: 1px solid rgba(47, 61, 42, 0.18);
+.m-hero__photo {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 7.5rem;
 }
-.home-values__list li:first-child {
-  padding-left: 0;
-  border-left: 0;
+.m-hero__track {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
-.home-values__num {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
-  font-size: 0.8rem;
-  color: #8a7a52;
+.m-hero__track::-webkit-scrollbar {
+  display: none;
 }
-.home-values__list strong {
-  display: block;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
-  font-size: 1rem;
-  font-weight: 500;
-  line-height: 1.2;
+.m-hero__slide {
+  position: relative;
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
-.home-values__list p {
-  margin-top: 0.4rem;
-  font-size: 0.75rem;
-  line-height: 1.45;
-  color: #5a6753;
-}
-.home-impact {
-  margin-top: 2.4rem;
-  padding-top: 1.6rem;
-  border-top: 1px solid rgba(47, 61, 42, 0.18);
-}
-.home-impact__eyebrow {
-  font-size: 0.7rem;
+.m-hero__label {
+  position: absolute;
+  left: 1.1rem;
+  top: 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.7);
+  font-size: 0.68rem;
   letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: #8a7a52;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
 }
-.home-impact__title {
-  margin-top: 0.4rem;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
-  font-size: 1.7rem;
+.m-hero__fade {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 48%;
+  background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--m-bg) 55%, transparent) 55%, var(--m-bg) 100%);
+  pointer-events: none;
+}
+.m-hero__dots {
+  position: absolute;
+  inset: auto 0 0.35rem 0;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+.m-hero__dots span {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--m-soft);
+  opacity: 0.45;
+  transition: opacity 0.25s, transform 0.25s;
+}
+.m-hero__dots span.is-active {
+  background: var(--m-ink);
+  opacity: 1;
+  transform: scale(1.15);
+}
+.m-hero__body {
+  flex: none;
+  padding: 0.2rem 1.1rem max(0.9rem, env(safe-area-inset-bottom));
+  text-align: center;
+}
+.m-hero__eyebrow {
+  font-size: 0.64rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--m-ink);
+}
+.m-hero__title {
+  margin-top: 0.3rem;
+  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Georgia, serif;
+  font-size: clamp(2.3rem, 9.4vw, 3.3rem);
   font-weight: 400;
-  line-height: 1.15;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--m-ink);
 }
-.home-impact__goals {
-  margin: 1.2rem 0 0;
+.m-hero__phonetic {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 0.35rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--m-line);
+  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-size: 1rem;
+}
+.m-hero__pos {
+  font-family: inherit;
+  font-size: 0.68rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+.m-hero__definition {
+  margin: 0.6rem auto 0;
+  max-width: 24rem;
+  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-size: 1rem;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--m-ink);
+}
+.m-hero__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+.m-hero__btn {
+  display: flex;
+  min-height: 2.7rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+}
+.m-hero__btn svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
+}
+.m-hero__btn--solid {
+  background: #1e3a26;
+  color: #f7f0de;
+}
+.dark .m-hero__btn--solid {
+  background: #f1e9d3;
+  color: #1e3a26;
+}
+.m-hero__btn--line {
+  border: 1.5px solid var(--m-ink);
+  color: var(--m-ink);
+}
+.m-hero__values {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0.8rem 0 0;
   padding: 0;
   list-style: none;
 }
-.home-impact__goals li {
+.m-hero__values li {
   display: flex;
-  gap: 0.9rem;
-  align-items: flex-start;
-  padding: 0.85rem 0;
-  border-top: 1px solid rgba(47, 61, 42, 0.12);
-}
-.home-impact__badge {
-  display: flex;
-  height: 2rem;
-  min-width: 2rem;
-  flex-shrink: 0;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  border-radius: 3px;
-  background: var(--sdg);
-  color: #fff;
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-.home-impact__goals strong {
-  display: block;
-  font-size: 0.92rem;
-  font-weight: 600;
-  line-height: 1.3;
-}
-.home-impact__goals p {
-  margin-top: 0.2rem;
+  gap: 0.3rem;
+  padding: 0 0.3rem;
+  border-left: 1px solid var(--m-line);
+  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
   font-size: 0.82rem;
-  line-height: 1.45;
-  color: #5a6753;
+  line-height: 1.2;
 }
-.home-impact__note {
-  margin-top: 1rem;
-  font-size: 0.74rem;
+.m-hero__values li:first-child {
+  border-left: 0;
+}
+.m-hero__values svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  stroke-width: 1.4;
+}
+.m-hero__impact {
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--m-line);
+}
+.m-hero__impact-title {
+  margin-top: 0.15rem;
+  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 400;
+  line-height: 1.2;
+}
+.m-hero__goals {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.m-hero__goals li {
+  flex: none;
+}
+.m-hero__goals img {
+  display: block;
+  height: clamp(4.2rem, 12svh, 6.4rem);
+  width: clamp(4.2rem, 12svh, 6.4rem);
+  border-radius: 3px;
+}
+.m-hero__note {
+  margin-top: 0.5rem;
+  font-size: 0.7rem;
   font-style: italic;
-  color: #6c7766;
+  color: var(--m-soft);
 }
-.dark .home-values {
-  background: #1d2519;
-  color: #ece5d0;
+@media (max-height: 700px) {
+  .m-hero__note {
+    display: none;
+  }
 }
-.dark .home-values__list li,
-.dark .home-impact,
-.dark .home-impact__goals li {
-  border-color: rgba(236, 229, 208, 0.18);
+
+/* Location cards on phones: centred name block, a soft fade on whichever side has
+   more cards, and room for the fade so the cards are never cut hard. */
+.outlet-rail {
+  --fade-l: 0rem;
+  --fade-r: 2.8rem;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
 }
-.dark .home-values__list p,
-.dark .home-impact__goals p,
-.dark .home-impact__note {
-  color: #bdb9a4;
+.outlet-rail .outlet-card {
+  align-items: stretch;
+  gap: 0.7rem;
+  padding: 1.1rem 1.15rem 1rem;
+  text-align: center;
 }
-.dark .home-values__num,
-.dark .home-impact__eyebrow {
-  color: #cdb77f;
+.outlet-rail .outlet-card::before {
+  display: none;
+}
+.outlet-rail .outlet-card__index {
+  top: 0.35rem;
+  right: 0.8rem;
+  font-size: 2.6rem;
+}
+.outlet-rail .outlet-card__name {
+  margin-top: 0.55rem;
+  font-size: 1.35rem;
+}
+.outlet-rail .outlet-card > div.space-y-2 {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.outlet-rail .outlet-card__row {
+  justify-content: flex-start;
+  text-align: left;
+}
+.outlet-rail .outlet-card__maps {
+  align-self: center;
+}
+
+/* Catalogue on phones: warmer and richer than flat cream  -  a soft forest-to-gold
+   wash, a glow behind the cards, and a little lift on each tile. */
+@media (max-width: 639px) {
+  .catalogue-surface {
+    background:
+      radial-gradient(90% 38% at 12% 58%, rgba(201, 162, 74, 0.2), transparent 70%),
+      radial-gradient(80% 36% at 100% 88%, rgba(79, 117, 88, 0.16), transparent 70%),
+      linear-gradient(180deg, #e3e9d3 0%, #efe7c9 30%, #f3e1c8 66%, #ead6b9 100%);
+  }
+  .dark .catalogue-surface {
+    background: linear-gradient(180deg, #1d281b 0%, #252a1a 50%, #2b2518 100%);
+  }
+  .catalogue-mobile-strip .catalogue-item-stage {
+    box-shadow: inset 0 0 0 1px rgba(52, 67, 50, 0.08), 0 14px 22px -14px rgba(52, 67, 50, 0.45);
+  }
+  .catalogue-surface h1 {
+    background: linear-gradient(100deg, #1f3a26 0%, #5b6b2f 55%, #a07b2c 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .dark .catalogue-surface h1 {
+    background: linear-gradient(100deg, #f1e9d3 0%, #dcc98a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
 }

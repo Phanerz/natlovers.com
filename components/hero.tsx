@@ -1,8 +1,9 @@
 ﻿"use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import {useEffect, useMemo, useRef, useState} from "react";
-import {ArrowRight} from "lucide-react";
+import {ArrowRight, Hand, Infinity as InfinityIcon, Leaf} from "lucide-react";
 import {CurrencyCode, Locale} from "@/lib/site";
 import {HeroCardStack} from "@/components/hero-card-stack";
 
@@ -10,9 +11,32 @@ const HERO_VIDEO_SRC = "https://ftw7p3nsw06ehaup.public.blob.vercel-storage.com/
 
 const phonetic = "/\u02C8n\u00E6t.l\u0259\u028A.v\u0259z/";
 
+// The phone hero is a short, swipeable run of real NATLOVERS photographs (all
+// already in /public/images). No autoplay: swiping is the only motion.
+const MOBILE_SLIDES = [
+  {src: "/images/natlovers-bags-1.jpg", alt: "Handwoven natural-fibre bags with embroidered dolls"},
+  {src: "/images/natlovers-bags-2.webp", alt: "Embroidered Natlovers bag detail"},
+  {src: "/images/natlovers-bags-4.webp", alt: "Natlovers bags in natural fibre and colour"}
+];
+
+// Official UN Sustainable Development Goal tiles (English), from sdgs.un.org.
+const SDG_TILES = [
+  {goal: 8, name: "Decent Work and Economic Growth", src: "/images/sdg/sdg-8.webp"},
+  {goal: 12, name: "Responsible Consumption and Production", src: "/images/sdg/sdg-12.webp"},
+  {goal: 11, name: "Sustainable Cities and Communities", src: "/images/sdg/sdg-11.webp"}
+];
+
 export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
   const [offset, setOffset] = useState({x: 0, y: 0});
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [slide, setSlide] = useState(0);
+  const slideCount = MOBILE_SLIDES.length;
+
+  function handleSlideScroll(event: React.UIEvent<HTMLDivElement>) {
+    const track = event.currentTarget;
+    const index = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+    setSlide((current) => (current === index ? current : Math.min(slideCount - 1, Math.max(0, index))));
+  }
 
   // The poster image is what needs to paint fast (it's the LCP candidate on
   // this page) \u2014 the video itself is deferred until after the browser has
@@ -79,7 +103,7 @@ const cardTransform = useMemo(() => {
   return (
     <section className="page-enter">
       <div
-        className="hero-stage relative overflow-hidden border-b border-[#efe3cb]/14 shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
+        className="hero-stage relative overflow-hidden max-lg:hidden border-b border-[#efe3cb]/14 shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
         onMouseMove={handleMove}
         onMouseLeave={handleLeave}
       >
@@ -173,54 +197,86 @@ const cardTransform = useMemo(() => {
         </div>
       </div>
 
-      {/* Phones and tablets: what the house stands for, and where its work lines up
-          with the UN Sustainable Development Goals. Desktop keeps its own layout. */}
-      <div className="home-values lg:hidden">
-        <ul className="home-values__list">
-          <li>
-            <span className="home-values__num">01</span>
-            <strong>Natural Materials</strong>
-            <p>Natural fibres and thoughtfully selected materials.</p>
-          </li>
-          <li>
-            <span className="home-values__num">02</span>
-            <strong>Handcrafted</strong>
-            <p>Distinctive pieces shaped by skilled craftsmanship.</p>
-          </li>
-          <li>
-            <span className="home-values__num">03</span>
-            <strong>Sustainable</strong>
-            <p>A considered approach to materials, making and longevity.</p>
-          </li>
-        </ul>
+      {/* Phones and tablets only: one composed screen  -  photograph dissolving into
+          the cream page, the dictionary definition, the two actions, the three
+          values and three UN goals. Sizes follow the visible height (svh) so it
+          fits without scrolling on any phone. */}
+      <div className="m-hero lg:hidden">
+        <div className="m-hero__photo">
+          <div className="m-hero__track" onScroll={handleSlideScroll}>
+            {MOBILE_SLIDES.map((item, index) => (
+              <div key={item.src} className="m-hero__slide">
+                <Image
+                  src={item.src}
+                  alt={item.alt}
+                  fill
+                  sizes="100vw"
+                  priority={index === 0}
+                  className="object-cover"
+                />
+              </div>
+            ))}
+          </div>
+          <p className="m-hero__label">{locale === "en" ? "Handcrafted in Indonesia" : "Dibuat tangan di Indonesia"}</p>
+          <div className="m-hero__fade" aria-hidden />
+          <div className="m-hero__dots" aria-hidden>
+            {MOBILE_SLIDES.map((item, index) => (
+              <span key={item.src} className={index === slide ? "is-active" : undefined} />
+            ))}
+          </div>
+        </div>
 
-        <div className="home-impact">
-          <p className="home-impact__eyebrow">Our Impact</p>
-          <h2 className="home-impact__title">Crafting with purpose.</h2>
-          <ul className="home-impact__goals">
-            <li style={{"--sdg": "#A21942"} as React.CSSProperties}>
-              <span className="home-impact__badge">8</span>
-              <div>
-                <strong>Decent Work and Economic Growth</strong>
-                <p>Supporting artisan livelihoods and skilled craftsmanship.</p>
-              </div>
+        <div className="m-hero__body">
+          <p className="m-hero__eyebrow">{locale === "en" ? "Dictionary entry / House of craft" : "Entri kamus / Rumah kriya"}</p>
+          <h1 className="m-hero__title">NATLOVERS</h1>
+          <p className="m-hero__phonetic">
+            <span>{phonetic}</span>
+            <span className="m-hero__pos">noun</span>
+          </p>
+          <p className="m-hero__definition">{locale === "en" ? "Unique sustainable natural-fibre crafts preserving tradition through thoughtful design." : "Kriya serat alami berkelanjutan yang unik, menjaga tradisi melalui desain yang penuh perhatian."}</p>
+
+          <div className="m-hero__actions">
+            <Link href="/catalogue" className="m-hero__btn m-hero__btn--solid">
+              Explore Catalogue <ArrowRight aria-hidden />
+            </Link>
+            <Link href="/custom" className="m-hero__btn m-hero__btn--line">
+              Request a Custom Piece
+            </Link>
+          </div>
+
+          <ul className="m-hero__values">
+            <li>
+              <Leaf aria-hidden />
+              <span>Natural Materials</span>
             </li>
-            <li style={{"--sdg": "#BF8B2E"} as React.CSSProperties}>
-              <span className="home-impact__badge">12</span>
-              <div>
-                <strong>Responsible Consumption and Production</strong>
-                <p>Thoughtful materials and pieces made to last.</p>
-              </div>
+            <li>
+              <Hand aria-hidden />
+              <span>Handcrafted</span>
             </li>
-            <li style={{"--sdg": "#FD9D24"} as React.CSSProperties}>
-              <span className="home-impact__badge">11</span>
-              <div>
-                <strong>Sustainable Cities and Communities</strong>
-                <p>Keeping Indonesian craft knowledge and heritage alive.</p>
-              </div>
+            <li>
+              <InfinityIcon aria-hidden />
+              <span>Sustainable</span>
             </li>
           </ul>
-          <p className="home-impact__note">Our work aligns with selected Sustainable Development Goals.</p>
+
+          <div className="m-hero__impact">
+            <p className="m-hero__eyebrow">Our Impact</p>
+            <h2 className="m-hero__impact-title">Crafting with purpose.</h2>
+            <ul className="m-hero__goals">
+              {SDG_TILES.map((tile) => (
+                <li key={tile.goal}>
+                  <Image
+                    src={tile.src}
+                    alt={`UN Sustainable Development Goal ${tile.goal}: ${tile.name}`}
+                    width={180}
+                    height={180}
+                    sizes="110px"
+                  />
+                </li>
+              ))}
+            </ul>
+            <p className="m-hero__note">Our work aligns with selected Sustainable Development Goals.</p>
+          </div>
         </div>
       </div>
     </section>
