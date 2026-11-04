@@ -22,9 +22,9 @@ const inputCell =
 
 // One part of the code with its name printed underneath, so the structure is
 // readable at a glance without a separate legend to decode.
-function Part({label, children}: {label: string; children: ReactNode}) {
+function Part({label, children, className = ""}: {label: string; children: ReactNode; className?: string}) {
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className={`flex flex-col items-center gap-1.5 ${className}`}>
       {children}
       <span className="sku-label text-[10px] font-medium uppercase tracking-[0.14em]">{label}</span>
     </div>
@@ -41,6 +41,10 @@ function Unit({children}: {children: ReactNode}) {
     </div>
   );
 }
+
+// The four one-digit parts (Var, Material, Shape, Size) share one width and one
+// gap, so the boxes sit at even intervals whatever their label length.
+const EQUAL_PART = "w-[4.5rem]";
 
 const dash = (
   <span className="sku-dash flex h-9 select-none items-center font-mono" aria-hidden>
@@ -62,11 +66,11 @@ export function SkuField({
   const segments = skuSegments(skuPartsFromForm(form, bodyShapes));
   const byKey = Object.fromEntries(segments.map((segment) => [segment.key, segment]));
 
-  function readOnly(key: string, hint: string) {
+  function readOnly(key: string, hint: string, equal = false) {
     const segment = byKey[key];
     return (
-      <Part label={segment.label}>
-        <span className={segment.pending ? pendingCell : autoCell} title={`${segment.label}: ${hint}`}>
+      <Part label={segment.label} className={equal ? EQUAL_PART : ""}>
+        <span className={`${segment.pending ? pendingCell : autoCell}${equal ? " w-10 px-0" : ""}`} title={`${segment.label}: ${hint}`}>
           {segment.value}
         </span>
       </Part>
@@ -121,8 +125,8 @@ export function SkuField({
           </Part>
         </Unit>
         <Unit>
-          <div className="flex items-start gap-1.5">
-            <Part label="Variant">
+          <div className="flex items-start gap-1">
+            <Part label="Var" className={EQUAL_PART}>
               <input
                 value={form.skuVariant}
                 onChange={(event) =>
@@ -136,12 +140,12 @@ export function SkuField({
                 placeholder="1"
                 aria-label="SKU variant digit"
                 title="Variant: a single digit to tell versions of the same design apart"
-                className={`${inputCell} w-10`}
+                className={`${inputCell} w-10 px-0`}
               />
             </Part>
-            {readOnly("material", "set automatically from the selected material")}
-            {readOnly("shape", "set automatically from the selected shape")}
-            {readOnly("size", "set automatically from the selected size")}
+            {readOnly("material", "set automatically from the selected material", true)}
+            {readOnly("shape", "set automatically from the selected shape", true)}
+            {readOnly("size", "set automatically from the selected size", true)}
           </div>
         </Unit>
         <Unit>
