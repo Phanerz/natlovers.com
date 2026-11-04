@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {useEffect, useMemo, useRef, useState} from "react";
-import {ArrowRight} from "lucide-react";
+import {ArrowRight, Hand, Infinity as InfinityIcon, Leaf} from "lucide-react";
 import {CurrencyCode, Locale} from "@/lib/site";
 import {HeroCardStack} from "@/components/hero-card-stack";
 
@@ -26,6 +26,9 @@ export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
+    // Phones and tablets keep the still poster: an 8MB looping video is the
+    // heaviest thing on the page and not worth the data, battery or jank.
+    if (window.matchMedia("(max-width: 1023px)").matches) return;
     let raf2 = 0;
     const raf1 = window.requestAnimationFrame(() => {
       raf2 = window.requestAnimationFrame(() => {
@@ -108,12 +111,12 @@ const cardTransform = useMemo(() => {
               </div>
 
               <div
-                className="museum-panel relative overflow-hidden transition-transform duration-300 ease-out mt-[21px] max-sm:mt-3 rounded-xl border border-[#efe3cb]/20 bg-[linear-gradient(135deg,rgba(255,248,238,0.15),rgba(255,255,255,0.08))] px-5 py-6 max-sm:py-4 text-white backdrop-blur-sm shadow-[0_4px_12px_rgba(0,0,0,0.06)] sm:px-7 sm:py-7 lg:px-[34px] lg:py-[34px] xl:px-[55px] xl:py-[34px]"
+                className="museum-panel relative overflow-hidden transition-transform duration-300 ease-out mt-[21px] max-sm:mt-3 rounded-xl border border-[#efe3cb]/20 bg-[linear-gradient(135deg,rgba(255,248,238,0.15),rgba(255,255,255,0.08))] px-5 py-6 max-sm:py-4 text-white backdrop-blur-sm shadow-[0_4px_12px_rgba(0,0,0,0.06)] max-lg:border-0 max-lg:bg-transparent max-lg:px-0 max-lg:shadow-none max-lg:backdrop-blur-none sm:px-7 sm:py-7 lg:px-[34px] lg:py-[34px] xl:px-[55px] xl:py-[34px]"
                 style={{ transform: titleTransform, transformStyle: "preserve-3d" }}
               >
                 {/* glass light sweep */}
                 <div
-                  className="pointer-events-none absolute inset-y-0 -left-[40%] w-[60%] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent)] blur-2xl opacity-20 animate-[glassSweep_8s_linear_infinite]"
+                  className="pointer-events-none absolute inset-y-0 -left-[40%] w-[60%] max-lg:hidden bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent)] blur-2xl opacity-20 animate-[glassSweep_8s_linear_infinite]"
                 />
 
   <div className="min-w-0"></div>
@@ -169,6 +172,22 @@ const cardTransform = useMemo(() => {
           </div>
         </div>
       </div>
+
+      {/* Phones and tablets: the three brand values from the mobile design. */}
+      <ul className="hero-values lg:hidden">
+        <li>
+          <Leaf aria-hidden />
+          <span>Natural Materials</span>
+        </li>
+        <li>
+          <Hand aria-hidden />
+          <span>Handcrafted</span>
+        </li>
+        <li>
+          <InfinityIcon aria-hidden />
+          <span>Sustainable</span>
+        </li>
+      </ul>
     </section>
   );
 }

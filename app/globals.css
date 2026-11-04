@@ -105,27 +105,27 @@ html {
 }
 
 /*
- * Phones and tablets get the same full-page snapping as the laptop: one swipe
- * moves exactly one section (scroll-snap-stop: always stops a hard flick from
- * skipping past it). A section taller than the screen is not locked: the
- * browser lets you scroll freely through it and snaps again at its edges, so
- * the next swipe past its end moves the whole page. Pure CSS, no scroll
- * hijacking. The footer is a snap point too, so the very bottom stays reachable.
+ * Phones and tablets: plain, native vertical scrolling like any website (no
+ * snapping, no scroll-jacking, so it never fights the finger and stays light on
+ * every device). Sections change with a short blur-fade-up reveal instead (see
+ * [data-reveal] below), and the top bar slides away while reading down and back
+ * when scrolling up (.site-header.is-hidden, driven by components/header.tsx).
  */
 @media (max-width: 1023px) {
   html {
-    /* proximity, not mandatory: sections still settle neatly when you stop near
-       one, but a long section is just scrolled through at the finger's own
-       pace instead of being yanked to a snap point (the cutting / teleporting
-       that mandatory snapping caused on touch). */
-    scroll-snap-type: y proximity;
-    scroll-padding-top: var(--header-height);
     scroll-behavior: auto;
   }
 
   .snap-page {
-    scroll-snap-align: start;
-    min-height: calc(100svh - var(--header-height));
+    min-height: 0;
+  }
+
+  .site-header {
+    transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .site-header.is-hidden {
+    transform: translate3d(0, -100%, 0);
   }
 
   .snap-page .outlets-stage--embedded {
@@ -135,6 +135,25 @@ html {
 
   .snap-page .outlets-stage--embedded .outlets-map-frame {
     min-height: 18rem;
+  }
+}
+
+/* A section below the fold waits slightly lowered and softened, then rises into
+   place as it scrolls into view. Armed by components/scroll-section.tsx only
+   after it has hydrated, so nothing is ever hidden for crawlers or no-JS. The
+   blur is light and ends at filter: none so no layer is left running. */
+@media (max-width: 1023px) and (prefers-reduced-motion: no-preference) {
+  [data-reveal="pending"] {
+    opacity: 0;
+    transform: translate3d(0, 34px, 0);
+    filter: blur(7px);
+  }
+
+  [data-reveal="in"] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: opacity 0.7s ease, transform 0.85s cubic-bezier(0.22, 1, 0.36, 1), filter 0.7s ease;
   }
 }
 
@@ -1247,7 +1266,7 @@ button {
 
 @media (max-width: 640px) {
   :root {
-    --header-height: 5.25rem;
+    --header-height: 4.25rem;
   }
 
   .hero-definition {
@@ -4951,4 +4970,34 @@ body:has(.outlets-stage--page) footer {
 }
 .dark .sku-dash {
   color: rgba(243, 236, 217, 0.45);
+}
+
+/* Phones: three brand values under the hero. */
+.hero-values {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin: 0;
+  padding: 1.1rem 1rem 1.3rem;
+  list-style: none;
+  background: var(--cat-surface, #efe7d4);
+  color: #3f5238;
+}
+.hero-values li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  text-align: center;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+.hero-values svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  stroke-width: 1.4;
+}
+.dark .hero-values {
+  background: #1d2519;
+  color: #e6dfca;
 }

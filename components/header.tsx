@@ -79,6 +79,7 @@ export function Header() {
   const [query, setQuery] = useState("");
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
@@ -159,6 +160,56 @@ export function Header() {
   const {mounted: searchMounted, entered: searchEntered} = useDelayedMount(searchOpen);
   const {mounted: cabinetMounted, entered: cabinetEntered} = useDelayedMount(cabinetOpen);
   const {mounted: mobileMounted, entered: mobileEntered} = useDelayedMount(mobileOpen);
+
+  // Phones and tablets: the bar slides away while reading down the page and
+  // slides back the moment you scroll up (or are near the top). One passive
+  // listener, throttled to animation frames, writing a class straight to the
+  // element  -  no React state, so scrolling never re-renders anything. Movement
+  // is accumulated per direction so small finger jitters and iOS momentum
+  // tails cannot flip it back and forth.
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const phone = window.matchMedia("(max-width: 1023px)");
+    let lastY = window.scrollY;
+    let travelled = 0;
+    let hidden = false;
+    let queued = false;
+
+    const apply = (next: boolean) => {
+      if (next === hidden) return;
+      hidden = next;
+      header.classList.toggle("is-hidden", next);
+    };
+
+    const update = () => {
+      queued = false;
+      const y = Math.max(0, window.scrollY);
+      const dy = y - lastY;
+      lastY = y;
+      if (!phone.matches || y <= 80) {
+        travelled = 0;
+        apply(false);
+        return;
+      }
+      travelled = dy > 0 === travelled > 0 ? travelled + dy : dy;
+      if (travelled > 14) apply(true);
+      else if (travelled < -8) apply(false);
+    };
+
+    const onScroll = () => {
+      if (!queued) {
+        queued = true;
+        window.requestAnimationFrame(update);
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, {passive: true});
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      header.classList.remove("is-hidden");
+    };
+  }, []);
 
   // Shopping Bag drawer: focus moves into the
   // drawer and is kept there, Escape closes it, and focus goes back to
@@ -544,19 +595,22 @@ export function Header() {
           every page (the header is sticky), so it gets the mobile-tier
           reduction DESIGN.md calls for; every other glass surface in the app
           is either already blur-free or only mounted transiently. */}
-      <header className="sticky top-0 z-40 min-h-[var(--header-height)] bg-forest-900/80 text-sand-50 shadow-[0_16px_48px_rgba(0,0,0,0.32)] backdrop-blur-md sm:backdrop-blur-xl">
-        <div className="shell flex min-h-[var(--header-height)] items-center justify-between gap-4 py-3">
+      <header
+        ref={headerRef}
+        className="site-header sticky top-0 z-40 min-h-[var(--header-height)] bg-forest-900/80 text-sand-50 shadow-[0_16px_48px_rgba(0,0,0,0.32)] backdrop-blur-md max-lg:bg-forest-900 max-lg:shadow-none max-lg:backdrop-blur-none sm:backdrop-blur-xl"
+      >
+        <div className="shell flex min-h-[var(--header-height)] items-center justify-between gap-4 py-3 max-lg:gap-2 max-lg:py-2">
           <Link
             href="/"
             aria-label="Go to Natlovers homepage"
-            className="button-lift flex items-center rounded-[1.55rem] border border-[#fff1cf]/22 bg-[#f2e7d0] px-3 py-2 shadow-[0_14px_34px_rgba(0,0,0,0.24)]"
+            className="button-lift flex items-center rounded-[1.55rem] border border-[#fff1cf]/22 bg-[#f2e7d0] px-3 py-2 shadow-[0_14px_34px_rgba(0,0,0,0.24)] max-lg:order-2 max-lg:mx-auto max-lg:rounded-2xl max-lg:px-2.5 max-lg:py-1.5 max-lg:shadow-none"
           >
             <Image
               src="/natlovers-logo.avif"
               alt="Natlovers logo"
               width={220}
               height={62}
-              className="h-auto w-[180px] object-contain sm:w-[220px]"
+              className="h-auto w-[116px] object-contain min-[400px]:w-[132px] sm:w-[180px] lg:w-[220px]"
               priority
             />
           </Link>
@@ -654,7 +708,7 @@ export function Header() {
             })}
           </nav>
 
-          <div className="flex items-center gap-3 text-sand-50">
+          <div className="flex items-center gap-3 text-sand-50 max-lg:contents">
             <div className="relative hidden sm:block">
               <button
                 type="button"
@@ -686,7 +740,7 @@ export function Header() {
               type="button"
               aria-label="Search"
               onClick={() => setSearchOpen(true)}
-              className="liquid-glass icon-button header-text-shadow rounded-full p-2 text-[#fff7e5]"
+              className="liquid-glass icon-button header-text-shadow rounded-full p-2 text-[#fff7e5] max-lg:order-3"
             >
               <Search className="h-4 w-4" />
             </button>
@@ -694,7 +748,7 @@ export function Header() {
               type="button"
               aria-label="Cart"
               onClick={openCabinet}
-              className="liquid-glass icon-button header-text-shadow relative rounded-full p-2 text-[#fff7e5]"
+              className="liquid-glass icon-button header-text-shadow relative rounded-full p-2 text-[#fff7e5] max-lg:order-4"
             >
               <ShoppingBag className="h-4 w-4" />
               {cartItems.length ? (
@@ -704,7 +758,7 @@ export function Header() {
               ) : null}
             </button>
 
-            <div className="relative" ref={accountMenuRef}>
+            <div className="relative max-lg:order-5" ref={accountMenuRef}>
               {sessionStatus === "authenticated" && session?.user ? (
                 <>
                   <button
@@ -748,7 +802,7 @@ export function Header() {
               type="button"
               aria-label="Menu"
               onClick={() => setMobileOpen(true)}
-              className="liquid-glass icon-button header-text-shadow rounded-full p-2 text-[#fff7e5] lg:hidden"
+              className="liquid-glass icon-button header-text-shadow rounded-full p-2 text-[#fff7e5] max-lg:order-1 lg:hidden"
             >
               <Menu className="h-4 w-4" />
             </button>
