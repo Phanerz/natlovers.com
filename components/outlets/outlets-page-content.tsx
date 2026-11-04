@@ -15,22 +15,25 @@ function LocationCard({
   location,
   index,
   position,
-  onFocus
+  onFocus,
+  rail = false
 }: {
   location: PublicLocation;
   index: number;
   position: "prev" | "current" | "next";
   onFocus: () => void;
+  // Phones: the card sits in a swipeable row instead of the stepped deck.
+  rail?: boolean;
 }) {
   const isMain = location.type === "main_studio";
   const address = [location.addressLine1, location.addressLine2].filter(Boolean).join(", ");
 
   return (
     <article
-      className="outlet-card"
-      data-pos={position}
+      className={`outlet-card${rail ? " outlet-card--rail" : ""}`}
+      data-pos={rail ? "current" : position}
       data-type={location.type}
-      aria-hidden={position !== "current"}
+      aria-hidden={rail ? undefined : position !== "current"}
       onClick={onFocus}
     >
       <span className="outlet-card__index" aria-hidden>
@@ -64,7 +67,7 @@ function LocationCard({
           href={googleMapsUrl(location)}
           target="_blank"
           rel="noopener noreferrer"
-          tabIndex={position === "current" ? 0 : -1}
+          tabIndex={rail || position === "current" ? 0 : -1}
           onClick={(event) => event.stopPropagation()}
           className="outlet-card__maps"
         >
@@ -87,6 +90,8 @@ export function OutletsPageContent({locationList, embedded = false}: {locationLi
   const [showAllTick, setShowAllTick] = useState(0);
   const stageRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<HTMLDivElement>(null);
+  const railRef = useRef<HTMLDivElement>(null);
+  const railDriven = useRef(false);
   const count = locationList.length;
 
   const step = useCallback(
@@ -108,6 +113,35 @@ export function OutletsPageContent({locationList, embedded = false}: {locationLi
     },
     [active]
   );
+
+  // Phones: swiping the row of cards selects that location (the map flies to
+  // it), and picking a location any other way scrolls the row to its card. The
+  // flag keeps the two from chasing each other.
+  const onRailScroll = useCallback(() => {
+    const rail = railRef.current;
+    if (!rail || railDriven.current || rail.children.length < 2) return;
+    const first = rail.children[0] as HTMLElement;
+    const second = rail.children[1] as HTMLElement;
+    const pitch = second.offsetLeft - first.offsetLeft;
+    if (pitch <= 0) return;
+    const index = Math.min(count - 1, Math.max(0, Math.round(rail.scrollLeft / pitch)));
+    if (index !== activeRef.current) setActive(index);
+  }, [count]);
+
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail || rail.children.length < 2 || rail.offsetParent === null) return;
+    const first = rail.children[0] as HTMLElement;
+    const second = rail.children[1] as HTMLElement;
+    const pitch = second.offsetLeft - first.offsetLeft;
+    if (pitch <= 0 || Math.round(rail.scrollLeft / pitch) === active) return;
+    railDriven.current = true;
+    rail.scrollTo({left: active * pitch, behavior: "smooth"});
+    const done = window.setTimeout(() => {
+      railDriven.current = false;
+    }, 700);
+    return () => window.clearTimeout(done);
+  }, [active]);
 
   // Measure where the stage actually starts (below the sticky header) so
   // the stage fills exactly the rest of the screen and the page can't scroll.
@@ -221,7 +255,25 @@ export function OutletsPageContent({locationList, embedded = false}: {locationLi
           </div>
 
           <div className="order-3 space-y-3">
-            <div ref={deckRef} className={`outlet-deck${embedded ? " outlet-deck--embedded" : ""}`}>
+            <div
+              ref={railRef}
+              onScroll={onRailScroll}
+              className="outlet-rail lg:hidden"
+              aria-label="Locations, swipe sideways"
+            >
+              {locationList.map((location, index) => (
+                <LocationCard
+                  key={location.id}
+                  location={location}
+                  index={index}
+                  position={index < active ? "prev" : index > active ? "next" : "current"}
+                  onFocus={() => select(index)}
+                  rail
+                />
+              ))}
+            </div>
+
+            <div ref={deckRef} className={`outlet-deck max-lg:hidden${embedded ? " outlet-deck--embedded" : ""}`}>
               {locationList.map((location, index) => (
                 <LocationCard
                   key={location.id}

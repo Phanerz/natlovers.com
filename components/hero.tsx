@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {useEffect, useMemo, useRef, useState} from "react";
-import {ArrowRight, Hand, Infinity as InfinityIcon, Leaf} from "lucide-react";
+import {ArrowRight} from "lucide-react";
 import {CurrencyCode, Locale} from "@/lib/site";
 import {HeroCardStack} from "@/components/hero-card-stack";
 
@@ -104,9 +104,9 @@ const cardTransform = useMemo(() => {
         </div>
 
         <div className="relative z-10 mx-auto flex h-full w-full max-w-[1680px] flex-col justify-center px-4 py-5 max-sm:py-3 sm:px-6 md:px-8 lg:px-10 xl:px-14">
-          <div className="grid h-full items-center gap-[21px] max-sm:gap-10 lg:grid-cols-[minmax(0,1.618fr)_minmax(360px,1fr)] lg:gap-[34px] xl:gap-[55px]">
-            <div className="flex min-w-0 flex-col justify-center">
-              <div className="header-text-shadow inline-flex w-fit rounded-full border border-[#f3e7cf]/38 bg-black/24 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.3em] text-white backdrop-blur-sm shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
+          <div className="grid h-full items-center gap-[21px] max-lg:content-center max-lg:gap-4 lg:grid-cols-[minmax(0,1.618fr)_minmax(360px,1fr)] lg:gap-[34px] xl:gap-[55px]">
+            <div className="flex min-w-0 flex-col justify-center max-lg:order-2">
+              <div className="header-text-shadow inline-flex w-fit rounded-full border border-[#f3e7cf]/38 bg-black/24 px-4 py-2 max-sm:px-3 max-sm:py-1 text-[11px] max-sm:text-[10px] font-medium uppercase tracking-[0.3em] max-sm:tracking-[0.22em] text-white backdrop-blur-sm max-lg:backdrop-blur-none shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
                 {locale === "en" ? "Handcrafted in Indonesia" : "Dibuat tangan di Indonesia"}
               </div>
 
@@ -124,19 +124,19 @@ const cardTransform = useMemo(() => {
                   <div className="text-[10px] font-medium uppercase tracking-[0.42em] text-[#f2e8d2]/84">
                     {locale === "en" ? "Dictionary entry / House of craft" : "Entri kamus / Rumah kriya"}
                   </div>
-                  <div className="hero-title-shadow mt-[13px] font-display text-[clamp(2.6rem,5vw,5.25rem)] leading-[0.9] tracking-[-0.06em] text-white">
+                  <div className="hero-title-shadow mt-[13px] font-display text-[clamp(2.6rem,5vw,5.25rem)] max-sm:text-[2.3rem] leading-[0.9] tracking-[-0.06em] text-white">
                     NATLOVERS
                   </div>
                 </div>
 
-                <div className="mt-[21px] grid gap-[13px] text-white md:grid-cols-[auto_auto_1fr] md:items-end">
+                <div className="mt-[21px] max-sm:mt-2 grid gap-[13px] text-white max-md:flex max-md:items-baseline max-md:gap-3 md:grid-cols-[auto_auto_1fr] md:items-end">
                   <span className="hero-copy-shadow font-display text-[clamp(1rem,1.25vw,1.32rem)] text-white">{phonetic}</span>
                   <span className="header-text-shadow text-[11px] font-medium uppercase tracking-[0.3em] text-white/88">noun</span>
                   <span className="hidden h-px bg-[linear-gradient(90deg,rgba(255,255,255,0.82),rgba(255,255,255,0.16))] md:block" />
                 </div>
-                <div className="mt-[13px] h-px w-full bg-[linear-gradient(90deg,rgba(255,255,255,0.9),rgba(255,255,255,0.18))] md:hidden" />
+                <div className="mt-2 h-px w-full bg-[linear-gradient(90deg,rgba(255,255,255,0.9),rgba(255,255,255,0.18))] md:hidden" />
 
-                <div className="mt-[21px] max-w-none">
+                <div className="mt-[21px] max-sm:mt-3 max-w-none">
                   <p className="hero-definition hero-copy-shadow font-display text-[clamp(1.05rem,1.55vw,1.72rem)] text-white">
                     {locale === "en"
                       ? "Unique sustainable natural-fibre crafts preserving tradition through thoughtful design."
@@ -144,7 +144,7 @@ const cardTransform = useMemo(() => {
                   </p>
                 </div>
 
-                <div className="mt-[21px] grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-[13px]">
+                <div className="mt-[21px] max-sm:mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-[13px]">
                   <Link
                     href="/catalogue"
                     className="glass-btn-secondary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-center text-sm font-semibold text-forest-900 max-sm:px-3 max-sm:text-[11px] max-sm:leading-tight"
@@ -161,9 +161,9 @@ const cardTransform = useMemo(() => {
               </div>
             </div>
 
-            <div className="flex min-w-0 items-center justify-center max-lg:pb-2">
+            <div className="flex min-w-0 items-center justify-center max-lg:order-1">
               <div
-                className="floating-panel will-change-transform transition-transform duration-300 ease-out w-full max-w-[24rem] p-5 max-lg:max-w-[17rem] max-lg:p-3 max-sm:max-w-[14.5rem] max-sm:p-2.5 sm:p-6"
+                className="floating-panel will-change-transform transition-transform duration-300 ease-out w-full max-w-[24rem] p-5 max-lg:max-w-[14rem] max-lg:p-2.5 max-sm:max-w-[min(12.5rem,23svh)] max-sm:p-2 sm:p-6"
                 style={{ transform: cardTransform, transformStyle: "preserve-3d" }}
               >
                 <HeroCardStack />
@@ -173,21 +173,56 @@ const cardTransform = useMemo(() => {
         </div>
       </div>
 
-      {/* Phones and tablets: the three brand values from the mobile design. */}
-      <ul className="hero-values lg:hidden">
-        <li>
-          <Leaf aria-hidden />
-          <span>Natural Materials</span>
-        </li>
-        <li>
-          <Hand aria-hidden />
-          <span>Handcrafted</span>
-        </li>
-        <li>
-          <InfinityIcon aria-hidden />
-          <span>Sustainable</span>
-        </li>
-      </ul>
+      {/* Phones and tablets: what the house stands for, and where its work lines up
+          with the UN Sustainable Development Goals. Desktop keeps its own layout. */}
+      <div className="home-values lg:hidden">
+        <ul className="home-values__list">
+          <li>
+            <span className="home-values__num">01</span>
+            <strong>Natural Materials</strong>
+            <p>Natural fibres and thoughtfully selected materials.</p>
+          </li>
+          <li>
+            <span className="home-values__num">02</span>
+            <strong>Handcrafted</strong>
+            <p>Distinctive pieces shaped by skilled craftsmanship.</p>
+          </li>
+          <li>
+            <span className="home-values__num">03</span>
+            <strong>Sustainable</strong>
+            <p>A considered approach to materials, making and longevity.</p>
+          </li>
+        </ul>
+
+        <div className="home-impact">
+          <p className="home-impact__eyebrow">Our Impact</p>
+          <h2 className="home-impact__title">Crafting with purpose.</h2>
+          <ul className="home-impact__goals">
+            <li style={{"--sdg": "#A21942"} as React.CSSProperties}>
+              <span className="home-impact__badge">8</span>
+              <div>
+                <strong>Decent Work and Economic Growth</strong>
+                <p>Supporting artisan livelihoods and skilled craftsmanship.</p>
+              </div>
+            </li>
+            <li style={{"--sdg": "#BF8B2E"} as React.CSSProperties}>
+              <span className="home-impact__badge">12</span>
+              <div>
+                <strong>Responsible Consumption and Production</strong>
+                <p>Thoughtful materials and pieces made to last.</p>
+              </div>
+            </li>
+            <li style={{"--sdg": "#FD9D24"} as React.CSSProperties}>
+              <span className="home-impact__badge">11</span>
+              <div>
+                <strong>Sustainable Cities and Communities</strong>
+                <p>Keeping Indonesian craft knowledge and heritage alive.</p>
+              </div>
+            </li>
+          </ul>
+          <p className="home-impact__note">Our work aligns with selected Sustainable Development Goals.</p>
+        </div>
+      </div>
     </section>
   );
 }
