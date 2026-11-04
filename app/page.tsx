@@ -13,8 +13,8 @@ export default function HomePage() {
   const {locale, currency} = useSitePreferences();
 
   return (
-    <main>
-      <ScrollSection navHref="/" className="snap-page">
+    <main className="home-main">
+      <ScrollSection navHref="/" className="snap-page snap-page--hero">
         <Hero locale={locale} currency={currency} />
       </ScrollSection>
 

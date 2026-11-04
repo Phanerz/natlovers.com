@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import {useEffect, useMemo, useRef, useState} from "react";
-import {ArrowRight, Hand, Infinity as InfinityIcon, Leaf} from "lucide-react";
+import {ArrowDown, ArrowRight, Hand, Infinity as InfinityIcon, Leaf} from "lucide-react";
 import {CurrencyCode, Locale} from "@/lib/site";
 import {HeroCardStack} from "@/components/hero-card-stack";
 
@@ -217,7 +217,6 @@ const cardTransform = useMemo(() => {
               </div>
             ))}
           </div>
-          <p className="m-hero__label">{locale === "en" ? "Handcrafted in Indonesia" : "Dibuat tangan di Indonesia"}</p>
           <div className="m-hero__fade" aria-hidden />
           <div className="m-hero__dots" aria-hidden>
             {MOBILE_SLIDES.map((item, index) => (
@@ -227,7 +226,6 @@ const cardTransform = useMemo(() => {
         </div>
 
         <div className="m-hero__body">
-          <p className="m-hero__eyebrow">{locale === "en" ? "Dictionary entry / House of craft" : "Entri kamus / Rumah kriya"}</p>
           <h1 className="m-hero__title">NATLOVERS</h1>
           <p className="m-hero__phonetic">
             <span>{phonetic}</span>
@@ -236,11 +234,22 @@ const cardTransform = useMemo(() => {
           <p className="m-hero__definition">{locale === "en" ? "Unique sustainable natural-fibre crafts preserving tradition through thoughtful design." : "Kriya serat alami berkelanjutan yang unik, menjaga tradisi melalui desain yang penuh perhatian."}</p>
 
           <div className="m-hero__actions">
-            <Link href="/catalogue" className="m-hero__btn m-hero__btn--solid">
-              Explore Catalogue <ArrowRight aria-hidden />
-            </Link>
-            <Link href="/custom" className="m-hero__btn m-hero__btn--line">
-              Request a Custom Piece
+            {/* On the home page this is an in-page step down to the catalogue page;
+                the href is the fallback if that section is not there. */}
+            <Link
+              href="/catalogue"
+              className="m-hero__btn"
+              onClick={(event) => {
+                const next = document.querySelector('[data-nav-href="/catalogue"]');
+                if (!next) return;
+                event.preventDefault();
+                next.scrollIntoView({behavior: "smooth", block: "start"});
+              }}
+            >
+              <span>{locale === "en" ? "Explore Catalogue" : "Jelajahi Katalog"}</span>
+              <span className="m-hero__btn-icon" aria-hidden>
+                <ArrowDown />
+              </span>
             </Link>
           </div>
 

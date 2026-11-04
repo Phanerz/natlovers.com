@@ -1165,31 +1165,37 @@ export function CatalogueContent({
             introduction, as in the reference. (The glass pill with the drag
             indicator below is the tablet/desktop version of the same control.) */}
         <div className="sm:hidden">
-          <nav aria-label="Categories" className="flex items-end justify-between border-b border-[#e6dcc8] px-5">
+          <nav aria-label="Categories" className="m-tabs">
             {shopProductTypes.map((type) => {
               const active = type === selectedProductType;
+              const label = productTypeLabels[type][locale];
               return (
                 <button
                   key={type}
                   type="button"
                   aria-current={active ? "page" : undefined}
                   onClick={() => selectProductType(type)}
-                  className={`relative px-1 pb-3 pt-3.5 font-display text-[15px] outline-none transition-colors focus-visible:text-[#24351f] ${
-                    active ? "font-semibold text-[#20241b]" : "italic text-[#6b6b5f]"
-                  }`}
+                  className={`m-tab ${active ? "is-active" : ""}`}
                 >
-                  {productTypeLabels[type][locale]}
-                  {active ? <span className="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-[#24351f]" aria-hidden /> : null}
+                  {/* Two cut-outs of the same word, upright and italic, that cross-fade,
+                      so a change of style animates instead of snapping. */}
+                  <span className="m-tab__label">
+                    <span className="m-tab__italic">{label}</span>
+                    <span className="m-tab__upright" aria-hidden>
+                      {label}
+                    </span>
+                  </span>
+                  <span className="m-tab__bar" aria-hidden />
                 </button>
               );
             })}
           </nav>
 
-          <div className="relative overflow-hidden px-5 pb-4 pt-6">
+          <div className="m-cat-head">
             <svg
               viewBox="0 0 140 110"
               aria-hidden
-              className="pointer-events-none absolute -right-3 top-0 h-28 w-36 text-[#8a9a7c] opacity-40"
+              className="pointer-events-none absolute -right-2 top-1 h-20 w-28 text-[#8a9a7c] opacity-40"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.1"
@@ -1201,11 +1207,9 @@ export function CatalogueContent({
               <path d="M98 50 C88 54 82 64 82 74 C94 70 100 62 98 50 Z" />
               <path d="M126 22 C130 36 124 48 112 56 C108 44 114 30 126 22 Z" />
             </svg>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-[#6b6b5f]">
-              {locale === "en" ? "Catalogue" : "Katalog"}
-            </p>
-            <h1 className="mt-1 font-display text-[44px] leading-none text-[#20241b]">{productTypeLabels[selectedProductType][locale]}</h1>
-            <p className="mt-3 max-w-[22ch] font-display text-[16px] italic leading-snug text-[#4a4a3f]">
+            <p className="m-cat-head__eyebrow">{locale === "en" ? "Catalogue" : "Katalog"}</p>
+            <h1 className="m-cat-head__title">{productTypeLabels[selectedProductType][locale]}</h1>
+            <p className="m-cat-head__sub">
               {locale === "en" ? "Handcrafted pieces, each with a story of its own." : "Karya tangan, masing-masing dengan kisahnya sendiri."}
             </p>
           </div>
@@ -1217,7 +1221,7 @@ export function CatalogueContent({
           budget this grid has to fit "2 rows of cards" into  -  merging them
           into one row gets that vertical space back for the grid itself.
         */}
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-5 pb-3 pt-5 sm:px-6 lg:px-8">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-5 pb-3 pt-5 max-sm:pb-1 max-sm:pt-2.5 sm:px-6 lg:px-8">
           <div
             ref={tabsRef}
             className="liquid-glass-on-light relative hidden w-max items-center gap-1 overflow-x-auto rounded-full p-1.5 backdrop-blur-[18px] backdrop-saturate-[160%] sm:flex"

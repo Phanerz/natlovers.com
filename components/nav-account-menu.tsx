@@ -48,9 +48,16 @@ export function NavAccountMenu({
   }
 
   return (
+    <>
+    {/* Phones: the menu floats in the middle of the screen over a dimmed page. */}
+    <div
+      aria-hidden
+      onClick={onNavigate}
+      className={`account-pop-backdrop fixed inset-0 z-40 bg-[rgba(8,18,11,0.55)] transition-opacity duration-200 sm:hidden ${entered ? "opacity-100" : "opacity-0"}`}
+    />
     <div
       style={{transformOrigin: "top right"}}
-      className={`menu-surface absolute right-0 top-14 z-50 w-72 overflow-hidden rounded-xl border border-[#e4d9c1] bg-[rgba(250,246,236,0.98)] p-2 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all ease-[cubic-bezier(0.22,1,0.36,1)] ${
+      className={`account-pop menu-surface absolute right-0 top-14 z-50 w-72 overflow-hidden rounded-xl border border-[#e4d9c1] bg-[rgba(250,246,236,0.98)] p-2 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all ease-[cubic-bezier(0.22,1,0.36,1)] ${
         entered
           ? "scale-100 opacity-100 duration-[180ms]"
           : `scale-[0.94] opacity-0 ${open ? "duration-[180ms]" : "duration-[130ms]"}`
@@ -106,5 +113,6 @@ export function NavAccountMenu({
         Sign out
       </button>
     </div>
+    </>
   );
 }

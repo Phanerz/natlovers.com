@@ -180,6 +180,7 @@ export function Header() {
       if (next === hidden) return;
       hidden = next;
       header.classList.toggle("is-hidden", next);
+      document.documentElement.classList.toggle("hdr-hidden", next);
     };
 
     const update = () => {
@@ -208,6 +209,7 @@ export function Header() {
     return () => {
       window.removeEventListener("scroll", onScroll);
       header.classList.remove("is-hidden");
+      document.documentElement.classList.remove("hdr-hidden");
     };
   }, []);
 
@@ -599,18 +601,18 @@ export function Header() {
         ref={headerRef}
         className="site-header sticky top-0 z-40 min-h-[var(--header-height)] bg-forest-900/80 text-sand-50 shadow-[0_16px_48px_rgba(0,0,0,0.32)] backdrop-blur-md max-lg:bg-forest-900 max-lg:shadow-none max-lg:backdrop-blur-none sm:backdrop-blur-xl"
       >
-        <div className="shell flex min-h-[var(--header-height)] items-center justify-between gap-4 py-3 max-lg:gap-2 max-lg:py-2">
+        <div className="shell flex min-h-[var(--header-height)] items-center justify-between gap-4 py-3 max-lg:grid max-lg:h-full max-lg:grid-cols-[1fr_auto_1fr] max-lg:gap-2 max-lg:py-2">
           <Link
             href="/"
             aria-label="Go to Natlovers homepage"
-            className="button-lift flex items-center rounded-[1.55rem] border border-[#fff1cf]/22 bg-[#f2e7d0] px-3 py-2 shadow-[0_14px_34px_rgba(0,0,0,0.24)] max-lg:order-2 max-lg:mx-auto max-lg:rounded-2xl max-lg:px-2.5 max-lg:py-1.5 max-lg:shadow-none"
+            className="button-lift flex items-center rounded-[1.55rem] border border-[#fff1cf]/22 bg-[#f2e7d0] px-3 py-2 shadow-[0_14px_34px_rgba(0,0,0,0.24)] max-lg:order-2 max-lg:justify-self-center max-lg:rounded-2xl max-lg:px-3 max-lg:py-1.5 max-lg:shadow-none"
           >
             <Image
               src="/natlovers-logo.avif"
               alt="Natlovers logo"
               width={220}
               height={62}
-              className="h-auto w-[116px] object-contain min-[400px]:w-[132px] sm:w-[180px] lg:w-[220px]"
+              className="h-auto w-[148px] object-contain min-[400px]:w-[162px] sm:w-[180px] lg:w-[220px]"
               priority
             />
           </Link>
@@ -709,6 +711,7 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-3 text-sand-50 max-lg:contents">
+            <div className="flex items-center gap-3 max-lg:order-3 max-lg:justify-self-end max-lg:gap-2">
             <div className="relative hidden sm:block">
               <button
                 type="button"
@@ -740,7 +743,7 @@ export function Header() {
               type="button"
               aria-label="Search"
               onClick={() => setSearchOpen(true)}
-              className="liquid-glass icon-button header-text-shadow rounded-full p-2 text-[#fff7e5] max-lg:order-3"
+              className="liquid-glass icon-button header-text-shadow rounded-full p-2 text-[#fff7e5] max-lg:hidden"
             >
               <Search className="h-4 w-4" />
             </button>
@@ -797,14 +800,15 @@ export function Header() {
                 </Link>
               )}
             </div>
+            </div>
 
             <button
               type="button"
               aria-label="Menu"
               onClick={() => setMobileOpen(true)}
-              className="liquid-glass icon-button header-text-shadow rounded-full p-2 text-[#fff7e5] max-lg:order-1 lg:hidden"
+              className="liquid-glass icon-button header-text-shadow rounded-full p-2 text-[#fff7e5] max-lg:order-1 max-lg:justify-self-start lg:hidden"
             >
-              <Menu className="h-4 w-4" />
+              <Menu className="h-[1.15rem] w-[1.15rem]" />
             </button>
           </div>
         </div>
@@ -1017,44 +1021,94 @@ export function Header() {
         <div
           data-scroll-lock
           onClick={() => setMobileOpen(false)}
-          className={`fixed inset-0 z-50 bg-[rgba(7,18,12,0.42)] p-4 backdrop-blur-lg transition-opacity duration-200 lg:hidden ${
-            mobileEntered ? "opacity-100" : "opacity-0"
-          } ${!mobileEntered ? "pointer-events-none" : ""}`}
+          className={`fixed inset-0 z-50 flex items-center justify-center bg-[rgba(8,18,11,0.55)] p-5 backdrop-blur-sm transition-opacity duration-200 lg:hidden ${
+            mobileEntered ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu"
             onClick={(event) => event.stopPropagation()}
-            className={`menu-surface ml-auto max-w-sm rounded-[2rem] border border-[#d7cab2] bg-[#f8f1e6] p-6 text-forest-900 shadow-[0_24px_60px_rgba(28,25,18,0.24)] transition-all ${
-              mobileEntered
-                ? "translate-x-0 scale-100 opacity-100 duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
-                : "translate-x-10 scale-[0.9] opacity-0 duration-150 ease-in"
-            }`}
+            className={`m-menu ${mobileEntered ? "is-in" : ""}`}
           >
-            <div className="flex items-center justify-between">
-              <p className="font-display text-2xl text-forest-900">Menu</p>
-              <button
-                type="button"
-                onClick={() => setMobileOpen(false)}
-                className="glass-icon-btn rounded-full p-2 text-forest-900"
-              >
-                <X className="h-4 w-4" />
+            <div className="m-menu__top">
+              <label className="m-menu__search">
+                <Search aria-hidden />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={locale === "en" ? "Search the catalogue" : "Cari di katalog"}
+                  enterKeyHint="search"
+                  autoComplete="off"
+                  aria-label="Search"
+                />
+              </label>
+              <button type="button" onClick={() => setMobileOpen(false)} aria-label="Close menu" className="m-menu__close">
+                <X aria-hidden />
               </button>
             </div>
-            <nav className="mt-6 grid gap-4">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={(event) => {
-                    event.preventDefault();
+
+            {query.trim() ? (
+              <div className="m-menu__body">
+                {results.length ? (
+                  <ul className="m-menu__results">
+                    {results.slice(0, 4).map((product) => (
+                      <li key={product.slug}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            openPreview(product.slug);
+                            setMobileOpen(false);
+                          }}
+                        >
+                          <span className="m-menu__thumb">
+                            {product.imageUrl ? (
+                              <Image src={product.imageUrl} alt="" fill sizes="56px" className="object-contain p-1" />
+                            ) : null}
+                          </span>
+                          <span className="m-menu__rname">{product.title}</span>
+                          <span className="m-menu__rprice">{formatCurrency(product.priceIdr, currency)}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="m-menu__empty">No pieces match that search yet.</p>
+                )}
+                <button
+                  type="button"
+                  className="m-menu__more"
+                  onClick={() => {
                     setMobileOpen(false);
-                    goToNavHref(item.href);
+                    goToNavHref("/catalogue");
                   }}
-                  className="nav-link whitespace-nowrap rounded-[1rem] border border-[#d7cab2] bg-[#fffaf1] px-4 py-3 text-base text-forest-900 shadow-[0_8px_18px_rgba(59,43,22,0.08)]"
                 >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+                  View the full catalogue
+                </button>
+              </div>
+            ) : (
+              <nav className="m-menu__nav" aria-label="Main">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={item.href === activeHref ? "page" : undefined}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      setMobileOpen(false);
+                      goToNavHref(item.href);
+                    }}
+                    className={`m-menu__link ${item.href === activeHref ? "is-active" : ""}`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            )}
+
+            <p className="m-menu__sign">{locale === "en" ? "Handcrafted in Yogyakarta" : "Dibuat tangan di Yogyakarta"}</p>
           </div>
         </div>
       ) : null}

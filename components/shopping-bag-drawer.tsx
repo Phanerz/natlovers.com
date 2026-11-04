@@ -64,8 +64,10 @@ export function ShoppingBagDrawer({
         aria-modal="true"
         aria-labelledby="bag-title"
         onClick={(event) => event.stopPropagation()}
-        className={`bag-drawer ml-auto transition-transform ${
-          entered ? "translate-x-0 duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]" : "translate-x-full duration-200 ease-in"
+        className={`bag-drawer ml-auto transition-[transform,opacity] ${
+          entered
+            ? "translate-x-0 duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] max-sm:scale-100 max-sm:opacity-100"
+            : "translate-x-full duration-200 ease-in max-sm:translate-x-0 max-sm:scale-[0.96] max-sm:opacity-0"
         }`}
       >
         <div className="bag-header">

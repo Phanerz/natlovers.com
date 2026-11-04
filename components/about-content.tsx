@@ -107,7 +107,7 @@ export function AboutContent() {
   return (
     <div
       ref={sectionRef}
-      className="shell flex min-h-[calc(100dvh-var(--header-height))] items-center justify-center py-16"
+      className="shell flex min-h-[calc(100dvh-var(--header-height))] items-center justify-center py-16 max-sm:h-full max-sm:min-h-0 max-sm:py-4"
     >
       {isZoomed ? (
         <div
@@ -160,6 +160,14 @@ export function AboutContent() {
                 className="h-full w-full object-cover"
               />
               <span className="absolute inset-0 bg-[rgba(7,18,12,0.28)] transition-colors duration-300 group-hover:bg-[rgba(7,18,12,0.4)]" />
+              <span className="film-cue film-cue--tr lg:hidden" aria-hidden>
+                <em>The film</em>
+              </span>
+              <span className="film-cue film-cue--br lg:hidden" aria-hidden>
+                <em>Press play</em>
+                <span className="film-cue__tick" />
+              </span>
+              <span className="film-play-ring lg:hidden" aria-hidden />
               <span className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-sand-100 text-forest-900 shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-[transform,box-shadow] duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-110 group-hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] sm:h-20 sm:w-20">
                 <Play className="h-7 w-7 translate-x-0.5 fill-current sm:h-8 sm:w-8" />
               </span>
