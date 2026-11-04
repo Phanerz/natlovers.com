@@ -152,6 +152,8 @@ export function HeroCardStack() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // The stack is not shown on phones and tablets, so do not fetch it there.
+    if (window.matchMedia("(max-width: 1023px)").matches) return;
     let cancelled = false;
     fetch("/api/admin/hero-cards", {cache: "no-store"})
       .then((response) => (response.ok ? response.json() : []))

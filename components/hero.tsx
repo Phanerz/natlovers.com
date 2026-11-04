@@ -124,7 +124,7 @@ const cardTransform = useMemo(() => {
                   <div className="text-[10px] font-medium uppercase tracking-[0.42em] text-[#f2e8d2]/84">
                     {locale === "en" ? "Dictionary entry / House of craft" : "Entri kamus / Rumah kriya"}
                   </div>
-                  <div className="hero-title-shadow mt-[13px] font-display text-[clamp(2.6rem,5vw,5.25rem)] max-sm:text-[2.3rem] leading-[0.9] tracking-[-0.06em] text-white">
+                  <div className="hero-title-shadow mt-[13px] font-display text-[clamp(2.6rem,5vw,5.25rem)] max-sm:text-[3rem] leading-[0.9] tracking-[-0.06em] text-white">
                     NATLOVERS
                   </div>
                 </div>
@@ -161,7 +161,7 @@ const cardTransform = useMemo(() => {
               </div>
             </div>
 
-            <div className="flex min-w-0 items-center justify-center max-lg:order-1">
+            <div className="flex min-w-0 items-center justify-center max-lg:hidden">
               <div
                 className="floating-panel will-change-transform transition-transform duration-300 ease-out w-full max-w-[24rem] p-5 max-lg:max-w-[14rem] max-lg:p-2.5 max-sm:max-w-[min(12.5rem,23svh)] max-sm:p-2 sm:p-6"
                 style={{ transform: cardTransform, transformStyle: "preserve-3d" }}
