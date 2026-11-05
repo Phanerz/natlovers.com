@@ -6,6 +6,7 @@ import {useEffect, useMemo, useRef, useState} from "react";
 import {ArrowDown, ArrowRight, Hand, Infinity as InfinityIcon, Leaf} from "lucide-react";
 import {CurrencyCode, Locale} from "@/lib/site";
 import {HeroCardStack} from "@/components/hero-card-stack";
+import {DesignerName} from "@/components/hero-designer";
 import {HeroFactCard, SDG_FACTS, VALUE_FACTS, warmFactImages, decodeFactImage, type HeroFact} from "@/components/hero-facts";
 
 const HERO_VIDEO_SRC = "https://ftw7p3nsw06ehaup.public.blob.vercel-storage.com/natlovers-hero.mp4";
@@ -220,7 +221,7 @@ const cardTransform = useMemo(() => {
             <div className="flex min-w-0 flex-col justify-center max-lg:order-2">
               <div className="hero-house">
                 <span className="hero-house__by">{locale === "en" ? "Designed by" : "Dirancang oleh"}</span>
-                <em className="hero-house__name">Anita Yan</em>
+                <DesignerName locale={locale} />
                 <span className="hero-house__bar" aria-hidden />
                 <span className="hero-house__since">{locale === "en" ? "Since 1998" : "Sejak 1998"}</span>
               </div>
