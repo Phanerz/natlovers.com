@@ -16,7 +16,7 @@ type HeroCard = {
 const SWIPE_THRESHOLD_RATIO = 0.3;
 const VELOCITY_THRESHOLD = 550;
 const FLY_DISTANCE = 900;
-const FLY_SECONDS = 0.3;
+const FLY_SECONDS = 0.22;
 const VISIBLE_DEPTH = 3;
 const MAX_DRAG_ROTATION = 26;
 // The resting card leans very slightly clockwise for a natural, slightly off-centre feel.
@@ -92,12 +92,14 @@ function StackCard({
 
   return (
     <motion.div
-      className="absolute inset-0 will-change-transform"
+      // A thrown card is only a picture on its way out: it must never catch the pointer, or the
+      // next swipe would have to wait until it has cleared the stack.
+      className={`absolute inset-0 will-change-transform ${distance === "flying" ? "pointer-events-none" : ""}`}
       // Cards already on screen when the page opens are simply there. A card joining the back
       // later fades in behind the others; it never comes in from outside the screen.
       initial={appearSoftly ? {...pose, opacity: 0} : false}
       animate={pose}
-      transition={{type: "spring", stiffness: 260, damping: 30}}
+      transition={{type: "spring", stiffness: 420, damping: 34}}
     >
       <motion.div
         className={`h-full w-full select-none overflow-hidden rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] ${
