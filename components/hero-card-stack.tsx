@@ -134,7 +134,10 @@ export function HeroCardStack({onEmpty}: {onEmpty?: (empty: boolean) => void} = 
   // No invented cards: until the saved cards arrive nothing is drawn, and with none saved the
   // stack (and its column) is not shown at all.
   const [cards, setCards] = useState<HeroCard[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // A running count of cards swiped away, never wrapped. Every card on screen is keyed by its
+  // place in this endless sequence, so when the deck comes round again a card is always a fresh
+  // element, never the same one still flying out of the screen a moment ago.
+  const [position, setPosition] = useState(0);
   const [exitDirection, setExitDirection] = useState<{x: number; y: number}>({x: -1, y: 0});
   const [cardSize, setCardSize] = useState({width: 320, height: 427});
   const containerRef = useRef<HTMLDivElement>(null);
@@ -149,7 +152,7 @@ export function HeroCardStack({onEmpty}: {onEmpty?: (empty: boolean) => void} = 
         if (cancelled) return;
         const list = Array.isArray(data) ? (data as HeroCard[]) : [];
         setCards(list);
-        setCurrentIndex(0);
+        setPosition(0);
         onEmpty?.(list.length === 0);
       })
       .catch(() => onEmpty?.(true));
@@ -176,23 +179,24 @@ export function HeroCardStack({onEmpty}: {onEmpty?: (empty: boolean) => void} = 
     if (!total) return [];
     return Array.from({length: Math.min(VISIBLE_DEPTH, total)}, (_, distance) => ({
       distance,
-      card: cards[(currentIndex + distance) % total]
+      slot: position + distance,
+      card: cards[(position + distance) % total]
     }));
-  }, [cards, currentIndex, total]);
+  }, [cards, position, total]);
 
   // The next two cards behind the visible three are decoded ahead of time, out of sight, so a
   // card arriving at the back never has a picture still loading as it moves.
   const upcoming = useMemo(() => {
     if (total <= VISIBLE_DEPTH) return [];
     return [VISIBLE_DEPTH, VISIBLE_DEPTH + 1]
-      .map((offset) => cards[(currentIndex + offset) % total])
+      .map((offset) => cards[(position + offset) % total])
       .filter((card, index, list) => card.cardType === "image" && card.imageUrl && list.findIndex((other) => other.id === card.id) === index);
-  }, [cards, currentIndex, total]);
+  }, [cards, position, total]);
 
   function advance(direction: {x: number; y: number}) {
     if (total < 2) return;
     setExitDirection(direction);
-    setCurrentIndex((index) => (index + 1) % total);
+    setPosition((count) => count + 1);
   }
 
   if (!total) return <div ref={containerRef} className="relative aspect-[3/4] w-full" />;
@@ -200,9 +204,9 @@ export function HeroCardStack({onEmpty}: {onEmpty?: (empty: boolean) => void} = 
   return (
     <div ref={containerRef} className="relative aspect-[3/4] w-full">
       <AnimatePresence initial={false}>
-        {visible.map(({distance, card}) => (
+        {visible.map(({distance, slot, card}) => (
           <StackCard
-            key={card.id}
+            key={slot}
             card={card}
             distance={distance as 0 | 1 | 2}
             exitDirection={exitDirection}
