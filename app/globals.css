@@ -7234,3 +7234,55 @@ body:has(.outlets-stage--page) footer {
     justify-content: center;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Selection. Interface (the bar, the hero, tabs, tiles, menus, the map, pictures) cannot be
+   highlighted or dragged; real content (product details, addresses, phone numbers, order and
+   bank details, the footer, policies) stays selectable, and so does every form field.
+   Selected text uses the house colours instead of the browser's bright blue.
+   --------------------------------------------------------------------------- */
+::selection {
+  background: rgba(30, 58, 38, 0.88);
+  color: #f6efdc;
+}
+.dark ::selection {
+  background: rgba(236, 217, 162, 0.9);
+  color: #14241a;
+}
+
+.site-header,
+.hero-stage,
+.m-hero,
+.hero-house,
+.designer-card,
+.m-menu,
+.m-menu-backdrop,
+.m-fact,
+.m-fact-backdrop,
+.catalogue-surface,
+.catalogue-sheet-surface,
+.pdp-gallery,
+.pdp-lightbox,
+.outlets-map-frame,
+.outlets-stage .section-title,
+.account-pop,
+[data-nav-href="/about"],
+.fit-main .card {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Form fields inside any of those still take typing, selecting and pasting (iOS Safari would
+   otherwise refuse to edit an input inside a no-select area). */
+:is(.site-header, .m-menu, .m-fact, .catalogue-surface, .catalogue-sheet-surface, .outlets-map-frame, .account-pop, [data-nav-href="/about"])
+  :is(input, textarea, select, [contenteditable="true"]) {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Pictures cannot be picked up and dragged out of the page. */
+:is(.hero-stage, .m-hero, .catalogue-surface, .pdp-gallery, .pdp-lightbox, .m-fact, .designer-card, .m-menu) img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
