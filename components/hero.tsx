@@ -6,6 +6,7 @@ import {useEffect, useMemo, useRef, useState} from "react";
 import {ArrowDown, ArrowRight, Hand, Infinity as InfinityIcon, Leaf} from "lucide-react";
 import {CurrencyCode, Locale} from "@/lib/site";
 import {HeroCardStack} from "@/components/hero-card-stack";
+import {HeroFactCard, SDG_FACTS, VALUE_FACTS, type HeroFact} from "@/components/hero-facts";
 
 const HERO_VIDEO_SRC = "https://ftw7p3nsw06ehaup.public.blob.vercel-storage.com/natlovers-hero.mp4";
 
@@ -30,6 +31,7 @@ export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
   const [offset, setOffset] = useState({x: 0, y: 0});
   const videoRef = useRef<HTMLVideoElement>(null);
   const [slide, setSlide] = useState(0);
+  const [fact, setFact] = useState<HeroFact | null>(null);
   const slideCount = MOBILE_SLIDES.length;
 
   function handleSlideScroll(event: React.UIEvent<HTMLDivElement>) {
@@ -131,10 +133,9 @@ const cardTransform = useMemo(() => {
           <div className="hero-grid grid h-full items-center gap-[21px] max-lg:content-center max-lg:gap-4 lg:grid-cols-[minmax(0,1.618fr)_minmax(360px,1fr)] lg:gap-[34px] xl:gap-[55px]">
             <div className="flex min-w-0 flex-col justify-center max-lg:order-2">
               <div className="hero-kicker">
-                <span className="hero-kicker__rule" aria-hidden />
                 <span>{locale === "en" ? "Handcrafted in Indonesia" : "Dibuat tangan di Indonesia"}</span>
-                <span className="hero-kicker__dot" aria-hidden />
-                <em>{locale === "en" ? "Est. 1998" : "Sejak 1998"}</em>
+                <span className="hero-kicker__bar" aria-hidden />
+                <em>{locale === "en" ? "Yogyakarta, since 1998" : "Yogyakarta, sejak 1998"}</em>
               </div>
 
               <div
@@ -257,33 +258,34 @@ const cardTransform = useMemo(() => {
           </div>
 
           <ul className="m-hero__values">
-            <li>
-              <Leaf aria-hidden />
-              <span>Natural Materials</span>
-            </li>
-            <li>
-              <Hand aria-hidden />
-              <span>Handcrafted</span>
-            </li>
-            <li>
-              <InfinityIcon aria-hidden />
-              <span>Sustainable</span>
-            </li>
+            {VALUE_FACTS.map((item, index) => {
+              const Icon = [Leaf, Hand, InfinityIcon][index];
+              return (
+                <li key={item.id}>
+                  <button type="button" className="m-hero__value" aria-haspopup="dialog" onClick={() => setFact(item)}>
+                    <Icon aria-hidden />
+                    <span>{item.title}</span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
 
           <div className="m-hero__impact">
             <p className="m-hero__eyebrow">Our Impact</p>
             <h2 className="m-hero__impact-title">Crafting with purpose.</h2>
             <ul className="m-hero__goals">
-              {SDG_TILES.map((tile) => (
+              {SDG_TILES.map((tile, index) => (
                 <li key={tile.goal}>
-                  <Image
-                    src={tile.src}
-                    alt={`UN Sustainable Development Goal ${tile.goal}: ${tile.name}`}
-                    width={180}
-                    height={180}
-                    sizes="110px"
-                  />
+                  <button
+                    type="button"
+                    className="m-hero__goal"
+                    aria-haspopup="dialog"
+                    aria-label={`UN Sustainable Development Goal ${tile.goal}: ${tile.name}. Read how we align.`}
+                    onClick={() => setFact(SDG_FACTS[index])}
+                  >
+                    <Image src={tile.src} alt="" width={180} height={180} sizes="110px" />
+                  </button>
                 </li>
               ))}
             </ul>
@@ -291,6 +293,7 @@ const cardTransform = useMemo(() => {
           </div>
         </div>
       </div>
+      {fact ? <HeroFactCard fact={fact} onClose={() => setFact(null)} /> : null}
     </section>
   );
 }
