@@ -12,6 +12,7 @@ import {HeroCardForm} from "./hero-card-form";
 import {ManageBodyShapesPanel} from "./manage-body-shapes-panel";
 import {ManageBannersPanel} from "./manage-banners-panel";
 import {ManageHeroCardsPanel} from "./manage-hero-cards-panel";
+import {ManageHeroPhotosPanel} from "./manage-hero-photos-panel";
 import {ManageProductsPanel} from "./manage-products-panel";
 import {ProductForm} from "./product-form";
 import {Toast, ToastState} from "./toast";
@@ -24,6 +25,7 @@ type Tab =
   | "manage"
   | "add-hero-card"
   | "manage-hero-cards"
+  | "hero-photos"
   | "banners"
   | "add-body-shape"
   | "manage-body-shapes"
@@ -35,6 +37,7 @@ const validTabs: Tab[] = [
   "manage",
   "add-hero-card",
   "manage-hero-cards",
+  "hero-photos",
   "banners",
   "add-body-shape",
   "manage-body-shapes",
@@ -633,6 +636,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
     manage: "Manage Products",
     "add-hero-card": "Add Hero Card",
     "manage-hero-cards": "Manage Hero Cards",
+    "hero-photos": "Home Photographs",
     banners: "Editorial Banners",
     "add-body-shape": "Add Body Shape",
     "manage-body-shapes": "Manage Body Shapes",
@@ -716,13 +720,15 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
 
         {tab === "manage-hero-cards" ? (
           <ManageHeroCardsPanel
-            cards={heroCards}
+            cards={heroCards.filter((card) => card.cardType === "color" || card.cardType === "image")}
             loading={loadingHeroCards}
             onDelete={handleDeleteHeroCard}
             onReorder={handleReorderHeroCards}
             busyId={busyHeroCardId}
           />
         ) : null}
+
+        {tab === "hero-photos" ? <ManageHeroPhotosPanel /> : null}
 
         {tab === "banners" ? <ManageBannersPanel /> : null}
 

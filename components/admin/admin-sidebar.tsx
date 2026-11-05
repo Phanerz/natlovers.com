@@ -130,6 +130,7 @@ export function AdminSidebar() {
   const isManageHero = onDashboardRoute && tab === "manage-hero-cards";
   const isAddHero = onDashboardRoute && tab === "add-hero-card";
   const isBanners = onDashboardRoute && tab === "banners";
+  const isHeroPhotos = onDashboardRoute && tab === "hero-photos";
   const isManageBodyShapes = onDashboardRoute && (tab === "manage-body-shapes" || tab === "edit-body-shape");
   const isAddBodyShape = onDashboardRoute && tab === "add-body-shape";
 
@@ -201,6 +202,10 @@ export function AdminSidebar() {
             </div>
             <AddLink href="/mimin?tab=add-hero-card" active={isAddHero} label="Add hero card" />
           </div>
+
+          <NavLink href="/mimin?tab=hero-photos" active={isHeroPhotos} icon={GalleryHorizontal}>
+            Home Photographs
+          </NavLink>
 
           <NavLink href="/mimin?tab=banners" active={isBanners} icon={Newspaper}>
             Editorial Banners

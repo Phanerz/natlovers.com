@@ -6895,3 +6895,73 @@ body:has(.outlets-stage--page) footer {
     transform: rotateY(0deg) scale(1);
   }
 }
+
+/* --- hero: pulling the page down shows more of the photograph, never a gap --- */
+.m-hero__bleed {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: 100%;
+  overflow: hidden;
+  transform: scaleY(-1);
+  pointer-events: none;
+}
+@media (max-width: 639px) {
+  .home-main {
+    overscroll-behavior-y: none;
+  }
+  .home-main > .snap-page--hero,
+  .home-main > .snap-page--hero > section,
+  .home-main > .snap-page--hero .m-hero {
+    overflow: visible;
+  }
+
+  /* --- product page: photographs in a rail on the left, the main picture at most six thumbnails tall --- */
+  .pdp-gallery {
+    flex-direction: row;
+    gap: 0.7rem;
+  }
+  .pdp-gallery .pdp-thumbs {
+    order: 1;
+    width: 3.4rem;
+    flex-shrink: 0;
+  }
+  .pdp-gallery .pdp-thumbs-inner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .pdp-gallery .pdp-thumbs-inner::-webkit-scrollbar {
+    display: none;
+  }
+  .pdp-gallery .pdp-main {
+    order: 2;
+    flex: 1;
+    width: auto;
+    min-width: 0;
+    height: 23.4rem;
+    aspect-ratio: auto;
+  }
+}
+
+/* --- map credit: kept (the tile providers require it) but quiet, with no white strip --- */
+.outlets-map-frame .leaflet-control-attribution {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 6px 3px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 9px;
+  line-height: 1.2;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.75), 0 0 6px rgba(0, 0, 0, 0.5);
+}
+.outlets-map-frame .leaflet-control-attribution a {
+  color: inherit;
+}
+.outlets-map-frame .leaflet-attribution-flag {
+  display: none !important;
+}

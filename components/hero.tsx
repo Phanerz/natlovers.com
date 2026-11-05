@@ -27,6 +27,32 @@ const SDG_TILES = [
   {goal: 11, name: "Sustainable Cities and Communities", src: "/images/sdg/sdg-11.webp"}
 ];
 
+// Laptop and desktop photographs from the admin panel: a slow cross-fade, one every 15 seconds.
+function DesktopSlides({urls}: {urls: string[]}) {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    if (urls.length < 2) return;
+    const timer = window.setInterval(() => setIndex((current) => (current + 1) % urls.length), 15000);
+    return () => window.clearInterval(timer);
+  }, [urls.length]);
+  return (
+    <div className="absolute inset-0">
+      {urls.map((url, position) => (
+        <Image
+          key={url}
+          src={url}
+          alt=""
+          fill
+          sizes="100vw"
+          priority={position === 0}
+          className="object-cover transition-opacity duration-[1600ms] ease-in-out"
+          style={{opacity: position === index ? 1 : 0}}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
   const [offset, setOffset] = useState({x: 0, y: 0});
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -35,7 +61,49 @@ export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
   const openFact = (item: HeroFact) => {
     void decodeFactImage(item.image).then(() => setFact(item));
   };
-  const slideCount = MOBILE_SLIDES.length;
+  // Photographs set in the admin panel (phone list, desktop list). Until they arrive, or when
+  // none are set, the built-in photographs and the video are used.
+  const [slides, setSlides] = useState<{mobile: string[]; desktop: string[]} | null>(null);
+  const mobileSlides = useMemo(
+    () => (slides && slides.mobile.length ? slides.mobile.map((src) => ({src, alt: "Natlovers"})) : MOBILE_SLIDES),
+    [slides]
+  );
+  const slideCount = mobileSlides.length;
+  const trackRef = useRef<HTMLDivElement>(null);
+  const lastTouchRef = useRef(0);
+
+  useEffect(() => {
+    let off = false;
+    fetch("/api/admin/hero-cards?scope=slides", {cache: "no-store"})
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (off) return;
+        setSlides(data && Array.isArray(data.mobile) && Array.isArray(data.desktop) ? data : {mobile: [], desktop: []});
+      })
+      .catch(() => {
+        if (!off) setSlides({mobile: [], desktop: []});
+      });
+    return () => {
+      off = true;
+    };
+  }, []);
+
+  // The phone photographs slide on their own every 15 seconds, unless they were just touched,
+  // the page is hidden, or the carousel is off screen.
+  useEffect(() => {
+    if (slideCount < 2) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => {
+      const track = trackRef.current;
+      if (!track || document.hidden) return;
+      if (Date.now() - lastTouchRef.current < 15000) return;
+      const box = track.getBoundingClientRect();
+      if (box.width === 0 || box.bottom <= 0 || box.top >= window.innerHeight) return;
+      const index = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+      track.scrollTo({left: ((index + 1) % slideCount) * track.clientWidth, behavior: "smooth"});
+    }, 15000);
+    return () => window.clearInterval(timer);
+  }, [slideCount]);
 
   // Phones only: once the page is idle, fetch the pictures the fact cards use.
   useEffect(() => {
@@ -59,7 +127,10 @@ export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
   // doesn't reliably pick up a source added after the fact without an
   // explicit load() call; the double rAF guarantees this runs after the
   // browser has committed at least one real paint, not just after mount.
+  const hasDesktopSlides = Boolean(slides && slides.desktop.length);
   useEffect(() => {
+    // Wait for the admin list: with desktop photographs set there is no video at all.
+    if (!slides || hasDesktopSlides) return;
     const el = videoRef.current;
     if (!el) return;
     // Phones and tablets keep the still poster: an 8MB looping video is the
@@ -81,7 +152,8 @@ export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
       window.cancelAnimationFrame(raf1);
       window.cancelAnimationFrame(raf2);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slides, hasDesktopSlides]);
 
 const titleTransform = useMemo(() => {
   return `perspective(1200px)
@@ -124,15 +196,19 @@ const cardTransform = useMemo(() => {
           className="absolute inset-0 overflow-hidden"
           style={{ transform: backgroundTransform }}
         >
-          <video
-            ref={videoRef}
-            className="h-full w-full object-cover"
-            muted
-            loop
-            playsInline
-            preload="none"
-            poster="/images/natlovers-bags-1.jpg"
-          />
+          {hasDesktopSlides && slides ? (
+            <DesktopSlides urls={slides.desktop} />
+          ) : (
+            <video
+              ref={videoRef}
+              className="h-full w-full object-cover"
+              muted
+              loop
+              playsInline
+              preload="none"
+              poster="/images/natlovers-bags-1.jpg"
+            />
+          )}
           <div className="absolute inset-0 bg-[#06110b]/76" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_28%,rgba(115,155,134,0.26),transparent_22%),radial-gradient(circle_at_82%_24%,rgba(232,221,190,0.12),transparent_18%),linear-gradient(180deg,rgba(6,17,11,0.72),rgba(6,17,11,0.46)_42%,rgba(6,17,11,0.74)_100%)]" />
           <div className="ambient-orb left-10 top-10 h-28 w-28 bg-sand-100/12" />
@@ -218,8 +294,14 @@ const cardTransform = useMemo(() => {
           fits without scrolling on any phone. */}
       <div className="m-hero lg:hidden">
         <div className="m-hero__photo">
-          <div className="m-hero__track" onScroll={handleSlideScroll}>
-            {MOBILE_SLIDES.map((item, index) => (
+          <div
+            ref={trackRef}
+            className="m-hero__track"
+            onScroll={handleSlideScroll}
+            onTouchStart={() => (lastTouchRef.current = Date.now())}
+            onPointerDown={() => (lastTouchRef.current = Date.now())}
+          >
+            {mobileSlides.map((item, index) => (
               <div key={item.src} className="m-hero__slide">
                 <Image
                   src={item.src}
@@ -232,9 +314,16 @@ const cardTransform = useMemo(() => {
               </div>
             ))}
           </div>
+          {/* A mirrored copy of the visible photograph sits just above it, so pulling the page down
+              past the top shows more of the picture, never a gap. */}
+          {mobileSlides[slide] ? (
+            <div className="m-hero__bleed" aria-hidden>
+              <Image src={mobileSlides[slide].src} alt="" fill sizes="100vw" className="object-cover" />
+            </div>
+          ) : null}
           <div className="m-hero__fade" aria-hidden />
           <div className="m-hero__dots" aria-hidden>
-            {MOBILE_SLIDES.map((item, index) => (
+            {mobileSlides.map((item, index) => (
               <span key={item.src} className={index === slide ? "is-active" : undefined} />
             ))}
           </div>

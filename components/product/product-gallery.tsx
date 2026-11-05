@@ -141,7 +141,7 @@ export function ProductGallery({
   }
 
   return (
-    <div className="flex flex-col gap-4 lg:flex-row">
+    <div className="pdp-gallery flex flex-col gap-4 lg:flex-row">
       {images.length > 1 ? (
         // Horizontal strip on mobile, vertical scrollable rail on desktop  - 
         // real DB order (array order), no reordering.
@@ -159,7 +159,7 @@ export function ProductGallery({
                 onClick={() => selectImage(index)}
                 className="pdp-thumb"
               >
-                <ImageWithFallback src={url} alt={`${name} ${index + 1}`} fill sizes="84px" className="object-contain" />
+                <ImageWithFallback src={url} alt={`${name} ${index + 1}`} fill sizes="84px" className="object-cover" />
               </button>
             ))}
           </div>
@@ -167,7 +167,7 @@ export function ProductGallery({
       ) : null}
 
       <div
-        className="relative order-1 aspect-[3/4] w-full overflow-hidden rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] lg:order-2"
+        className="pdp-main relative order-1 aspect-[3/4] w-full overflow-hidden rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] lg:order-2"
         style={{backgroundColor: tintHex}}
       >
         {images[activeImage] ? (

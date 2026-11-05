@@ -4,6 +4,7 @@ import {
   deleteHeroCard,
   getActiveHeroCards,
   getAllHeroCardsForAdmin,
+  getHeroSlides,
   reorderAllHeroCards
 } from "@/lib/admin-hero-cards";
 import {getSession, isAdminEmail} from "@/lib/auth";
@@ -23,6 +24,9 @@ async function requireAdmin() {
 export async function GET(request: NextRequest) {
   try {
     const scope = new URL(request.url).searchParams.get("scope");
+    if (scope === "slides") {
+      return NextResponse.json(await getHeroSlides());
+    }
     if (scope === "all" && (await requireAdmin())) {
       const cards = await getAllHeroCardsForAdmin();
       return NextResponse.json(cards);

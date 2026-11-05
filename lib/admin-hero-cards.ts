@@ -1,11 +1,14 @@
-import {asc, eq, inArray, max} from "drizzle-orm";
+import {and, asc, eq, inArray, max} from "drizzle-orm";
 import {z} from "zod";
 import {uploadFile} from "@/lib/blob";
 import {db, heroCards} from "@/lib/db";
 
 const IMAGE_PREFIX = "hero-cards";
 
-export type HeroCardType = "color" | "image";
+// "color" and "image" are the swipeable card stack; the two slide types are the home page's
+// own photographs (phone carousel and desktop background), kept in the same table.
+export type HeroCardType = "color" | "image" | "slide_mobile" | "slide_desktop";
+const CARD_TYPES: HeroCardType[] = ["color", "image"];
 
 export type PublicHeroCard = {
   id: string;
@@ -21,7 +24,7 @@ export type AdminHeroCard = PublicHeroCard & {
 const hexColor = /^#[0-9a-fA-F]{6}$/;
 
 const createSchema = z.object({
-  cardType: z.enum(["color", "image"]),
+  cardType: z.enum(["color", "image", "slide_mobile", "slide_desktop"]),
   colorValue: z.string().regex(hexColor, "Color must be a hex value like #A1B2C3.").optional()
 });
 
@@ -44,8 +47,19 @@ async function uploadCardImage(file: File): Promise<string> {
 }
 
 export async function getActiveHeroCards(): Promise<PublicHeroCard[]> {
-  const rows = await db.select().from(heroCards).orderBy(asc(heroCards.displayOrder));
+  const rows = await db.select().from(heroCards).where(inArray(heroCards.cardType, CARD_TYPES)).orderBy(asc(heroCards.displayOrder));
   return rows.map(toPublicCard);
+}
+
+// The home page photographs, in the order the admin set, for phones and for desktop.
+export async function getHeroSlides(): Promise<{mobile: string[]; desktop: string[]}> {
+  const rows = await db
+    .select()
+    .from(heroCards)
+    .where(inArray(heroCards.cardType, ["slide_mobile", "slide_desktop"]))
+    .orderBy(asc(heroCards.displayOrder));
+  const pick = (type: string) => rows.filter((row) => row.cardType === type && row.imageUrl).map((row) => row.imageUrl as string);
+  return {mobile: pick("slide_mobile"), desktop: pick("slide_desktop")};
 }
 
 export async function getAllHeroCardsForAdmin(): Promise<AdminHeroCard[]> {
@@ -75,7 +89,10 @@ export async function createHeroCard(formData: FormData): Promise<AdminHeroCard>
     imageUrl = await uploadCardImage(image);
   }
 
-  const [{maxOrder}] = await db.select({maxOrder: max(heroCards.displayOrder)}).from(heroCards);
+  const [{maxOrder}] = await db
+    .select({maxOrder: max(heroCards.displayOrder)})
+    .from(heroCards)
+    .where(and(eq(heroCards.cardType, parsed.cardType)));
   const displayOrder = (maxOrder ?? -1) + 1;
 
   const [row] = await db
