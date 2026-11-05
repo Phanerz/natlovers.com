@@ -170,7 +170,7 @@ export function Header() {
   useEffect(() => {
     const header = headerRef.current;
     if (!header) return;
-    const phone = window.matchMedia("(max-width: 1023px)");
+    const phone = window.matchMedia("(max-width: 639px)");
     let lastY = window.scrollY;
     let travelled = 0;
     let hidden = false;

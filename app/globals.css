@@ -36,7 +36,7 @@
   content: "";
   position: absolute;
   inset: 13px;
-  border-radius: calc(2.4rem - 13px);
+  border-radius: calc(2rem - 13px);
   border: 1px solid rgba(255,255,255,0.12);
   pointer-events: none;
   z-index: 2;
@@ -74,7 +74,7 @@ html {
  * height, so a section's top edge lands flush *underneath* the header
  * instead of hidden behind it.
  */
-@media (min-width: 1024px) {
+@media (min-width: 640px) {
   html {
     scroll-snap-type: y mandatory;
     scroll-padding-top: var(--header-height);
@@ -6091,5 +6091,81 @@ body:has(.outlets-stage--page) footer {
   }
   .catalogue-mobile-strip .catalogue-item-name {
     font-size: 17px;
+  }
+}
+
+/* --- desktop hero: finish --- */
+.hero-kicker {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.9rem;
+  color: #ecd9a2;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+}
+.hero-kicker__rule {
+  width: 3rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(236, 217, 162, 0.95));
+}
+.hero-kicker__dot {
+  width: 4px;
+  height: 4px;
+  transform: rotate(45deg);
+  background: #ecd9a2;
+}
+.hero-kicker em {
+  color: #f6ecd0;
+  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-size: 1rem;
+  font-style: italic;
+  letter-spacing: 0.1em;
+  text-transform: none;
+}
+
+/* A laptop window that has become squarer than 3:2 drops the card stack, so the
+   hero stays calm: the text panel takes the middle of the screen instead. */
+@media (min-width: 1024px) and (max-aspect-ratio: 3/2) {
+  .hero-cards-col {
+    display: none;
+  }
+  .hero-grid {
+    grid-template-columns: minmax(0, 46rem) !important;
+    justify-content: center;
+  }
+}
+
+/* Tablet and narrow-window widths snap page by page like the laptop; the map page
+   gives its height to the map and keeps the location cards compact. */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .home-main .outlets-stage--embedded {
+    height: 100%;
+    min-height: 0;
+  }
+  .home-main .outlets-stage--embedded > .shell {
+    gap: 0.8rem;
+    padding-top: 0.6rem;
+    padding-bottom: 1rem;
+  }
+  .home-main .outlets-stage--embedded .outlets-map-frame {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 13rem;
+  }
+  .home-main .outlets-stage--embedded .muted {
+    display: none;
+  }
+  .home-main .outlet-rail {
+    gap: 14px;
+  }
+  .home-main .outlet-rail .outlet-card {
+    flex-basis: 56%;
+    min-height: 0;
+    gap: 0.4rem;
+    padding: 0.85rem 1rem 0.75rem;
   }
 }

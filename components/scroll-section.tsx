@@ -26,7 +26,7 @@ export function ScrollSection({children, className = "", as: Component = "div", 
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
-    const phone = window.matchMedia("(max-width: 1023px)");
+    const phone = window.matchMedia("(max-width: 639px)");
     const calm = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (!phone.matches || calm.matches) return;
     if (el.getBoundingClientRect().top < window.innerHeight * 0.85) return;
