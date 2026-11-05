@@ -6877,3 +6877,21 @@ body:has(.outlets-stage--page) footer {
   will-change: auto;
   animation: factTurn 1s cubic-bezier(0.4, 0.1, 0.2, 1) backwards;
 }
+
+/* --- fact card, seventh pass: a half turn again (the full turn dropped frames on phones) --- */
+.m-fact {
+  animation: factHalfTurn 0.75s cubic-bezier(0.4, 0.1, 0.2, 1) backwards;
+}
+@keyframes factHalfTurn {
+  0% {
+    opacity: 0;
+    transform: rotateY(-180deg) scale(0.85);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: rotateY(0deg) scale(1);
+  }
+}
