@@ -81,7 +81,7 @@ export type AdminProduct = ShopProduct & {
 
 export const PRODUCT_CODE_PREFIX = "NAT-";
 
-export const MAX_PRODUCT_IMAGES = 6;
+export const MAX_PRODUCT_IMAGES = 8;
 
 const HEX_COLOUR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 

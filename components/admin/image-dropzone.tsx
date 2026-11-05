@@ -5,7 +5,7 @@ import {useRef, useState} from "react";
 import {ArrowLeft, ArrowRight, GripVertical, Star, UploadCloud, X} from "lucide-react";
 import {ACCEPTED_IMAGE_LABEL, MAX_IMAGE_MB} from "@/lib/upload-limits";
 
-export const MAX_PRODUCT_IMAGES = 6;
+export const MAX_PRODUCT_IMAGES = 8;
 
 // Each image is uploaded to Blob storage as soon as it's added (see
 // app/api/admin/products/images/route.ts), so this component only ever

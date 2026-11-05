@@ -359,8 +359,8 @@ export function ShopProductCard({
           photo) so every card in a row has the same height. */}
       <div className="catalogue-item-dots" aria-hidden>
         {images.length > 1
-          ? images.slice(0, 6).map((src, index) => (
-              <span key={src} className="catalogue-item-dot" data-active={index === Math.min(activeIndex, 5)} />
+          ? images.slice(0, 8).map((src, index) => (
+              <span key={src} className="catalogue-item-dot" data-active={index === Math.min(activeIndex, 7)} />
             ))
           : null}
       </div>

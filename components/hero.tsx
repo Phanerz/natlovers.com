@@ -220,9 +220,10 @@ const cardTransform = useMemo(() => {
             <div className="flex min-w-0 flex-col justify-center max-lg:order-2">
               <div className="hero-brand">
                 <span className="hero-brand__rule" aria-hidden />
-                <span>{locale === "en" ? "Handcrafted in Indonesia" : "Dibuat tangan di Indonesia"}</span>
+                <span>{locale === "en" ? "Designed by" : "Dirancang oleh"}</span>
+                <em className="hero-brand__name">Anita Yan</em>
                 <span className="hero-brand__dot" aria-hidden />
-                <em>{locale === "en" ? "Since 1998" : "Sejak 1998"}</em>
+                <span>{locale === "en" ? "Since 1998" : "Sejak 1998"}</span>
               </div>
 
               <div
