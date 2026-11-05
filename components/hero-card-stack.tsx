@@ -13,20 +13,6 @@ type HeroCard = {
   imageUrl: string | null;
 };
 
-const DEFAULT_COLORS = [
-  "#E63946", "#F3722C", "#F8961E", "#F9C74F", "#90BE6D",
-  "#43AA8B", "#4D908E", "#277DA1", "#577590", "#5E60CE",
-  "#7209B7", "#B5179E", "#F72585", "#FF6B6B", "#6D6875"
-];
-
-function defaultCards(): HeroCard[] {
-  return DEFAULT_COLORS.map((color, index) => ({
-    id: `placeholder-${index}`,
-    cardType: "color",
-    colorValue: color,
-    imageUrl: null
-  }));
-}
 
 const SWIPE_THRESHOLD_RATIO = 0.3;
 const VELOCITY_THRESHOLD = 550;
@@ -58,7 +44,7 @@ function CardFace({card}: {card: HeroCard}) {
   if (card.cardType === "image" && card.imageUrl) {
     return (
       <div className="relative h-full w-full">
-        <Image src={card.imageUrl} alt="" fill draggable={false} sizes="380px" className="object-cover" />
+        <Image src={card.imageUrl} alt="" fill draggable={false} sizes="380px" priority className="object-cover" />
       </div>
     );
   }
@@ -110,7 +96,7 @@ function StackCard({
 
   return (
     <motion.div
-      className={`absolute inset-0 select-none overflow-hidden rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] ${
+      className={`absolute inset-0 select-none overflow-hidden rounded-xl will-change-transform shadow-[0_4px_12px_rgba(0,0,0,0.06)] ${
         distance === 0 ? "cursor-grab active:cursor-grabbing" : ""
       }`}
       style={distance === 0 ? {x, y, rotate, touchAction: "none"} : undefined}
@@ -144,8 +130,10 @@ function StackCard({
   );
 }
 
-export function HeroCardStack() {
-  const [cards, setCards] = useState<HeroCard[]>(defaultCards());
+export function HeroCardStack({onEmpty}: {onEmpty?: (empty: boolean) => void} = {}) {
+  // No invented cards: until the saved cards arrive nothing is drawn, and with none saved the
+  // stack (and its column) is not shown at all.
+  const [cards, setCards] = useState<HeroCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitDirection, setExitDirection] = useState<{x: number; y: number}>({x: -1, y: 0});
   const [cardSize, setCardSize] = useState({width: 320, height: 427});
@@ -158,15 +146,17 @@ export function HeroCardStack() {
     fetch("/api/admin/hero-cards", {cache: "no-store"})
       .then((response) => (response.ok ? response.json() : []))
       .then((data: unknown) => {
-        if (!cancelled && Array.isArray(data) && data.length) {
-          setCards(data as HeroCard[]);
-          setCurrentIndex(0);
-        }
+        if (cancelled) return;
+        const list = Array.isArray(data) ? (data as HeroCard[]) : [];
+        setCards(list);
+        setCurrentIndex(0);
+        onEmpty?.(list.length === 0);
       })
-      .catch(() => undefined);
+      .catch(() => onEmpty?.(true));
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -190,11 +180,22 @@ export function HeroCardStack() {
     }));
   }, [cards, currentIndex, total]);
 
+  // The next two cards behind the visible three are decoded ahead of time, out of sight, so a
+  // card arriving at the back never has a picture still loading as it moves.
+  const upcoming = useMemo(() => {
+    if (total <= VISIBLE_DEPTH) return [];
+    return [VISIBLE_DEPTH, VISIBLE_DEPTH + 1]
+      .map((offset) => cards[(currentIndex + offset) % total])
+      .filter((card, index, list) => card.cardType === "image" && card.imageUrl && list.findIndex((other) => other.id === card.id) === index);
+  }, [cards, currentIndex, total]);
+
   function advance(direction: {x: number; y: number}) {
     if (total < 2) return;
     setExitDirection(direction);
     setCurrentIndex((index) => (index + 1) % total);
   }
+
+  if (!total) return <div ref={containerRef} className="relative aspect-[3/4] w-full" />;
 
   return (
     <div ref={containerRef} className="relative aspect-[3/4] w-full">
@@ -210,6 +211,13 @@ export function HeroCardStack() {
           />
         ))}
       </AnimatePresence>
+      {upcoming.length ? (
+        <div aria-hidden className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0">
+          {upcoming.map((card) => (
+            <Image key={card.id} src={card.imageUrl as string} alt="" width={380} height={507} sizes="380px" loading="eager" />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

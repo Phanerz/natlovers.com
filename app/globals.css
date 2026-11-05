@@ -7223,3 +7223,14 @@ body:has(.outlets-stage--page) footer {
   line-height: 1.45;
   color: #3b4a36;
 }
+
+/* No saved hero cards: the card column goes away and the text panel is centred. */
+.hero-grid--solo .hero-cards-col {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .hero-grid--solo {
+    grid-template-columns: minmax(0, 46rem) !important;
+    justify-content: center;
+  }
+}

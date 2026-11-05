@@ -59,6 +59,7 @@ export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [slide, setSlide] = useState(0);
   const [fact, setFact] = useState<HeroFact | null>(null);
+  const [cardsEmpty, setCardsEmpty] = useState(false);
   const openFact = (item: HeroFact) => {
     void decodeFactImage(item.image).then(() => setFact(item));
   };
@@ -217,7 +218,7 @@ const cardTransform = useMemo(() => {
         </div>
 
         <div className="relative z-10 mx-auto flex h-full w-full max-w-[1680px] flex-col justify-center px-4 py-5 max-sm:py-3 sm:px-6 md:px-8 lg:px-10 xl:px-14">
-          <div className="hero-grid grid h-full items-center gap-[21px] max-lg:content-center max-lg:gap-4 lg:grid-cols-[minmax(0,1.618fr)_minmax(360px,1fr)] lg:gap-[34px] xl:gap-[55px]">
+          <div className={`hero-grid grid${cardsEmpty ? " hero-grid--solo" : ""} h-full items-center gap-[21px] max-lg:content-center max-lg:gap-4 lg:grid-cols-[minmax(0,1.618fr)_minmax(360px,1fr)] lg:gap-[34px] xl:gap-[55px]`}>
             <div className="flex min-w-0 flex-col justify-center max-lg:order-2">
               <div className="hero-house">
                 <span className="hero-house__by">{locale === "en" ? "Designed by" : "Dirancang oleh"}</span>
@@ -282,7 +283,7 @@ const cardTransform = useMemo(() => {
                 className="floating-panel will-change-transform transition-transform duration-300 ease-out w-full max-w-[24rem] p-5 max-lg:max-w-[14rem] max-lg:p-2.5 max-sm:max-w-[min(12.5rem,23svh)] max-sm:p-2 sm:p-6"
                 style={{ transform: cardTransform, transformStyle: "preserve-3d" }}
               >
-                <HeroCardStack />
+                <HeroCardStack onEmpty={setCardsEmpty} />
               </div>
             </div>
           </div>
