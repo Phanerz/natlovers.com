@@ -330,6 +330,8 @@ function AccountContent() {
                 <AdminTelemetryRow widgets={adminWidgets} telemetry={adminTelemetry} stats={adminStats} />
               ) : null}
 
+              <ThemeToggle />
+
               <div className="grid gap-8 lg:grid-cols-2">
                 <form onSubmit={handleSave} className="space-y-6">
                   <h2 className="font-display text-2xl text-forest-900">Profile information</h2>

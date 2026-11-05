@@ -6432,3 +6432,146 @@ body:has(.outlets-stage--page) footer {
   font-size: 0.9rem;
   line-height: 1.55;
 }
+
+/* --- laptop hero hallmark: monogram seal, spaced capitals, place and year in Roman numerals --- */
+.hero-kicker {
+  align-items: center;
+  gap: 1.1rem;
+  font-size: inherit;
+  letter-spacing: normal;
+  text-shadow: none;
+}
+.hero-kicker__mark {
+  display: grid;
+  width: 3.1rem;
+  height: 3.1rem;
+  flex: none;
+  place-items: center;
+  border: 1px solid rgba(231, 207, 147, 0.85);
+  border-radius: 9999px;
+  box-shadow: 0 0 0 4px rgba(231, 207, 147, 0.12), inset 0 0 0 3px rgba(6, 17, 11, 0.35);
+  color: #ecd9a2;
+  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-size: 1.55rem;
+  font-style: italic;
+  line-height: 1;
+  padding-bottom: 0.1rem;
+}
+.hero-kicker__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.hero-kicker__top {
+  color: #f6efdc;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+}
+.hero-kicker__bottom {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #e2c984;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+.hero-kicker__bottom i {
+  display: block;
+  width: 2.2rem;
+  height: 1px;
+  background: rgba(226, 201, 132, 0.7);
+}
+
+/* --- phones: paper backgrounds, roomier catalogue tiles, a larger hero photograph --- */
+@media (max-width: 639px) {
+  .site-background {
+    background-image: url("/images/ivory-bg-m.webp");
+    opacity: 1;
+  }
+  .dark .site-background {
+    background-image: url("/images/olive-bg-m.webp");
+  }
+  /* The catalogue lets the paper show through instead of its own colour wash. */
+  .catalogue-surface,
+  .dark .catalogue-surface {
+    background: transparent;
+  }
+
+  /* No size or colour dots here: the photographs take that room. */
+  .catalogue-swatches,
+  .catalogue-swatches-empty {
+    display: none;
+  }
+  /* Two fixed rows: a page holding a single piece never stretches it to full height. */
+  .home-main .catalogue-mobile-page .catalogue-grid,
+  .fit-main .catalogue-mobile-page .catalogue-grid {
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+  }
+  .m-cat-head {
+    padding-top: 0.55rem;
+    padding-bottom: 0.15rem;
+  }
+  .m-cat-head__title {
+    font-size: 2.3rem;
+  }
+  .m-cat-head__sub {
+    display: none;
+  }
+  .catalogue-mobile-strip .catalogue-item-info {
+    padding: 0 2px;
+  }
+  .catalogue-mobile-strip .catalogue-item-price {
+    margin-top: 2px;
+  }
+
+  /* Hero: the photograph gets the space; type is set with more air and less weight. */
+  .m-hero__title {
+    margin-top: 0.15rem;
+    font-size: clamp(1.8rem, 8.2vw, 2.55rem);
+    letter-spacing: 0.15em;
+    padding-left: 0.15em;
+  }
+  .m-hero__phonetic {
+    margin-top: 0.3rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(176, 140, 60, 0.65), transparent) bottom / 100% 1px no-repeat;
+  }
+  .m-hero__definition {
+    margin-top: 0.5rem;
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+  .m-hero__actions {
+    margin-top: 0.7rem;
+  }
+  .m-hero__btn {
+    min-height: 2.8rem;
+  }
+  .m-hero__values {
+    margin-top: 0.8rem;
+  }
+  .m-hero__impact {
+    margin-top: 0.8rem;
+    padding: 0.65rem 0.8rem 0.7rem;
+  }
+  .m-hero__impact-title {
+    font-size: 1.1rem;
+  }
+  .m-hero__note {
+    display: none;
+  }
+  .m-hero__body {
+    padding-bottom: max(0.9rem, env(safe-area-inset-bottom));
+  }
+  .m-hero__photo {
+    min-height: 11rem;
+  }
+}

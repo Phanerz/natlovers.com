@@ -133,9 +133,17 @@ const cardTransform = useMemo(() => {
           <div className="hero-grid grid h-full items-center gap-[21px] max-lg:content-center max-lg:gap-4 lg:grid-cols-[minmax(0,1.618fr)_minmax(360px,1fr)] lg:gap-[34px] xl:gap-[55px]">
             <div className="flex min-w-0 flex-col justify-center max-lg:order-2">
               <div className="hero-kicker">
-                <span>{locale === "en" ? "Handcrafted in Indonesia" : "Dibuat tangan di Indonesia"}</span>
-                <span className="hero-kicker__bar" aria-hidden />
-                <em>{locale === "en" ? "Yogyakarta, since 1998" : "Yogyakarta, sejak 1998"}</em>
+                <span className="hero-kicker__mark" aria-hidden>
+                  N
+                </span>
+                <span className="hero-kicker__lines">
+                  <span className="hero-kicker__top">{locale === "en" ? "Handcrafted in Indonesia" : "Dibuat tangan di Indonesia"}</span>
+                  <span className="hero-kicker__bottom">
+                    Yogyakarta
+                    <i aria-hidden />
+                    {locale === "en" ? "Est. MCMXCVIII" : "Sejak MCMXCVIII"}
+                  </span>
+                </span>
               </div>
 
               <div

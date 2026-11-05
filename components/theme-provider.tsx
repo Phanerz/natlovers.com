@@ -16,11 +16,28 @@ const ThemeContext = createContext<{theme: Theme; setTheme: (theme: Theme) => vo
 export function ThemeProvider({children}: {children: ReactNode}) {
   const [theme, setThemeState] = useState<Theme>("light");
 
+  // A choice made on the site wins. Without one, the device or browser setting decides,
+  // and follows it if it changes; with neither, the site is light.
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
+    let stored: string | null = null;
+    try {
+      stored = window.localStorage.getItem(STORAGE_KEY);
+    } catch {
+      stored = null;
+    }
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
     if (stored === "dark" || stored === "light") {
       setThemeState(stored);
+      return;
     }
+    const apply = () => {
+      const next: Theme = media.matches ? "dark" : "light";
+      setThemeState(next);
+      document.documentElement.classList.toggle("dark", next === "dark");
+    };
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
   }, []);
 
   function setTheme(next: Theme) {

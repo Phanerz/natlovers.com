@@ -18,7 +18,7 @@ export const metadata = {
 // visitor never sees a flash of the light theme on first paint. Reads
 // localStorage directly rather than waiting on ThemeProvider, which only
 // runs after hydration.
-const themeInitScript = `(function(){try{var t=localStorage.getItem('nl-theme');if(t==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();`;
+const themeInitScript = `(function(){try{var t=localStorage.getItem('nl-theme');var d=t==='dark'||(t!=='light'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d){document.documentElement.classList.add('dark');}}catch(e){}})();`;
 
 export default function RootLayout({children}: {children: ReactNode}) {
   return (
