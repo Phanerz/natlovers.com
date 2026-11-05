@@ -2,7 +2,7 @@
 
 import {useEffect, useMemo, useState} from "react";
 import {ArchiveRestore, Archive as ArchiveIcon, Circle, Pencil, Search, Square} from "lucide-react";
-import {summarizeBodyShapeDimensions} from "@/lib/body-shapes";
+import {bodyShapeMeasurements} from "@/lib/body-shapes";
 import {DEFAULT_PAGE_SIZE, PageSize, PaginationBar} from "./pagination-bar";
 import {AdminBodyShape} from "./body-shape-types";
 
@@ -50,9 +50,22 @@ function Row({
         {shape.notes ? <p className="mt-0.5 text-xs text-forest-500">{shape.notes}</p> : null}
       </div>
 
-      <p className="w-36 shrink-0 text-right font-mono text-xs text-forest-600 sm:text-sm">
-        {summarizeBodyShapeDimensions(shape)}
-      </p>
+      {/* Every measurement is named, so nobody has to remember what a bare number stands for. */}
+      <dl className="flex shrink-0 flex-wrap justify-end gap-x-5 gap-y-1 text-right">
+        {bodyShapeMeasurements(shape).length ? (
+          bodyShapeMeasurements(shape).map((item) => (
+            <div key={item.label}>
+              <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-forest-500">{item.label}</dt>
+              <dd className="font-display text-base text-forest-900">{item.value}</dd>
+            </div>
+          ))
+        ) : (
+          <div>
+            <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-forest-500">Size</dt>
+            <dd className="text-sm text-forest-500">Not recorded yet</dd>
+          </div>
+        )}
+      </dl>
 
       <div className="flex shrink-0 items-center gap-2">
         <button

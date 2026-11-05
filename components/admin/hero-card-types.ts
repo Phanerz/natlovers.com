@@ -1,4 +1,4 @@
-export type HeroCardType = "color" | "image" | "slide_mobile" | "slide_desktop";
+export type HeroCardType = "color" | "image" | "slide" | "slide_mobile" | "slide_desktop";
 
 export type AdminHeroCard = {
   id: string;

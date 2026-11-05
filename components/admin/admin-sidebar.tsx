@@ -17,6 +17,7 @@ import {
   PlusCircle,
   Receipt,
   ShoppingBag,
+  UserRound,
   Users,
   Warehouse
 } from "lucide-react";
@@ -131,6 +132,7 @@ export function AdminSidebar() {
   const isAddHero = onDashboardRoute && tab === "add-hero-card";
   const isBanners = onDashboardRoute && tab === "banners";
   const isHeroPhotos = onDashboardRoute && tab === "hero-photos";
+  const isDesignerCard = onDashboardRoute && tab === "designer-card";
   const isManageBodyShapes = onDashboardRoute && (tab === "manage-body-shapes" || tab === "edit-body-shape");
   const isAddBodyShape = onDashboardRoute && tab === "add-body-shape";
 
@@ -205,6 +207,10 @@ export function AdminSidebar() {
 
           <NavLink href="/mimin?tab=hero-photos" active={isHeroPhotos} icon={GalleryHorizontal}>
             Home Photographs
+          </NavLink>
+
+          <NavLink href="/mimin?tab=designer-card" active={isDesignerCard} icon={UserRound}>
+            Anita Yan Card
           </NavLink>
 
           <NavLink href="/mimin?tab=banners" active={isBanners} icon={Newspaper}>

@@ -100,6 +100,26 @@ export function OutletsAdmin() {
     }
   }
 
+  async function handleSortByDistance() {
+    setBusyId("sort");
+    try {
+      const response = await fetch("/api/admin/locations/reorder", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({mode: "distance"})
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        setToast({type: "error", message: "Could not sort the locations."});
+        return;
+      }
+      setLocationList(data);
+      setToast({type: "success", message: "Locations now run from nearest to the studio to farthest."});
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function handleMove(location: AdminLocation, direction: "up" | "down") {
     setBusyId(location.id);
     try {
@@ -153,6 +173,7 @@ export function OutletsAdmin() {
         onEdit={openEdit}
         onToggleActive={handleToggleActive}
         onMove={handleMove}
+        onSortByDistance={handleSortByDistance}
         busyId={busyId}
       />
 

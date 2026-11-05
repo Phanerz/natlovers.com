@@ -1,6 +1,7 @@
 "use client";
 
 import {ArrowDown, ArrowUp, House, Pencil, Power} from "lucide-react";
+import {distanceKm} from "@/lib/distance";
 import type {AdminLocation} from "./location-types";
 
 function Row({
@@ -8,11 +9,13 @@ function Row({
   onEdit,
   onToggleActive,
   onMove,
+  distanceKm: kmAway,
   isFirst,
   isLast,
   busy
 }: {
   location: AdminLocation;
+  distanceKm: number | null;
   onEdit: (location: AdminLocation) => void;
   onToggleActive: (location: AdminLocation) => void;
   onMove: (location: AdminLocation, direction: "up" | "down") => void;
@@ -71,6 +74,13 @@ function Row({
         </p>
       </div>
 
+      {kmAway != null ? (
+        <p className="shrink-0 text-right text-sm text-forest-700">
+          <span className="font-display text-base text-forest-900">{kmAway < 10 ? kmAway.toFixed(1) : Math.round(kmAway).toLocaleString("en-US")}</span> km
+          <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-forest-500">from the studio</span>
+        </p>
+      ) : null}
+
       <div className="flex shrink-0 items-center gap-2">
         <button
           type="button"
@@ -102,6 +112,7 @@ export function ManageLocationsPanel({
   onEdit,
   onToggleActive,
   onMove,
+  onSortByDistance,
   busyId
 }: {
   locationList: AdminLocation[];
@@ -109,11 +120,23 @@ export function ManageLocationsPanel({
   onEdit: (location: AdminLocation) => void;
   onToggleActive: (location: AdminLocation) => void;
   onMove: (location: AdminLocation, direction: "up" | "down") => void;
+  onSortByDistance: () => void;
   busyId: string | null;
 }) {
+  const studio = locationList.find((location) => location.type === "main_studio") ?? null;
   return (
     <div className="card space-y-5 p-6 sm:p-8">
-      <h2 className="font-display text-2xl text-forest-900">Locations ({locationList.length})</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-2xl text-forest-900">Locations ({locationList.length})</h2>
+        <button
+          type="button"
+          disabled={busyId === "sort"}
+          onClick={onSortByDistance}
+          className="glass-btn-secondary rounded-full px-5 py-2 text-sm font-semibold text-forest-900 disabled:opacity-60"
+        >
+          {busyId === "sort" ? "Sorting..." : "Sort by distance from the studio"}
+        </button>
+      </div>
 
       {loading ? (
         <p className="py-10 text-center text-sm text-forest-600">Loading locations...</p>
@@ -126,6 +149,7 @@ export function ManageLocationsPanel({
               onEdit={onEdit}
               onToggleActive={onToggleActive}
               onMove={onMove}
+              distanceKm={studio && studio.id !== location.id ? distanceKm(studio.latitude, studio.longitude, location.latitude, location.longitude) : null}
               isFirst={index === 0}
               isLast={index === locationList.length - 1}
               busy={busyId === location.id}

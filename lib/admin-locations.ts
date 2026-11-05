@@ -1,6 +1,7 @@
 import {asc, eq, sql} from "drizzle-orm";
 import {z} from "zod";
 import {db, locations} from "@/lib/db";
+import {distanceKm} from "@/lib/distance";
 import type {LocationType} from "@/lib/location-constants";
 
 export type AdminLocation = {
@@ -90,7 +91,10 @@ export async function createLocation(formData: FormData): Promise<AdminLocation>
     })
     .returning();
 
-  return toAdminLocation(row);
+  // A new place takes its spot by distance from the studio, not the end of the list.
+  await sortLocationsByDistance();
+  const [placed] = await db.select().from(locations).where(eq(locations.id, row.id));
+  return toAdminLocation(placed ?? row);
 }
 
 export async function updateLocation(id: string, formData: FormData): Promise<AdminLocation> {
@@ -164,6 +168,30 @@ export async function moveLocation(id: string, direction: "up" | "down"): Promis
     await tx.update(locations).set({displayOrder: current.displayOrder, updatedAt: new Date()}).where(eq(locations.id, swapWith.id));
   });
 
+  const updated = await db.select().from(locations).orderBy(asc(locations.displayOrder));
+  return updated.map(toAdminLocation);
+}
+
+// Puts every location in order of how near it is to the main studio, nearest first (the studio
+// itself first of all). Written into displayOrder, so the public Outlets page follows it.
+export async function sortLocationsByDistance(): Promise<AdminLocation[]> {
+  const rows = await db.select().from(locations).orderBy(asc(locations.displayOrder));
+  const studio = rows.find((row) => row.type === "main_studio");
+  if (studio) {
+    const ranked = [...rows].sort((a, b) => {
+      if (a.id === studio.id) return -1;
+      if (b.id === studio.id) return 1;
+      return (
+        distanceKm(studio.latitude, studio.longitude, a.latitude, a.longitude) -
+        distanceKm(studio.latitude, studio.longitude, b.latitude, b.longitude)
+      );
+    });
+    await db.transaction(async (tx) => {
+      for (let index = 0; index < ranked.length; index += 1) {
+        await tx.update(locations).set({displayOrder: index + 1, updatedAt: new Date()}).where(eq(locations.id, ranked[index].id));
+      }
+    });
+  }
   const updated = await db.select().from(locations).orderBy(asc(locations.displayOrder));
   return updated.map(toAdminLocation);
 }

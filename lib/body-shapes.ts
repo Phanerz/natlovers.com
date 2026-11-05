@@ -38,22 +38,43 @@ export function formatBodyShapeDimensions(shape: BodyShapeDimensionsLike): strin
   return `Width: ${width}, Height: ${shape.heightCm} cm, Depth: ${shape.depthCm} cm`;
 }
 
-// Short label used in dropdown options and list rows, e.g. "40/27 x 30 x 17
-// cm" or "Ø24 x 26 cm (t13)". Falls back to a plain dash when nothing is
-// recorded yet.
+// Each measurement of a body with its plain name, in the order a person reads them, for the admin
+// list: "Width 35 cm", "Height 26 cm", "Depth 15 cm". Empty when nothing is recorded yet.
+export function bodyShapeMeasurements(shape: BodyShapeDimensionsLike): {label: string; value: string}[] {
+  const list: {label: string; value: string}[] = [];
+  if (shape.shapeType === "round") {
+    if (shape.diameterCm != null) list.push({label: "Diameter", value: `${shape.diameterCm} cm`});
+    if (shape.heightCm != null) list.push({label: "Height", value: `${shape.heightCm} cm`});
+    if (shape.thicknessCm != null) list.push({label: "Thickness", value: `${shape.thicknessCm} cm`});
+    return list;
+  }
+  if (shape.widthCm != null) {
+    list.push(
+      shape.widthBottomCm != null
+        ? {label: "Width, top / bottom", value: `${shape.widthCm} / ${shape.widthBottomCm} cm`}
+        : {label: "Width", value: `${shape.widthCm} cm`}
+    );
+  }
+  if (shape.heightCm != null) list.push({label: "Height", value: `${shape.heightCm} cm`});
+  if (shape.depthCm != null) list.push({label: "Depth", value: `${shape.depthCm} cm`});
+  return list;
+}
+
+// Short label used in dropdown options and on the product page, with every number named:
+// "W 35 x H 26 x D 15 cm" or "Diameter 24 x H 26 cm, 13 thick". A dash when nothing is recorded.
 export function summarizeBodyShapeDimensions(shape: BodyShapeDimensionsLike): string {
   if (shape.shapeType === "round") {
     if (shape.diameterCm == null) {
       return "—";
     }
-    const height = shape.heightCm != null ? ` x ${shape.heightCm}` : "";
-    const thickness = shape.thicknessCm != null ? ` (t${shape.thicknessCm})` : "";
-    return `Ø${shape.diameterCm}${height} cm${thickness}`;
+    const height = shape.heightCm != null ? ` x H ${shape.heightCm}` : "";
+    const thickness = shape.thicknessCm != null ? `, ${shape.thicknessCm} thick` : "";
+    return `Diameter ${shape.diameterCm}${height} cm${thickness}`;
   }
 
   if (shape.widthCm == null || shape.heightCm == null || shape.depthCm == null) {
     return "—";
   }
   const width = shape.widthBottomCm != null ? `${shape.widthCm}/${shape.widthBottomCm}` : `${shape.widthCm}`;
-  return `${width} x ${shape.heightCm} x ${shape.depthCm} cm`;
+  return `W ${width} x H ${shape.heightCm} x D ${shape.depthCm} cm`;
 }

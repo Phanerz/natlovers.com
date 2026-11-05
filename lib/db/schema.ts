@@ -591,6 +591,15 @@ export const customRequestImages = pgTable(
 //
 // Keyed by a fixed id rather than being a schemaless key/value store so
 // each setting stays a real typed column.
+// Small pieces of editable site copy and pictures, one row per piece (for example the "Anita Yan"
+// card on the home page). value is JSON so each piece can have its own fields.
+export const siteContent = pgTable("site_content", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedByEmail: text("updated_by_email"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}).enableRLS();
+
 export const storeSettings = pgTable("store_settings", {
   id: text("id").primaryKey().default("default"),
   customIntakePaused: boolean("custom_intake_paused").notNull().default(false),

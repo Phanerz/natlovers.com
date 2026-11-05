@@ -7294,3 +7294,10 @@ body:has(.outlets-stage--page) footer {
   font-style: italic;
   color: var(--pdp-muted);
 }
+
+/* The admin preview of the designer card sits in the page instead of following a cursor. */
+.designer-card.designer-card--static {
+  position: static;
+  width: 100%;
+  animation: none;
+}

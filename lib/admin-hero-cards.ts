@@ -7,7 +7,9 @@ const IMAGE_PREFIX = "hero-cards";
 
 // "color" and "image" are the swipeable card stack; the two slide types are the home page's
 // own photographs (phone carousel and desktop background), kept in the same table.
-export type HeroCardType = "color" | "image" | "slide_mobile" | "slide_desktop";
+// "slide" is the single shared list of home photographs (phone carousel and laptop background).
+// The two older per-device types are still understood so nothing saved before is lost.
+export type HeroCardType = "color" | "image" | "slide" | "slide_mobile" | "slide_desktop";
 const CARD_TYPES: HeroCardType[] = ["color", "image"];
 
 export type PublicHeroCard = {
@@ -24,7 +26,7 @@ export type AdminHeroCard = PublicHeroCard & {
 const hexColor = /^#[0-9a-fA-F]{6}$/;
 
 const createSchema = z.object({
-  cardType: z.enum(["color", "image", "slide_mobile", "slide_desktop"]),
+  cardType: z.enum(["color", "image", "slide", "slide_mobile", "slide_desktop"]),
   colorValue: z.string().regex(hexColor, "Color must be a hex value like #A1B2C3.").optional()
 });
 
@@ -51,15 +53,15 @@ export async function getActiveHeroCards(): Promise<PublicHeroCard[]> {
   return rows.map(toPublicCard);
 }
 
-// The home page photographs, in the order the admin set, for phones and for desktop.
+// The home page photographs, in the order the admin set, shared by phones and laptops.
 export async function getHeroSlides(): Promise<{mobile: string[]; desktop: string[]}> {
   const rows = await db
     .select()
     .from(heroCards)
-    .where(inArray(heroCards.cardType, ["slide_mobile", "slide_desktop"]))
+    .where(inArray(heroCards.cardType, ["slide", "slide_mobile", "slide_desktop"]))
     .orderBy(asc(heroCards.displayOrder));
-  const pick = (type: string) => rows.filter((row) => row.cardType === type && row.imageUrl).map((row) => row.imageUrl as string);
-  return {mobile: pick("slide_mobile"), desktop: pick("slide_desktop")};
+  const urls = rows.filter((row) => row.imageUrl).map((row) => row.imageUrl as string);
+  return {mobile: urls, desktop: urls};
 }
 
 export async function getAllHeroCardsForAdmin(): Promise<AdminHeroCard[]> {
