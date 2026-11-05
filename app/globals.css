@@ -7301,3 +7301,30 @@ body:has(.outlets-stage--page) footer {
   width: 100%;
   animation: none;
 }
+
+/* Instagram's in-app browser, on phones only (the page adds .ig-browser to <html> there). Its
+   window runs right down to the screen edge, behind the home indicator, so the pages stop a
+   little above it, and the catalogue pictures fill their tiles instead of leaving bands. */
+@media (max-width: 639px) {
+  html.ig-browser .home-main {
+    bottom: max(env(safe-area-inset-bottom), 28px);
+  }
+  html.ig-browser .fit-main {
+    height: calc(100svh - var(--header-height) - max(env(safe-area-inset-bottom), 28px));
+  }
+  html.ig-browser .catalogue-item-stage img {
+    object-fit: cover !important;
+  }
+  html.ig-browser .catalogue-mobile-strip {
+    padding-bottom: 16px;
+  }
+  html.ig-browser .outlets-stage--embedded > .shell {
+    padding-bottom: 0.5rem;
+  }
+}
+@media (max-width: 639px) {
+  /* The shorter Instagram window lets the hero photograph give up a little height first. */
+  html.ig-browser .m-hero__photo {
+    min-height: 7.5rem;
+  }
+}

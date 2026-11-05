@@ -70,6 +70,19 @@ function forcePlay(iframe: HTMLIFrameElement | null) {
   iframe?.contentWindow?.postMessage(JSON.stringify({event: "command", func: "playVideo", args: []}), "https://www.youtube.com");
 }
 
+// The film starts at 75% volume. The player only listens once it has loaded, so the command is
+// sent a few times as it comes up.
+function setStartVolume(iframe: HTMLIFrameElement | null) {
+  const send = (func: string, args: unknown[]) =>
+    iframe?.contentWindow?.postMessage(JSON.stringify({event: "command", func, args}), "https://www.youtube.com");
+  [300, 900, 1800, 3200].forEach((delay) =>
+    window.setTimeout(() => {
+      send("unMute", []);
+      send("setVolume", [75]);
+    }, delay)
+  );
+}
+
 export function AboutContent() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -142,6 +155,7 @@ export function AboutContent() {
                 title="Natlovers"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
+                onLoad={() => setStartVolume(iframeRef.current)}
               />
             </div>
           ) : (
