@@ -12,7 +12,7 @@ export default async function CataloguePage() {
   const [products, banners] = await Promise.all([getAllProducts(), getActiveBanners().catch(() => [])]);
 
   return (
-    <main className="page-enter">
+    <main className="page-enter fit-main">
       <Suspense fallback={null}>
         <CatalogueContent initialProducts={products} initialBanners={banners} />
       </Suspense>

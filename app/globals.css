@@ -6169,3 +6169,82 @@ body:has(.outlets-stage--page) footer {
     padding: 0.85rem 1rem 0.75rem;
   }
 }
+
+/* ===========================================================================
+   Phones, final paging model. The home page is its own fixed scroller under the
+   navbar, so the document itself never scrolls: the browser's address and tool
+   bars stay put, every page is exactly the visible height, and nothing resizes
+   or re-snaps in the middle of a swipe. The navbar is always on screen.
+   =========================================================================== */
+@media (max-width: 639px) {
+  html:has(.home-main),
+  body:has(.home-main),
+  html:has(.fit-main),
+  body:has(.fit-main) {
+    height: 100%;
+    overflow: hidden;
+    scroll-snap-type: none;
+  }
+  body:has(.home-main) > footer,
+  body:has(.fit-main) > footer {
+    display: none;
+  }
+  .home-main {
+    position: fixed;
+    top: var(--header-height);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    margin-top: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .home-main::-webkit-scrollbar {
+    display: none;
+  }
+  .home-main > .snap-page,
+  .home-main > .snap-page--hero {
+    height: 100%;
+    padding-top: 0;
+    transition: none;
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;
+  }
+  .home-main > .home-footer {
+    scroll-snap-align: end;
+  }
+  .fit-main {
+    height: calc(100svh - var(--header-height));
+    overflow: hidden;
+  }
+  /* The catalogue fills whichever of these holds it. */
+  .fit-main .catalogue-surface {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .fit-main .catalogue-mobile-strip {
+    height: 100%;
+    align-items: stretch;
+    padding: 4px 16px 12px;
+  }
+  .fit-main .catalogue-mobile-page {
+    height: 100%;
+  }
+  .fit-main .catalogue-mobile-page .catalogue-grid {
+    height: 100%;
+    align-content: stretch;
+    grid-auto-rows: minmax(0, 1fr);
+    gap: 12px;
+    padding-top: 0;
+  }
+  .fit-main .catalogue-grid .catalogue-item-stage {
+    flex: 1 1 0;
+    min-height: 0;
+    aspect-ratio: auto;
+  }
+}

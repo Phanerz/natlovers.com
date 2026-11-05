@@ -161,57 +161,7 @@ export function Header() {
   const {mounted: cabinetMounted, entered: cabinetEntered} = useDelayedMount(cabinetOpen);
   const {mounted: mobileMounted, entered: mobileEntered} = useDelayedMount(mobileOpen);
 
-  // Phones and tablets: the bar slides away while reading down the page and
-  // slides back the moment you scroll up (or are near the top). One passive
-  // listener, throttled to animation frames, writing a class straight to the
-  // element  -  no React state, so scrolling never re-renders anything. Movement
-  // is accumulated per direction so small finger jitters and iOS momentum
-  // tails cannot flip it back and forth.
-  useEffect(() => {
-    const header = headerRef.current;
-    if (!header) return;
-    const phone = window.matchMedia("(max-width: 639px)");
-    let lastY = window.scrollY;
-    let travelled = 0;
-    let hidden = false;
-    let queued = false;
-
-    const apply = (next: boolean) => {
-      if (next === hidden) return;
-      hidden = next;
-      header.classList.toggle("is-hidden", next);
-      document.documentElement.classList.toggle("hdr-hidden", next);
-    };
-
-    const update = () => {
-      queued = false;
-      const y = Math.max(0, window.scrollY);
-      const dy = y - lastY;
-      lastY = y;
-      if (!phone.matches || y <= 80) {
-        travelled = 0;
-        apply(false);
-        return;
-      }
-      travelled = dy > 0 === travelled > 0 ? travelled + dy : dy;
-      if (travelled > 14) apply(true);
-      else if (travelled < -8) apply(false);
-    };
-
-    const onScroll = () => {
-      if (!queued) {
-        queued = true;
-        window.requestAnimationFrame(update);
-      }
-    };
-
-    window.addEventListener("scroll", onScroll, {passive: true});
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      header.classList.remove("is-hidden");
-      document.documentElement.classList.remove("hdr-hidden");
-    };
-  }, []);
+  // The bar stays put on every screen: it is the fixed top of each page.
 
   // Shopping Bag drawer: focus moves into the
   // drawer and is kept there, Escape closes it, and focus goes back to
@@ -1099,7 +1049,10 @@ export function Header() {
                       // On a phone the menu opens the page itself, not a scroll to a section.
                       event.preventDefault();
                       setMobileOpen(false);
-                      if (item.href === pathname) window.scrollTo({top: 0});
+                      if (item.href === pathname) {
+                        window.scrollTo({top: 0});
+                        document.querySelector(".home-main")?.scrollTo({top: 0});
+                      }
                       else router.push(item.href);
                     }}
                     className={`m-menu__link ${item.href === activeHref ? "is-active" : ""}`}
