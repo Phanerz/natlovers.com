@@ -6015,3 +6015,15 @@ body:has(.outlets-stage--page) footer {
     margin-top: 0.35rem;
   }
 }
+
+/* Laptops and desktops: the catalogue's product area (tabs and grid, not the
+   filter sidebar or the navbar) sits on a paper texture, ivory in light mode and
+   olive in dark mode. */
+@media (min-width: 1024px) {
+  .catalogue-stage {
+    background: url("/images/ivory-bg.png") center / cover no-repeat;
+  }
+  .dark .catalogue-stage {
+    background: url("/images/olive-bg.png") center / cover no-repeat;
+  }
+}

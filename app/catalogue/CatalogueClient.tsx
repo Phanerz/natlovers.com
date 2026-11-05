@@ -1160,7 +1160,7 @@ export function CatalogueContent({
           {/* Right-hand column: the category tabs and count/sort sit directly
               above the grid, on the same left edge as the products. The wheel
               handler stays on the inner div below, exactly where it was. */}
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="catalogue-stage flex min-h-0 min-w-0 flex-1 flex-col">
         {/* Phone: plain text category tabs under the header, then the editorial
             introduction, as in the reference. (The glass pill with the drag
             indicator below is the tablet/desktop version of the same control.) */}
