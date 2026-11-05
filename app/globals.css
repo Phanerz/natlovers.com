@@ -7047,3 +7047,86 @@ body:has(.outlets-stage--page) footer {
     height: calc(8 * var(--s) + 7 * var(--g));
   }
 }
+
+/* --- house line above the dictionary card: ivory only, large spacing, nothing decorative --- */
+.hero-house {
+  display: inline-flex;
+  width: fit-content;
+  align-items: baseline;
+  gap: 1.2rem;
+  color: #efe8d8;
+}
+.hero-house__by {
+  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-size: 1.02rem;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  color: rgba(239, 232, 216, 0.8);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55);
+}
+.hero-house__name {
+  position: relative;
+  padding-bottom: 0.5rem;
+  background: linear-gradient(105deg, #f6f1e4 38%, #ffffff 50%, #f6f1e4 62%) 100% 0 / 260% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Georgia, serif;
+  font-size: 0.98rem;
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0.52em;
+  text-transform: uppercase;
+  filter: drop-shadow(0 1px 8px rgba(0, 0, 0, 0.55));
+  animation: houseSheen 10s ease-in-out infinite;
+}
+/* A single fine rule under the name, drawn once when the page opens. */
+.hero-house__name::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0.52em;
+  height: 1px;
+  background: rgba(239, 232, 216, 0.6);
+  transform-origin: left;
+  animation: houseRule 1.8s cubic-bezier(0.22, 1, 0.36, 1) 0.4s both;
+}
+.hero-house__bar {
+  width: 1px;
+  height: 1rem;
+  align-self: center;
+  background: rgba(239, 232, 216, 0.4);
+}
+.hero-house__since {
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+  color: rgba(239, 232, 216, 0.82);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55);
+}
+@keyframes houseSheen {
+  0%,
+  55%,
+  100% {
+    background-position: 100% 0;
+  }
+  80% {
+    background-position: 0 0;
+  }
+}
+@keyframes houseRule {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-house__name,
+  .hero-house__name::after {
+    animation: none;
+  }
+}

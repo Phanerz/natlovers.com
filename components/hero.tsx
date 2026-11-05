@@ -218,12 +218,11 @@ const cardTransform = useMemo(() => {
         <div className="relative z-10 mx-auto flex h-full w-full max-w-[1680px] flex-col justify-center px-4 py-5 max-sm:py-3 sm:px-6 md:px-8 lg:px-10 xl:px-14">
           <div className="hero-grid grid h-full items-center gap-[21px] max-lg:content-center max-lg:gap-4 lg:grid-cols-[minmax(0,1.618fr)_minmax(360px,1fr)] lg:gap-[34px] xl:gap-[55px]">
             <div className="flex min-w-0 flex-col justify-center max-lg:order-2">
-              <div className="hero-brand">
-                <span className="hero-brand__rule" aria-hidden />
-                <span>{locale === "en" ? "Designed by" : "Dirancang oleh"}</span>
-                <em className="hero-brand__name">Anita Yan</em>
-                <span className="hero-brand__dot" aria-hidden />
-                <span>{locale === "en" ? "Since 1998" : "Sejak 1998"}</span>
+              <div className="hero-house">
+                <span className="hero-house__by">{locale === "en" ? "Designed by" : "Dirancang oleh"}</span>
+                <em className="hero-house__name">Anita Yan</em>
+                <span className="hero-house__bar" aria-hidden />
+                <span className="hero-house__since">{locale === "en" ? "Since 1998" : "Sejak 1998"}</span>
               </div>
 
               <div
