@@ -6,7 +6,7 @@ import {useEffect, useMemo, useRef, useState} from "react";
 import {ArrowDown, ArrowRight, Hand, Infinity as InfinityIcon, Leaf} from "lucide-react";
 import {CurrencyCode, Locale} from "@/lib/site";
 import {HeroCardStack} from "@/components/hero-card-stack";
-import {HeroFactCard, SDG_FACTS, VALUE_FACTS, warmFactImages, type HeroFact} from "@/components/hero-facts";
+import {HeroFactCard, SDG_FACTS, VALUE_FACTS, warmFactImages, decodeFactImage, type HeroFact} from "@/components/hero-facts";
 
 const HERO_VIDEO_SRC = "https://ftw7p3nsw06ehaup.public.blob.vercel-storage.com/natlovers-hero.mp4";
 
@@ -32,6 +32,9 @@ export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [slide, setSlide] = useState(0);
   const [fact, setFact] = useState<HeroFact | null>(null);
+  const openFact = (item: HeroFact) => {
+    void decodeFactImage(item.image).then(() => setFact(item));
+  };
   const slideCount = MOBILE_SLIDES.length;
 
   // Phones only: once the page is idle, fetch the pictures the fact cards use.
@@ -270,7 +273,7 @@ const cardTransform = useMemo(() => {
               const Icon = [Leaf, Hand, InfinityIcon][index];
               return (
                 <li key={item.id}>
-                  <button type="button" className="m-hero__value" aria-haspopup="dialog" onClick={() => setFact(item)}>
+                  <button type="button" className="m-hero__value" aria-haspopup="dialog" onClick={() => openFact(item)}>
                     <Icon aria-hidden />
                     <span>{item.title}</span>
                   </button>
@@ -290,7 +293,7 @@ const cardTransform = useMemo(() => {
                     className="m-hero__goal"
                     aria-haspopup="dialog"
                     aria-label={`UN Sustainable Development Goal ${tile.goal}: ${tile.name}. Read how we align.`}
-                    onClick={() => setFact(SDG_FACTS[index])}
+                    onClick={() => openFact(SDG_FACTS[index])}
                   >
                     <Image src={tile.src} alt="" width={180} height={180} sizes="110px" />
                   </button>

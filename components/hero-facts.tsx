@@ -25,7 +25,7 @@ export const VALUE_FACTS: HeroFact[] = [
     title: "Natural Materials",
     lede: "Grown, not made.",
     body: "Agel, mendong, water hyacinth and tenun, gathered close to home and shaped slowly by hand. No two bags ever come out the same.",
-    image: "/images/natlovers-bags-2.webp",
+    image: "/images/fact-materials.webp",
     imageAlt: "Natural-fibre Natlovers bag with embroidered flowers"
   },
   {
@@ -34,7 +34,7 @@ export const VALUE_FACTS: HeroFact[] = [
     title: "Handcrafted",
     lede: "Made by many hands.",
     body: "Every bag travels through a dozen of our makers in Yogyakarta, some of them deaf, mute or living with polio. Their skill is in every stitch.",
-    image: "/images/natlovers-bags-4.webp",
+    image: "/images/fact-handcrafted.webp",
     imageAlt: "Handcrafted Natlovers bags in natural fibre and colour"
   },
   {
@@ -43,7 +43,7 @@ export const VALUE_FACTS: HeroFact[] = [
     title: "Sustainable",
     lede: "Made to be kept.",
     body: "We work in small batches and mend what we make. A Natlovers bag is meant to be loved for years, not replaced next season.",
-    image: "/images/natlovers-bags-1.jpg",
+    image: "/images/fact-sustainable.webp",
     imageAlt: "A collection of Natlovers bags"
   }
 ];
@@ -90,12 +90,27 @@ export function warmFactImages() {
   }
 }
 
+// Opens a card only once its picture is decoded (or after a short wait), so the turn never
+// has to share the phone's attention with a picture still being unpacked.
+export function decodeFactImage(src: string): Promise<void> {
+  return new Promise((resolve) => {
+    const image = new window.Image();
+    image.src = src;
+    const done = () => resolve();
+    window.setTimeout(done, 350);
+    if (image.decode) image.decode().then(done, done);
+    else image.onload = done;
+  });
+}
+
 // A small card that turns once and settles, picture above, a few words below. Shown over a
 // dimmed page; Escape, the close button and a tap outside all dismiss it.
 export function HeroFactCard({fact, onClose}: {fact: HeroFact; onClose: () => void}) {
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
+    // Anything that loops underneath is paused while the card turns.
+    document.documentElement.classList.add("fact-open");
     const opener = document.activeElement as HTMLElement | null;
     closeRef.current?.focus({preventScroll: true});
     const onKey = (event: KeyboardEvent) => {
@@ -103,6 +118,7 @@ export function HeroFactCard({fact, onClose}: {fact: HeroFact; onClose: () => vo
     };
     document.addEventListener("keydown", onKey);
     return () => {
+      document.documentElement.classList.remove("fact-open");
       document.removeEventListener("keydown", onKey);
       opener?.focus?.({preventScroll: true});
     };
