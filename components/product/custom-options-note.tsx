@@ -5,6 +5,7 @@ import {Minus, Plus, X} from "lucide-react";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {colourSwatchStyle} from "@/lib/colour-library";
 import {formatCurrency} from "@/lib/format";
+import {extraAmount, lineExtrasTotal, unitPrice, type Priced} from "@/lib/pricing";
 import {
   defaultItem,
   resolveOptions,
@@ -268,15 +269,17 @@ export function CustomOptionsNote({
   options,
   answers,
   onChange,
-  basePriceIdr
+  product
 }: {
   options: ProductOptions;
   answers: OptionAnswers;
   onChange: (next: OptionAnswers) => void;
-  basePriceIdr: number;
+  // The piece itself, for its fixed price in each currency.
+  product: Priced;
 }) {
   const {currency} = useSitePreferences();
-  const money = (amount: number) => formatCurrency(amount, currency);
+  // Option prices are set in rupiah; here they are shown in the chosen currency, in step with this piece's own price.
+  const money = (amountIdr: number) => formatCurrency(extraAmount(product, amountIdr, currency), currency);
   const resolved = resolveOptions(options, answers);
   const priced = resolved.lines.filter((line) => line.extraIdr > 0);
 
@@ -322,7 +325,7 @@ export function CustomOptionsNote({
       <dl className="pdp-receipt" aria-label="Price of your selection">
         <div>
           <dt>The piece, as pictured</dt>
-          <dd>{money(basePriceIdr)}</dd>
+          <dd>{formatCurrency(unitPrice(product, currency), currency)}</dd>
         </div>
         {priced.map((line, index) => (
           <div key={`${line.label}-${index}`}>
@@ -332,7 +335,7 @@ export function CustomOptionsNote({
         ))}
         <div className="pdp-receipt-total">
           <dt>Your total</dt>
-          <dd>{money(basePriceIdr + resolved.extraIdr)}</dd>
+          <dd>{formatCurrency(unitPrice(product, currency) + lineExtrasTotal(product, resolved.lines, currency), currency)}</dd>
         </div>
       </dl>
       <p className="pdp-note-sign">Made by hand, just for you</p>

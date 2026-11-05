@@ -647,21 +647,43 @@ export function ProductForm({
               {skuError ? <p className="text-sm font-medium text-red-600">{skuError}</p> : null}
             </div>
 
-            <label className="block max-w-xs space-y-2 text-sm text-forest-700">
-              <span className="muted">Price</span>
-              <div className="flex items-center overflow-hidden rounded-lg border border-[#d4c5ab] bg-[#fffdf9] focus-within:border-forest-400">
-                <span className="pl-4 text-base text-forest-500">Rp</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={form.priceIdr}
-                  onChange={(event) => onChange({...form, priceIdr: event.target.value})}
-                  required
-                  placeholder="Enter price"
-                  className="w-full min-w-0 bg-transparent py-3 pl-1 pr-4 text-base text-forest-900 outline-none"
-                />
-              </div>
-            </label>
+            {/* Two fixed prices, set by hand: nothing on the site is converted at an exchange rate. */}
+            <div className="grid max-w-xl gap-4 sm:grid-cols-2">
+              <label className="block space-y-2 text-sm text-forest-700">
+                <span className="muted">Price in rupiah</span>
+                <div className="flex items-center overflow-hidden rounded-lg border border-[#d4c5ab] bg-[#fffdf9] focus-within:border-forest-400">
+                  <span className="pl-4 text-base text-forest-500">Rp</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.priceIdr}
+                    onChange={(event) => onChange({...form, priceIdr: event.target.value})}
+                    required
+                    placeholder="2250000"
+                    className="w-full min-w-0 bg-transparent py-3 pl-1 pr-4 text-base text-forest-900 outline-none"
+                  />
+                </div>
+              </label>
+              <label className="block space-y-2 text-sm text-forest-700">
+                <span className="muted">Price in US dollars</span>
+                <div className="flex items-center overflow-hidden rounded-lg border border-[#d4c5ab] bg-[#fffdf9] focus-within:border-forest-400">
+                  <span className="pl-4 text-base text-forest-500">$</span>
+                  <input
+                    type="number"
+                    min={1}
+                    step="0.01"
+                    value={form.priceUsd}
+                    onChange={(event) => onChange({...form, priceUsd: event.target.value})}
+                    required
+                    placeholder="149"
+                    className="w-full min-w-0 bg-transparent py-3 pl-1 pr-4 text-base text-forest-900 outline-none"
+                  />
+                </div>
+              </label>
+              <p className="text-xs text-forest-500 sm:col-span-2">
+                Each currency has its own fixed price. Customers pay exactly the one they choose; nothing is converted.
+              </p>
+            </div>
 
             <label className="block space-y-2 text-sm text-forest-700">
               <span className="muted">Short Description (optional)</span>

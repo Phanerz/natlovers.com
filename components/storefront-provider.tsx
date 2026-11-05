@@ -5,7 +5,8 @@ import {usePathname, useRouter} from "next/navigation";
 import {useSession} from "next-auth/react";
 import {selectionExtras} from "@/lib/product-options";
 import type {ProductCard as ProductCardType} from "@/lib/data";
-import {Locale} from "@/lib/site";
+import {CurrencyCode, Locale} from "@/lib/site";
+import {lineUnitPrice} from "@/lib/pricing";
 import type {AdminProduct} from "@/lib/admin-products";
 import type {CartConfig} from "@/lib/cart";
 
@@ -39,7 +40,7 @@ type StorefrontContextValue = {
   startBankTransferForProduct: (slug: string) => void;
   startBankTransferForCart: () => void;
   clearCheckoutDraft: () => void;
-  getCartSubtotalIdr: (locale?: Locale) => number;
+  getCartSubtotal: (currency: CurrencyCode) => number;
 };
 
 const StorefrontContext = createContext<StorefrontContextValue | null>(null);
@@ -54,6 +55,7 @@ function toProductCard(product: AdminProduct): ProductCardType {
     title: product.name,
     description: product.description ?? "",
     priceIdr: product.priceIdr,
+    priceUsdCents: product.priceUsdCents,
     imageUrl: product.images[0] ?? product.imageUrl,
     story: product.description ?? "",
     materials: product.materials,
@@ -209,11 +211,11 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
     setCheckoutDraft(null);
   }
 
-  function getCartSubtotalIdr() {
-    // Locale param kept for call-site compatibility; pricing is locale-independent now.
+  function getCartSubtotal(currency: CurrencyCode) {
+    // Each line is priced in the chosen currency from the product's own fixed price.
     return cartItems.reduce((sum, item) => {
       const product = resolveProduct(item.slug);
-      return product ? sum + (product.priceIdr + selectionExtras(product.customisation, item.config).extraIdr) * item.quantity : sum;
+      return product ? sum + lineUnitPrice(product, selectionExtras(product.customisation, item.config).lines, currency) * item.quantity : sum;
     }, 0);
   }
 
@@ -237,7 +239,7 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
       startBankTransferForProduct,
       startBankTransferForCart,
       clearCheckoutDraft,
-      getCartSubtotalIdr
+      getCartSubtotal
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [products, cartItems, cabinetOpen, previewSlug, checkoutDraft, status]

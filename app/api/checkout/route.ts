@@ -2,6 +2,8 @@ import {NextRequest, NextResponse} from "next/server";
 import {z} from "zod";
 import {addressInputSchema} from "@/lib/addresses";
 import {createOrder} from "@/lib/orders";
+import {paymentRouteFor} from "@/lib/payment-routes";
+import {normalizeCurrency} from "@/lib/site";
 import {getSession} from "@/lib/auth";
 import {customConfigSchema} from "@/lib/custom-studio";
 import {productSelectionSchema} from "@/lib/product-selection";
@@ -46,6 +48,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({error: addressResult.error.issues[0]?.message ?? "A shipping address is required."}, {status: 400});
   }
 
+  // The customer's chosen currency decides both the price they are charged (each product has its
+  // own fixed price in each currency) and which payment route the order takes.
+  const currency = normalizeCurrency(body?.currency);
+  const route = paymentRouteFor(currency);
+
   try {
     const order = await createOrder(
       userId,
@@ -55,11 +62,27 @@ export async function POST(request: NextRequest) {
         accountName: process.env.BANK_TRANSFER_ACCOUNT_NAME ?? "Natlovers",
         accountNumber: process.env.BANK_TRANSFER_ACCOUNT_NUMBER ?? "0000000000"
       },
-      addressResult.data
+      addressResult.data,
+      currency
     );
+
+    if (route === "usd_invoice") {
+      // Dollar orders take the international route. Until a provider is connected the order is
+      // held as pending and the customer is told an invoice will follow; no bank details are shown.
+      return NextResponse.json({
+        ok: true,
+        route,
+        currency,
+        orderRef: order.orderRef,
+        items: order.items,
+        total: (order.totalUsdCents ?? 0) / 100
+      });
+    }
 
     return NextResponse.json({
       ok: true,
+      route,
+      currency,
       orderRef: order.orderRef,
       accountName: order.accountName,
       accountNumber: order.accountNumber,

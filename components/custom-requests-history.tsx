@@ -6,7 +6,7 @@ import {DaisyLoader} from "@/components/daisy-loader";
 import {useEffect, useState} from "react";
 import {useRefreshOnReturn} from "@/components/use-refresh-on-return";
 import {ArrowRight} from "lucide-react";
-import {formatCurrency} from "@/lib/format";
+import {formatEstimate} from "@/lib/format";
 import type {CurrencyCode} from "@/lib/site";
 import {
   customerFacingStatusLabels,
@@ -149,9 +149,9 @@ export function CustomRequestsHistory({currency}: {currency: CurrencyCode}) {
                 </p>
                 <p className={`mt-1 font-display text-xl ${quoted ? "text-sand-50" : "text-forest-900"}`}>
                   {quoted
-                    ? formatCurrency(request.finalPriceIdr!, currency)
+                    ? formatEstimate(request.finalPriceIdr!, currency)
                     : request.estimatedPriceIdr > 0
-                      ? formatCurrency(request.estimatedPriceIdr, currency)
+                      ? formatEstimate(request.estimatedPriceIdr, currency)
                       : "To be quoted"}
                 </p>
               </div>

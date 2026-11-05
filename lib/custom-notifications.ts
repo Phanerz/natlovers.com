@@ -1,7 +1,7 @@
 import {eq} from "drizzle-orm";
 import {Resend} from "resend";
 import {db, users} from "@/lib/db";
-import {formatCurrency} from "@/lib/format";
+import {formatEstimate} from "@/lib/format";
 import {summariseConfig} from "@/lib/custom-studio";
 import {ESTIMATE_DISCLAIMER} from "@/lib/custom-pricing";
 import type {CustomRequestView} from "@/lib/custom-requests";
@@ -89,7 +89,7 @@ export async function sendCustomRequestReceivedEmail(userId: string, request: Cu
   }
 
   const greeting = customer.name ? `Hi ${escapeHtml(customer.name.split(" ")[0])},` : "Hi,";
-  const price = request.estimatedPriceIdr > 0 ? formatCurrency(request.estimatedPriceIdr, request.currency) : null;
+  const price = request.estimatedPriceIdr > 0 ? formatEstimate(request.estimatedPriceIdr, request.currency) : null;
 
   const body = `
     <p style="margin:0 0 20px; font-size:15px; line-height:1.7; color:#344332;">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import {createPortal} from "react-dom";
 import {ArrowRight, Search, X} from "lucide-react";
 import {formatCurrency} from "@/lib/format";
+import {unitPrice} from "@/lib/pricing";
 import {CurrencyCode} from "@/lib/site";
 
 type SearchResult = {
@@ -12,6 +13,7 @@ type SearchResult = {
   title: string;
   description: string;
   priceIdr: number;
+  priceUsdCents?: number | null;
   imageUrl: string;
 };
 
@@ -130,7 +132,7 @@ export function NavSearchModal({
                     <p className="truncate text-xs text-forest-500">{product.description}</p>
                   </div>
                   <span className="shrink-0 rounded-full border border-[#e4d9c1] bg-white px-3 py-1.5 text-xs font-semibold text-forest-800">
-                    {formatCurrency(product.priceIdr, currency)}
+                    {formatCurrency(unitPrice(product, currency), currency)}
                   </span>
                 </button>
               ))}

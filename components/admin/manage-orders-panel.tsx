@@ -5,6 +5,7 @@ import {CheckCircle2, Clock, Truck} from "lucide-react";
 import {OrderItemDetails} from "@/components/order-item-details";
 import {orderStatusLabels} from "@/lib/order-status";
 import {DEFAULT_PAGE_SIZE, PageSize, PaginationBar} from "./pagination-bar";
+import {formatOrderTotal} from "@/lib/format";
 import {Toast, ToastState} from "./toast";
 import {useConfirm} from "./use-confirm";
 
@@ -15,6 +16,8 @@ type AdminOrder = {
   orderRef: string;
   status: string;
   totalIdr: number;
+  currency?: string;
+  totalUsdCents?: number | null;
   createdAt: string;
   customerName: string | null;
   customerEmail: string | null;
@@ -242,7 +245,10 @@ export function ManageOrdersPanel() {
                       ))}
                     </ul>
                   </td>
-                  <td className="py-3 pr-3 whitespace-nowrap text-forest-700">{formatIdr(order.totalIdr)}</td>
+                  <td className="py-3 pr-3 whitespace-nowrap text-forest-700">
+                    {formatOrderTotal(order)}
+                    {order.currency === "USD" ? <span className="ml-1.5 rounded-full bg-[#e8efe0] px-2 py-0.5 text-[10px] font-semibold text-forest-700">USD</span> : null}
+                  </td>
                   <td className="py-3 pr-3">
                     <StatusBadge status={order.status} />
                     {order.status !== "pending_transfer" && order.confirmedByEmail ? (

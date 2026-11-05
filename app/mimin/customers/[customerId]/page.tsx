@@ -1,4 +1,5 @@
 import Image from "next/image";
+import {formatOrderTotal} from "@/lib/format";
 import Link from "next/link";
 import {notFound} from "next/navigation";
 import {ArrowLeft, Mail, MapPin, MessageCircle} from "lucide-react";
@@ -106,7 +107,8 @@ export default async function AdminCustomerDetailPage({params}: {params: Promise
         </div>
         <div className="rounded-xl border border-[#d4c5ab] bg-[#fffaf1] p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-forest-500">Total Spent</p>
-          <p className="mt-1 font-display text-2xl text-forest-900">{formatIdr(customer.totalSpentIdr)}</p>
+          <p className="mt-1 font-display text-2xl text-forest-900">{formatIdr(customer.totalSpentIdr)}
+            {customer.totalSpentUsdCents > 0 ? <span className="ml-2 text-base text-forest-600">+ {formatOrderTotal({currency: "USD", totalIdr: 0, totalUsdCents: customer.totalSpentUsdCents})}</span> : null}</p>
         </div>
         <div className="rounded-xl border border-[#d4c5ab] bg-[#fffaf1] p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-forest-500">First Order</p>
@@ -147,7 +149,7 @@ export default async function AdminCustomerDetailPage({params}: {params: Promise
                       </td>
                       <td className="py-3 pr-3 whitespace-nowrap text-forest-600">{formatDate(order.createdAt)}</td>
                       <td className="py-3 pr-3 text-forest-700">{order.itemCount}</td>
-                      <td className="py-3 pr-3 whitespace-nowrap text-forest-700">{formatIdr(order.totalIdr)}</td>
+                      <td className="py-3 pr-3 whitespace-nowrap text-forest-700">{formatOrderTotal(order)}</td>
                       <td className="py-3">
                         <StatusBadge status={order.status} />
                       </td>

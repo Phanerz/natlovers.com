@@ -106,7 +106,8 @@ async function getPeriodMetrics(start: Date | null, end: Date): Promise<PeriodMe
       .select({
         value: count(),
         paid: sql<number>`count(*) filter (where ${inArray(orders.status, PAID_STATUSES)})::int`,
-        revenue: sql<number>`coalesce(sum(${orders.totalIdr}) filter (where ${inArray(orders.status, PAID_STATUSES)}), 0)::int`
+        // Revenue is the rupiah side only: dollar orders are never added into a rupiah figure.
+        revenue: sql<number>`coalesce(sum(${orders.totalIdr}) filter (where ${inArray(orders.status, PAID_STATUSES)} and ${orders.currency} = 'IDR'), 0)::int`
       })
       .from(orders)
       .where(rangeFilter),
@@ -245,7 +246,7 @@ export async function getSalesSeries(range: DateRangeKey): Promise<SalesSeriesPo
   const rows = await db
     .select({
       date: sql<string>`${bucket}`,
-      revenue: sql<number>`coalesce(sum(${orders.totalIdr}), 0)::int`,
+      revenue: sql<number>`coalesce(sum(${orders.totalIdr}) filter (where ${orders.currency} = 'IDR'), 0)::int`,
       orders: sql<number>`count(distinct ${orders.id})::int`,
       itemsSold: sql<number>`coalesce(sum(${orderItems.quantity}), 0)::int`
     })
@@ -264,6 +265,8 @@ export type RecentOrder = {
   customerName: string | null;
   customerEmail: string | null;
   totalIdr: number;
+  currency: string;
+  totalUsdCents: number | null;
   status: string;
   createdAt: string;
 };
@@ -276,6 +279,8 @@ export async function getRecentOrders(limit = 5): Promise<RecentOrder[]> {
       customerName: users.name,
       customerEmail: users.email,
       totalIdr: orders.totalIdr,
+      currency: orders.currency,
+      totalUsdCents: orders.totalUsdCents,
       status: orders.status,
       createdAt: orders.createdAt
     })
@@ -314,7 +319,7 @@ export async function getBestSellingProducts(limit = 5): Promise<BestSellingProd
     })
     .from(orderItems)
     .innerJoin(orders, eq(orderItems.orderId, orders.id))
-    .where(inArray(orders.status, PAID_STATUSES))
+    .where(and(inArray(orders.status, PAID_STATUSES), eq(orders.currency, "IDR")))
     .groupBy(orderItems.productSlug, orderItems.productName)
     .orderBy(desc(sql`sum(${orderItems.quantity})`))
     .limit(limit);

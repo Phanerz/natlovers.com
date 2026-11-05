@@ -159,6 +159,9 @@ export function NavPreferencesModal({
                   );
                 })}
               </div>
+              <p className="mt-4 text-xs leading-5 text-forest-500">
+                Every piece has its own fixed price in each currency, set by Natlovers. Nothing is converted at an exchange rate, and you pay exactly the price shown.
+              </p>
             </div>
           </div>
 

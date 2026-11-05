@@ -7286,3 +7286,11 @@ body:has(.outlets-stage--page) footer {
   -webkit-user-drag: none;
   user-select: none;
 }
+
+/* The small line under a price that says it is a fixed price, not a conversion. */
+.pdp-fixed-note {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--pdp-muted);
+}

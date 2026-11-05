@@ -82,6 +82,10 @@ export const products = pgTable(
     slug: text("slug").notNull().unique(),
     name: text("name").notNull(),
     priceIdr: integer("price_idr").notNull(),
+    // The price in US dollars, set by hand (in cents) beside the rupiah price: each currency has
+    // its own fixed price, nothing is converted at an exchange rate.
+    priceUsdCents: integer("price_usd_cents"),
+    compareAtPriceUsdCents: integer("compare_at_price_usd_cents"),
     // Optional strike-through reference price and internal cost, both IDR
     // like priceIdr. Neither is customer-facing beyond compareAtPriceIdr's
     // strike-through use  -  costPriceIdr is for margin visibility in the
@@ -386,6 +390,10 @@ export const orders = pgTable("orders", {
   orderRef: text("order_ref").notNull().unique(),
   status: text("status").notNull().default("pending_transfer"),
   totalIdr: integer("total_idr").notNull(),
+  // What the customer chose to pay in. "IDR" orders use totalIdr; "USD" orders use totalUsdCents
+  // (totalIdr then only holds the rupiah list price, for reference).
+  currency: text("currency").notNull().default("IDR"),
+  totalUsdCents: integer("total_usd_cents"),
   bankName: text("bank_name").notNull(),
   accountName: text("account_name").notNull(),
   accountNumber: text("account_number").notNull(),
@@ -426,6 +434,7 @@ export const orderItems = pgTable("order_items", {
   productSlug: text("product_slug").notNull(),
   productName: text("product_name").notNull(),
   priceIdr: integer("price_idr").notNull(),
+  priceUsdCents: integer("price_usd_cents"),
   quantity: integer("quantity").notNull(),
   // Snapshot of the cart line's config at checkout time, same snapshot
   // philosophy as productName/priceIdr above  -  what was actually ordered

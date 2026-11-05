@@ -31,6 +31,7 @@ import {useRefreshOnReturn} from "@/components/use-refresh-on-return";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {ThemeToggle} from "@/components/theme-toggle";
 import {formatCurrency} from "@/lib/format";
+import {unitPrice} from "@/lib/pricing";
 import {DEFAULT_WIDGETS, WIDGET_CATALOG, WidgetKey} from "@/lib/admin-widgets";
 import type {CustomerTelemetry} from "@/lib/customers";
 import type {DashboardStats} from "@/lib/dashboard-stats";
@@ -409,15 +410,28 @@ function AccountContent() {
                             <span>
                               {item.name} <span className="text-forest-500">&times;{item.quantity}</span>
                             </span>
-                            <span>{formatCurrency(item.priceIdr * item.quantity, currency)}</span>
+                            <span>
+                              {order.currency === "USD"
+                                ? formatCurrency(((item.priceUsdCents ?? 0) * item.quantity) / 100, "USD")
+                                : formatCurrency(item.priceIdr * item.quantity, "IDR")}
+                            </span>
                           </div>
-                          <OrderItemDetails config={item.config} formatMoney={(amount) => formatCurrency(amount, currency)} className="text-forest-600" />
+                          <OrderItemDetails
+                            config={item.config}
+                            // Option amounts were saved in rupiah; a dollar order shows them in step with its own dollar price.
+                            formatMoney={(amount) =>
+                              order.currency === "USD" && item.priceUsdCents && item.priceIdr
+                                ? formatCurrency(Math.max(1, Math.round((amount * item.priceUsdCents) / 100 / item.priceIdr)), "USD")
+                                : formatCurrency(amount, "IDR")
+                            }
+                            className="text-forest-600"
+                          />
                         </div>
                       ))}
                     </div>
                     <div className="mt-3 flex items-center justify-between border-t border-[#e4d9c1] pt-3 text-sm font-semibold text-forest-900">
                       <span>Total</span>
-                      <span>{formatCurrency(order.totalIdr, currency)}</span>
+                      <span>{order.currency === "USD" ? formatCurrency((order.totalUsdCents ?? 0) / 100, "USD") : formatCurrency(order.totalIdr, "IDR")}</span>
                     </div>
                   </div>
                 ))}
@@ -454,7 +468,7 @@ function AccountContent() {
                       </div>
                       <div className="min-w-0">
                         <p className="truncate font-display text-base text-forest-900">{product.name}</p>
-                        <p className="text-sm text-forest-600">{formatCurrency(product.priceIdr, currency)}</p>
+                        <p className="text-sm text-forest-600">{formatCurrency(unitPrice(product, currency), currency)}</p>
                       </div>
                     </Link>
                   ))}

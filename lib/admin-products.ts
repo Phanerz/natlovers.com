@@ -63,6 +63,9 @@ export type AdminProduct = ShopProduct & {
   bodyShape: AdminBodyShape | null;
   subcategory: string | null;
   compareAtPriceIdr: number | null;
+  // The fixed dollar prices, in cents, set by hand beside the rupiah ones.
+  priceUsdCents: number | null;
+  compareAtPriceUsdCents: number | null;
   costPriceIdr: number | null;
   metaTitle: string | null;
   metaDescription: string | null;
@@ -196,6 +199,19 @@ function parseOptionalIntField(formData: FormData, field: string, label: string)
   return value;
 }
 
+// A dollar amount typed in the admin form ("149" or "149.50"), stored as whole cents. Empty is null.
+function parseUsdCentsField(formData: FormData, field: string, label: string): number | null {
+  const raw = formData.get(field);
+  if (raw === null || raw.toString().trim() === "") {
+    return null;
+  }
+  const value = Number(raw.toString().trim());
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`${label} must be an amount in dollars, like 149 or 149.50.`);
+  }
+  return Math.round(value * 100);
+}
+
 // publishedAt travels as an ISO/datetime-local string or is absent
 // entirely; empty clears it back to null (e.g. moving a product back to
 // draft in the same edit).
@@ -281,6 +297,8 @@ function toAdminProduct(row: typeof products.$inferSelect, bodyShape: AdminBodyS
     name: row.name,
     priceIdr: row.priceIdr,
     compareAtPriceIdr: row.compareAtPriceIdr,
+    priceUsdCents: row.priceUsdCents,
+    compareAtPriceUsdCents: row.compareAtPriceUsdCents,
     costPriceIdr: row.costPriceIdr,
     imageUrl: row.images[0] ?? "",
     images: row.images,
@@ -578,6 +596,11 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
   const personalisationOptions = hasPersonalisation ? (parsed.personalisationOptions ?? []) : [];
 
   const compareAtPriceIdr = parseOptionalIntField(formData, "compareAtPriceIdr", "Compare-at price");
+  const priceUsdCents = parseUsdCentsField(formData, "priceUsd", "USD price");
+  if (priceUsdCents === null || priceUsdCents <= 0) {
+    throw new Error("A USD price is required: every piece has its own fixed price in dollars.");
+  }
+  const compareAtPriceUsdCents = parseUsdCentsField(formData, "compareAtPriceUsd", "USD compare-at price");
   const costPriceIdr = parseOptionalIntField(formData, "costPriceIdr", "Cost price");
   const lowStockThreshold = parseOptionalIntField(formData, "lowStockThreshold", "Low stock threshold");
 
@@ -595,6 +618,8 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       slug,
       name: parsed.name,
       priceIdr: parsed.priceIdr,
+      priceUsdCents,
+      compareAtPriceUsdCents,
       compareAtPriceIdr,
       costPriceIdr,
       description,
@@ -701,6 +726,17 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
   const compareAtPriceIdr = formData.has("compareAtPriceIdr")
     ? parseOptionalIntField(formData, "compareAtPriceIdr", "Compare-at price")
     : existing.compareAtPriceIdr;
+  let priceUsdCents = existing.priceUsdCents;
+  if (formData.has("priceUsd")) {
+    const typed = parseUsdCentsField(formData, "priceUsd", "USD price");
+    if (typed === null || typed <= 0) {
+      throw new Error("A USD price is required: every piece has its own fixed price in dollars.");
+    }
+    priceUsdCents = typed;
+  }
+  const compareAtPriceUsdCents = formData.has("compareAtPriceUsd")
+    ? parseUsdCentsField(formData, "compareAtPriceUsd", "USD compare-at price")
+    : existing.compareAtPriceUsdCents;
   const costPriceIdr = formData.has("costPriceIdr")
     ? parseOptionalIntField(formData, "costPriceIdr", "Cost price")
     : existing.costPriceIdr;
@@ -785,6 +821,8 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       ...(formData.has("imageZoomEnabled") ? {imageZoomEnabled: formData.get("imageZoomEnabled") !== "false"} : {}),
       stock,
       compareAtPriceIdr,
+      priceUsdCents,
+      compareAtPriceUsdCents,
       costPriceIdr,
       lowStockThreshold,
       productCode,
@@ -884,6 +922,17 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
   const compareAtPriceIdr = formData.has("compareAtPriceIdr")
     ? parseOptionalIntField(formData, "compareAtPriceIdr", "Compare-at price")
     : existing.compareAtPriceIdr;
+  let priceUsdCents = existing.priceUsdCents;
+  if (formData.has("priceUsd")) {
+    const typed = parseUsdCentsField(formData, "priceUsd", "USD price");
+    if (typed === null || typed <= 0) {
+      throw new Error("A USD price is required: every piece has its own fixed price in dollars.");
+    }
+    priceUsdCents = typed;
+  }
+  const compareAtPriceUsdCents = formData.has("compareAtPriceUsd")
+    ? parseUsdCentsField(formData, "compareAtPriceUsd", "USD compare-at price")
+    : existing.compareAtPriceUsdCents;
   const costPriceIdr = formData.has("costPriceIdr")
     ? parseOptionalIntField(formData, "costPriceIdr", "Cost price")
     : existing.costPriceIdr;
@@ -927,6 +976,8 @@ export async function saveDraftProduct(slug: string, formData: FormData): Promis
     name: parsed.name ?? existing.name,
     priceIdr: parsed.priceIdr ?? existing.priceIdr,
     compareAtPriceIdr,
+    priceUsdCents,
+    compareAtPriceUsdCents,
     costPriceIdr,
     description: parsed.description !== undefined ? sanitizeDescriptionHtml(parsed.description) : existing.description,
     shortDescription: parsed.shortDescription ?? existing.shortDescription,

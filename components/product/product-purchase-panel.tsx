@@ -8,6 +8,7 @@ import {Toast, ToastState} from "@/components/admin/toast";
 import {useStorefront} from "@/components/storefront-provider";
 import {useWishlist} from "@/components/use-wishlist";
 import {formatCurrency} from "@/lib/format";
+import {compareAtPrice, unitPrice} from "@/lib/pricing";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {LOCAL_CUSTOM_DRAFT_KEY, type LocalCustomDraft} from "@/lib/custom-studio";
 import {defaultConfigForProduct} from "@/lib/product-customization";
@@ -21,12 +22,13 @@ export function ProductPurchasePanel({
   product,
   selection,
   hasCustomisation,
-  extraIdr = 0
+  extra = 0
 }: {
   product: AdminProduct;
   selection?: ProductSelection;
   hasCustomisation: boolean;
-  extraIdr?: number;
+  // Options already added to the price, in the chosen currency.
+  extra?: number;
 }) {
   const router = useRouter();
   const {status} = useSession();
@@ -115,16 +117,23 @@ export function ProductPurchasePanel({
     }
   }
 
+  const compareAt = compareAtPrice(product, currency);
+
   return (
     <div className="flex h-full flex-col">
       <p className="pdp-eyebrow">Handcrafted in Indonesia</p>
       <h1 className="pdp-title">{product.name}</h1>
       <p className="pdp-price">
-        {formatCurrency(product.priceIdr + extraIdr, currency)}
-        {extraIdr > 0 ? <span className="pdp-price-extra">includes {formatCurrency(extraIdr, currency)} of customisation</span> : null}
-        {product.compareAtPriceIdr && product.compareAtPriceIdr > product.priceIdr ? (
-          <span className="pdp-price-was">{formatCurrency(product.compareAtPriceIdr, currency)}</span>
+        {formatCurrency(unitPrice(product, currency) + extra, currency)}
+        {extra > 0 ? <span className="pdp-price-extra">includes {formatCurrency(extra, currency)} of customisation</span> : null}
+        {compareAt && compareAt > unitPrice(product, currency) ? (
+          <span className="pdp-price-was">{formatCurrency(compareAt, currency)}</span>
         ) : null}
+      </p>
+      <p className="pdp-fixed-note">
+        {currency === "USD"
+          ? "A fixed price in US dollars, set by Natlovers."
+          : "Harga tetap dalam rupiah, ditetapkan oleh Natlovers."}
       </p>
 
       {product.shortDescription ? <p className="pdp-lede">{product.shortDescription}</p> : null}

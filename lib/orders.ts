@@ -4,6 +4,8 @@ import {clearCart} from "@/lib/cart";
 import {db, orderItems, orders, products, users} from "@/lib/db";
 import type {CartConfig} from "@/lib/cart";
 import {resolveOptions, type ProductOptions} from "@/lib/product-options";
+import {lineExtrasTotal, unitPrice} from "@/lib/pricing";
+import {CurrencyCode, normalizeCurrency} from "@/lib/site";
 
 export {orderStatusLabels} from "@/lib/order-status";
 
@@ -11,6 +13,8 @@ export type OrderItemView = {
   slug: string;
   name: string;
   priceIdr: number;
+  // Set on dollar orders: what one unit cost, in cents.
+  priceUsdCents: number | null;
   quantity: number;
   config: CartConfig | null;
 };
@@ -20,6 +24,10 @@ export type OrderView = {
   orderRef: string;
   status: string;
   totalIdr: number;
+  // The currency the customer chose to pay in. A dollar order is charged totalUsdCents; its
+  // totalIdr is only the rupiah list price, for reference.
+  currency: CurrencyCode;
+  totalUsdCents: number | null;
   bankName: string;
   accountName: string;
   accountNumber: string;
@@ -42,15 +50,23 @@ export async function createOrder(
   userId: string,
   requestedItems: {slug: string; quantity: number; config?: CartConfig | null}[],
   bank: {bankName: string; accountName: string; accountNumber: string},
-  address: AddressInput
+  address: AddressInput,
+  currencyInput: CurrencyCode = "IDR"
 ): Promise<OrderView> {
+  const currency = normalizeCurrency(currencyInput);
   const slugs = requestedItems.map((item) => item.slug);
   if (!slugs.length) {
     throw new Error("No items to order.");
   }
 
   const catalogue = await db
-    .select({slug: products.slug, name: products.name, priceIdr: products.priceIdr, customisation: products.customisation})
+    .select({
+      slug: products.slug,
+      name: products.name,
+      priceIdr: products.priceIdr,
+      priceUsdCents: products.priceUsdCents,
+      customisation: products.customisation
+    })
     .from(products)
     .where(inArray(products.slug, slugs));
   const catalogueBySlug = new Map(catalogue.map((row) => [row.slug, row]));
@@ -68,22 +84,30 @@ export async function createOrder(
       // chosen. A product with the options off ignores any such answers.
       const definition = product.customisation as ProductOptions | null;
       let config = requested.config ?? null;
-      let unitPrice = product.priceIdr;
+      let unitPriceIdr = product.priceIdr;
+      let optionLines: {extraIdr: number}[] = [];
       if (config && "kind" in config && config.kind === "productSelection") {
         if (config.custom && definition?.enabled) {
           const resolved = resolveOptions(definition, config.custom.answers);
           config = {...config, custom: {answers: config.custom.answers, lines: resolved.lines, extraIdr: resolved.extraIdr}};
-          unitPrice += resolved.extraIdr;
+          unitPriceIdr += resolved.extraIdr;
+          optionLines = resolved.lines;
         } else if (config.custom) {
           const {custom: _dropped, ...rest} = config;
           void _dropped;
           config = rest;
         }
       }
+      // A dollar order is charged the product's own fixed dollar price plus its options in dollars,
+      // never a converted rupiah amount. The rupiah list price is kept alongside for reference.
+      const priced = {priceIdr: product.priceIdr, priceUsdCents: product.priceUsdCents};
+      const priceUsdCents =
+        currency === "USD" ? Math.round((unitPrice(priced, "USD") + lineExtrasTotal(priced, optionLines, "USD")) * 100) : null;
       return {
         productSlug: product.slug,
         productName: product.name,
-        priceIdr: unitPrice,
+        priceIdr: unitPriceIdr,
+        priceUsdCents,
         quantity: requested.quantity,
         config
       };
@@ -95,6 +119,7 @@ export async function createOrder(
   }
 
   const totalIdr = lineItems.reduce((sum, item) => sum + item.priceIdr * item.quantity, 0);
+  const totalUsdCents = currency === "USD" ? lineItems.reduce((sum, item) => sum + (item.priceUsdCents ?? 0) * item.quantity, 0) : null;
   const orderRef = generateOrderRef();
 
   const [order] = await db
@@ -103,6 +128,8 @@ export async function createOrder(
       userId,
       orderRef,
       totalIdr,
+      currency,
+      totalUsdCents,
       bankName: bank.bankName,
       accountName: bank.accountName,
       accountNumber: bank.accountNumber,
@@ -138,6 +165,8 @@ export async function createOrder(
     orderRef: order.orderRef,
     status: order.status,
     totalIdr: order.totalIdr,
+    currency: normalizeCurrency(order.currency),
+    totalUsdCents: order.totalUsdCents,
     bankName: order.bankName,
     accountName: order.accountName,
     accountNumber: order.accountNumber,
@@ -146,6 +175,7 @@ export async function createOrder(
       slug: item.productSlug,
       name: item.productName,
       priceIdr: item.priceIdr,
+      priceUsdCents: item.priceUsdCents,
       quantity: item.quantity,
       config: item.config as CartConfig | null
     }))
@@ -175,6 +205,7 @@ export async function getOrdersForUser(userId: string): Promise<OrderView[]> {
       slug: row.productSlug,
       name: row.productName,
       priceIdr: row.priceIdr,
+      priceUsdCents: row.priceUsdCents,
       quantity: row.quantity,
       config: row.config as CartConfig | null
     });
@@ -186,6 +217,8 @@ export async function getOrdersForUser(userId: string): Promise<OrderView[]> {
     orderRef: order.orderRef,
     status: order.status,
     totalIdr: order.totalIdr,
+    currency: normalizeCurrency(order.currency),
+    totalUsdCents: order.totalUsdCents,
     bankName: order.bankName,
     accountName: order.accountName,
     accountNumber: order.accountNumber,
@@ -209,6 +242,8 @@ async function attachItemsForAdmin(
     orderRef: string;
     status: string;
     totalIdr: number;
+    currency: string;
+    totalUsdCents: number | null;
     bankName: string;
     accountName: string;
     accountNumber: string;
@@ -242,6 +277,7 @@ async function attachItemsForAdmin(
       slug: row.productSlug,
       name: row.productName,
       priceIdr: row.priceIdr,
+      priceUsdCents: row.priceUsdCents,
       quantity: row.quantity,
       config: row.config as CartConfig | null
     });
@@ -253,6 +289,8 @@ async function attachItemsForAdmin(
     orderRef: order.orderRef,
     status: order.status,
     totalIdr: order.totalIdr,
+    currency: normalizeCurrency(order.currency),
+    totalUsdCents: order.totalUsdCents,
     bankName: order.bankName,
     accountName: order.accountName,
     accountNumber: order.accountNumber,
@@ -272,6 +310,8 @@ const adminOrderColumns = {
   orderRef: orders.orderRef,
   status: orders.status,
   totalIdr: orders.totalIdr,
+  currency: orders.currency,
+  totalUsdCents: orders.totalUsdCents,
   bankName: orders.bankName,
   accountName: orders.accountName,
   accountNumber: orders.accountNumber,

@@ -5,7 +5,7 @@ import Link from "next/link";
 import {useEffect, useState} from "react";
 import {AlertCircle, ArrowRight, CheckCircle2, Loader2, PlayCircle, X} from "lucide-react";
 import type {CurrencyCode} from "@/lib/site";
-import {formatCurrency} from "@/lib/format";
+import {formatEstimate} from "@/lib/format";
 import {summariseConfig, type CustomConfig, type CustomProductType} from "@/lib/custom-studio";
 import {ESTIMATE_DISCLAIMER, modifiersAreUnconfigured, type Estimate} from "@/lib/custom-pricing";
 import {describePreviewMatch, type PreviewMatch} from "@/lib/custom-preview";
@@ -116,7 +116,7 @@ export function EstimatePanel({
     <div className={compact ? "" : "rounded-xl border border-[#e4dcc9] bg-[#faf6ec] px-3.5 py-3"}>
       <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-forest-500">Estimated total</p>
       <p className={`mt-0.5 font-display leading-none text-forest-900 ${compact ? "text-xl" : "text-2xl"}`}>
-        {formatCurrency(estimate.totalIdr, currency)}
+        {formatEstimate(estimate.totalIdr, currency)}
       </p>
       {modifiersAreUnconfigured(estimate) ? (
         // Said plainly rather than letting a customer infer that every
@@ -313,7 +313,7 @@ export function SuccessState({
             <div className="rounded-xl border border-[#e4dcc9] bg-[#faf6ec] px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-forest-500">Estimated</p>
               <p className="mt-1 font-display text-lg text-forest-900">
-                {request.estimatedPriceIdr > 0 ? formatCurrency(request.estimatedPriceIdr, currency) : "To be quoted"}
+                {request.estimatedPriceIdr > 0 ? formatEstimate(request.estimatedPriceIdr, currency) : "To be quoted"}
               </p>
             </div>
           </div>

@@ -27,6 +27,8 @@ export type ShopProduct = {
   slug: string;
   name: string;
   priceIdr: number;
+  // The fixed dollar price, in cents (see lib/pricing.ts).
+  priceUsdCents?: number | null;
   imageUrl: string;
   productType: ShopProductType;
   size: ShopSize | null;

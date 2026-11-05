@@ -4,29 +4,22 @@ export type Locale = (typeof locales)[number];
 
 export const defaultLocale: Locale = "en";
 
-export const currencies = ["IDR", "USD", "GBP", "AUD", "SGD", "MYR"] as const;
+// Two currencies, each with its own fixed price set by Natlovers: nothing on the site is
+// converted at an exchange rate. See lib/pricing.ts.
+export const currencies = ["IDR", "USD"] as const;
 
 export type CurrencyCode = (typeof currencies)[number];
 
 export const defaultCurrency: CurrencyCode = "IDR";
 
-export const exchangeRates: Record<CurrencyCode, number> = {
-  IDR: 1,
-  USD: 0.000064,
-  GBP: 0.00005,
-  AUD: 0.000098,
-  SGD: 0.000085,
-  MYR: 0.0003
-};
-
 export const currencySymbols: Record<CurrencyCode, string> = {
   IDR: "Rp",
-  USD: "$",
-  GBP: "GBP ",
-  AUD: "A$",
-  SGD: "S$",
-  MYR: "RM"
+  USD: "$"
 };
+
+export function normalizeCurrency(value: unknown): CurrencyCode {
+  return value === "USD" ? "USD" : "IDR";
+}
 
 export const siteConfig = {
   name: "Natlovers",

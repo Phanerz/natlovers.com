@@ -1,5 +1,6 @@
 "use client";
 
+import {formatOrderTotal} from "@/lib/format";
 import Link from "next/link";
 import type {Route} from "next";
 import {useEffect, useRef, useState} from "react";
@@ -33,6 +34,8 @@ type RecentOrder = {
   totalIdr: number;
   status: string;
   createdAt: string;
+  currency?: string;
+  totalUsdCents?: number | null;
 };
 type BestSellingProduct = {slug: string; name: string; unitsSold: number; revenue: number};
 
@@ -338,7 +341,7 @@ function RecentOrdersCard({orders}: {orders: RecentOrder[]}) {
                     </Link>
                   </td>
                   <td className="py-3 pr-3 text-forest-700">{order.customerName ?? order.customerEmail ?? "-"}</td>
-                  <td className="py-3 pr-3 whitespace-nowrap text-forest-700">{formatIdr(order.totalIdr)}</td>
+                  <td className="py-3 pr-3 whitespace-nowrap text-forest-700">{formatOrderTotal(order)}</td>
                   <td className="py-3 pr-3">
                     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${statusBadgeStyles[order.status] ?? "bg-[#eee4cd] text-forest-700"}`}>
                       {orderStatusLabels[order.status] ?? order.status}

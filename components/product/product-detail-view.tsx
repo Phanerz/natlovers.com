@@ -1,6 +1,8 @@
 "use client";
 
 import {useState} from "react";
+import {lineExtrasTotal} from "@/lib/pricing";
+import {useSitePreferences} from "@/components/site-preferences-provider";
 import type {ProductSelection} from "@/lib/product-selection";
 import type {AdminProduct} from "@/lib/admin-products";
 import {defaultAnswers, isOptionsEnabled, resolveOptions, type OptionAnswers} from "@/lib/product-options";
@@ -30,6 +32,8 @@ export function ProductDetailView({product, images, tintHex}: {product: AdminPro
   const customOptions = isOptionsEnabled(product.customisation) ? product.customisation : null;
   const [answers, setAnswers] = useState<OptionAnswers>(() => (customOptions ? defaultAnswers(customOptions) : {}));
   const resolved = resolveOptions(customOptions, answers);
+  const {currency} = useSitePreferences();
+  const extraNow = lineExtrasTotal(product, resolved.lines, currency);
 
   const hasCustomisation = Boolean(customOptions) || product.hasBaseColour || product.hasHandleColour || product.hasPersonalisation;
   const selection: ProductSelection | undefined = customOptions
@@ -49,14 +53,14 @@ export function ProductDetailView({product, images, tintHex}: {product: AdminPro
         <div className="flex flex-col">
           <ProductGallery images={images} name={product.name} tintHex={tintHex} zoomEnabled={product.imageZoomEnabled} />
         </div>
-        <ProductPurchasePanel product={product} selection={selection} hasCustomisation={hasCustomisation} extraIdr={resolved.extraIdr} />
+        <ProductPurchasePanel product={product} selection={selection} hasCustomisation={hasCustomisation} extra={extraNow} />
       </div>
 
       <ProductInfoSection
         product={product}
         customiser={
           customOptions ? (
-            <CustomOptionsNote options={customOptions} answers={answers} onChange={setAnswers} basePriceIdr={product.priceIdr} />
+            <CustomOptionsNote options={customOptions} answers={answers} onChange={setAnswers} product={product} />
           ) : hasCustomisation ? (
             <ProductCustomizer
               hasBaseColour={product.hasBaseColour}

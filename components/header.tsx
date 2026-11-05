@@ -9,6 +9,8 @@ import type {PointerEvent as ReactPointerEvent} from "react";
 import {ChevronDown, Menu, Search, ShoppingBag, User, X} from "lucide-react";
 import {signOut, useSession} from "next-auth/react";
 import {formatCurrency} from "@/lib/format";
+import {extraAmount, lineUnitPrice, unitPrice} from "@/lib/pricing";
+import {paymentRouteFor} from "@/lib/payment-routes";
 import {selectionExtras} from "@/lib/product-options";
 import {htmlToPlainText} from "@/lib/html-text";
 import {ShoppingBagDrawer} from "@/components/shopping-bag-drawer";
@@ -71,7 +73,7 @@ export function Header() {
     clearCart,
     startBankTransferForCart,
     clearCheckoutDraft,
-    getCartSubtotalIdr
+    getCartSubtotal
   } = useStorefront();
 
   const {data: session, status: sessionStatus} = useSession();
@@ -85,10 +87,11 @@ export function Header() {
   const accountMenuRef = useRef<HTMLDivElement>(null);
   useClickOutside(accountMenuRef, () => setAccountOpen(false), accountOpen);
   const [checkoutState, setCheckoutState] = useState<null | {
+    route: string;
     orderRef: string;
-    accountName: string;
-    accountNumber: string;
-    bankName: string;
+    accountName?: string;
+    accountNumber?: string;
+    bankName?: string;
     total: number;
   }>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -470,11 +473,17 @@ export function Header() {
       }
       // Custom options (extra dolls, pets…) change the line's price and are listed under it.
       const extras = selectionExtras(product.customisation, item.config);
-      return {...product, priceIdr: product.priceIdr + extras.extraIdr, details: extras.lines, quantity: item.quantity, config: item.config};
+      return {
+        ...product,
+        price: lineUnitPrice(product, extras.lines, currency),
+        details: extras.lines.map((line) => ({...line, extra: extraAmount(product, line.extraIdr, currency)})),
+        quantity: item.quantity,
+        config: item.config
+      };
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
-  const subtotalIdr = getCartSubtotalIdr(locale);
+  const subtotal = cartProducts.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const previewProduct = previewSlug ? resolveProduct(previewSlug, locale) : undefined;
   const checkoutProducts =
     checkoutDraft?.items
@@ -484,13 +493,17 @@ export function Header() {
           return null;
         }
         const extras = selectionExtras(product.customisation, item.config);
-        return {...product, priceIdr: product.priceIdr + extras.extraIdr, details: extras.lines, quantity: item.quantity, config: item.config};
+        return {
+          ...product,
+          price: lineUnitPrice(product, extras.lines, currency),
+          details: extras.lines.map((line) => ({...line, extra: extraAmount(product, line.extraIdr, currency)})),
+          quantity: item.quantity,
+          config: item.config
+        };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null) ?? [];
-  const checkoutTotalIdr = checkoutProducts.reduce(
-    (sum, item) => sum + item.priceIdr * item.quantity,
-    0
-  );
+  const checkoutTotal = checkoutProducts.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const checkoutRoute = paymentRouteFor(currency);
 
   async function confirmBankTransfer() {
     if (!checkoutProducts.length || !addressComplete) {
@@ -505,9 +518,10 @@ export function Header() {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
-          method: "bank_transfer",
+          // The route follows the chosen currency; the server prices the order itself.
+          method: checkoutRoute,
+          currency,
           items: checkoutProducts.map((item) => ({slug: item.slug, quantity: item.quantity, config: item.config})),
-          total: checkoutTotalIdr,
           address: addressForm
         })
       });
@@ -785,7 +799,7 @@ export function Header() {
           panelRef={bagPanelRef}
           items={cartProducts}
           currency={currency}
-          subtotalIdr={subtotalIdr}
+          subtotal={subtotal}
           onClose={() => {
             closeCabinet();
             closeAllCabinetViews();
@@ -828,9 +842,9 @@ export function Header() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.28em] text-sand-200/80">
-                  Bank transfer checkout
+                  {checkoutRoute === "usd_invoice" ? "Checkout in US dollars" : "Bank transfer checkout"}
                 </p>
-                <p className="mt-2 font-display text-2xl">Review your transfer</p>
+                <p className="mt-2 font-display text-2xl">{checkoutRoute === "usd_invoice" ? "Review your order" : "Review your transfer"}</p>
               </div>
               <button
                 type="button"
@@ -865,20 +879,25 @@ export function Header() {
                         {item.details.map((line, index) => (
                           <li key={`${line.label}-${index}`}>
                             {line.label}: {line.value}
-                            {line.extraIdr > 0 ? ` (+${formatCurrency(line.extraIdr, currency)})` : ""}
+                            {line.extra > 0 ? ` (+${formatCurrency(line.extra, currency)})` : ""}
                           </li>
                         ))}
                       </ul>
                     ) : null}
                   </div>
-                  <span className="shrink-0">{formatCurrency(item.priceIdr * item.quantity, currency)}</span>
+                  <span className="shrink-0">{formatCurrency(item.price * item.quantity, currency)}</span>
                 </div>
               ))}
             </div>
             <div className="mt-4 flex items-center justify-between text-sm text-sand-50">
               <span>Total</span>
-              <span>{formatCurrency(checkoutTotalIdr, currency)}</span>
+              <span>{formatCurrency(checkoutTotal, currency)}</span>
             </div>
+            <p className="mt-2 text-xs text-sand-100/70">
+              {currency === "USD"
+                ? "Prices in US dollars are fixed by Natlovers. You pay exactly the amount shown."
+                : "Harga dalam rupiah ditetapkan oleh Natlovers. Anda membayar sesuai jumlah yang tertera."}
+            </p>
 
             {!checkoutState ? (
               <div className="mt-4 space-y-3 border-t border-white/15 pt-4">
@@ -940,25 +959,40 @@ export function Header() {
                 className="glass-btn-secondary mt-4 w-full rounded-full px-5 py-3 text-sm font-semibold text-forest-900 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {checkoutLoading
-                  ? "Preparing transfer details..."
+                  ? checkoutRoute === "usd_invoice"
+                    ? "Placing your order..."
+                    : "Preparing transfer details..."
                   : addressComplete
-                    ? "Generate bank transfer instructions"
+                    ? checkoutRoute === "usd_invoice"
+                      ? "Place order in US dollars"
+                      : "Generate bank transfer instructions"
                     : "Fill in your shipping address to continue"}
               </button>
             ) : null}
             {checkoutState ? (
-              <div className="mt-4 rounded-xl border border-white/16 bg-white/10 p-4 text-sm leading-7 text-sand-50/94">
-                <p className="font-medium">Order ref: {checkoutState.orderRef}</p>
-                <p className="mt-2">Bank: {checkoutState.bankName}</p>
-                <p>Account name: {checkoutState.accountName}</p>
-                <p>Account number: {checkoutState.accountNumber}</p>
-                <p>
-                  Transfer total: {formatCurrency(checkoutState.total, currency)}
-                </p>
-                <p className="mt-2 text-sand-100/78">
-                  Use this reference when sending payment confirmation to WhatsApp.
-                </p>
-              </div>
+              checkoutState.route === "usd_invoice" ? (
+                <div className="mt-4 rounded-xl border border-white/16 bg-white/10 p-4 text-sm leading-7 text-sand-50/94">
+                  <p className="font-medium">Order ref: {checkoutState.orderRef}</p>
+                  <p className="mt-2">Order total: {formatCurrency(checkoutState.total, "USD")}</p>
+                  <p className="mt-2 text-sand-100/78">
+                    Your order is reserved. We will send you a secure payment invoice in US dollars (PayPal, or an international bank transfer) shortly.
+                    Please keep this reference handy.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-4 rounded-xl border border-white/16 bg-white/10 p-4 text-sm leading-7 text-sand-50/94">
+                  <p className="font-medium">Order ref: {checkoutState.orderRef}</p>
+                  <p className="mt-2">Bank: {checkoutState.bankName}</p>
+                  <p>Account name: {checkoutState.accountName}</p>
+                  <p>Account number: {checkoutState.accountNumber}</p>
+                  <p>
+                    Transfer total: {formatCurrency(checkoutState.total, "IDR")}
+                  </p>
+                  <p className="mt-2 text-sand-100/78">
+                    Use this reference when sending payment confirmation to WhatsApp.
+                  </p>
+                </div>
+              )
             ) : null}
           </div>
         ) : null}
@@ -1019,7 +1053,7 @@ export function Header() {
                             ) : null}
                           </span>
                           <span className="m-menu__rname">{product.title}</span>
-                          <span className="m-menu__rprice">{formatCurrency(product.priceIdr, currency)}</span>
+                          <span className="m-menu__rprice">{formatCurrency(unitPrice(product, currency), currency)}</span>
                         </button>
                       </li>
                     ))}

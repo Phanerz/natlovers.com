@@ -1,5 +1,6 @@
 "use client";
 
+import {formatCurrency} from "@/lib/format";
 import Image from "next/image";
 import Link from "next/link";
 import type {Route} from "next";
@@ -348,7 +349,12 @@ export function ManageProductsPanel({
                         <span className="text-forest-400">—</span>
                       )}
                     </td>
-                    <td className="py-3 pr-3 text-forest-700">Rp{product.priceIdr.toLocaleString("id-ID")}</td>
+                    <td className="py-3 pr-3 text-forest-700">
+                      <div>Rp{product.priceIdr.toLocaleString("id-ID")}</div>
+                      <div className="text-xs text-forest-500">
+                        {product.priceUsdCents != null ? formatCurrency(product.priceUsdCents / 100, "USD") : "No USD price"}
+                      </div>
+                    </td>
                     <td className="py-3 pr-3">
                       <PillDropdown
                         value={product.isActive ? "active" : "inactive"}

@@ -73,6 +73,8 @@ export type CustomerOrderRow = {
   orderRef: string;
   status: string;
   totalIdr: number;
+  currency: string;
+  totalUsdCents: number | null;
   itemCount: number;
   createdAt: string;
 };
@@ -85,6 +87,8 @@ export type CustomerDetail = {
   image: string | null;
   totalOrders: number;
   totalSpentIdr: number;
+  // Paid dollar orders, in cents; rupiah and dollar orders are never added together.
+  totalSpentUsdCents: number;
   firstOrderAt: string | null;
   lastOrderAt: string | null;
   orders: CustomerOrderRow[];
@@ -170,7 +174,15 @@ export async function getCustomerDetail(userId: string): Promise<CustomerDetail 
   }
 
   const orderRows = await db
-    .select({id: orders.id, orderRef: orders.orderRef, status: orders.status, totalIdr: orders.totalIdr, createdAt: orders.createdAt})
+    .select({
+      id: orders.id,
+      orderRef: orders.orderRef,
+      status: orders.status,
+      totalIdr: orders.totalIdr,
+      currency: orders.currency,
+      totalUsdCents: orders.totalUsdCents,
+      createdAt: orders.createdAt
+    })
     .from(orders)
     .where(eq(orders.userId, userId))
     .orderBy(desc(orders.createdAt));
@@ -178,7 +190,7 @@ export async function getCustomerDetail(userId: string): Promise<CustomerDetail 
   const address = await getDefaultAddress(userId);
 
   if (!orderRows.length) {
-    return {...customer, totalOrders: 0, totalSpentIdr: 0, firstOrderAt: null, lastOrderAt: null, orders: [], address};
+    return {...customer, totalOrders: 0, totalSpentIdr: 0, totalSpentUsdCents: 0, firstOrderAt: null, lastOrderAt: null, orders: [], address};
   }
 
   const itemCountRows = await db
@@ -194,13 +206,17 @@ export async function getCustomerDetail(userId: string): Promise<CustomerDetail 
   const itemCountByOrder = new Map(itemCountRows.map((row) => [row.orderId, row.itemCount]));
 
   const totalSpentIdr = orderRows
-    .filter((order) => PAID_STATUSES.has(order.status))
+    .filter((order) => PAID_STATUSES.has(order.status) && order.currency !== "USD")
     .reduce((sum, order) => sum + order.totalIdr, 0);
+  const totalSpentUsdCents = orderRows
+    .filter((order) => PAID_STATUSES.has(order.status) && order.currency === "USD")
+    .reduce((sum, order) => sum + (order.totalUsdCents ?? 0), 0);
 
   return {
     ...customer,
     totalOrders: orderRows.length,
     totalSpentIdr,
+    totalSpentUsdCents,
     firstOrderAt: orderRows[orderRows.length - 1].createdAt.toISOString(),
     lastOrderAt: orderRows[0].createdAt.toISOString(),
     orders: orderRows.map((order) => ({
@@ -208,6 +224,8 @@ export async function getCustomerDetail(userId: string): Promise<CustomerDetail 
       orderRef: order.orderRef,
       status: order.status,
       totalIdr: order.totalIdr,
+      currency: order.currency,
+      totalUsdCents: order.totalUsdCents,
       itemCount: itemCountByOrder.get(order.id) ?? 0,
       createdAt: order.createdAt.toISOString()
     })),

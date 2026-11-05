@@ -32,6 +32,7 @@ export type AdminProduct = {
   slug: string;
   name: string;
   priceIdr: number;
+  priceUsdCents: number | null;
   compareAtPriceIdr: number | null;
   costPriceIdr: number | null;
   imageUrl: string;
@@ -85,6 +86,7 @@ export const PRODUCT_CODE_PREFIX = "NAT-";
 export type ProductFormState = {
   name: string;
   priceIdr: string;
+  priceUsd: string;
   compareAtPriceIdr: string;
   costPriceIdr: string;
   description: string;
@@ -236,6 +238,7 @@ export function emptyForm(): ProductFormState {
   return {
     name: "",
     priceIdr: "",
+    priceUsd: "",
     compareAtPriceIdr: "",
     costPriceIdr: "",
     description: "",
@@ -283,6 +286,7 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
   return {
     name: product.name,
     priceIdr: String(product.priceIdr),
+    priceUsd: product.priceUsdCents != null ? String(product.priceUsdCents / 100) : "",
     compareAtPriceIdr: product.compareAtPriceIdr !== null ? String(product.compareAtPriceIdr) : "",
     costPriceIdr: product.costPriceIdr !== null ? String(product.costPriceIdr) : "",
     description: product.description ?? "",
@@ -331,6 +335,7 @@ export function buildFormData(form: ProductFormState, bodyShapes: AdminBodyShape
   const formData = new FormData();
   formData.set("name", form.name);
   formData.set("priceIdr", form.priceIdr);
+  formData.set("priceUsd", form.priceUsd.trim());
   formData.set("compareAtPriceIdr", form.compareAtPriceIdr.trim());
   formData.set("costPriceIdr", form.costPriceIdr.trim());
   formData.set("description", form.description);

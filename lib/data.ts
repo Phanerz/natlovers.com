@@ -7,6 +7,8 @@ export type ProductCard = {
   title: string;
   description: string;
   priceIdr: number;
+  // The fixed dollar price, in cents (see lib/pricing.ts).
+  priceUsdCents?: number | null;
   imageUrl: string;
   story: string;
   materials: string[];
@@ -87,4 +89,4 @@ export const featuredProducts: Record<Locale, ProductCard[]> = {
   ]
 };
 
-export const supportedCurrencies: CurrencyCode[] = ["IDR", "USD", "GBP", "AUD", "SGD", "MYR"];
+export const supportedCurrencies: CurrencyCode[] = ["IDR", "USD"];

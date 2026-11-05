@@ -14,10 +14,11 @@ export type BagItem = {
   // Stored as rich-text HTML; shown here as a short readable line.
   description: string;
   imageUrl?: string;
-  priceIdr: number;
+  // The line's unit price in the chosen currency (already includes any options).
+  price: number;
   quantity: number;
   // What the customer chose through the product's custom options, if any.
-  details?: {label: string; value: string; extraIdr: number}[];
+  details?: {label: string; value: string; extra: number}[];
 };
 
 // The Shopping Bag drawer: purely presentational. The cart itself (items,
@@ -30,7 +31,7 @@ export function ShoppingBagDrawer({
   panelRef,
   items,
   currency,
-  subtotalIdr,
+  subtotal,
   onClose,
   onOpenPreview,
   onRemove,
@@ -42,7 +43,7 @@ export function ShoppingBagDrawer({
   panelRef?: Ref<HTMLDivElement>;
   items: BagItem[];
   currency: CurrencyCode;
-  subtotalIdr: number;
+  subtotal: number;
   onClose: () => void;
   onOpenPreview: (slug: string) => void;
   onRemove: (slug: string) => void;
@@ -119,7 +120,7 @@ export function ShoppingBagDrawer({
                             {item.details.map((line, index) => (
                               <li key={`${line.label}-${index}`}>
                                 <span>{line.label}</span> {line.value}
-                                {line.extraIdr > 0 ? <em>+{formatCurrency(line.extraIdr, currency)}</em> : null}
+                                {line.extra > 0 ? <em>+{formatCurrency(line.extra, currency)}</em> : null}
                               </li>
                             ))}
                           </ul>
@@ -155,7 +156,7 @@ export function ShoppingBagDrawer({
                       </div>
                       <div className="bag-item-total">
                         <span>Total</span>
-                        <strong>{formatCurrency(item.priceIdr * item.quantity, currency)}</strong>
+                        <strong>{formatCurrency(item.price * item.quantity, currency)}</strong>
                       </div>
                     </div>
                   </div>
@@ -177,7 +178,7 @@ export function ShoppingBagDrawer({
           <div className="bag-footer">
             <div className="bag-subtotal">
               <span>Subtotal</span>
-              <strong>{formatCurrency(subtotalIdr, currency)}</strong>
+              <strong>{formatCurrency(subtotal, currency)}</strong>
             </div>
             <div className="bag-actions">
               <button type="button" onClick={onCheckout} className="bag-btn bag-btn-primary">

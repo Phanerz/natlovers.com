@@ -8,6 +8,7 @@ import {useStorefront} from "@/components/storefront-provider";
 import {useWishlist} from "@/components/use-wishlist";
 import {colourSwatchStyle} from "@/lib/colour-library";
 import {formatCurrency} from "@/lib/format";
+import {unitPrice} from "@/lib/pricing";
 import {baseSwatchesForProduct, galleryImagesFor, swatchesForProduct} from "@/lib/product-swatches";
 import {CurrencyCode, Locale} from "@/lib/site";
 import {DEFAULT_IMAGE_STYLE, ShopProduct, materialImageStyle} from "./shop-data";
@@ -234,7 +235,7 @@ export function ShopProductCard({
   }
 
   // "Rp2.250.000" -> a quiet currency mark beside the amount.
-  const price = formatCurrency(product.priceIdr, currency);
+  const price = formatCurrency(unitPrice(product, currency), currency);
   const priceParts = /^(\D+)(\d.*)$/.exec(price);
 
   const bagLabel = product.soldOut
