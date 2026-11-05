@@ -186,6 +186,23 @@ export function OutletsMapInner({
 }: OutletsMapProps) {
   const [tileMode, setTileMode] = useState<TileMode>("map");
   const [touchOnly, setTouchOnly] = useState(false);
+
+  // Dark mode opens on the satellite view every time it is switched on (and when the
+  // map first loads in dark mode). The visitor can still flip back to the street map;
+  // nothing is remembered, so the next switch to dark is satellite again.
+  useEffect(() => {
+    const root = document.documentElement;
+    let wasDark = root.classList.contains("dark");
+    if (wasDark) setTileMode("satellite");
+    const observer = new MutationObserver(() => {
+      const dark = root.classList.contains("dark");
+      if (dark === wasDark) return;
+      wasDark = dark;
+      setTileMode(dark ? "satellite" : "map");
+    });
+    observer.observe(root, {attributes: true, attributeFilter: ["class"]});
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     setTouchOnly(window.matchMedia("(pointer: coarse)").matches);
   }, []);

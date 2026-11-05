@@ -1082,7 +1082,7 @@ export function Header() {
                   className="m-menu__more"
                   onClick={() => {
                     setMobileOpen(false);
-                    goToNavHref("/catalogue");
+                    router.push("/catalogue");
                   }}
                 >
                   View the full catalogue
@@ -1096,9 +1096,11 @@ export function Header() {
                     href={item.href}
                     aria-current={item.href === activeHref ? "page" : undefined}
                     onClick={(event) => {
+                      // On a phone the menu opens the page itself, not a scroll to a section.
                       event.preventDefault();
                       setMobileOpen(false);
-                      goToNavHref(item.href);
+                      if (item.href === pathname) window.scrollTo({top: 0});
+                      else router.push(item.href);
                     }}
                     className={`m-menu__link ${item.href === activeHref ? "is-active" : ""}`}
                   >

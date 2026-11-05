@@ -6027,3 +6027,69 @@ body:has(.outlets-stage--page) footer {
     background: url("/images/olive-bg.png") center / cover no-repeat;
   }
 }
+
+/* --- phone refinements: smoother hero fade, lighter page snapping, roomier cards --- */
+/* The photo dissolves into the page over a long, eased ramp (many stops) so no band or
+   line shows where it ends; the glow below no longer starts at the seam. */
+.m-hero__fade {
+  height: 64%;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--m-bg) 0%, transparent) 0%,
+    color-mix(in srgb, var(--m-bg) 6%, transparent) 14%,
+    color-mix(in srgb, var(--m-bg) 20%, transparent) 28%,
+    color-mix(in srgb, var(--m-bg) 42%, transparent) 44%,
+    color-mix(in srgb, var(--m-bg) 66%, transparent) 60%,
+    color-mix(in srgb, var(--m-bg) 86%, transparent) 76%,
+    color-mix(in srgb, var(--m-bg) 97%, transparent) 90%,
+    var(--m-bg) 100%
+  );
+}
+.m-hero__photo {
+  margin-bottom: -1px;
+}
+.m-hero__body {
+  background:
+    radial-gradient(120% 55% at 50% 45%, rgba(214, 178, 98, 0.16), transparent 66%),
+    linear-gradient(180deg, var(--m-bg) 0%, #efe4c6 52%, #e8d8b2 100%);
+}
+.dark .m-hero__body {
+  background:
+    radial-gradient(120% 55% at 50% 45%, rgba(214, 178, 98, 0.1), transparent 66%),
+    linear-gradient(180deg, var(--m-bg) 0%, #1c271a 58%, #223020 100%);
+}
+
+@media (max-width: 639px) {
+  /* Snapping without forcing a stop on every page and with no layout animation while the
+     finger is moving: the page glides and settles instead of crawling then jumping. */
+  .home-main > .snap-page {
+    scroll-snap-stop: normal;
+    transition: none;
+  }
+  [data-reveal="pending"] > * {
+    filter: none;
+    transform: translate3d(0, 24px, 0);
+  }
+  [data-reveal="in"] > * {
+    transition: opacity 0.55s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Photo dots sit on the picture; the name rises and is a touch larger. */
+  .catalogue-mobile-strip .catalogue-item-dots {
+    position: relative;
+    z-index: 2;
+    height: 8px;
+    margin: -1.3rem 0 1.4rem;
+    gap: 6px;
+  }
+  .catalogue-mobile-strip .catalogue-item-dot {
+    background: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.45);
+  }
+  .catalogue-mobile-strip .catalogue-item-dot[data-active="true"] {
+    background: #fff;
+  }
+  .catalogue-mobile-strip .catalogue-item-name {
+    font-size: 17px;
+  }
+}
