@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import {AnimatePresence, PanInfo, animate, motion, useMotionValue, useTransform} from "framer-motion";
+import {PanInfo, animate, motion, useMotionValue, useTransform} from "framer-motion";
 import {useEffect, useMemo, useRef, useState} from "react";
 
 type HeroCardType = "color" | "image";
@@ -13,27 +13,23 @@ type HeroCard = {
   imageUrl: string | null;
 };
 
-
 const SWIPE_THRESHOLD_RATIO = 0.3;
 const VELOCITY_THRESHOLD = 550;
 const FLY_DISTANCE = 900;
+const FLY_SECONDS = 0.3;
 const VISIBLE_DEPTH = 3;
 const MAX_DRAG_ROTATION = 26;
-// The resting card leans very slightly clockwise (positive deg) for a
-// natural, ever-so-slightly-off-center feel  -  drag rotation is added on
-// top of this base tilt, not in place of it.
+// The resting card leans very slightly clockwise for a natural, slightly off-centre feel.
 const FRONT_CARD_BASE_TILT = 3;
 
-// Resting transform per stack position (0 = front, 1 & 2 = cards fanned out
-// behind). The offsets are deliberately larger than the front card's own
-// tilt-induced silhouette growth (~15px at 3deg) and alternate to opposite
-// sides, so both cards behind stay visibly peeking out instead of being
-// swallowed by the tilted front card.
+// Resting pose per stack position (0 = front, 1 and 2 = cards fanned out behind, alternating
+// sides so both stay visible). A card that has been swiped keeps the front pose while it flies.
 const STACK_TARGETS = [
   {scale: 1, x: 0, y: 0, rotate: FRONT_CARD_BASE_TILT, opacity: 1, zIndex: 3},
   {scale: 0.95, x: 26, y: 16, rotate: 10, opacity: 0.92, zIndex: 2},
   {scale: 0.9, x: -30, y: 28, rotate: -11, opacity: 0.8, zIndex: 1}
 ] as const;
+const FLYING_POSE = {...STACK_TARGETS[0], zIndex: 4};
 
 function normalizeVector(vx: number, vy: number): {x: number; y: number} {
   const magnitude = Math.hypot(vx, vy) || 1;
@@ -51,43 +47,43 @@ function CardFace({card}: {card: HeroCard}) {
   return <div className="h-full w-full" style={{backgroundColor: card.colorValue ?? "#7a7a7a"}} />;
 }
 
+// Two layers, so nothing ever changes hands: the OUTER layer only ever moves between stack
+// poses (a card behind glides forward into the place of the one in front of it); the INNER
+// layer only carries the finger (drag, tilt with the drag, the throw off screen).
 function StackCard({
   card,
   distance,
-  exitDirection,
   cardSize,
-  onSwiped
+  appearSoftly,
+  onSwiped,
+  onGone
 }: {
   card: HeroCard;
-  distance: 0 | 1 | 2;
-  exitDirection: {x: number; y: number};
+  distance: 0 | 1 | 2 | "flying";
   cardSize: {width: number; height: number};
-  onSwiped: (direction: {x: number; y: number}) => void;
+  appearSoftly: boolean;
+  onSwiped: () => void;
+  onGone: () => void;
 }) {
-  // x/y are real, independent motion values driving both the live drag and
-  // the exit fling. rotate is derived from x (plus the front card's base
-  // tilt) so it keeps following automatically through drag and exit alike.
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const rotate = useTransform(x, (latest) => {
-    const dragRotation = Math.max(-MAX_DRAG_ROTATION, Math.min(MAX_DRAG_ROTATION, latest / 14));
-    return FRONT_CARD_BASE_TILT + dragRotation;
-  });
+  const rotate = useTransform(x, (latest) => Math.max(-MAX_DRAG_ROTATION, Math.min(MAX_DRAG_ROTATION, latest / 14)));
+  const pose = distance === "flying" ? FLYING_POSE : STACK_TARGETS[distance];
+  const isFront = distance === 0;
 
   function handleDragEnd(_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
-    // The dismiss decision only looks at the horizontal component  -  a
-    // straight up/down drag has near-zero offset.x/velocity.x, so it always
-    // springs back to center regardless of how far vertically it went.
-    // Diagonal throws (down-left, up-right, etc.) still count as long as
-    // there's a real horizontal component, and the exit direction below
-    // uses the full 2D vector so those still fly off on the actual angle.
-    const thresholdX = cardSize.width * SWIPE_THRESHOLD_RATIO;
-    const pastThresholdX = Math.abs(info.offset.x) > thresholdX;
-    const isFastFlickX = Math.abs(info.velocity.x) > VELOCITY_THRESHOLD;
+    // Only the horizontal part decides: a straight up or down drag springs back, a diagonal
+    // throw still counts and leaves along its own angle.
+    const pastThreshold = Math.abs(info.offset.x) > cardSize.width * SWIPE_THRESHOLD_RATIO;
+    const fastFlick = Math.abs(info.velocity.x) > VELOCITY_THRESHOLD;
 
-    if (pastThresholdX || isFastFlickX) {
-      const source = isFastFlickX ? info.velocity : info.offset;
-      onSwiped(normalizeVector(source.x, source.y));
+    if (pastThreshold || fastFlick) {
+      const source = fastFlick ? info.velocity : info.offset;
+      const direction = normalizeVector(source.x, source.y);
+      onSwiped();
+      const fly = {duration: FLY_SECONDS, ease: "easeOut" as const};
+      animate(y, direction.y * FLY_DISTANCE, fly);
+      animate(x, direction.x * FLY_DISTANCE, fly).then(onGone);
     } else {
       animate(x, 0, {type: "spring", stiffness: 380, damping: 34});
       animate(y, 0, {type: "spring", stiffness: 380, damping: 34});
@@ -96,36 +92,26 @@ function StackCard({
 
   return (
     <motion.div
-      className={`absolute inset-0 select-none overflow-hidden rounded-xl will-change-transform shadow-[0_4px_12px_rgba(0,0,0,0.06)] ${
-        distance === 0 ? "cursor-grab active:cursor-grabbing" : ""
-      }`}
-      style={distance === 0 ? {x, y, rotate, touchAction: "none"} : undefined}
-      // Cards must never play a mount-in animation: the real hero cards load
-      // from the API a beat after the placeholder colors render, and since
-      // their ids differ from the placeholders', AnimatePresence treats them
-      // as brand-new elements entering  -  which used to fade/scale them in
-      // right as the page loads, reading as an unwanted "boot up" animation.
-      // initial={false} makes every card (placeholder, real, or newly
-      // revealed at the back of the stack during a swipe) render directly at
-      // its resting `animate` position with no entrance transition; the
-      // swipe drag/exit-fling behavior is untouched since that's driven by
-      // the x/y motion values and the `exit` prop, not `initial`.
-      initial={false}
-      animate={STACK_TARGETS[distance]}
-      exit={{
-        x: exitDirection.x * FLY_DISTANCE,
-        y: exitDirection.y * FLY_DISTANCE,
-        opacity: 0,
-        transition: {duration: 0.32, ease: "easeOut"}
-      }}
+      className="absolute inset-0 will-change-transform"
+      // Cards already on screen when the page opens are simply there. A card joining the back
+      // later fades in behind the others; it never comes in from outside the screen.
+      initial={appearSoftly ? {...pose, opacity: 0} : false}
+      animate={pose}
       transition={{type: "spring", stiffness: 260, damping: 30}}
-      drag={distance === 0}
-      dragElastic={0.6}
-      dragMomentum={false}
-      onDragEnd={distance === 0 ? handleDragEnd : undefined}
-      whileDrag={{scale: 1.02}}
     >
-      <CardFace card={card} />
+      <motion.div
+        className={`h-full w-full select-none overflow-hidden rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] ${
+          isFront ? "cursor-grab active:cursor-grabbing" : ""
+        }`}
+        style={{x, y, rotate, touchAction: isFront ? "none" : undefined}}
+        drag={isFront}
+        dragElastic={0.6}
+        dragMomentum={false}
+        onDragEnd={isFront ? handleDragEnd : undefined}
+        whileDrag={{scale: 1.02}}
+      >
+        <CardFace card={card} />
+      </motion.div>
     </motion.div>
   );
 }
@@ -134,11 +120,12 @@ export function HeroCardStack({onEmpty}: {onEmpty?: (empty: boolean) => void} = 
   // No invented cards: until the saved cards arrive nothing is drawn, and with none saved the
   // stack (and its column) is not shown at all.
   const [cards, setCards] = useState<HeroCard[]>([]);
-  // A running count of cards swiped away, never wrapped. Every card on screen is keyed by its
-  // place in this endless sequence, so when the deck comes round again a card is always a fresh
-  // element, never the same one still flying out of the screen a moment ago.
+  // A running count of cards swiped away, never wrapped: every card on screen is keyed by its
+  // place in this endless sequence, so a card coming round again is always a fresh element.
   const [position, setPosition] = useState(0);
-  const [exitDirection, setExitDirection] = useState<{x: number; y: number}>({x: -1, y: 0});
+  // Places of cards that have been thrown and are still flying off the screen.
+  const [flying, setFlying] = useState<number[]>([]);
+  const [interacted, setInteracted] = useState(false);
   const [cardSize, setCardSize] = useState({width: 320, height: 427});
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -175,17 +162,17 @@ export function HeroCardStack({onEmpty}: {onEmpty?: (empty: boolean) => void} = 
 
   const total = cards.length;
 
-  const visible = useMemo(() => {
+  const shown = useMemo(() => {
     if (!total) return [];
-    return Array.from({length: Math.min(VISIBLE_DEPTH, total)}, (_, distance) => ({
-      distance,
+    const resting = Array.from({length: Math.min(VISIBLE_DEPTH, total)}, (_, distance) => ({
       slot: position + distance,
-      card: cards[(position + distance) % total]
+      distance: distance as 0 | 1 | 2 | "flying"
     }));
-  }, [cards, position, total]);
+    const leaving = flying.map((slot) => ({slot, distance: "flying" as const}));
+    return [...leaving, ...resting].map((item) => ({...item, card: cards[item.slot % total]}));
+  }, [cards, position, flying, total]);
 
-  // The next two cards behind the visible three are decoded ahead of time, out of sight, so a
-  // card arriving at the back never has a picture still loading as it moves.
+  // The next two cards behind the visible three are decoded ahead of time, out of sight.
   const upcoming = useMemo(() => {
     if (total <= VISIBLE_DEPTH) return [];
     return [VISIBLE_DEPTH, VISIBLE_DEPTH + 1]
@@ -193,28 +180,26 @@ export function HeroCardStack({onEmpty}: {onEmpty?: (empty: boolean) => void} = 
       .filter((card, index, list) => card.cardType === "image" && card.imageUrl && list.findIndex((other) => other.id === card.id) === index);
   }, [cards, position, total]);
 
-  function advance(direction: {x: number; y: number}) {
-    if (total < 2) return;
-    setExitDirection(direction);
-    setPosition((count) => count + 1);
-  }
-
   if (!total) return <div ref={containerRef} className="relative aspect-[3/4] w-full" />;
 
   return (
     <div ref={containerRef} className="relative aspect-[3/4] w-full">
-      <AnimatePresence initial={false}>
-        {visible.map(({distance, slot, card}) => (
-          <StackCard
-            key={slot}
-            card={card}
-            distance={distance as 0 | 1 | 2}
-            exitDirection={exitDirection}
-            cardSize={cardSize}
-            onSwiped={advance}
-          />
-        ))}
-      </AnimatePresence>
+      {shown.map(({slot, distance, card}) => (
+        <StackCard
+          key={slot}
+          card={card}
+          distance={distance}
+          cardSize={cardSize}
+          appearSoftly={interacted && distance === Math.min(VISIBLE_DEPTH, total) - 1}
+          onSwiped={() => {
+            if (total < 2) return;
+            setInteracted(true);
+            setFlying((list) => [...list, slot]);
+            setPosition((count) => count + 1);
+          }}
+          onGone={() => setFlying((list) => list.filter((item) => item !== slot))}
+        />
+      ))}
       {upcoming.length ? (
         <div aria-hidden className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0">
           {upcoming.map((card) => (
