@@ -6871,3 +6871,9 @@ body:has(.outlets-stage--page) footer {
     transform: rotateY(0deg) scale(1);
   }
 }
+
+/* --- fact card, sixth pass: slightly slower, an even curve, and no layer held after the turn --- */
+.m-fact {
+  will-change: auto;
+  animation: factTurn 1s cubic-bezier(0.4, 0.1, 0.2, 1) backwards;
+}
