@@ -6,7 +6,7 @@ import {useEffect, useMemo, useRef, useState} from "react";
 import {ArrowDown, ArrowRight, Hand, Infinity as InfinityIcon, Leaf} from "lucide-react";
 import {CurrencyCode, Locale} from "@/lib/site";
 import {HeroCardStack} from "@/components/hero-card-stack";
-import {HeroFactCard, SDG_FACTS, VALUE_FACTS, type HeroFact} from "@/components/hero-facts";
+import {HeroFactCard, SDG_FACTS, VALUE_FACTS, warmFactImages, type HeroFact} from "@/components/hero-facts";
 
 const HERO_VIDEO_SRC = "https://ftw7p3nsw06ehaup.public.blob.vercel-storage.com/natlovers-hero.mp4";
 
@@ -33,6 +33,13 @@ export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
   const [slide, setSlide] = useState(0);
   const [fact, setFact] = useState<HeroFact | null>(null);
   const slideCount = MOBILE_SLIDES.length;
+
+  // Phones only: once the page is idle, fetch the pictures the fact cards use.
+  useEffect(() => {
+    if (!window.matchMedia("(max-width: 1023px)").matches) return;
+    const idle = window.setTimeout(warmFactImages, 1800);
+    return () => window.clearTimeout(idle);
+  }, []);
 
   function handleSlideScroll(event: React.UIEvent<HTMLDivElement>) {
     const track = event.currentTarget;

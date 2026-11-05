@@ -6575,3 +6575,131 @@ body:has(.outlets-stage--page) footer {
     min-height: 11rem;
   }
 }
+
+/* --- fact card, second pass: quieter type, a woven edge, and a much lighter animation --- */
+.m-fact {
+  overflow: hidden;
+  padding: 1rem 1rem 4.8rem;
+  box-shadow: 0 18px 40px -18px rgba(10, 22, 12, 0.6), inset 0 0 0 5px #fcf6e6, inset 0 0 0 6px rgba(171, 139, 70, 0.24);
+  will-change: transform, opacity;
+  animation: factSpin 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (max-height: 640px) {
+  .m-fact {
+    overflow-y: auto;
+  }
+}
+.m-fact__image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.m-fact__image img.is-contain {
+  object-fit: contain;
+}
+.m-fact__text {
+  padding: 1.15rem 0.75rem 0;
+}
+.m-fact__kicker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.3em;
+}
+.m-fact__kicker::before,
+.m-fact__kicker::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: rgba(171, 139, 70, 0.55);
+}
+.m-fact__title {
+  margin-top: 0.75rem;
+  font-size: 1.95rem;
+  line-height: 1.12;
+  color: #1c2a1a;
+}
+.m-fact__lede {
+  margin-top: 0.45rem;
+  font-size: 1.12rem;
+  color: #8a6320;
+}
+.m-fact__body {
+  margin-top: 0.85rem;
+  padding-top: 0;
+  border-top: 0;
+  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-size: 1.04rem;
+  line-height: 1.5;
+  color: #34412f;
+}
+.m-fact__weave {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4.4rem;
+  pointer-events: none;
+}
+.m-fact__weave::before,
+.m-fact__weave::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+.m-fact__weave::before {
+  height: 100%;
+  background: linear-gradient(180deg, #efe2c6, #e6d3ae);
+  clip-path: ellipse(95% 100% at 25% 100%);
+}
+.m-fact__weave::after {
+  height: 78%;
+  background:
+    repeating-linear-gradient(45deg, rgba(90, 60, 25, 0.12) 0 3px, transparent 3px 9px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.2) 0 3px, transparent 3px 9px),
+    linear-gradient(180deg, #d9b987, #c39a60);
+  clip-path: ellipse(80% 100% at 82% 100%);
+}
+.dark .m-fact__title {
+  color: #f6efdc;
+}
+.dark .m-fact__lede {
+  color: #dcc17c;
+}
+.dark .m-fact__body {
+  color: #d9d3bd;
+}
+.dark .m-fact__weave::before {
+  background: linear-gradient(180deg, #2c3a28, #263222);
+}
+.dark .m-fact__weave::after {
+  background:
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.18) 0 3px, transparent 3px 9px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.08) 0 3px, transparent 3px 9px),
+    linear-gradient(180deg, #8f7248, #6f5835);
+}
+
+/* --- phones: tile overlays (heart, bag, photo dots) always paint above the picture --- */
+@media (max-width: 639px) {
+  .catalogue-mobile-strip .catalogue-item-stage {
+    isolation: isolate;
+    transform: translateZ(0);
+  }
+  .catalogue-mobile-strip .catalogue-gallery .blur-2xl {
+    display: none;
+  }
+  .catalogue-mobile-strip .catalogue-item-actions,
+  .catalogue-mobile-strip .catalogue-item-arrow {
+    z-index: 3;
+  }
+  .catalogue-mobile-strip .catalogue-item-dots {
+    z-index: 3;
+    transform: translateZ(0);
+  }
+}
