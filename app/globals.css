@@ -6703,3 +6703,118 @@ body:has(.outlets-stage--page) footer {
     transform: translateZ(0);
   }
 }
+
+/* --- laptop hero line: hairline, spaced capitals, a small diamond, the year in italic --- */
+.hero-brand {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.95rem;
+  color: #ecd9a2;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+}
+.hero-brand__rule {
+  width: 3rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(236, 217, 162, 0.95));
+}
+.hero-brand__dot {
+  width: 4px;
+  height: 4px;
+  transform: rotate(45deg);
+  background: #ecd9a2;
+}
+.hero-brand em {
+  color: #f6ecd0;
+  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-size: 1rem;
+  font-style: italic;
+  letter-spacing: 0.1em;
+  text-transform: none;
+}
+
+/* --- fact card, third pass: light enough to turn smoothly on any phone ---
+   Only transform and opacity animate, on a card with no clipping, shadows or masks;
+   the perspective sits on the backdrop; the woven edge is a small picture. */
+.m-fact-backdrop {
+  perspective: 1400px;
+}
+.m-fact {
+  overflow: visible;
+  padding: 1rem 1rem 4.9rem;
+  border: 1px solid rgba(171, 139, 70, 0.45);
+  box-shadow: none;
+  backface-visibility: visible;
+  will-change: transform, opacity;
+  animation: factSpin 0.75s cubic-bezier(0.25, 0.9, 0.3, 1) both;
+}
+.m-fact::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(171, 139, 70, 0.26);
+  border-radius: calc(1.9rem - 5px);
+  pointer-events: none;
+}
+@keyframes factSpin {
+  0% {
+    opacity: 0;
+    transform: rotateY(-360deg) scale(0.6);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: rotateY(0deg) scale(1);
+  }
+}
+.m-fact__image {
+  width: min(100%, max(10rem, calc(100dvh - 26rem)));
+  margin: 0 auto;
+}
+.m-fact__close {
+  top: 0.6rem;
+  right: 0.6rem;
+}
+.m-fact__text {
+  padding: 1.05rem 0.5rem 0;
+}
+.m-fact__title {
+  font-size: 1.85rem;
+}
+.m-fact__body {
+  margin-top: 0.7rem;
+  font-size: 1rem;
+}
+.m-fact__weave {
+  height: 4.3rem;
+  border-radius: 0 0 1.85rem 1.85rem;
+  background: url("/images/fact-weave-light.webp") center bottom / 100% 100% no-repeat;
+}
+.m-fact__weave::before,
+.m-fact__weave::after {
+  display: none;
+}
+.dark .m-fact {
+  box-shadow: none;
+  border-color: rgba(214, 178, 98, 0.45);
+}
+.dark .m-fact::before {
+  border-color: rgba(214, 178, 98, 0.26);
+}
+.dark .m-fact__weave {
+  background-image: url("/images/fact-weave-dark.webp");
+}
+
+/* --- phones: no buttons on the pictures, only the small dots --- */
+@media (max-width: 639px) {
+  .catalogue-mobile-strip .catalogue-item-actions,
+  .catalogue-mobile-strip .catalogue-item-arrow {
+    display: none !important;
+  }
+}

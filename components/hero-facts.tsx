@@ -23,8 +23,8 @@ export const VALUE_FACTS: HeroFact[] = [
     id: "materials",
     kicker: "Materials",
     title: "Natural Materials",
-    lede: "Fibres of the archipelago.",
-    body: "Agel, mendong, water hyacinth and tenun, gathered and plaited by hand.",
+    lede: "Grown, not made.",
+    body: "Agel, mendong, water hyacinth and tenun, gathered close to home and shaped slowly by hand. No two bags ever come out the same.",
     image: "/images/natlovers-bags-2.webp",
     imageAlt: "Natural-fibre Natlovers bag with embroidered flowers"
   },
@@ -32,8 +32,8 @@ export const VALUE_FACTS: HeroFact[] = [
     id: "handcrafted",
     kicker: "Atelier",
     title: "Handcrafted",
-    lede: "One bag, many hands.",
-    body: "A dozen artisans shape every piece, among them makers who are deaf, mute or live with polio. Fair work, valued for its craft.",
+    lede: "Made by many hands.",
+    body: "Every bag travels through a dozen of our makers in Yogyakarta, some of them deaf, mute or living with polio. Their skill is in every stitch.",
     image: "/images/natlovers-bags-4.webp",
     imageAlt: "Handcrafted Natlovers bags in natural fibre and colour"
   },
@@ -41,8 +41,8 @@ export const VALUE_FACTS: HeroFact[] = [
     id: "sustainable",
     kicker: "Approach",
     title: "Sustainable",
-    lede: "Slow by design.",
-    body: "Small batches, renewable fibres, finished by hand and built to be repaired. Scarcity from time, never from marketing.",
+    lede: "Made to be kept.",
+    body: "We work in small batches and mend what we make. A Natlovers bag is meant to be loved for years, not replaced next season.",
     image: "/images/natlovers-bags-1.jpg",
     imageAlt: "A collection of Natlovers bags"
   }
@@ -53,8 +53,8 @@ export const SDG_FACTS: HeroFact[] = [
     id: "sdg-8",
     kicker: "UN SDG 8",
     title: "Decent Work and Economic Growth",
-    lede: "Craft as a livelihood.",
-    body: "Fair, skilled work for Yogyakarta's artisans, including makers with disabilities.",
+    lede: "Work with dignity.",
+    body: "Fair pay and steady work for our makers in Yogyakarta, including those with disabilities, so craft can be a real livelihood.",
     image: "/images/sdg/sdg-8.webp",
     imageAlt: "UN Sustainable Development Goal 8: Decent Work and Economic Growth",
     contain: true
@@ -63,8 +63,8 @@ export const SDG_FACTS: HeroFact[] = [
     id: "sdg-12",
     kicker: "UN SDG 12",
     title: "Responsible Consumption and Production",
-    lede: "Fewer things, longer lives.",
-    body: "Renewable fibres and small batches, made to be mended and kept for years.",
+    lede: "Less, but better.",
+    body: "We make in small batches from fibres that grow back, and we repair what we sell, so each piece can stay with you for years.",
     image: "/images/sdg/sdg-12.webp",
     imageAlt: "UN Sustainable Development Goal 12: Responsible Consumption and Production",
     contain: true
@@ -73,8 +73,8 @@ export const SDG_FACTS: HeroFact[] = [
     id: "sdg-11",
     kicker: "UN SDG 11",
     title: "Sustainable Cities and Communities",
-    lede: "Heritage, kept close to home.",
-    body: "Plaiting and weaving stay alive where they began, passed from hand to hand.",
+    lede: "Craft stays home.",
+    body: "Plaiting and weaving live in people's hands. By keeping our workshop in Yogyakarta, we keep this heritage where it began.",
     image: "/images/sdg/sdg-11.webp",
     imageAlt: "UN Sustainable Development Goal 11: Sustainable Cities and Communities",
     contain: true
@@ -117,12 +117,10 @@ export function HeroFactCard({fact, onClose}: {fact: HeroFact; onClose: () => vo
         className="m-fact"
         onClick={(event) => event.stopPropagation()}
       >
-        <button ref={closeRef} type="button" className="m-fact__close" onClick={onClose} aria-label="Close">
-          <X aria-hidden />
-        </button>
         <div className={`m-fact__image${fact.contain ? " is-tile" : ""}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={fact.image} alt={fact.imageAlt} decoding="async" className={fact.contain ? "is-contain" : undefined} />
+          <button ref={closeRef} type="button" className="m-fact__close" onClick={onClose} aria-label="Close"> <X aria-hidden /> </button>
         </div>
         <div className="m-fact__text">
           <p className="m-fact__kicker">
