@@ -24,7 +24,7 @@ export const VALUE_FACTS: HeroFact[] = [
     kicker: "Materials",
     title: "Natural Materials",
     lede: "Grown, not made.",
-    body: "Agel, mendong, water hyacinth and tenun, gathered close to home and shaped slowly by hand. No two bags ever come out the same.",
+    body: "Agel, mendong, water hyacinth and tenun. Each fibre is worked by hand, which is why no two bags look quite alike.",
     image: "/images/fact-materials.webp",
     imageAlt: "Natural-fibre Natlovers bag with embroidered flowers"
   },
@@ -33,7 +33,7 @@ export const VALUE_FACTS: HeroFact[] = [
     kicker: "Atelier",
     title: "Handcrafted",
     lede: "Made by many hands.",
-    body: "Every bag travels through a dozen of our makers in Yogyakarta, some of them deaf, mute or living with polio. Their skill is in every stitch.",
+    body: "Each bag passes through many hands in our Yogyakarta workshop, including makers who are deaf, mute or live with polio.",
     image: "/images/fact-handcrafted.webp",
     imageAlt: "Handcrafted Natlovers bags in natural fibre and colour"
   },
@@ -42,7 +42,7 @@ export const VALUE_FACTS: HeroFact[] = [
     kicker: "Approach",
     title: "Sustainable",
     lede: "Made to be kept.",
-    body: "We work in small batches and mend what we make. A Natlovers bag is meant to be loved for years, not replaced next season.",
+    body: "We make in small batches and repair what we sell. A bag should last you years.",
     image: "/images/fact-sustainable.webp",
     imageAlt: "A collection of Natlovers bags"
   }
@@ -54,7 +54,7 @@ export const SDG_FACTS: HeroFact[] = [
     kicker: "UN SDG 8",
     title: "Decent Work and Economic Growth",
     lede: "Work with dignity.",
-    body: "Fair pay and steady work for our makers in Yogyakarta, including those with disabilities, so craft can be a real livelihood.",
+    body: "Steady, fair work for our makers in Yogyakarta, including those with disabilities.",
     image: "/images/sdg/sdg-8.webp",
     imageAlt: "UN Sustainable Development Goal 8: Decent Work and Economic Growth",
     contain: true
@@ -64,7 +64,7 @@ export const SDG_FACTS: HeroFact[] = [
     kicker: "UN SDG 12",
     title: "Responsible Consumption and Production",
     lede: "Less, but better.",
-    body: "We make in small batches from fibres that grow back, and we repair what we sell, so each piece can stay with you for years.",
+    body: "Small batches, fibres that grow back, and repairs for anything we sell.",
     image: "/images/sdg/sdg-12.webp",
     imageAlt: "UN Sustainable Development Goal 12: Responsible Consumption and Production",
     contain: true
@@ -74,7 +74,7 @@ export const SDG_FACTS: HeroFact[] = [
     kicker: "UN SDG 11",
     title: "Sustainable Cities and Communities",
     lede: "Craft stays home.",
-    body: "Plaiting and weaving live in people's hands. By keeping our workshop in Yogyakarta, we keep this heritage where it began.",
+    body: "Weaving and plaiting are kept alive in the neighbourhood where they began.",
     image: "/images/sdg/sdg-11.webp",
     imageAlt: "UN Sustainable Development Goal 11: Sustainable Cities and Communities",
     contain: true
@@ -145,7 +145,6 @@ export function HeroFactCard({fact, onClose}: {fact: HeroFact; onClose: () => vo
           <h3 id="m-fact-title" className="m-fact__title">
             {fact.title}
           </h3>
-          <p className="m-fact__lede">{fact.lede}</p>
           <p className="m-fact__body">{fact.body}</p>
         </div>
         <div className="m-fact__weave" aria-hidden />
