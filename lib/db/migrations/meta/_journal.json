@@ -274,6 +274,13 @@
       "when": 1793945911787,
       "tag": "0038_addon_carry_option",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1793948156359,
+      "tag": "0039_site_visits",
+      "breakpoints": true
     }
   ]
 }

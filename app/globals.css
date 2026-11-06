@@ -7931,3 +7931,143 @@ dd {
     letter-spacing: -0.015em;
   }
 }
+
+/* Cookie notice and location check: a small cream hang-tag that rises from the bottom, once per
+   device. A bottom sheet on a phone, a corner card on a laptop. Flat and quiet, in the same
+   cream paper and ink as the Make it yours note. */
+.nl-consent {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 80;
+  display: flex;
+  justify-content: center;
+  padding: 0 0.75rem max(0.75rem, env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+@media (min-width: 768px) {
+  .nl-consent {
+    justify-content: flex-start;
+    padding: 0 0 1.5rem 1.5rem;
+  }
+}
+.nl-consent__card {
+  position: relative;
+  width: min(100%, 26rem);
+  padding: 1.5rem 1.35rem 1.15rem;
+  border: 1px solid rgba(35, 28, 18, 0.22);
+  border-radius: 14px;
+  background: #f6efe0;
+  color: #231c12;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  pointer-events: auto;
+  animation: nl-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes nl-rise {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nl-consent__card {
+    animation: none;
+  }
+}
+/* The punched hole of a hang tag. */
+.nl-consent__hole {
+  position: absolute;
+  top: 0.7rem;
+  right: 1rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(35, 28, 18, 0.35);
+}
+.nl-consent__eyebrow {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #5f5543;
+}
+.nl-consent__title {
+  margin-top: 0.35rem;
+  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Garamond, Georgia, serif;
+  font-size: 1.4rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.nl-consent__text {
+  margin-top: 0.6rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: #3a3022;
+}
+.nl-consent__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+}
+.nl-consent__primary,
+.nl-consent__secondary {
+  min-height: 2.75rem;
+  padding: 0 1.3rem;
+  border-radius: 9999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.nl-consent__primary {
+  border: 1px solid #231c12;
+  background: #231c12;
+  color: #f6efe0;
+}
+.nl-consent__secondary {
+  border: 1px solid rgba(35, 28, 18, 0.4);
+  background: transparent;
+  color: #231c12;
+}
+.nl-consent__primary:hover {
+  background: #3a2e1f;
+}
+.nl-consent__secondary:hover {
+  border-color: #231c12;
+}
+.nl-consent__primary:focus-visible,
+.nl-consent__secondary:focus-visible,
+.nl-consent__small a:focus-visible,
+.nl-consent__skip:focus-visible {
+  outline: 3px solid #231c12;
+  outline-offset: 3px;
+}
+.nl-consent__small {
+  margin-top: 0.9rem;
+  font-size: 0.8rem;
+  color: #5f5543;
+}
+.nl-consent__small a,
+.nl-consent__skip {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: #3a3022;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+}
+@media (max-width: 480px) {
+  .nl-consent__actions {
+    flex-direction: column;
+  }
+  .nl-consent__primary,
+  .nl-consent__secondary {
+    width: 100%;
+  }
+}

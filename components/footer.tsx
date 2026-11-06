@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type {Route} from "next";
 import {usePathname} from "next/navigation";
+import {OPEN_CONSENT_EVENT} from "@/components/cookie-consent";
 import {LEGAL_LINKS} from "@/lib/legal";
 import {Instagram, Mail, MapPin, MessageCircle} from "lucide-react";
 import {siteConfig} from "@/lib/site";
@@ -65,6 +66,13 @@ export function Footer() {
                 {link.label}
               </Link>
             ))}
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event(OPEN_CONSENT_EVENT))}
+              className="hover:text-forest-900 hover:underline"
+            >
+              Cookie settings
+            </button>
           </nav>
         </div>
       </div>

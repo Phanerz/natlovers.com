@@ -830,3 +830,21 @@ export const addonLibraryColours = pgTable(
     nameIdx: uniqueIndex("addon_library_colours_name_idx").on(table.name)
   })
 ).enableRLS();
+
+// One anonymous row per new device whose visitor chose "Accept all" on the cookie notice:
+// the country their connection comes from and whether it was a phone or a laptop. No name,
+// email, IP address or any other identifier is stored, so a row cannot be traced to a person.
+export const siteVisits = pgTable(
+  "site_visits",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    country: text("country").notNull(),
+    device: text("device").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow()
+  },
+  (table) => ({
+    createdIdx: index("site_visits_created_idx").on(table.createdAt)
+  })
+).enableRLS();

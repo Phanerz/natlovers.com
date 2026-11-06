@@ -23,6 +23,7 @@ import {
   Warehouse
 } from "lucide-react";
 import {ShopProductType, productTypeLabels, shopProductTypes} from "@/app/catalogue/shop-data";
+import {ActivityFeed} from "./activity-feed";
 
 // Typography/spacing/interaction lifted directly from app/catalogue/
 // filter-sidebar.tsx's FilterSection  -  same uppercase tracked label, same
@@ -290,6 +291,16 @@ export function AdminSidebar() {
         <NavLink href="/mimin/customers" active={pathname?.startsWith("/mimin/customers") ?? false} icon={Users}>
           Customers
         </NavLink>
+      </div>
+
+      <div className="border-b border-[#d9cfc0] py-3">
+        <div className="flex items-center justify-between px-3 pb-2">
+          <SectionLabel>Live activity</SectionLabel>
+          <Link href={"/mimin/activity" as Route} className="text-[11px] font-medium text-[#6b6b5f] underline underline-offset-2 hover:text-[#344332]">
+            See all
+          </Link>
+        </div>
+        <ActivityFeed variant="compact" limit={6} />
       </div>
 
       <div className="pt-3">

@@ -51,8 +51,14 @@ export default function PrivacyPage() {
                 <strong>Custom requests.</strong> Anything you send through our custom studio, including reference pictures.
               </li>
               <li>
-                <strong>Your country.</strong> Your connection tells us roughly which country you are in. We use it once, to choose whether to show prices in rupiah
-                or US dollars. We do not store it.
+                <strong>Your country.</strong> Your connection tells us roughly which country you are in. We use it to suggest whether to show prices in rupiah or US
+                dollars, and we do not keep it for that. If you choose &ldquo;Accept all&rdquo; on our cookie notice, we also keep one anonymous record for each new
+                device: the country, and whether it was a phone or a laptop. It holds no name, email address, IP address or anything else that could identify you. If
+                you choose &ldquo;Essential only&rdquo;, we keep nothing.
+              </li>
+              <li>
+                <strong>What you do while signed in.</strong> When you sign in, we can see which pieces you have ordered, put in your bag or saved as a favourite, so
+                we can look after your orders and understand what people like.
               </li>
               <li>
                 <strong>Technical records.</strong> Our hosting providers keep standard server logs (such as IP address and time) to keep the site running and secure.
@@ -78,9 +84,13 @@ export default function PrivacyPage() {
             <>
               <p>
                 We use only what the site needs to work: a sign-in cookie that keeps you signed in, and small items in your browser that remember your theme, your
-                currency and language, and a draft of a custom design.
+                currency and language, a draft of a custom design, and your choice on our cookie notice and location question, so we do not ask you again on the
+                same device.
               </p>
-              <p>We do not use advertising or tracking cookies. If we ever add analytics, we will say so here and ask you first where the law requires it.</p>
+              <p>
+                We do not use advertising or tracking cookies. You can change your cookie choice at any time with &ldquo;Cookie settings&rdquo; at the foot of every
+                page. If we ever add analytics, we will say so here and ask you first where the law requires it.
+              </p>
             </>
           )
         },
