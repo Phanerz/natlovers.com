@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import type {Route} from "next";
 import {usePathname} from "next/navigation";
+import {LEGAL_LINKS} from "@/lib/legal";
 import {Instagram, Mail, MapPin, MessageCircle} from "lucide-react";
 import {siteConfig} from "@/lib/site";
 import {getDictionary} from "@/lib/translations";
@@ -52,6 +54,18 @@ export function Footer() {
           <Link href="https://wa.me/6281125001888" className="flex items-center gap-2 hover:text-forest-900">
             <MessageCircle className="h-4 w-4" /> Phanuel: +62 811-2500-1888
           </Link>
+        </div>
+      </div>
+      <div className="border-t border-forest-100/70">
+        <div className="shell flex flex-col gap-3 py-5 text-sm text-forest-600 sm:flex-row sm:items-center sm:justify-between">
+          <p>&copy; {new Date().getFullYear()} Natlovers. Made by hand in Yogyakarta.</p>
+          <nav aria-label="Policies" className="flex flex-wrap gap-x-5 gap-y-1">
+            {LEGAL_LINKS.map((link) => (
+              <Link key={link.href} href={link.href as Route} className="hover:text-forest-900 hover:underline">
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </div>
     </footer>
