@@ -136,10 +136,6 @@ export function ProductPurchasePanel({
           <span className="pdp-price-was">{formatCurrency(compareAt, currency)}</span>
         ) : null}
       </p>
-      <p className="pdp-fixed-note">
-        {currency === "USD" ? "A fixed price in US dollars, set by Natlovers." : "A fixed price in Indonesian rupiah, set by Natlovers."}
-      </p>
-
       {product.shortDescription ? <p className="pdp-lede">{product.shortDescription}</p> : null}
 
       <ProductSpecsPanel product={product} outOfStock={outOfStock} stockLabel={stockLabel} locale={locale} />

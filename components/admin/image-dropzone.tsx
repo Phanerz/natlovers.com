@@ -110,7 +110,8 @@ export function ImageDropzone({
       </div>
 
       {images.length ? (
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
+        // All eight photos fit on one row on a wide screen; on narrower ones they wrap into rows of four or three.
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-8">
           {images.map((url, index) => (
             <div
               key={url}
@@ -139,22 +140,27 @@ export function ImageDropzone({
               <Image src={url} alt={`Product image ${index + 1}`} fill sizes="160px" className="object-cover" />
 
               <div className="absolute left-1.5 top-1.5 flex items-center gap-1">
-                <span className="flex aspect-square h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black/55 text-[10px] font-semibold text-white">
-                  {index + 1}
-                </span>
                 {index === 0 ? (
-                  <span className="flex items-center gap-1 rounded-full bg-forest-900 px-2 py-0.5 text-[10px] font-semibold text-sand-50">
+                  // The first photo is always the main one, so it needs no number.
+                  <span className="flex items-center gap-1 rounded-full bg-forest-900 px-1.5 py-0.5 text-[10px] font-semibold text-sand-50">
                     <Star className="h-2.5 w-2.5 fill-sand-50" />
                     Main
                   </span>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setAsMain(index)}
-                    className="rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-                  >
-                    Set as main
-                  </button>
+                  <>
+                    <span className="flex aspect-square h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black/55 text-[10px] font-semibold text-white">
+                      {index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setAsMain(index)}
+                      aria-label="Set as main image"
+                      title="Set as main"
+                      className="icon-button flex aspect-square h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition-opacity duration-150 hover:bg-black/80 focus-visible:opacity-100 group-hover:opacity-100"
+                    >
+                      <Star className="h-3 w-3" />
+                    </button>
+                  </>
                 )}
               </div>
 
