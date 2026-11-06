@@ -7287,14 +7287,6 @@ body:has(.outlets-stage--page) footer {
   user-select: none;
 }
 
-/* The small line under a price that says it is a fixed price, not a conversion. */
-.pdp-fixed-note {
-  margin-top: 0.35rem;
-  font-size: 0.92rem;
-  font-style: italic;
-  color: var(--pdp-muted);
-}
-
 /* The way into the colours and personalisation card: a clear, roomy tile with an icon,
    a plain sentence and an arrow, so it reads as "this is for you" and not as one more
    button beside Add to Bag. Flat, outlined, no glass. */
@@ -7398,30 +7390,42 @@ body:has(.outlets-stage--page) footer {
   }
 }
 
-/* Product page: on a laptop the photo column grows to meet the buying column, so the
-   bottom of the main photo and the bottom of the Add to Bag button always line up.
-   The photo never gets shorter than its 3:4 shape. The thumbnail rail is a grid of eight
-   rows: with eight photos the first and last squares sit level with the photo's top and
-   bottom; with fewer, they stack from the top with exactly the same gap between them. */
+/* Product page photos on a laptop. The main photo is always a true 3:4 portrait and is never
+   stretched. Its height is the largest that fits both the column width and the screen
+   (viewport height less the header and breadcrumb), so the whole photo is on screen at once.
+   The thumbnail rail is eight small squares with a tight, equal gap, sized so that eight of
+   them span exactly the height of the main photo; with fewer photos they stack from the top
+   with the same gap and simply stop short. */
 @media (min-width: 1024px) {
   .pdp-gallery {
-    flex: 1 1 auto;
+    --g: 0.4rem;
+    /* Tallest 3:4 photo that still leaves room for the rail beside it, capped to the screen.
+       100cqw is the width of the photo column. */
+    --H: max(22rem, min(calc((8 * 100cqw - var(--g)) / 7), calc(100svh - 15rem)));
+    --s: calc((var(--H) - 7 * var(--g)) / 8);
+    gap: var(--g);
+    justify-content: center;
+  }
+  .pdp-gallery:not(:has(.pdp-thumbs)) {
+    --H: max(22rem, min(calc(100cqw * 4 / 3), calc(100svh - 15rem)));
   }
   .pdp-gallery .pdp-main {
-    aspect-ratio: auto;
-    min-height: calc((100cqw - (4 * 100cqw - 25 * var(--g)) / 28 - var(--g)) * 4 / 3);
+    flex: none;
+    height: var(--H);
+    width: calc(var(--H) * 3 / 4);
+    aspect-ratio: 3 / 4;
   }
-  .pdp-gallery:not(:has(.pdp-thumbs)) .pdp-main {
-    min-height: calc(100cqw * 4 / 3);
+  .pdp-gallery .pdp-thumbs {
+    flex: none;
+    width: var(--s);
   }
   .pdp-gallery .pdp-thumbs-inner {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    /* Eight rows, each exactly one square tall (the rail's own width), so the empty rows
-       still hold their space and the gap is the same whether there are 4 photos or 8. */
-    grid-template-rows: repeat(8, calc((4 * 100cqw - 25 * var(--g)) / 28));
-    align-content: space-between;
+    /* Eight rows, each one square tall, so the gap is the same whether there are 4 photos or 8. */
+    grid-template-rows: repeat(8, var(--s));
     row-gap: var(--g);
+    align-content: start;
   }
 }
 
@@ -7898,7 +7902,6 @@ dd {
 .addon-help,
 .pdp-lede,
 .pdp-customise-lede,
-.pdp-fixed-note,
 .pdp-personalise__hint {
   text-wrap: balance;
 }
