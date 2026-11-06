@@ -4,6 +4,7 @@ import {useEffect, useId, useRef, useState} from "react";
 import {Camera, ChevronDown, Plus, X} from "lucide-react";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {
+  CARRY_LABELS,
   addonSwatchBackground,
   defaultAddonPick,
   describeAddonPick,
@@ -245,6 +246,26 @@ export function AddonPicker({
                       </button>
                     ))}
                   </div>
+                </div>
+              ) : null}
+
+              {open.carryOption ? (
+                <div role="group" aria-label="Carried or on its own" className="addon-section">
+                  <p className="addon-label">Carried or on its own?</p>
+                  <div className="addon-poses">
+                    {(["carried", "alone"] as const).map((value) => (
+                      <button
+                        type="button"
+                        key={value}
+                        className="addon-pose"
+                        aria-pressed={(draft.carry ?? "alone") === value}
+                        onClick={() => setDraft({...draft, carry: value})}
+                      >
+                        {CARRY_LABELS[value]}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="addon-help mt-2">Carried means it is held. On its own means it sits or stands by itself.</p>
                 </div>
               ) : null}
 

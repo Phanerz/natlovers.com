@@ -194,6 +194,10 @@ export const SEED_SPECIES: SeedSpecies[] = [
   }
 ];
 
+// Animals small enough to be carried (held) as well as sit on their own: dogs, cats, birds
+// and rabbits. These get a "Carried" or "On its own" choice. Admin can change it per animal.
+export const CARRYABLE_SLUGS = ["cat", "dachshund", "shih-tzu-poodle", "other-dogs", "chicken", "duck", "dove", "rabbit"];
+
 // Colours taken out of the lists above. The refine script removes these from an
 // existing database; nothing else is ever deleted by it.
 export const REMOVED_COLOURS: {group: string; labels: string[]}[] = [

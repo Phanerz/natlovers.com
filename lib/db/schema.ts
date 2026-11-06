@@ -719,6 +719,8 @@ export const addonSpecies = pgTable(
       .references(() => addonColourGroups.id, {onDelete: "restrict"}),
     // What the pose selector is called for this species ("Pose", "View").
     poseLabel: text("pose_label"),
+    // Whether customers choose if this animal is carried (held) or sits on its own.
+    carryOption: boolean("carry_option").notNull().default(false),
     active: boolean("active").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at").notNull().defaultNow()
@@ -793,6 +795,8 @@ export const orderItemAddons = pgTable(
     colourKind: text("colour_kind").notNull().default("solid"),
     colourHexes: jsonb("colour_hexes").notNull().$type<string[]>(),
     poseLabel: text("pose_label"),
+    // "Carried" or "On its own" when the animal offers that choice.
+    carryLabel: text("carry_label"),
     note: text("note"),
     imageUrl: text("image_url"),
     // The customer's own photos of the pet, person or house to copy, shown

@@ -267,6 +267,13 @@
       "when": 1793944103420,
       "tag": "0037_addon_colour_library",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1793945911787,
+      "tag": "0038_addon_carry_option",
+      "breakpoints": true
     }
   ]
 }

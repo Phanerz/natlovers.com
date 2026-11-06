@@ -68,6 +68,7 @@ export function OrderItemDetails({
                 <p className="font-semibold">
                   {addon.speciesName}
                   {addon.poseLabel ? <span className="font-normal"> · {addon.poseLabel}</span> : null}
+                  {addon.carryLabel ? <span className="font-normal"> · {addon.carryLabel}</span> : null}
                 </p>
                 <p className="flex items-center gap-1.5">
                   <span

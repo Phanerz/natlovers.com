@@ -38,7 +38,7 @@ async function main() {
 
     const [species] = await db
       .insert(addonSpecies)
-      .values({name: seed.name, slug: seed.slug, colourGroupId: group.id, poseLabel: seed.poseLabel ?? null, sortOrder})
+      .values({name: seed.name, slug: seed.slug, colourGroupId: group.id, poseLabel: seed.poseLabel ?? null, carryOption: true, sortOrder})
       .returning({id: addonSpecies.id});
     await db.insert(addonPoses).values((seed.poses ?? []).map((label, index) => ({speciesId: species.id, label, sortOrder: index})));
 

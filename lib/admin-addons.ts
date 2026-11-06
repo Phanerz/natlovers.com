@@ -30,6 +30,7 @@ const ops = z.discriminatedUnion("op", [
     name: z.string().trim().min(1).max(80).optional(),
     active: z.boolean().optional(),
     poseLabel: z.string().trim().max(40).nullable().optional(),
+    carryOption: z.boolean().optional(),
     sortOrder: z.number().int().min(0).max(10_000).optional(),
     // Move this species onto its own copy of a colour list, or onto a shared one.
     colourGroupId: z.string().min(1).max(64).optional(),
@@ -170,6 +171,7 @@ export async function runAddonOp(input: unknown): Promise<void> {
       if (rest.name !== undefined) set.name = rest.name;
       if (rest.active !== undefined) set.active = rest.active;
       if (rest.poseLabel !== undefined) set.poseLabel = rest.poseLabel;
+      if (rest.carryOption !== undefined) set.carryOption = rest.carryOption;
       if (rest.sortOrder !== undefined) set.sortOrder = rest.sortOrder;
       if (rest.colourGroupId !== undefined) set.colourGroupId = rest.colourGroupId;
       if (detachColours) {

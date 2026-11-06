@@ -849,6 +849,15 @@ export function AddonsAdmin() {
                           onBlur={(event) => event.target.value.trim() && event.target.value !== species.name && void send({op: "species.update", id: species.id, name: event.target.value})}
                         />
                       </label>
+                      <label className="flex items-center gap-2 rounded-lg border border-[#d4c5ab] px-3 py-2.5 text-sm text-forest-900">
+                        <input
+                          type="checkbox"
+                          checked={species.carryOption}
+                          disabled={busy}
+                          onChange={(event) => void send({op: "species.update", id: species.id, carryOption: event.target.checked})}
+                        />
+                        Customers choose &quot;Carried&quot; or &quot;On its own&quot;
+                      </label>
                       <button
                         type="button"
                         className={`${btn} text-red-600`}

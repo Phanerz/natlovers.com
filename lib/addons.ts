@@ -10,6 +10,7 @@ import {
   orderItemAddons
 } from "@/lib/db";
 import {
+  CARRY_LABELS,
   type AddonCatalogue,
   type AddonColourView,
   type AddonImageView,
@@ -64,6 +65,7 @@ export async function getAddonSpecies(onlyActive: boolean): Promise<AddonSpecies
       slug: entry.slug,
       active: entry.active,
       poseLabel: entry.poseLabel,
+      carryOption: entry.carryOption,
       colourGroupId: entry.colourGroupId,
       colours: coloursByGroup.get(entry.colourGroupId) ?? [],
       poses: poses.filter((pose) => pose.speciesId === entry.id).map((pose) => ({id: pose.id, label: pose.label})),
@@ -124,6 +126,8 @@ export async function resolveAddonPicks(picks: AddonPick[], allowed: "all" | str
       if (!pose) throw new Error(`Please choose a ${entry.poseLabel?.toLowerCase() ?? "pose"} for the ${entry.name}.`);
       poseLabel = pose.label;
     }
+    // Carried or on its own, only for animals that offer it; it defaults to on its own.
+    const carryLabel = entry.carryOption ? CARRY_LABELS[pick.carry ?? "alone"] : null;
     const image = pickAddonImage(entry, pick.poseId ?? null, colour.id);
     return {
       speciesId: entry.id,
@@ -132,6 +136,7 @@ export async function resolveAddonPicks(picks: AddonPick[], allowed: "all" | str
       colourKind: colour.kind,
       colourHexes: colour.hexes,
       poseLabel,
+      carryLabel,
       note: pick.note?.trim() || null,
       imageUrl: image?.url ?? null,
       // Only our own uploads are kept, whatever the request carried.
@@ -144,7 +149,7 @@ export async function resolveAddonPicks(picks: AddonPick[], allowed: "all" | str
 
 // The receipt line the cart, the account page and the admin order list show.
 export function addonOrderLineToResolved(line: AddonOrderLine, index: number): ResolvedLine {
-  const value = [line.colourLabel, line.poseLabel].filter(Boolean).join(" · ");
+  const value = [line.colourLabel, line.poseLabel, line.carryLabel].filter(Boolean).join(" · ");
   return {
     label: `${line.speciesName} ${index + 1}`,
     value: line.note ? `${value} (note: ${line.note})` : value,
@@ -188,6 +193,7 @@ export async function getOrderAddons(orderItemIds: string[]): Promise<Map<string
       colourKind: normalizeColourKind(row.colourKind, row.colourHexes),
       colourHexes: row.colourHexes,
       poseLabel: row.poseLabel,
+      carryLabel: row.carryLabel,
       note: row.note,
       imageUrl: row.imageUrl,
       referenceImages: row.referenceImages ?? [],

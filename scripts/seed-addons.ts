@@ -4,7 +4,7 @@
 // filed as an unassigned library; assign them to species in admin.
 process.loadEnvFile(".env.local");
 
-import {SEED_COLOURS, SEED_IMAGE_FILES, SEED_SPECIES} from "../lib/addon-seed-data";
+import {CARRYABLE_SLUGS, SEED_COLOURS, SEED_IMAGE_FILES, SEED_SPECIES} from "../lib/addon-seed-data";
 
 async function main() {
   const {db, addonColourGroups, addonColours, addonImages, addonPoses, addonSettings, addonSpecies} = await import("../lib/db");
@@ -40,7 +40,14 @@ async function main() {
 
     const [row] = await db
       .insert(addonSpecies)
-      .values({name: species.name, slug: species.slug, colourGroupId: groupId, poseLabel: species.poseLabel ?? null, sortOrder: order++})
+      .values({
+        name: species.name,
+        slug: species.slug,
+        colourGroupId: groupId,
+        poseLabel: species.poseLabel ?? null,
+        carryOption: CARRYABLE_SLUGS.includes(species.slug),
+        sortOrder: order++
+      })
       .returning({id: addonSpecies.id});
 
     if (species.poses?.length) {

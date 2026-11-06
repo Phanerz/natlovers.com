@@ -48,6 +48,8 @@ export type AddonSpeciesView = {
   slug: string;
   active: boolean;
   poseLabel: string | null;
+  // Customers choose whether this animal is carried or sits on its own.
+  carryOption: boolean;
   colourGroupId: string;
   colours: AddonColourView[];
   poses: AddonPoseView[];
@@ -67,6 +69,8 @@ export const addonPickSchema = z.object({
   speciesId: z.string().trim().min(1).max(64),
   colourId: z.string().trim().min(1).max(64),
   poseId: z.string().trim().max(64).optional(),
+  // Carried (held) or on its own, for animals that offer the choice.
+  carry: z.enum(["carried", "alone"]).optional(),
   // Photos of the customer's own pet, person or house, for the studio to work from.
   images: z.array(z.string().url().max(600).refine(isReferenceImageUrl, "Photos must be uploaded here.")).max(3).optional(),
   // Older carts may still carry a note; nothing writes one any more.
@@ -84,6 +88,8 @@ export type AddonOrderLine = {
   colourKind: AddonColourKind;
   colourHexes: string[];
   poseLabel: string | null;
+  // "Carried" or "On its own", when the animal offers the choice.
+  carryLabel: string | null;
   note: string | null;
   // The felted reference photo shown to the customer.
   imageUrl: string | null;
@@ -113,10 +119,18 @@ export function pickAddonImage(species: AddonSpeciesView, poseId: string | null,
   return match(true, true) ?? match(true, false) ?? match(false, true) ?? images.find((image) => image.isPrimary) ?? images[0];
 }
 
+// The two ways a carryable animal can sit on the piece.
+export const CARRY_LABELS = {carried: "Carried", alone: "On its own"} as const;
+
 export function defaultAddonPick(species: AddonSpeciesView): AddonPick | null {
   const colour = species.colours.find((entry) => entry.isDefault) ?? species.colours[0];
   if (!colour) return null;
-  return {speciesId: species.id, colourId: colour.id, ...(species.poses[0] ? {poseId: species.poses[0].id} : {})};
+  return {
+    speciesId: species.id,
+    colourId: colour.id,
+    ...(species.poses[0] ? {poseId: species.poses[0].id} : {}),
+    ...(species.carryOption ? {carry: "alone" as const} : {})
+  };
 }
 
 // The priced, readable lines the cart shows for a set of picks. Display only:
@@ -143,6 +157,7 @@ export function buildAddonLines(catalogue: AddonCatalogue, picks: AddonPick[]) {
 export function describeAddonPick(species: AddonSpeciesView, pick: AddonPick) {
   const colour = species.colours.find((entry) => entry.id === pick.colourId);
   const pose = species.poses.find((entry) => entry.id === pick.poseId);
-  const value = [colour?.label, pose?.label].filter(Boolean).join(" · ");
+  const carry = species.carryOption && pick.carry ? CARRY_LABELS[pick.carry] : undefined;
+  const value = [colour?.label, pose?.label, carry].filter(Boolean).join(" · ");
   return {value, hex: colour?.hexes[0], colour, pose};
 }

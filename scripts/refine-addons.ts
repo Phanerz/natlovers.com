@@ -5,14 +5,15 @@
 // 2. Makes every listed colour use the shared colour library's shade, sets which
 //    ones are shown directly (defaults) and which sit under "Other colours", and
 //    adds the colours that are new.
-// 3. Removes only the colours named in REMOVED_COLOURS (Apricot, the Kangaroo and
+// 3. Turns on the "Carried or on its own" choice for dogs, cats, birds and rabbits.
+// 4. Removes only the colours named in REMOVED_COLOURS (Apricot, the Kangaroo and
 //    Koala combinations, Grey / Dapple).
 // Colours you added yourself in admin are left alone. Orders already placed keep
 // their own frozen copy, so nothing in them changes. Safe to run twice.
 process.loadEnvFile(".env.local");
 
 import {and, eq, inArray} from "drizzle-orm";
-import {REMOVED_COLOURS, SEED_COLOURS, SEED_SPECIES} from "../lib/addon-seed-data";
+import {CARRYABLE_SLUGS, REMOVED_COLOURS, SEED_COLOURS, SEED_SPECIES} from "../lib/addon-seed-data";
 
 async function main() {
   const {db, addonColours, addonSpecies} = await import("../lib/db");
@@ -28,7 +29,12 @@ async function main() {
       console.warn(`No "${seed.slug}" in the database, skipped. (Run scripts/merge-other-dogs.ts first for Other dogs.)`);
       continue;
     }
-    await db.update(addonSpecies).set({sortOrder: index}).where(eq(addonSpecies.id, entry.id));
+    await db
+      .update(addonSpecies)
+      // Only ever switches the choice on for the listed animals, never off, so an animal you
+      // turned it on for yourself in admin keeps it.
+      .set({sortOrder: index, ...(CARRYABLE_SLUGS.includes(seed.slug) ? {carryOption: true} : {})})
+      .where(eq(addonSpecies.id, entry.id));
     placed += 1;
   }
   const listed = new Set(SEED_SPECIES.map((seed) => seed.slug));
