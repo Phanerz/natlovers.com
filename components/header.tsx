@@ -952,6 +952,22 @@ export function Header() {
             {addressError ? <p className="mt-3 text-sm text-[#f3b4a0]">{addressError}</p> : null}
 
             {!checkoutState ? (
+              <>
+              <p className="mt-4 text-xs leading-6 text-sand-100/80">
+                By placing your order you agree to our{" "}
+                <Link href={"/terms" as Route} target="_blank" rel="noopener noreferrer" className="underline hover:text-sand-50">
+                  Terms of Service
+                </Link>
+                ,{" "}
+                <Link href={"/returns" as Route} target="_blank" rel="noopener noreferrer" className="underline hover:text-sand-50">
+                  Returns &amp; Shipping
+                </Link>{" "}
+                and{" "}
+                <Link href={"/privacy" as Route} target="_blank" rel="noopener noreferrer" className="underline hover:text-sand-50">
+                  Privacy Policy
+                </Link>
+                .
+              </p>
               <button
                 type="button"
                 onClick={confirmBankTransfer}
@@ -968,6 +984,7 @@ export function Header() {
                       : "Generate bank transfer instructions"
                     : "Fill in your shipping address to continue"}
               </button>
+              </>
             ) : null}
             {checkoutState ? (
               checkoutState.route === "usd_invoice" ? (
