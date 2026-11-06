@@ -806,3 +806,23 @@ export const orderItemAddons = pgTable(
     itemIdx: index("order_item_addons_item_idx").on(table.orderItemId)
   })
 ).enableRLS();
+
+// The shared colour palette admin builds every animal colour from: Brown, Black,
+// White, Grey, Dark Tan and so on. A swatch picks its stops from here (or a one-off
+// hex), so the same basic colour looks the same on every animal. Changing a shade
+// here does not rewrite colours already made; it is the palette for new ones.
+export const addonLibraryColours = pgTable(
+  "addon_library_colours",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    hex: text("hex").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow()
+  },
+  (table) => ({
+    nameIdx: uniqueIndex("addon_library_colours_name_idx").on(table.name)
+  })
+).enableRLS();

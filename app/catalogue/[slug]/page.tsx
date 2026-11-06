@@ -3,6 +3,7 @@ import {notFound} from "next/navigation";
 import {getProductBySlug, getProductForPreview} from "@/lib/admin-products";
 import {getSession, isAdminEmail} from "@/lib/auth";
 import {getAddonCatalogue} from "@/lib/addons";
+import {allowedAnimals} from "@/lib/product-options";
 import {materialImageStyle, DEFAULT_IMAGE_STYLE, type ShopProductType} from "@/app/catalogue/shop-data";
 import {ProductBreadcrumb} from "@/components/product/product-breadcrumb";
 import {ProductDetailView} from "@/components/product/product-detail-view";
@@ -80,8 +81,10 @@ export default async function ProductPage({
     notFound();
   }
 
-  // Felted animal add-ons, offered only where the product has personalisation on.
-  const addonCatalogue = product.hasPersonalisation ? await getAddonCatalogue() : null;
+  // Felted animals, offered only where the product's custom options switch them on, and
+  // only the animals that product allows (all of them, or the ones ticked in admin).
+  const allowedAnimalIds = allowedAnimals(product.customisation);
+  const addonCatalogue = allowedAnimalIds ? await getAddonCatalogue(allowedAnimalIds) : null;
   const images = product.images.length ? product.images : [product.imageUrl].filter(Boolean);
   const tint = (product.materials[0] ? materialImageStyle[product.materials[0]] : null) ?? DEFAULT_IMAGE_STYLE;
 

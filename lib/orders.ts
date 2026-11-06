@@ -3,7 +3,7 @@ import {AddressInput, createAddress, getDefaultAddress, updateAddress} from "@/l
 import {clearCart} from "@/lib/cart";
 import {db, orderItems, orders, products, users} from "@/lib/db";
 import type {CartConfig} from "@/lib/cart";
-import {resolveOptions, type ProductOptions} from "@/lib/product-options";
+import {allowedAnimals, resolveOptions, type ProductOptions} from "@/lib/product-options";
 import {addonOrderLineToResolved, getOrderAddons, resolveAddonPicks, saveOrderItemAddons, type OrderAddonRow} from "@/lib/addons";
 import type {AddonOrderLine} from "@/lib/addon-shared";
 import {lineExtrasTotal, unitPrice} from "@/lib/pricing";
@@ -122,8 +122,10 @@ export async function createOrder(
       const {addons: _picks, addonLines: _lines, ...withoutAddons} = config;
       void _picks;
       void _lines;
-      if (product.hasPersonalisation && picks?.length) {
-        addons = await resolveAddonPicks(picks);
+      // Offered only when this product's custom options switch felted animals on.
+      const allowed = allowedAnimals(definition);
+      if (allowed && picks?.length) {
+        addons = await resolveAddonPicks(picks, allowed);
         config = {...withoutAddons, addons: picks, addonLines: addons.map(addonOrderLineToResolved)};
         unitPriceIdr += addons.reduce((sum, line) => sum + line.priceIdr, 0);
       } else {

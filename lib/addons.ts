@@ -83,10 +83,10 @@ export async function getAddonSpecies(onlyActive: boolean): Promise<AddonSpecies
 
 // The storefront view. If the add-on tables are not there yet (the migration
 // has not been run), the product page simply shows no add-ons instead of failing.
-export async function getAddonCatalogue(): Promise<AddonCatalogue> {
+export async function getAddonCatalogue(allowed: "all" | string[] = "all"): Promise<AddonCatalogue> {
   try {
     const [settings, species] = await Promise.all([getAddonSettings(), getAddonSpecies(true)]);
-    return {...settings, species};
+    return {...settings, species: allowed === "all" ? species : species.filter((entry) => allowed.includes(entry.id))};
   } catch (error) {
     console.error("Add-on catalogue unavailable", error);
     return {...DEFAULT_SETTINGS, species: []};
@@ -104,7 +104,7 @@ export async function getAddonLibrary() {
 // Checks every pick against the live admin data and prices it at the flat
 // rate. Throws a plain message the checkout can show. Nothing the client sent
 // about names, colours or prices is believed.
-export async function resolveAddonPicks(picks: AddonPick[]): Promise<AddonOrderLine[]> {
+export async function resolveAddonPicks(picks: AddonPick[], allowed: "all" | string[] = "all"): Promise<AddonOrderLine[]> {
   if (!picks.length) return [];
   const settings = await getAddonSettings();
   if (picks.length > settings.maxPerBag) {
@@ -114,7 +114,7 @@ export async function resolveAddonPicks(picks: AddonPick[]): Promise<AddonOrderL
   const bySpecies = new Map(species.map((entry) => [entry.id, entry]));
 
   return picks.map((pick) => {
-    const entry = bySpecies.get(pick.speciesId);
+    const entry = allowed === "all" || allowed.includes(pick.speciesId) ? bySpecies.get(pick.speciesId) : undefined;
     if (!entry) throw new Error("One of the add-ons you chose is no longer available. Please choose it again.");
     const colour = entry.colours.find((candidate) => candidate.id === pick.colourId);
     if (!colour) throw new Error(`The colour you chose for the ${entry.name} is no longer available.`);

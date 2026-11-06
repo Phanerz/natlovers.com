@@ -8,6 +8,7 @@ import type {ProductSelection} from "@/lib/product-selection";
 import type {AdminProduct} from "@/lib/admin-products";
 import {defaultAnswers, isOptionsEnabled, resolveOptions, type OptionAnswers} from "@/lib/product-options";
 import {buildAddonLines, type AddonCatalogue, type AddonPick} from "@/lib/addon-shared";
+import {AddonPicker} from "@/components/product/addon-picker";
 import {CustomOptionsNote} from "@/components/product/custom-options-note";
 import {ProductCustomizer} from "@/components/product/product-customizer";
 import {ProductGallery} from "@/components/product/product-gallery";
@@ -36,16 +37,17 @@ export function ProductDetailView({
   addonCatalogue?: AddonCatalogue | null;
 }) {
   const [addonPicks, setAddonPicks] = useState<AddonPick[]>([]);
-  const addonsOn = Boolean(product.hasPersonalisation && addonCatalogue?.species.length);
-  const activePicks = addonsOn ? addonPicks : [];
-  const addonLines = addonCatalogue ? buildAddonLines(addonCatalogue, activePicks) : [];
   const [baseColour, setBaseColour] = useState<string | null>(product.baseColourOptions[0]?.label ?? null);
   const [handleColour, setHandleColour] = useState<string | null>(product.handleColourOptions[0]?.label ?? null);
   const [personalisationNote, setPersonalisationNote] = useState("");
 
-  // The admin-built options (extra dolls, pets, part colours, photos) replace
+  // The admin-built options (extra dolls, part colours, photos, felted animals) replace
   // the simple colour/note card on a product that has them switched on.
   const customOptions = isOptionsEnabled(product.customisation) ? product.customisation : null;
+  // Felted animals live inside the custom options: none when those are off.
+  const addonsOn = Boolean(customOptions && addonCatalogue?.species.length);
+  const activePicks = addonsOn ? addonPicks : [];
+  const addonLines = addonCatalogue ? buildAddonLines(addonCatalogue, activePicks) : [];
   const [answers, setAnswers] = useState<OptionAnswers>(() => (customOptions ? defaultAnswers(customOptions) : {}));
   const resolved = resolveOptions(customOptions, answers);
   const {currency} = useSitePreferences();
@@ -53,14 +55,17 @@ export function ProductDetailView({
 
   const hasCustomisation = Boolean(customOptions) || product.hasBaseColour || product.hasHandleColour || product.hasPersonalisation;
   const selection: ProductSelection | undefined = customOptions
-    ? {kind: "productSelection", custom: {answers, lines: resolved.lines, extraIdr: resolved.extraIdr}}
+    ? {
+        kind: "productSelection",
+        custom: {answers, lines: resolved.lines, extraIdr: resolved.extraIdr},
+        ...(activePicks.length ? {addons: activePicks, addonLines} : {})
+      }
     : hasCustomisation
     ? {
         kind: "productSelection",
         ...(product.hasBaseColour && baseColour ? {baseColour} : {}),
         ...(product.hasHandleColour && handleColour ? {handleColour} : {}),
-        ...(product.hasPersonalisation && personalisationNote.trim() ? {personalisationNote: personalisationNote.trim()} : {}),
-        ...(activePicks.length ? {addons: activePicks, addonLines} : {})
+        ...(product.hasPersonalisation && personalisationNote.trim() ? {personalisationNote: personalisationNote.trim()} : {})
       }
     : undefined;
 
@@ -87,7 +92,19 @@ export function ProductDetailView({
         product={product}
         customiser={
           customOptions ? (
-            <CustomOptionsNote options={customOptions} answers={answers} onChange={setAnswers} product={product} />
+            <CustomOptionsNote
+              options={customOptions}
+              answers={answers}
+              onChange={setAnswers}
+              product={product}
+              extraLines={addonLines}
+              animalPicker={
+                addonsOn && addonCatalogue ? <AddonPicker catalogue={addonCatalogue} picks={addonPicks} onChange={setAddonPicks} /> : null
+              }
+              onAddToBag={handleAddToBag}
+              addToBagLabel={outOfStock ? "Sold Out" : addedNotice ? "Added to Bag" : "Add to Bag"}
+              addToBagDisabled={outOfStock}
+            />
           ) : hasCustomisation ? (
             <ProductCustomizer
               hasBaseColour={product.hasBaseColour}
@@ -104,9 +121,6 @@ export function ProductDetailView({
               onAddToBag={handleAddToBag}
               addToBagLabel={outOfStock ? "Sold Out" : addedNotice ? "Added to Bag" : "Add to Bag"}
               addToBagDisabled={outOfStock}
-              addonCatalogue={addonsOn ? addonCatalogue : null}
-              addonPicks={addonPicks}
-              onAddonPicksChange={setAddonPicks}
             />
           ) : null
         }

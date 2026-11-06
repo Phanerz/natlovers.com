@@ -260,6 +260,13 @@
       "when": 1793934983993,
       "tag": "0036_addon_reference_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793944103420,
+      "tag": "0037_addon_colour_library",
+      "breakpoints": true
     }
   ]
 }

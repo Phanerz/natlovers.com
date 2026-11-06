@@ -1,7 +1,8 @@
-import {and, eq, ne} from "drizzle-orm";
+import {and, asc, eq, ne} from "drizzle-orm";
 import {z} from "zod";
-import {addonColourGroups, addonColours, addonImages, addonPoses, addonSettings, addonSpecies, db} from "@/lib/db";
+import {addonColourGroups, addonColours, addonImages, addonLibraryColours, addonPoses, addonSettings, addonSpecies, db} from "@/lib/db";
 import {ADDON_COLOUR_KINDS} from "@/lib/addon-shared";
+import {COLOUR_LIBRARY} from "@/lib/addon-seed-data";
 import {getAddonColourGroups, getAddonLibrary, getAddonSettings, getAddonSpecies} from "@/lib/addons";
 
 // Admin-side reads and writes for the add-on system. Every write is a small,
@@ -62,7 +63,17 @@ const ops = z.discriminatedUnion("op", [
     zoom: z.number().min(1).max(3),
     isPrimary: z.boolean()
   }),
-  z.object({op: z.literal("image.delete"), id: z.string().min(1).max(64)})
+  z.object({op: z.literal("image.delete"), id: z.string().min(1).max(64)}),
+  z.object({op: z.literal("species.move"), id: z.string().min(1).max(64), direction: z.enum(["up", "down"])}),
+  z.object({
+    op: z.literal("library.save"),
+    id: z.string().min(1).max(64).optional(),
+    name: z.string().trim().min(1).max(40),
+    hex
+  }),
+  z.object({op: z.literal("library.delete"), id: z.string().min(1).max(64)}),
+  // Fills the palette with the starting colours (Brown, Black, White, Grey...) once.
+  z.object({op: z.literal("library.seed")})
 ]);
 
 export type AdminAddonOp = z.infer<typeof ops>;
@@ -74,9 +85,16 @@ export async function getAddonAdminData() {
     getAddonColourGroups(),
     getAddonLibrary()
   ]);
+  // The palette table arrives with its own migration; the page still works without it.
+  const palette = await db
+    .select()
+    .from(addonLibraryColours)
+    .orderBy(asc(addonLibraryColours.sortOrder), asc(addonLibraryColours.name))
+    .catch(() => []);
   return {
     settings,
     species,
+    palette: palette.map((colour) => ({id: colour.id, name: colour.name, hex: colour.hex})),
     groups: groups.map((group) => ({id: group.id, name: group.name})),
     library: library.map((image) => ({
       id: image.id,
@@ -240,6 +258,43 @@ export async function runAddonOp(input: unknown): Promise<void> {
     }
     case "image.delete": {
       await db.delete(addonImages).where(eq(addonImages.id, op.id));
+      return;
+    }
+    case "species.move": {
+      const all = await db.select({id: addonSpecies.id}).from(addonSpecies).orderBy(asc(addonSpecies.sortOrder), asc(addonSpecies.name));
+      const at = all.findIndex((entry) => entry.id === op.id);
+      const to = op.direction === "up" ? at - 1 : at + 1;
+      if (at < 0 || to < 0 || to >= all.length) return;
+      [all[at], all[to]] = [all[to], all[at]];
+      // Renumber everything so equal or gappy sort values never leave an animal stuck.
+      for (const [index, entry] of all.entries()) {
+        await db.update(addonSpecies).set({sortOrder: index}).where(eq(addonSpecies.id, entry.id));
+      }
+      return;
+    }
+    case "library.save": {
+      try {
+        if (op.id) {
+          await db.update(addonLibraryColours).set({name: op.name, hex: op.hex.toLowerCase()}).where(eq(addonLibraryColours.id, op.id));
+        } else {
+          const all = await db.select({id: addonLibraryColours.id}).from(addonLibraryColours);
+          await db.insert(addonLibraryColours).values({name: op.name, hex: op.hex.toLowerCase(), sortOrder: all.length});
+        }
+      } catch {
+        throw new Error(`There is already a colour called "${op.name}" in the library.`);
+      }
+      return;
+    }
+    case "library.delete": {
+      await db.delete(addonLibraryColours).where(eq(addonLibraryColours.id, op.id));
+      return;
+    }
+    case "library.seed": {
+      const have = new Set((await db.select({name: addonLibraryColours.name}).from(addonLibraryColours)).map((row) => row.name));
+      const missing = Object.entries(COLOUR_LIBRARY).filter(([name]) => !have.has(name));
+      if (missing.length) {
+        await db.insert(addonLibraryColours).values(missing.map(([name, value], index) => ({name, hex: value, sortOrder: have.size + index})));
+      }
       return;
     }
   }

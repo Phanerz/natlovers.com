@@ -1,7 +1,7 @@
 "use client";
 
-import {useEffect, useRef, useState} from "react";
-import {Camera, Check, ChevronDown, Plus, X} from "lucide-react";
+import {useEffect, useId, useRef, useState} from "react";
+import {Camera, ChevronDown, Plus, X} from "lucide-react";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {
   addonSwatchBackground,
@@ -9,6 +9,7 @@ import {
   describeAddonPick,
   pickAddonImage,
   type AddonCatalogue,
+  type AddonColourView,
   type AddonPick,
   type AddonSpeciesView
 } from "@/lib/addon-shared";
@@ -60,6 +61,50 @@ function SpeciesPhoto({species, poseId, colourId, className = ""}: {species: Add
     <div className={`addon-photo ${className}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={image.url} alt={`${species.name}, felted by hand`} loading="lazy" draggable={false} style={{transform: `scale(${image.zoom})`}} />
+    </div>
+  );
+}
+
+// The colours of one animal in two tiers: the curated few shown straight away, and
+// everything else folded under "Other colours". Selection is shown by contrast alone:
+// the chosen swatch is at full strength, the rest are faded back. No box, no tick.
+function ColourChoice({species, selectedId, onPick}: {species: AddonSpeciesView; selectedId: string; onPick: (colourId: string) => void}) {
+  const defaults = species.colours.filter((colour) => colour.isDefault);
+  const primary = defaults.length ? defaults : species.colours;
+  const others = defaults.length ? species.colours.filter((colour) => !colour.isDefault) : [];
+  const [more, setMore] = useState(() => others.some((colour) => colour.id === selectedId));
+  const moreId = useId();
+  const selected = species.colours.find((colour) => colour.id === selectedId);
+
+  const swatch = (colour: AddonColourView) => {
+    const active = colour.id === selectedId;
+    return (
+      <button type="button" key={colour.id} className="addon-swatch" aria-label={colour.label} aria-pressed={active} onClick={() => onPick(colour.id)}>
+        <span className="addon-swatch-dot" style={{background: addonSwatchBackground(colour.kind, colour.hexes)}} />
+        <span className="addon-swatch-name">{colour.label}</span>
+      </button>
+    );
+  };
+
+  return (
+    <div role="group" aria-label={`${species.name} colour`}>
+      <p className="addon-label-serif">
+        Colour <span className="addon-label-value">{selected?.label}</span>
+      </p>
+      <div className="addon-swatches">{primary.map(swatch)}</div>
+      {others.length ? (
+        <>
+          <button type="button" className="addon-more" aria-expanded={more} aria-controls={moreId} onClick={() => setMore((value) => !value)}>
+            Other colours
+            <ChevronDown aria-hidden className={`addon-more-chevron ${more ? "addon-chevron-open" : ""}`} />
+          </button>
+          {more ? (
+            <div id={moreId} className="addon-swatches addon-swatches-other">
+              {others.map(swatch)}
+            </div>
+          ) : null}
+        </>
+      ) : null}
     </div>
   );
 }
@@ -162,8 +207,7 @@ export function AddonPicker({
       {expanded ? (
         <div id="addon-body">
           <p className="addon-lede">
-            Bring a little friend along. Every one is made by hand and sewn onto your bag, so a much-loved pet or a favourite animal can
-            travel with you. Each one is {priceText}, whichever animal and colour you choose.
+            Hand-stitched onto your bag, so a much-loved pet can travel with you. {priceText}, any animal, any colour.
           </p>
 
           <div className="addon-grid" role="group" aria-label="Choose an animal">
@@ -172,7 +216,7 @@ export function AddonPicker({
               return (
                 <button type="button" key={species.id} className="addon-tile" aria-pressed={openId === species.id} onClick={() => choose(species)}>
                   <SpeciesPhoto species={species} poseId={null} colourId={null} />
-                  <span className="addon-tile-name">{species.name.replace(" / ", "/")}</span>
+                  <span className="addon-tile-name">{species.name.split(" / ").join("/​")}</span>
                   {count ? <span className="addon-tile-count">{count}</span> : null}
                 </button>
               );
@@ -189,31 +233,7 @@ export function AddonPicker({
                 </div>
               </div>
 
-              <div role="group" aria-label={`${open.name} colour`}>
-                <p className="addon-label">
-                  Colour: <strong>{open.colours.find((colour) => colour.id === draft.colourId)?.label}</strong>
-                </p>
-                <div className="addon-swatches">
-                  {open.colours.map((colour) => {
-                    const active = colour.id === draft.colourId;
-                    return (
-                      <button
-                        type="button"
-                        key={colour.id}
-                        className="addon-swatch"
-                        aria-label={colour.label}
-                        aria-pressed={active}
-                        onClick={() => setDraft({...draft, colourId: colour.id})}
-                      >
-                        <span className="addon-swatch-dot" style={{background: addonSwatchBackground(colour.kind, colour.hexes)}}>
-                          {active ? <Check className="addon-swatch-check" aria-hidden strokeWidth={3} /> : null}
-                        </span>
-                        <span className="addon-swatch-name">{colour.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              <ColourChoice key={open.id} species={open} selectedId={draft.colourId} onPick={(colourId) => setDraft({...draft, colourId})} />
 
               {open.poses.length ? (
                 <div role="group" aria-label={open.poseLabel ?? "Pose"} className="addon-section">

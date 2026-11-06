@@ -7608,54 +7608,98 @@ body:has(.outlets-stage--page) footer {
   font-weight: 500;
   overflow-wrap: anywhere;
 }
+/* Colours: chosen by contrast, not by a frame. The chosen swatch is at full strength
+   with only a hairline ring; every other swatch is faded back and slightly muted.
+   The colour names stay written out under each one and the chosen name turns bold,
+   so the choice never depends on colour or opacity alone. */
+.addon-label-serif {
+  margin-bottom: 1rem;
+  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Garamond, Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1.3;
+}
+.addon-label-value {
+  margin-left: 0.5rem;
+  font-size: 1.0625rem;
+  font-style: italic;
+  color: #4a4132;
+}
 .addon-swatches {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(5.25rem, 1fr));
-  gap: 0.6rem 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 1.1rem 0.75rem;
+}
+.addon-swatches-other {
+  margin-top: 1.1rem;
 }
 .addon-swatch {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.55rem;
   min-height: 3.5rem;
-  padding: 0.35rem 0.2rem 0.45rem;
-  border: 2px solid transparent;
-  border-radius: 10px;
+  padding: 0.3rem 0.15rem 0.4rem;
+  border: 0;
   background: transparent;
   color: inherit;
 }
-.addon-swatch[aria-pressed="true"] {
-  border-color: #231c12;
-  background: rgba(255, 255, 255, 0.6);
-}
 .addon-swatch-dot {
-  position: relative;
   display: block;
   width: 3.25rem;
   height: 3.25rem;
   flex: none;
   overflow: hidden;
   border-radius: 9999px;
-  box-shadow: 0 0 0 2px #231c12, 0 0 0 4px rgba(246, 239, 224, 0.9);
+  opacity: 0.5;
+  filter: saturate(0.55);
+  box-shadow: inset 0 0 0 1px rgba(35, 28, 18, 0.25);
+  transition: opacity 0.25s ease, filter 0.25s ease, box-shadow 0.25s ease;
 }
-.addon-swatch-check {
-  position: absolute;
-  right: 0.1rem;
-  bottom: 0.1rem;
-  width: 1.4rem;
-  height: 1.4rem;
-  padding: 2px;
-  border-radius: 9999px;
-  background: #231c12;
-  color: #fff;
+.addon-swatch:hover .addon-swatch-dot {
+  opacity: 0.8;
+  filter: saturate(0.85);
+}
+.addon-swatch[aria-pressed="true"] .addon-swatch-dot {
+  opacity: 1;
+  filter: none;
+  box-shadow: inset 0 0 0 1px rgba(35, 28, 18, 0.25), 0 0 0 3px #f6efe0, 0 0 0 4px rgba(35, 28, 18, 0.5);
 }
 .addon-swatch-name {
   font-size: 0.9375rem;
-  font-weight: 600;
-  line-height: 1.2;
+  font-weight: 500;
+  line-height: 1.25;
   text-align: center;
   overflow-wrap: anywhere;
+  opacity: 0.8;
+}
+.addon-swatch[aria-pressed="true"] .addon-swatch-name {
+  font-weight: 700;
+  opacity: 1;
+}
+.addon-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 3.5rem;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.1rem;
+  border: 0;
+  border-bottom: 1px solid rgba(35, 28, 18, 0.4);
+  border-radius: 0;
+  background: transparent;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  color: inherit;
+}
+.addon-more:focus-visible {
+  outline: 3px solid #231c12;
+  outline-offset: 3px;
+}
+.addon-more-chevron {
+  width: 1.25rem;
+  height: 1.25rem;
+  transition: transform 0.2s ease;
 }
 .addon-poses {
   display: flex;
@@ -7827,5 +7871,63 @@ body:has(.outlets-stage--page) footer {
   .addon-photo-head {
     width: 6rem;
     height: 6rem;
+  }
+}
+
+/* No word left alone on the last line, anywhere on the site. Headings and captions are
+   balanced so their lines come out even; running text uses "pretty", which keeps the
+   last line from being a single word. Short intro paragraphs are balanced too, since
+   their whole point is to read as one even block. Browsers without support just wrap
+   as they always did. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+blockquote,
+figcaption {
+  text-wrap: balance;
+}
+p,
+li,
+dd {
+  text-wrap: pretty;
+}
+.addon-lede,
+.addon-help,
+.pdp-lede,
+.pdp-customise-lede,
+.pdp-fixed-note,
+.pdp-personalise__hint {
+  text-wrap: balance;
+}
+
+/* Animal names in the four-across grid never break in the middle of a word: the type
+   steps down a little on narrow screens so even "Dachshund" and "Elephant" fit on one
+   line, and "Shih Tzu/Poodle" may only break after the slash. */
+.addon-tile-name {
+  overflow-wrap: break-word;
+  hyphens: none;
+}
+@media (max-width: 480px) {
+  .addon-grid {
+    gap: 0.4rem;
+  }
+  .addon-tile {
+    padding: 0.25rem 0.15rem 0.4rem;
+  }
+  .addon-tile-name {
+    font-size: 0.78rem;
+    letter-spacing: -0.01em;
+  }
+}
+@media (max-width: 420px) {
+  .addon-tile {
+    padding: 0.25rem 0.05rem 0.4rem;
+  }
+  .addon-tile-name {
+    font-size: 0.72rem;
+    letter-spacing: -0.015em;
   }
 }

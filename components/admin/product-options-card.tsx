@@ -169,7 +169,13 @@ export function ProductOptionsCard({
         badge="Optional"
         summary={
           form.customisation.enabled
-            ? `On - ${form.customisation.fields.length} ${form.customisation.fields.length === 1 ? "field" : "fields"}`
+            ? `On - ${form.customisation.fields.length} ${form.customisation.fields.length === 1 ? "field" : "fields"}, animals: ${
+                form.customisation.animals.mode === "all"
+                  ? "all"
+                  : form.customisation.animals.mode === "selected"
+                    ? `${form.customisation.animals.speciesIds.length} chosen`
+                    : "none"
+              }`
             : "Off"
         }
         open={openRows.has("custom")}
