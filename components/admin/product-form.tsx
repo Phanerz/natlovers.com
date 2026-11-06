@@ -193,7 +193,8 @@ function BagSizeField({
       ) : null}
 
       {manual ? (
-        <div className="space-y-2 rounded-xl border border-[#e6dcc6] bg-[#fcf8ee] p-3">
+        // Theme-mapped surface and border, so the panel and its text stay readable in dark mode too.
+        <div className="space-y-2 rounded-xl border border-[#d4c5ab] bg-[#eee7d8] p-3">
           <div className="flex flex-wrap gap-2">
             {shopSizes.map((option) => (
               <PillOption
