@@ -3,7 +3,7 @@
 import {useMemo, useState} from "react";
 import {useRouter} from "next/navigation";
 import {useSession} from "next-auth/react";
-import {Heart, Share2} from "lucide-react";
+import {ArrowDown, Heart, Palette, Share2} from "lucide-react";
 import {Toast, ToastState} from "@/components/admin/toast";
 import {useStorefront} from "@/components/storefront-provider";
 import {useWishlist} from "@/components/use-wishlist";
@@ -99,6 +99,12 @@ export function ProductPurchasePanel({
     }
   }
 
+  // Takes the shopper to the colours and personalisation card (or, failing that, the details).
+  function scrollToCustomise() {
+    const target = document.getElementById("customise") ?? document.getElementById("details");
+    target?.scrollIntoView({behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start"});
+  }
+
   async function handleShare() {
     const url = window.location.href;
     if (typeof navigator.share === "function") {
@@ -131,22 +137,29 @@ export function ProductPurchasePanel({
         ) : null}
       </p>
       <p className="pdp-fixed-note">
-        {currency === "USD"
-          ? "A fixed price in US dollars, set by Natlovers."
-          : "Harga tetap dalam rupiah, ditetapkan oleh Natlovers."}
+        {currency === "USD" ? "A fixed price in US dollars, set by Natlovers." : "A fixed price in Indonesian rupiah, set by Natlovers."}
       </p>
 
       {product.shortDescription ? <p className="pdp-lede">{product.shortDescription}</p> : null}
 
       <ProductSpecsPanel product={product} outOfStock={outOfStock} stockLabel={stockLabel} locale={locale} />
 
-      <div className="mt-5 flex items-center justify-between gap-4">
-        {hasCustomisation ? (
-          <a href="#details" className="pdp-customise-link !mt-0">
-            Choose colours &amp; personalise
-            <span aria-hidden>↓</span>
-          </a>
-        ) : null}
+      {hasCustomisation ? (
+        <button type="button" className="pdp-personalise mt-5" onClick={scrollToCustomise}>
+          <span className="pdp-personalise__icon" aria-hidden>
+            <Palette className="h-5 w-5" />
+          </span>
+          <span className="pdp-personalise__text">
+            <span className="pdp-personalise__title">Choose colours &amp; personalise</span>
+            <span className="pdp-personalise__hint">
+              {product.hasPersonalisation ? "Pick your colours, add a felted friend or leave us a note" : "Pick the colours you would like"}
+            </span>
+          </span>
+          <ArrowDown className="pdp-personalise__arrow h-5 w-5" aria-hidden />
+        </button>
+      ) : null}
+
+      <div className="mt-4 flex items-center justify-between gap-4">
         <div className="ml-auto flex items-center gap-4">
           <button
             type="button"

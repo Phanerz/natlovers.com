@@ -181,8 +181,13 @@ export function AddonPicker({
 
           {open && draft ? (
             <section ref={panelRef} className="addon-panel" aria-label={`Choose your ${open.name}`}>
-              <SpeciesPhoto species={open} poseId={draft.poseId ?? null} colourId={draft.colourId} className="addon-photo-large" />
-              <h4 className="addon-panel-title">{open.name}</h4>
+              <div className="addon-panel-head">
+                <SpeciesPhoto species={open} poseId={draft.poseId ?? null} colourId={draft.colourId} className="addon-photo-head" />
+                <div className="addon-panel-head-text">
+                  <h4 className="addon-panel-title">{open.name}</h4>
+                  <p className="addon-help">{describeAddonPick(open, draft).value}</p>
+                </div>
+              </div>
 
               <div role="group" aria-label={`${open.name} colour`}>
                 <p className="addon-label">

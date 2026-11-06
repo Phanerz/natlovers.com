@@ -4003,7 +4003,7 @@ body:has(.outlets-stage--page) footer {
 .pdp-lede {
   margin-top: 0.8rem;
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-  font-size: 1.1rem;
+  font-size: 1.22rem;
   line-height: 1.65;
   color: var(--pdp-soft);
 }
@@ -7290,9 +7290,78 @@ body:has(.outlets-stage--page) footer {
 /* The small line under a price that says it is a fixed price, not a conversion. */
 .pdp-fixed-note {
   margin-top: 0.35rem;
-  font-size: 0.8rem;
+  font-size: 0.92rem;
   font-style: italic;
   color: var(--pdp-muted);
+}
+
+/* The way into the colours and personalisation card: a clear, roomy tile with an icon,
+   a plain sentence and an arrow, so it reads as "this is for you" and not as one more
+   button beside Add to Bag. Flat, outlined, no glass. */
+.pdp-personalise {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.9rem;
+  min-height: 4rem;
+  padding: 0.8rem 1rem;
+  border: 1.5px solid color-mix(in srgb, var(--pdp-ink) 45%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--pdp-ink) 8%, transparent);
+  text-align: left;
+  color: var(--pdp-ink);
+  transition: background-color 0.2s, border-color 0.2s;
+}
+.pdp-personalise:hover {
+  background: color-mix(in srgb, var(--pdp-ink) 15%, transparent);
+  border-color: var(--pdp-ink);
+}
+.pdp-personalise:focus-visible {
+  outline: 2px solid var(--pdp-ink);
+  outline-offset: 3px;
+}
+.pdp-personalise__icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--pdp-ink) 14%, transparent);
+}
+.pdp-personalise__text {
+  flex: 1;
+  min-width: 0;
+}
+.pdp-personalise__title {
+  display: block;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-size: 1.15rem;
+  line-height: 1.25;
+}
+.pdp-personalise__hint {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  color: var(--pdp-soft);
+}
+.pdp-personalise__arrow {
+  flex: none;
+  animation: pdp-nudge 2.2s ease-in-out infinite;
+}
+@keyframes pdp-nudge {
+  0%, 70%, 100% { transform: translateY(0); }
+  35% { transform: translateY(3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pdp-personalise__arrow {
+    animation: none;
+  }
+}
+#customise {
+  scroll-margin-top: 8rem;
 }
 
 /* The admin preview of the designer card sits in the page instead of following a cursor. */
@@ -7331,8 +7400,9 @@ body:has(.outlets-stage--page) footer {
 
 /* Product page: on a laptop the photo column grows to meet the buying column, so the
    bottom of the main photo and the bottom of the Add to Bag button always line up.
-   The photo never gets shorter than its 3:4 shape; the thumbnail squares spread out
-   evenly so the first and last squares still sit level with the photo's top and bottom. */
+   The photo never gets shorter than its 3:4 shape. The thumbnail rail is a grid of eight
+   rows: with eight photos the first and last squares sit level with the photo's top and
+   bottom; with fewer, they stack from the top with exactly the same gap between them. */
 @media (min-width: 1024px) {
   .pdp-gallery {
     flex: 1 1 auto;
@@ -7345,7 +7415,13 @@ body:has(.outlets-stage--page) footer {
     min-height: calc(100cqw * 4 / 3);
   }
   .pdp-gallery .pdp-thumbs-inner {
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    /* Eight rows, each exactly one square tall (the rail's own width), so the empty rows
+       still hold their space and the gap is the same whether there are 4 photos or 8. */
+    grid-template-rows: repeat(8, calc((4 * 100cqw - 25 * var(--g)) / 28));
+    align-content: space-between;
+    row-gap: var(--g);
   }
 }
 
@@ -7723,5 +7799,33 @@ body:has(.outlets-stage--page) footer {
   }
   .addon-row-text {
     flex-basis: calc(100% - 5.5rem);
+  }
+}
+
+/* The chosen animal: a small photo beside the name, so the panel stays compact. */
+.addon-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.addon-photo-head {
+  width: 7.5rem;
+  height: 7.5rem;
+  flex: none;
+}
+.addon-panel-head-text {
+  flex: 1;
+}
+.addon-panel-head .addon-panel-title {
+  margin: 0 0 0.25rem;
+}
+.addon-panel-head .addon-help {
+  margin: 0;
+}
+@media (max-width: 480px) {
+  .addon-photo-head {
+    width: 6rem;
+    height: 6rem;
   }
 }

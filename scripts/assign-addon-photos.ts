@@ -39,13 +39,8 @@ const PLAN: Record<string, Target[]> = {
   "elephant-front": [{species: "elephant", pose: "Front", primary: true}],
   "elephant-side": [{species: "elephant", pose: "Side"}],
   "shihtzu-poodle": [{species: "shih-tzu-poodle", primary: true}],
-  // One group photo stands in for the dog breeds with no photo of their own, zoomed in.
-  "buncha-dogs": [
-    {species: "basset-hound", primary: true, zoom: 1.4},
-    {species: "beagle", primary: true, zoom: 1.4},
-    {species: "french-bulldog-boston-terrier", primary: true, zoom: 1.4},
-    {species: "corgi", primary: true, zoom: 1.4}
-  ]
+  // One group photo stands in for every breed under "Other dogs", zoomed in a little.
+  "buncha-dogs": [{species: "other-dogs", primary: true, zoom: 1.3}]
 };
 
 async function main() {

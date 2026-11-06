@@ -111,20 +111,25 @@ export const SEED_SPECIES: SeedSpecies[] = [
     poses: ["Front", "Side"]
   },
   {name: "Shih Tzu / Poodle", slug: "shih-tzu-poodle", group: "shih-tzu-poodle", defaults: ["White", "Apricot / Tan", "Black"]},
+  // Basset Hound, Beagle, French Bulldog / Boston Terrier and Corgi are one
+  // "Other dogs" entry. The kind of dog is picked with the breed selector, which
+  // reuses the pose mechanism; the colours are all of theirs together.
   {
-    name: "Basset Hound",
-    slug: "basset-hound",
-    group: "basset-hound",
-    defaults: ["Tan & White", "Tricolour (black / tan / white)"]
-  },
-  {name: "Beagle", slug: "beagle", group: "beagle", defaults: ["Tricolour (black / tan / white)", "Red & White"]},
-  {
-    name: "French Bulldog / Boston Terrier",
-    slug: "french-bulldog-boston-terrier",
-    group: "french-bulldog-boston-terrier",
-    defaults: ["Fawn", "Black & White", "Brindle"]
-  },
-  {name: "Corgi", slug: "corgi", group: "corgi", defaults: ["Red & White", "Sable & White", "Tricolour"]}
+    name: "Other dogs",
+    slug: "other-dogs",
+    group: "other-dogs",
+    defaults: [
+      "Tan & White",
+      "Tricolour (black / tan / white)",
+      "Red & White",
+      "Sable & White",
+      "Fawn",
+      "Black & White",
+      "Brindle"
+    ],
+    poseLabel: "Breed",
+    poses: ["Basset Hound", "Beagle", "French Bulldog / Boston Terrier", "Corgi"]
+  }
 ];
 
 // The 25 photographs in /public/animals, filed as an unassigned library. The
