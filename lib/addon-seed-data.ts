@@ -4,14 +4,14 @@
 // real felt. Nothing here is read by the storefront: scripts/seed-addons.ts
 // copies it into the database once, and admin owns it from then on.
 
-export type SeedColour = {kind: "solid" | "two_tone" | "gradient"; hexes: string[]};
+export type SeedColour = {kind: "solid" | "two_tone" | "three_tone"; hexes: string[]};
 
 export const SEED_COLOURS: Record<string, SeedColour> = {
   Brown: {kind: "solid", hexes: ["#7a4e2d"]},
   Black: {kind: "solid", hexes: ["#2a2523"]},
   White: {kind: "solid", hexes: ["#f4efe6"]},
   Chestnut: {kind: "solid", hexes: ["#8c3f22"]},
-  "Grey / Dapple": {kind: "gradient", hexes: ["#9a9a98", "#c9c6c0"]},
+  "Grey / Dapple": {kind: "two_tone", hexes: ["#9a9a98", "#c9c6c0"]},
   "Light Brown": {kind: "solid", hexes: ["#b58a5a"]},
   "Dark Brown": {kind: "solid", hexes: ["#4b2e1c"]},
   Tan: {kind: "solid", hexes: ["#c9a37a"]},
@@ -22,14 +22,14 @@ export const SEED_COLOURS: Record<string, SeedColour> = {
   "White & Black": {kind: "two_tone", hexes: ["#f4efe6", "#2a2523"]},
   "White & Brown": {kind: "two_tone", hexes: ["#f4efe6", "#7a4e2d"]},
   Red: {kind: "solid", hexes: ["#a63a2a"]},
-  Speckled: {kind: "gradient", hexes: ["#8a6a4a", "#d8c8b0"]},
+  Speckled: {kind: "two_tone", hexes: ["#8a6a4a", "#d8c8b0"]},
   "Orange Tabby": {kind: "solid", hexes: ["#d98a3d"]},
   "Grey / Tuxedo": {kind: "two_tone", hexes: ["#8f8f8d", "#f4efe6"]},
   Yellow: {kind: "solid", hexes: ["#e2bd4a"]},
-  Calico: {kind: "gradient", hexes: ["#f4efe6", "#d98a3d", "#2a2523"]},
+  Calico: {kind: "three_tone", hexes: ["#f4efe6", "#d98a3d", "#2a2523"]},
   "Mallard (green / brown)": {kind: "two_tone", hexes: ["#3d6b4a", "#8a6a4a"]},
   Green: {kind: "solid", hexes: ["#4f7a4f"]},
-  "Painted (multicolour)": {kind: "gradient", hexes: ["#d9694a", "#e2bd4a", "#4f7a9a"]},
+  "Painted (multicolour)": {kind: "three_tone", hexes: ["#d9694a", "#e2bd4a", "#4f7a9a"]},
   "Light Tan": {kind: "solid", hexes: ["#d9bf94"]},
   "Dark Tan": {kind: "solid", hexes: ["#a67c4e"]},
   "Red / Brown": {kind: "two_tone", hexes: ["#a8482a", "#7a4e2d"]},
@@ -39,13 +39,13 @@ export const SEED_COLOURS: Record<string, SeedColour> = {
   "Light Grey / Pink-Grey": {kind: "two_tone", hexes: ["#c4c2c0", "#d4b8b8"]},
   "Apricot / Tan": {kind: "solid", hexes: ["#d9a679"]},
   "Tan & White": {kind: "two_tone", hexes: ["#c9a37a", "#f4efe6"]},
-  "Tricolour (black / tan / white)": {kind: "gradient", hexes: ["#2a2523", "#c28a52", "#f4efe6"]},
+  "Tricolour (black / tan / white)": {kind: "three_tone", hexes: ["#2a2523", "#c28a52", "#f4efe6"]},
   "Red & White": {kind: "two_tone", hexes: ["#a8482a", "#f4efe6"]},
   Fawn: {kind: "solid", hexes: ["#d4aa78"]},
   "Black & White": {kind: "two_tone", hexes: ["#2a2523", "#f4efe6"]},
-  Brindle: {kind: "gradient", hexes: ["#6b4a30", "#2a2523"]},
+  Brindle: {kind: "two_tone", hexes: ["#6b4a30", "#2a2523"]},
   "Sable & White": {kind: "two_tone", hexes: ["#a8723f", "#f4efe6"]},
-  Tricolour: {kind: "gradient", hexes: ["#2a2523", "#c28a52", "#f4efe6"]}
+  Tricolour: {kind: "three_tone", hexes: ["#2a2523", "#c28a52", "#f4efe6"]}
 };
 
 export type SeedSpecies = {

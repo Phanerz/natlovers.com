@@ -78,6 +78,19 @@ export function OrderItemDetails({
                   {addon.colourLabel}
                 </p>
                 {addon.note ? <p className="mt-0.5 italic [overflow-wrap:anywhere]">Note: {addon.note}</p> : null}
+                {addon.referenceImages?.length ? (
+                  <div className="mt-1.5">
+                    <p className="text-xs font-semibold">Customer photos to copy</p>
+                    <span className="mt-1 flex flex-wrap gap-1.5">
+                      {addon.referenceImages.map((url) => (
+                        <a key={url} href={url} target="_blank" rel="noreferrer" title="Open photo at full size">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={url} alt="Customer reference" className="h-20 w-20 rounded object-cover ring-1 ring-black/20" />
+                        </a>
+                      ))}
+                    </span>
+                  </div>
+                ) : null}
                 <p className="opacity-70">
                   {currency === "USD" ? formatCurrency(addon.priceUsdCents / 100, "USD") : formatMoney(addon.priceIdr)}
                 </p>

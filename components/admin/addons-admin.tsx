@@ -22,7 +22,7 @@ type AdminData = {
   library: LibraryImage[];
 };
 
-const KIND_LABELS: Record<AddonColourKind, string> = {solid: "One colour", two_tone: "Two-tone", gradient: "Gradient"};
+const KIND_LABELS: Record<AddonColourKind, string> = {solid: "One colour", two_tone: "Two colours", three_tone: "Three colours"};
 const field = "w-full rounded-lg border border-[#d9cfc0] bg-white px-3 py-2 text-sm text-forest-900";
 const button = "rounded-lg border border-[#d9cfc0] bg-white px-3 py-2 text-sm font-medium text-forest-900 hover:bg-[#f6f0e3]";
 const primary = "rounded-lg bg-forest-900 px-3 py-2 text-sm font-medium text-white hover:opacity-90";
@@ -37,8 +37,9 @@ function Swatch({kind, hexes, size = 28}: {kind: string; hexes: string[]; size?:
   );
 }
 
-// Builds one colour: a single flat colour, a hard two-tone split or a gradient
-// of two or three stops, with a live preview. Used for both new and existing colours.
+// Builds one colour: a single flat colour, or two or three colours shown as
+// clear side-by-side blocks (no blends), with a live preview. Used for both new
+// and existing colours.
 function ColourBuilder({
   groupId,
   editing,
@@ -55,7 +56,7 @@ function ColourBuilder({
   const [hexes, setHexes] = useState<string[]>(editing?.hexes ?? ["#b58a5a"]);
   const [isDefault, setIsDefault] = useState(editing?.isDefault ?? false);
 
-  const count = kind === "solid" ? 1 : kind === "two_tone" ? 2 : Math.max(2, Math.min(3, hexes.length));
+  const count = kind === "solid" ? 1 : kind === "two_tone" ? 2 : 3;
   const stops = Array.from({length: count}, (_, index) => hexes[index] ?? hexes[hexes.length - 1] ?? "#b58a5a");
 
   return (
@@ -95,11 +96,6 @@ function ColourBuilder({
               />
             </label>
           ))}
-          {kind === "gradient" && stops.length < 3 ? (
-            <button type="button" className={button} onClick={() => setHexes([...stops, "#f4efe6"])}>
-              + stop
-            </button>
-          ) : null}
         </div>
         <Swatch kind={kind} hexes={stops} size={44} />
       </div>

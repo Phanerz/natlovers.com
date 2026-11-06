@@ -253,6 +253,13 @@
       "when": 1793929514042,
       "tag": "0035_addons",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793934983993,
+      "tag": "0036_addon_reference_photos",
+      "breakpoints": true
     }
   ]
 }

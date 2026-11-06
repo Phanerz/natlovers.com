@@ -3,8 +3,23 @@ import {z} from "zod";
 // Pure add-on types and helpers shared by the storefront, the admin and the
 // server. Nothing here touches the database, so client components may import it.
 
-export const ADDON_COLOUR_KINDS = ["solid", "two_tone", "gradient"] as const;
+// One flat colour, two colours side by side, or three colours side by side.
+// There are no blends: every colour is a clear, hard-edged block, so a customer
+// can tell a Tricolour from a Red & White at a glance.
+export const ADDON_COLOUR_KINDS = ["solid", "two_tone", "three_tone"] as const;
 export type AddonColourKind = (typeof ADDON_COLOUR_KINDS)[number];
+
+// Reads a stored kind. Rows saved before gradients were dropped say "gradient";
+// they become two or three blocks depending on how many colours they hold.
+export function normalizeColourKind(kind: string, hexes: string[]): AddonColourKind {
+  if (kind === "solid" || kind === "two_tone" || kind === "three_tone") return kind;
+  return hexes.length >= 3 ? "three_tone" : hexes.length === 2 ? "two_tone" : "solid";
+}
+
+// Customer reference photos must be our own uploads, never an arbitrary link.
+export function isReferenceImageUrl(url: string): boolean {
+  return /^https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\//i.test(url);
+}
 
 export type AddonColourView = {
   id: string;
@@ -52,6 +67,9 @@ export const addonPickSchema = z.object({
   speciesId: z.string().trim().min(1).max(64),
   colourId: z.string().trim().min(1).max(64),
   poseId: z.string().trim().max(64).optional(),
+  // Photos of the customer's own pet, person or house, for the studio to work from.
+  images: z.array(z.string().url().max(600).refine(isReferenceImageUrl, "Photos must be uploaded here.")).max(3).optional(),
+  // Older carts may still carry a note; nothing writes one any more.
   note: z.string().trim().max(300).optional()
 });
 export type AddonPick = z.infer<typeof addonPickSchema>;
@@ -67,22 +85,22 @@ export type AddonOrderLine = {
   colourHexes: string[];
   poseLabel: string | null;
   note: string | null;
+  // The felted reference photo shown to the customer.
   imageUrl: string | null;
+  // The customer's own photos of the pet, person or house to copy.
+  referenceImages: string[];
   priceIdr: number;
   priceUsdCents: number;
 };
 
-// A CSS background for a swatch. One flat colour, a hard two-tone split, or a
-// soft blend for gradients.
+// A CSS background for a swatch: one flat colour, or equal hard-edged blocks of
+// each colour side by side. Never a blend.
 export function addonSwatchBackground(kind: string, hexes: string[]): string {
   const stops = hexes.filter(Boolean);
   if (stops.length === 0) return "#cccccc";
   if (stops.length === 1 || kind === "solid") return stops[0];
-  if (kind === "two_tone") {
-    const [a, b] = stops;
-    return `linear-gradient(90deg, ${a} 0 50%, ${b ?? a} 50% 100%)`;
-  }
-  return `linear-gradient(135deg, ${stops.join(", ")})`;
+  const parts = stops.map((hex, index) => `${hex} ${(index * 100) / stops.length}% ${((index + 1) * 100) / stops.length}%`);
+  return `linear-gradient(90deg, ${parts.join(", ")})`;
 }
 
 // The most specific reference photo for a choice: pose and colour together,
@@ -104,7 +122,7 @@ export function defaultAddonPick(species: AddonSpeciesView): AddonPick | null {
 // The priced, readable lines the cart shows for a set of picks. Display only:
 // the server rebuilds them from the database when the order is placed.
 export function buildAddonLines(catalogue: AddonCatalogue, picks: AddonPick[]) {
-  const lines: {label: string; value: string; extraIdr: number; extraUsdCents: number; hex?: string}[] = [];
+  const lines: {label: string; value: string; extraIdr: number; extraUsdCents: number; hex?: string; images?: string[]}[] = [];
   picks.forEach((pick, index) => {
     const species = catalogue.species.find((entry) => entry.id === pick.speciesId);
     if (!species) return;
@@ -114,7 +132,8 @@ export function buildAddonLines(catalogue: AddonCatalogue, picks: AddonPick[]) {
       value: pick.note ? `${described.value} (note: ${pick.note})` : described.value,
       extraIdr: catalogue.priceIdr,
       extraUsdCents: catalogue.priceUsdCents,
-      hex: described.hex
+      hex: described.hex,
+      ...(pick.images?.length ? {images: pick.images} : {})
     });
   });
   return lines;

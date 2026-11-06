@@ -3,6 +3,7 @@
 import {useState} from "react";
 import {lineExtrasTotal} from "@/lib/pricing";
 import {useSitePreferences} from "@/components/site-preferences-provider";
+import {useStorefront} from "@/components/storefront-provider";
 import type {ProductSelection} from "@/lib/product-selection";
 import type {AdminProduct} from "@/lib/admin-products";
 import {defaultAnswers, isOptionsEnabled, resolveOptions, type OptionAnswers} from "@/lib/product-options";
@@ -63,6 +64,16 @@ export function ProductDetailView({
       }
     : undefined;
 
+  // The same Add to Bag as the one in the purchase column, repeated under the note.
+  const {addToCart} = useStorefront();
+  const [addedNotice, setAddedNotice] = useState(false);
+  const outOfStock = product.soldOut || (product.stock !== null && product.stock <= 0);
+  function handleAddToBag() {
+    addToCart(product.slug, 1, selection ?? null);
+    setAddedNotice(true);
+    window.setTimeout(() => setAddedNotice(false), 2500);
+  }
+
   return (
     <>
       <div className="grid items-stretch gap-6 lg:grid-cols-2 lg:gap-[30px] xl:gap-[48px]">
@@ -90,6 +101,9 @@ export function ProductDetailView({
               hasPersonalisation={product.hasPersonalisation}
               personalisationNote={personalisationNote}
               onPersonalisationNoteChange={setPersonalisationNote}
+              onAddToBag={handleAddToBag}
+              addToBagLabel={outOfStock ? "Sold Out" : addedNotice ? "Added to Bag" : "Add to Bag"}
+              addToBagDisabled={outOfStock}
               addonCatalogue={addonsOn ? addonCatalogue : null}
               addonPicks={addonPicks}
               onAddonPicksChange={setAddonPicks}

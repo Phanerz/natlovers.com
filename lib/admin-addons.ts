@@ -185,7 +185,7 @@ export async function runAddonOp(input: unknown): Promise<void> {
     }
     case "colour.save": {
       if (op.kind === "two_tone" && op.hexes.length !== 2) throw new Error("A two-tone colour needs exactly two colours.");
-      if (op.kind === "gradient" && op.hexes.length < 2) throw new Error("A gradient needs two or three colours.");
+      if (op.kind === "three_tone" && op.hexes.length !== 3) throw new Error("A three-tone colour needs exactly three colours.");
       if (op.kind === "solid" && op.hexes.length !== 1) throw new Error("A solid colour has exactly one colour.");
       const values = {groupId: op.groupId, label: op.label, kind: op.kind, hexes: op.hexes, isDefault: op.isDefault, active: op.active};
       if (op.id) {

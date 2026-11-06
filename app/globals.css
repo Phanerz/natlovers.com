@@ -3965,7 +3965,7 @@ body:has(.outlets-stage--page) footer {
   margin-top: 0.6rem;
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   font-size: clamp(1.65rem, 2.3vw, 2.2rem);
-  line-height: 1.3;
+  line-height: 1.2;
   padding-bottom: 0.12em;
   /* a hair of stroke thickens the classic serif without a synthetic bold */
   -webkit-text-stroke: 0.45px currentColor;
@@ -3981,7 +3981,7 @@ body:has(.outlets-stage--page) footer {
   display: flex;
   align-items: baseline;
   gap: 0.7rem;
-  margin-top: 0.7rem;
+  margin-top: 0.1rem;
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   font-size: 1.75rem;
   letter-spacing: 0.02em;
@@ -7329,23 +7329,83 @@ body:has(.outlets-stage--page) footer {
   }
 }
 
+/* Product page: on a laptop the photo column grows to meet the buying column, so the
+   bottom of the main photo and the bottom of the Add to Bag button always line up.
+   The photo never gets shorter than its 3:4 shape; the thumbnail squares spread out
+   evenly so the first and last squares still sit level with the photo's top and bottom. */
+@media (min-width: 1024px) {
+  .pdp-gallery {
+    flex: 1 1 auto;
+  }
+  .pdp-gallery .pdp-main {
+    aspect-ratio: auto;
+    min-height: calc((100cqw - (4 * 100cqw - 25 * var(--g)) / 28 - var(--g)) * 4 / 3);
+  }
+  .pdp-gallery:not(:has(.pdp-thumbs)) .pdp-main {
+    min-height: calc(100cqw * 4 / 3);
+  }
+  .pdp-gallery .pdp-thumbs-inner {
+    justify-content: space-between;
+  }
+}
+
 /* Add-on animals inside the Make it yours note. Larger than the rest of the
    product page on purpose: the customers who order these skew older, so touch
-   targets are 56px or more, type is 17px or more, the selected state is a thick
-   ring plus a tick (never colour alone), and ink on cream is high contrast.
-   Flat cream card throughout, no glass. */
+   targets are 56px or more, text is 15px or more (animal names 14px so four fit a
+   row on a phone), the selected state is a thick ring plus a tick (never colour
+   alone), and ink on cream is high contrast. Flat cream card, no glass. */
 .addon-block {
-  margin-top: 1.75rem;
+  margin-top: 1.5rem;
   color: #231c12;
   font-size: 1.0625rem;
   line-height: 1.55;
+  min-width: 0;
+}
+.addon-block * {
+  min-width: 0;
+}
+.addon-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  margin-top: 1rem;
+  padding: 0.25rem 0;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  color: inherit;
+}
+.addon-toggle:focus-visible {
+  outline: 3px solid #231c12;
+  outline-offset: 3px;
+  border-radius: 6px;
 }
 .addon-title {
-  margin-top: 1.5rem;
+  flex: 1;
   font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Garamond, Georgia, serif;
   font-size: 1.625rem;
   font-weight: 500;
   line-height: 1.2;
+}
+.addon-count {
+  padding: 0.15rem 0.7rem;
+  border-radius: 9999px;
+  background: #231c12;
+  color: #f6efe0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.addon-chevron {
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  transition: transform 0.2s ease;
+}
+.addon-chevron-open {
+  transform: rotate(180deg);
 }
 .addon-lede {
   margin-top: 0.5rem;
@@ -7354,34 +7414,38 @@ body:has(.outlets-stage--page) footer {
 .addon-label {
   font-size: 1.0625rem;
   font-weight: 600;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+.addon-help {
+  margin-bottom: 0.75rem;
+  color: #3a3022;
+  font-size: 0.9375rem;
 }
 .addon-optional {
   font-weight: 400;
   color: #4a4132;
 }
+.addon-section {
+  margin-top: 1.5rem;
+}
 .addon-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.9rem;
-  margin-top: 1.25rem;
-}
-@media (min-width: 1024px) {
-  .addon-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
 }
 .addon-tile {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  min-height: 3.5rem;
-  padding: 0.5rem 0.5rem 0.7rem;
+  align-items: stretch;
+  gap: 0.35rem;
+  padding: 0.3rem 0.3rem 0.45rem;
   border: 2px solid rgba(70, 56, 36, 0.28);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.45);
-  text-align: left;
+  text-align: center;
   color: inherit;
 }
 .addon-tile:hover {
@@ -7395,34 +7459,40 @@ body:has(.outlets-stage--page) footer {
 .addon-swatch:focus-visible,
 .addon-pose:focus-visible,
 .addon-btn:focus-visible,
-.addon-input:focus-visible {
+.addon-input:focus-visible,
+.addon-upload-remove:focus-visible {
   outline: 3px solid #231c12;
   outline-offset: 3px;
 }
 .addon-tile-name {
-  font-size: 1.0625rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 .addon-tile-count {
   position: absolute;
-  top: 0.9rem;
-  right: 0.9rem;
-  padding: 0.15rem 0.6rem;
+  top: 0.15rem;
+  right: 0.15rem;
+  min-width: 1.5rem;
+  padding: 0 0.4rem;
   border-radius: 9999px;
   background: #231c12;
   color: #f6efe0;
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.5rem;
 }
 .addon-photo {
   position: relative;
   overflow: hidden;
   aspect-ratio: 1 / 1;
-  border-radius: 8px;
+  border-radius: 7px;
   background: #e9dfc8;
 }
 .addon-photo img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -7433,75 +7503,83 @@ body:has(.outlets-stage--page) footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem;
+  padding: 0.25rem;
   text-align: center;
-  font-size: 1.0625rem;
+  font-size: 0.8125rem;
   color: #3a3022;
 }
 .addon-photo-large {
   aspect-ratio: 4 / 3;
-  min-height: 17.5rem;
   width: 100%;
 }
-@media (min-width: 1024px) {
-  .addon-photo-large {
-    min-height: 22.5rem;
-  }
-}
 .addon-photo-small {
-  width: 5.5rem;
-  height: 5.5rem;
+  width: 4.5rem;
+  height: 4.5rem;
   flex: none;
 }
 .addon-panel {
-  margin-top: 1.5rem;
-  padding: 1.1rem;
+  margin-top: 1.25rem;
+  padding: 1rem;
   border: 2px solid #231c12;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.5);
+  scroll-margin-top: 7rem;
 }
 .addon-panel-title {
-  margin: 1rem 0 1rem;
+  margin: 0.9rem 0 0.9rem;
   font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Garamond, Georgia, serif;
   font-size: 1.625rem;
   font-weight: 500;
+  overflow-wrap: anywhere;
 }
 .addon-swatches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.25rem, 1fr));
+  gap: 0.6rem 0.5rem;
 }
 .addon-swatch {
-  position: relative;
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  width: 3.5rem;
-  height: 3.5rem;
-  border: 3px solid transparent;
-  border-radius: 9999px;
+  gap: 0.35rem;
+  min-height: 3.5rem;
+  padding: 0.35rem 0.2rem 0.45rem;
+  border: 2px solid transparent;
+  border-radius: 10px;
   background: transparent;
+  color: inherit;
 }
 .addon-swatch[aria-pressed="true"] {
   border-color: #231c12;
+  background: rgba(255, 255, 255, 0.6);
 }
 .addon-swatch-dot {
+  position: relative;
   display: block;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 3.25rem;
+  height: 3.25rem;
+  flex: none;
+  overflow: hidden;
   border-radius: 9999px;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 0 2px #231c12, 0 0 0 4px rgba(246, 239, 224, 0.9);
 }
 .addon-swatch-check {
   position: absolute;
-  width: 1.25rem;
-  height: 1.25rem;
+  right: 0.1rem;
+  bottom: 0.1rem;
+  width: 1.4rem;
+  height: 1.4rem;
   padding: 2px;
   border-radius: 9999px;
   background: #231c12;
   color: #fff;
-  right: -2px;
-  bottom: -2px;
+}
+.addon-swatch-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 .addon-poses {
   display: flex;
@@ -7524,18 +7602,44 @@ body:has(.outlets-stage--page) footer {
   background: #231c12;
   color: #f6efe0;
 }
-.addon-input {
-  width: 100%;
-  min-height: 3.5rem;
-  padding: 0.75rem 0.9rem;
-  border: 2px solid rgba(70, 56, 36, 0.45);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.6);
-  font-size: 1.0625rem;
-  color: #231c12;
+.addon-uploads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
 }
-.addon-input::placeholder {
-  color: #5f5543;
+.addon-upload {
+  position: relative;
+  width: 5rem;
+  height: 5rem;
+}
+.addon-upload img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid #231c12;
+  pointer-events: none;
+}
+.addon-upload-remove {
+  position: absolute;
+  top: -0.5rem;
+  right: -0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  border: 2px solid #f6efe0;
+  background: #231c12;
+  color: #fff;
+}
+.addon-error {
+  margin-top: 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #8a2a1a;
 }
 .addon-actions {
   display: flex;
@@ -7549,12 +7653,14 @@ body:has(.outlets-stage--page) footer {
   justify-content: center;
   gap: 0.5rem;
   min-height: 3.5rem;
-  padding: 0.6rem 1.4rem;
+  padding: 0.6rem 1.25rem;
   border: 2px solid #231c12;
   border-radius: 10px;
   background: transparent;
   font-size: 1.0625rem;
   font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
   color: #231c12;
 }
 .addon-btn:disabled {
@@ -7565,51 +7671,57 @@ body:has(.outlets-stage--page) footer {
   color: #f6efe0;
 }
 .addon-btn-small {
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.9rem;
 }
 .addon-warn {
   margin-top: 0.9rem;
   font-weight: 600;
 }
 .addon-list {
-  margin-top: 1.75rem;
+  margin-top: 1.5rem;
 }
 .addon-row {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
+  gap: 0.75rem;
   padding: 0.75rem 0;
   border-top: 1px solid rgba(70, 56, 36, 0.28);
 }
 .addon-row-text {
   flex: 1;
-  min-width: 0;
 }
 .addon-row-name {
   font-size: 1.1875rem;
   font-weight: 600;
 }
 .addon-row-detail,
-.addon-row-note,
 .addon-row-price {
-  font-size: 1.0625rem;
-}
-.addon-row-note {
-  color: #3a3022;
-  font-style: italic;
+  font-size: 1rem;
   overflow-wrap: anywhere;
 }
 .addon-total {
   margin-top: 0.9rem;
   padding-top: 0.9rem;
   border-top: 2px solid #231c12;
-  font-size: 1.1875rem;
+  font-size: 1.125rem;
 }
 @media (max-width: 480px) {
+  .addon-panel {
+    padding: 0.75rem;
+  }
+  .addon-title {
+    font-size: 1.45rem;
+  }
+  .addon-btn {
+    width: 100%;
+  }
+  .addon-btn-small {
+    width: auto;
+  }
   .addon-row {
     flex-wrap: wrap;
   }
   .addon-row-text {
-    flex-basis: calc(100% - 6.4rem);
+    flex-basis: calc(100% - 5.5rem);
   }
 }

@@ -10,14 +10,14 @@ import {
   orderItemAddons
 } from "@/lib/db";
 import {
-  ADDON_COLOUR_KINDS,
   type AddonCatalogue,
-  type AddonColourKind,
   type AddonColourView,
   type AddonImageView,
   type AddonOrderLine,
   type AddonPick,
   type AddonSpeciesView,
+  isReferenceImageUrl,
+  normalizeColourKind,
   pickAddonImage
 } from "@/lib/addon-shared";
 import type {ResolvedLine} from "@/lib/product-options";
@@ -27,10 +27,6 @@ const DEFAULT_SETTINGS = {priceIdr: 180000, priceUsdCents: 1000, maxPerBag: 4};
 export async function getAddonSettings() {
   const [row] = await db.select().from(addonSettings).where(eq(addonSettings.id, "default"));
   return row ? {priceIdr: row.priceIdr, priceUsdCents: row.priceUsdCents, maxPerBag: row.maxPerBag} : DEFAULT_SETTINGS;
-}
-
-function asKind(value: string): AddonColourKind {
-  return (ADDON_COLOUR_KINDS as readonly string[]).includes(value) ? (value as AddonColourKind) : "solid";
 }
 
 // Every species with its colours, poses and photos. `onlyActive` is the
@@ -51,7 +47,7 @@ export async function getAddonSpecies(onlyActive: boolean): Promise<AddonSpecies
     list.push({
       id: colour.id,
       label: colour.label,
-      kind: asKind(colour.kind),
+      kind: normalizeColourKind(colour.kind, colour.hexes),
       hexes: colour.hexes,
       isDefault: colour.isDefault,
       active: colour.active
@@ -138,6 +134,8 @@ export async function resolveAddonPicks(picks: AddonPick[]): Promise<AddonOrderL
       poseLabel,
       note: pick.note?.trim() || null,
       imageUrl: image?.url ?? null,
+      // Only our own uploads are kept, whatever the request carried.
+      referenceImages: (pick.images ?? []).filter(isReferenceImageUrl).slice(0, 3),
       priceIdr: settings.priceIdr,
       priceUsdCents: settings.priceUsdCents
     };
@@ -152,7 +150,8 @@ export function addonOrderLineToResolved(line: AddonOrderLine, index: number): R
     value: line.note ? `${value} (note: ${line.note})` : value,
     extraIdr: line.priceIdr,
     extraUsdCents: line.priceUsdCents,
-    hex: line.colourHexes[0]
+    hex: line.colourHexes[0],
+    ...(line.referenceImages.length ? {images: line.referenceImages} : {})
   };
 }
 
@@ -186,11 +185,12 @@ export async function getOrderAddons(orderItemIds: string[]): Promise<Map<string
       speciesId: row.speciesId,
       speciesName: row.speciesName,
       colourLabel: row.colourLabel,
-      colourKind: asKind(row.colourKind),
+      colourKind: normalizeColourKind(row.colourKind, row.colourHexes),
       colourHexes: row.colourHexes,
       poseLabel: row.poseLabel,
       note: row.note,
       imageUrl: row.imageUrl,
+      referenceImages: row.referenceImages ?? [],
       priceIdr: row.priceIdr,
       priceUsdCents: row.priceUsdCents
     });

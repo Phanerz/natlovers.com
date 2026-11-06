@@ -795,6 +795,9 @@ export const orderItemAddons = pgTable(
     poseLabel: text("pose_label"),
     note: text("note"),
     imageUrl: text("image_url"),
+    // The customer's own photos of the pet, person or house to copy, shown
+    // inline in the admin order view.
+    referenceImages: jsonb("reference_images").notNull().$type<string[]>().default(sql`'[]'::jsonb`),
     priceIdr: integer("price_idr").notNull(),
     priceUsdCents: integer("price_usd_cents").notNull(),
     sortOrder: integer("sort_order").notNull().default(0)
