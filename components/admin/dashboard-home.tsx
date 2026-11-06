@@ -71,7 +71,7 @@ const rangeLabels: Record<DateRangeKey, string> = {
 const rangeOrder: DateRangeKey[] = ["today", "7d", "month", "year", "all"];
 
 function formatIdr(value: number) {
-  return `Rp${value.toLocaleString("id-ID")}`;
+  return `Rp${value.toLocaleString("en-GB")}`;
 }
 
 function formatDate(iso: string) {

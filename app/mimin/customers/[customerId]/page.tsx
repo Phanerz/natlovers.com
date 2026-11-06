@@ -11,7 +11,7 @@ export const metadata = {
 };
 
 function formatIdr(value: number) {
-  return `Rp${value.toLocaleString("id-ID")}`;
+  return `Rp${value.toLocaleString("en-GB")}`;
 }
 
 function formatDate(iso: string) {

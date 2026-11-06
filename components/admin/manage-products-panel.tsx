@@ -350,7 +350,7 @@ export function ManageProductsPanel({
                       )}
                     </td>
                     <td className="py-3 pr-3 text-forest-700">
-                      <div>Rp{product.priceIdr.toLocaleString("id-ID")}</div>
+                      <div>Rp{product.priceIdr.toLocaleString("en-GB")}</div>
                       <div className="text-xs text-forest-500">
                         {product.priceUsdCents != null ? formatCurrency(product.priceUsdCents / 100, "USD") : "No USD price"}
                       </div>

@@ -56,7 +56,7 @@ function StatusBadge({status}: {status: string}) {
 }
 
 function formatIdr(value: number) {
-  return `Rp${value.toLocaleString("id-ID")}`;
+  return `Rp${value.toLocaleString("en-GB")}`;
 }
 
 function formatDate(value: string) {
