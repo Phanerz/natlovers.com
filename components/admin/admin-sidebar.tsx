@@ -14,6 +14,7 @@ import {
   MapPin,
   Newspaper,
   Palette,
+  PawPrint,
   PlusCircle,
   Receipt,
   ShoppingBag,
@@ -234,6 +235,9 @@ export function AdminSidebar() {
         </div>
         <NavLink href="/mimin/outlets" active={pathname === "/mimin/outlets"} icon={MapPin}>
           Outlets
+        </NavLink>
+        <NavLink href="/mimin/add-ons" active={pathname === "/mimin/add-ons"} icon={PawPrint}>
+          Add-ons
         </NavLink>
       </div>
 

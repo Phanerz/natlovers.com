@@ -9,7 +9,7 @@ import type {PointerEvent as ReactPointerEvent} from "react";
 import {ChevronDown, Menu, Search, ShoppingBag, User, X} from "lucide-react";
 import {signOut, useSession} from "next-auth/react";
 import {formatCurrency} from "@/lib/format";
-import {extraAmount, lineUnitPrice, unitPrice} from "@/lib/pricing";
+import {lineExtraAmount, lineUnitPrice, unitPrice} from "@/lib/pricing";
 import {paymentRouteFor} from "@/lib/payment-routes";
 import {selectionExtras} from "@/lib/product-options";
 import {htmlToPlainText} from "@/lib/html-text";
@@ -476,7 +476,7 @@ export function Header() {
       return {
         ...product,
         price: lineUnitPrice(product, extras.lines, currency),
-        details: extras.lines.map((line) => ({...line, extra: extraAmount(product, line.extraIdr, currency)})),
+        details: extras.lines.map((line) => ({...line, extra: lineExtraAmount(product, line, currency)})),
         quantity: item.quantity,
         config: item.config
       };
@@ -496,7 +496,7 @@ export function Header() {
         return {
           ...product,
           price: lineUnitPrice(product, extras.lines, currency),
-          details: extras.lines.map((line) => ({...line, extra: extraAmount(product, line.extraIdr, currency)})),
+          details: extras.lines.map((line) => ({...line, extra: lineExtraAmount(product, line, currency)})),
           quantity: item.quantity,
           config: item.config
         };

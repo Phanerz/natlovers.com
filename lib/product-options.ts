@@ -86,6 +86,8 @@ export type ResolvedLine = {
   label: string;
   value: string;
   extraIdr: number;
+  // Set on add-on lines, which have their own fixed dollar price.
+  extraUsdCents?: number;
   images?: string[];
   hex?: string;
 };
@@ -96,6 +98,7 @@ export const resolvedLineSchema = z.object({
   label: z.string().max(200),
   value: z.string().max(1200),
   extraIdr: z.number().int().min(0),
+  extraUsdCents: z.number().int().min(0).optional(),
   images: z.array(z.string().max(600)).max(5).optional(),
   hex: z.string().max(9).optional()
 });
@@ -211,5 +214,9 @@ export function resolveOptions(options: ProductOptions | null | undefined, answe
 // on the storefront (the bag, the bank-transfer summary).
 export function selectionExtras(options: ProductOptions | null | undefined, config: unknown): ResolvedOptions {
   const answers = (config as {custom?: {answers?: OptionAnswers}} | null)?.custom?.answers;
-  return answers ? resolveOptions(options, answers) : {lines: [], extraIdr: 0};
+  const base = answers ? resolveOptions(options, answers) : {lines: [], extraIdr: 0};
+  // Add-on animals (see lib/addon-shared.ts) carry their own readable, priced lines.
+  const addonLines = (config as {addonLines?: ResolvedLine[]} | null)?.addonLines;
+  if (!Array.isArray(addonLines) || !addonLines.length) return base;
+  return {lines: [...base.lines, ...addonLines], extraIdr: base.extraIdr + addonLines.reduce((sum, line) => sum + line.extraIdr, 0)};
 }

@@ -1,4 +1,5 @@
 import {z} from "zod";
+import {ADDON_MAX_HARD_LIMIT, addonPickSchema} from "@/lib/addon-shared";
 import {optionAnswersSchema, resolvedLineSchema} from "@/lib/product-options";
 
 // A cart/order line's saved configuration used to only ever be a Custom
@@ -26,6 +27,11 @@ export const productSelectionSchema = z.object({
   // lib/product-options.ts). `answers` is what the customer picked; `lines`
   // and `extraIdr` are the readable receipt and the extra cost, recomputed on
   // the server when the order is placed so they can never be tampered with.
+  // The felted animals added through Make it yours: ids the server re-checks
+  // at checkout, plus the readable priced lines the cart shows. The lines are
+  // overwritten from the database when the order is placed.
+  addons: z.array(addonPickSchema).max(ADDON_MAX_HARD_LIMIT).optional(),
+  addonLines: z.array(resolvedLineSchema).max(ADDON_MAX_HARD_LIMIT).optional(),
   custom: z
     .object({
       answers: optionAnswersSchema,

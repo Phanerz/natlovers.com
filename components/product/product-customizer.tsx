@@ -1,5 +1,7 @@
 "use client";
 
+import {AddonPicker} from "@/components/product/addon-picker";
+import type {AddonCatalogue, AddonPick} from "@/lib/addon-shared";
 import {colourSwatchStyle, type ColourOption} from "@/lib/colour-library";
 
 // The product page's own customiser: base colour, handle colour and a
@@ -60,8 +62,14 @@ export function ProductCustomizer({
   onHandleColourChange,
   hasPersonalisation,
   personalisationNote,
-  onPersonalisationNoteChange
+  onPersonalisationNoteChange,
+  addonCatalogue = null,
+  addonPicks = [],
+  onAddonPicksChange
 }: {
+  addonCatalogue?: AddonCatalogue | null;
+  addonPicks?: AddonPick[];
+  onAddonPicksChange?: (picks: AddonPick[]) => void;
   hasBaseColour: boolean;
   baseColourOptions: ColourOption[];
   baseColour: string | null;
@@ -120,6 +128,10 @@ export function ProductCustomizer({
           </div>
         ) : null}
       </div>
+
+      {hasPersonalisation && addonCatalogue && onAddonPicksChange ? (
+        <AddonPicker catalogue={addonCatalogue} picks={addonPicks} onChange={onAddonPicksChange} />
+      ) : null}
 
       <div className="pdp-note-rule mt-7" aria-hidden />
       <p className="pdp-note-sign">Made by hand, just for you</p>

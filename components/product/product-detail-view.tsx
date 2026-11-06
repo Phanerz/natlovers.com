@@ -6,6 +6,7 @@ import {useSitePreferences} from "@/components/site-preferences-provider";
 import type {ProductSelection} from "@/lib/product-selection";
 import type {AdminProduct} from "@/lib/admin-products";
 import {defaultAnswers, isOptionsEnabled, resolveOptions, type OptionAnswers} from "@/lib/product-options";
+import {buildAddonLines, type AddonCatalogue, type AddonPick} from "@/lib/addon-shared";
 import {CustomOptionsNote} from "@/components/product/custom-options-note";
 import {ProductCustomizer} from "@/components/product/product-customizer";
 import {ProductGallery} from "@/components/product/product-gallery";
@@ -22,7 +23,21 @@ import {ProductPurchasePanel} from "@/components/product/product-purchase-panel"
 // the fold is level on every product, whatever it offers. Below, product details
 // sit on the left and personalisation on the right; a piece with nothing to
 // personalise gives the details the whole width.
-export function ProductDetailView({product, images, tintHex}: {product: AdminProduct; images: string[]; tintHex: string}) {
+export function ProductDetailView({
+  product,
+  images,
+  tintHex,
+  addonCatalogue = null
+}: {
+  product: AdminProduct;
+  images: string[];
+  tintHex: string;
+  addonCatalogue?: AddonCatalogue | null;
+}) {
+  const [addonPicks, setAddonPicks] = useState<AddonPick[]>([]);
+  const addonsOn = Boolean(product.hasPersonalisation && addonCatalogue?.species.length);
+  const activePicks = addonsOn ? addonPicks : [];
+  const addonLines = addonCatalogue ? buildAddonLines(addonCatalogue, activePicks) : [];
   const [baseColour, setBaseColour] = useState<string | null>(product.baseColourOptions[0]?.label ?? null);
   const [handleColour, setHandleColour] = useState<string | null>(product.handleColourOptions[0]?.label ?? null);
   const [personalisationNote, setPersonalisationNote] = useState("");
@@ -33,7 +48,7 @@ export function ProductDetailView({product, images, tintHex}: {product: AdminPro
   const [answers, setAnswers] = useState<OptionAnswers>(() => (customOptions ? defaultAnswers(customOptions) : {}));
   const resolved = resolveOptions(customOptions, answers);
   const {currency} = useSitePreferences();
-  const extraNow = lineExtrasTotal(product, resolved.lines, currency);
+  const extraNow = lineExtrasTotal(product, [...resolved.lines, ...addonLines], currency);
 
   const hasCustomisation = Boolean(customOptions) || product.hasBaseColour || product.hasHandleColour || product.hasPersonalisation;
   const selection: ProductSelection | undefined = customOptions
@@ -43,7 +58,8 @@ export function ProductDetailView({product, images, tintHex}: {product: AdminPro
         kind: "productSelection",
         ...(product.hasBaseColour && baseColour ? {baseColour} : {}),
         ...(product.hasHandleColour && handleColour ? {handleColour} : {}),
-        ...(product.hasPersonalisation && personalisationNote.trim() ? {personalisationNote: personalisationNote.trim()} : {})
+        ...(product.hasPersonalisation && personalisationNote.trim() ? {personalisationNote: personalisationNote.trim()} : {}),
+        ...(activePicks.length ? {addons: activePicks, addonLines} : {})
       }
     : undefined;
 
@@ -74,6 +90,9 @@ export function ProductDetailView({product, images, tintHex}: {product: AdminPro
               hasPersonalisation={product.hasPersonalisation}
               personalisationNote={personalisationNote}
               onPersonalisationNoteChange={setPersonalisationNote}
+              addonCatalogue={addonsOn ? addonCatalogue : null}
+              addonPicks={addonPicks}
+              onAddonPicksChange={setAddonPicks}
             />
           ) : null
         }

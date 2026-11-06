@@ -418,6 +418,8 @@ function AccountContent() {
                           </div>
                           <OrderItemDetails
                             config={item.config}
+                            addons={item.addons}
+                            currency={order.currency}
                             // Option amounts were saved in rupiah; a dollar order shows them in step with its own dollar price.
                             formatMoney={(amount) =>
                               order.currency === "USD" && item.priceUsdCents && item.priceIdr

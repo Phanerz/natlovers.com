@@ -38,10 +38,19 @@ export function extraAmount(product: Priced, extraIdr: number, currency: Currenc
 
 // The options a shopper chose, each priced in the chosen currency and added up line by line, so the
 // total always equals the sum of the amounts shown beside the lines.
-export function lineExtrasTotal(product: Priced, lines: {extraIdr: number}[], currency: CurrencyCode): number {
-  return lines.reduce((sum, line) => sum + extraAmount(product, line.extraIdr, currency), 0);
+export function lineExtrasTotal(product: Priced, lines: ExtraLine[], currency: CurrencyCode): number {
+  return lines.reduce((sum, line) => sum + lineExtraAmount(product, line, currency), 0);
 }
 
-export function lineUnitPrice(product: Priced, lines: {extraIdr: number}[], currency: CurrencyCode): number {
+// A line that carries its own dollar price (the flat add-on price) is shown in exactly that, never
+// converted from rupiah; every other option line scales with the product as before.
+export type ExtraLine = {extraIdr: number; extraUsdCents?: number};
+
+export function lineExtraAmount(product: Priced, line: ExtraLine, currency: CurrencyCode): number {
+  if (normalizeCurrency(currency) === "USD" && line.extraUsdCents != null) return line.extraUsdCents / 100;
+  return extraAmount(product, line.extraIdr, currency);
+}
+
+export function lineUnitPrice(product: Priced, lines: ExtraLine[], currency: CurrencyCode): number {
   return unitPrice(product, currency) + lineExtrasTotal(product, lines, currency);
 }

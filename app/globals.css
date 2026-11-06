@@ -7328,3 +7328,288 @@ body:has(.outlets-stage--page) footer {
     min-height: 7.5rem;
   }
 }
+
+/* Add-on animals inside the Make it yours note. Larger than the rest of the
+   product page on purpose: the customers who order these skew older, so touch
+   targets are 56px or more, type is 17px or more, the selected state is a thick
+   ring plus a tick (never colour alone), and ink on cream is high contrast.
+   Flat cream card throughout, no glass. */
+.addon-block {
+  margin-top: 1.75rem;
+  color: #231c12;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+.addon-title {
+  margin-top: 1.5rem;
+  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Garamond, Georgia, serif;
+  font-size: 1.625rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.addon-lede {
+  margin-top: 0.5rem;
+  color: #3a3022;
+}
+.addon-label {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+}
+.addon-optional {
+  font-weight: 400;
+  color: #4a4132;
+}
+.addon-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-top: 1.25rem;
+}
+@media (min-width: 1024px) {
+  .addon-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.addon-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 3.5rem;
+  padding: 0.5rem 0.5rem 0.7rem;
+  border: 2px solid rgba(70, 56, 36, 0.28);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.45);
+  text-align: left;
+  color: inherit;
+}
+.addon-tile:hover {
+  border-color: #231c12;
+}
+.addon-tile[aria-pressed="true"] {
+  border-color: #231c12;
+  box-shadow: 0 0 0 2px #231c12;
+}
+.addon-tile:focus-visible,
+.addon-swatch:focus-visible,
+.addon-pose:focus-visible,
+.addon-btn:focus-visible,
+.addon-input:focus-visible {
+  outline: 3px solid #231c12;
+  outline-offset: 3px;
+}
+.addon-tile-name {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.addon-tile-count {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 9999px;
+  background: #231c12;
+  color: #f6efe0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.addon-photo {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  background: #e9dfc8;
+}
+.addon-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform-origin: center;
+  pointer-events: none;
+}
+.addon-photo-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 1.0625rem;
+  color: #3a3022;
+}
+.addon-photo-large {
+  aspect-ratio: 4 / 3;
+  min-height: 17.5rem;
+  width: 100%;
+}
+@media (min-width: 1024px) {
+  .addon-photo-large {
+    min-height: 22.5rem;
+  }
+}
+.addon-photo-small {
+  width: 5.5rem;
+  height: 5.5rem;
+  flex: none;
+}
+.addon-panel {
+  margin-top: 1.5rem;
+  padding: 1.1rem;
+  border: 2px solid #231c12;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+}
+.addon-panel-title {
+  margin: 1rem 0 1rem;
+  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Garamond, Georgia, serif;
+  font-size: 1.625rem;
+  font-weight: 500;
+}
+.addon-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.addon-swatch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 3px solid transparent;
+  border-radius: 9999px;
+  background: transparent;
+}
+.addon-swatch[aria-pressed="true"] {
+  border-color: #231c12;
+}
+.addon-swatch-dot {
+  display: block;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+.addon-swatch-check {
+  position: absolute;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 2px;
+  border-radius: 9999px;
+  background: #231c12;
+  color: #fff;
+  right: -2px;
+  bottom: -2px;
+}
+.addon-poses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.addon-pose {
+  min-width: 7.5rem;
+  min-height: 3.5rem;
+  padding: 0.5rem 1.25rem;
+  border: 2px solid rgba(70, 56, 36, 0.45);
+  border-radius: 10px;
+  background: transparent;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: inherit;
+}
+.addon-pose[aria-pressed="true"] {
+  border-color: #231c12;
+  background: #231c12;
+  color: #f6efe0;
+}
+.addon-input {
+  width: 100%;
+  min-height: 3.5rem;
+  padding: 0.75rem 0.9rem;
+  border: 2px solid rgba(70, 56, 36, 0.45);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  font-size: 1.0625rem;
+  color: #231c12;
+}
+.addon-input::placeholder {
+  color: #5f5543;
+}
+.addon-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.addon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3.5rem;
+  padding: 0.6rem 1.4rem;
+  border: 2px solid #231c12;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: #231c12;
+}
+.addon-btn:disabled {
+  opacity: 0.45;
+}
+.addon-btn-primary {
+  background: #231c12;
+  color: #f6efe0;
+}
+.addon-btn-small {
+  padding: 0.5rem 1rem;
+}
+.addon-warn {
+  margin-top: 0.9rem;
+  font-weight: 600;
+}
+.addon-list {
+  margin-top: 1.75rem;
+}
+.addon-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid rgba(70, 56, 36, 0.28);
+}
+.addon-row-text {
+  flex: 1;
+  min-width: 0;
+}
+.addon-row-name {
+  font-size: 1.1875rem;
+  font-weight: 600;
+}
+.addon-row-detail,
+.addon-row-note,
+.addon-row-price {
+  font-size: 1.0625rem;
+}
+.addon-row-note {
+  color: #3a3022;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+.addon-total {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 2px solid #231c12;
+  font-size: 1.1875rem;
+}
+@media (max-width: 480px) {
+  .addon-row {
+    flex-wrap: wrap;
+  }
+  .addon-row-text {
+    flex-basis: calc(100% - 6.4rem);
+  }
+}
