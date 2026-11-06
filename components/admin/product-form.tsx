@@ -325,9 +325,6 @@ function AttributeFields({
             </p>
           ) : null}
         </AttributeRow>
-        <AttributeRow label="Size" hint="Calculated from the body">
-          <BagSizeField form={form} onChange={onChange} bodyShapes={bodyShapes} error={sizeError} />
-        </AttributeRow>
         <AttributeRow label="Shape" hint="Choose one">
           <PillSingleSelect
             bare
@@ -338,6 +335,9 @@ function AttributeFields({
             value={form.shape}
             onChange={(value) => onChange({...form, shape: value})}
           />
+        </AttributeRow>
+        <AttributeRow label="Size" hint="Calculated from the body">
+          <BagSizeField form={form} onChange={onChange} bodyShapes={bodyShapes} error={sizeError} />
         </AttributeRow>
         <AttributeRow label="Handle" hint="Choose any that apply">
           <PillMultiSelect
