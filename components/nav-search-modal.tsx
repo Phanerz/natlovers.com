@@ -106,8 +106,8 @@ export function NavSearchModal({
                     <span className="pop-result__text">
                       <span className="pop-result__title font-display">{product.title}</span>
                       <span className="pop-result__desc">{htmlToPlainText(product.description)}</span>
+                      <span className="pop-result__price">{formatCurrency(unitPrice(product, currency), currency)}</span>
                     </span>
-                    <span className="pop-result__price">{formatCurrency(unitPrice(product, currency), currency)}</span>
                   </button>
                 </li>
               ))}

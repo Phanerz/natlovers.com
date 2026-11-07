@@ -1913,15 +1913,9 @@ button {
   text-align: center;
 }
 
-/* Page layout: fills the whole content area under the sticky header, and the
-   site footer (rendered by the root layout, outside the page) is hidden while
-   it is on screen so nothing sits under the loader. */
+/* Page layout: fills the whole content area under the sticky header. */
 .daisy-loader-scene.is-page {
   min-height: calc(100dvh - var(--header-height));
-}
-
-body:has(.daisy-loader-scene.is-page) footer {
-  display: none;
 }
 
 /* Section layout: the same loader, smaller and transparent, for a panel or
@@ -2353,8 +2347,8 @@ body:has(.daisy-loader-scene.is-page) footer {
 /* ------------------------------------------------------------------------
    Outlets page: one fixed screen, no document scroll. Wheel / arrow keys /
    swipes step a deck of location cards instead (components/outlets/
-   outlets-page-content.tsx). The footer is hidden here so the page really is
-   a single screen. No backdrop-filter anywhere in this block (the CSS
+   outlets-page-content.tsx). The footer sheet rises over it only on a deliberate
+   push past the last card. No backdrop-filter anywhere in this block (the CSS
    pipeline drops hand-written ones); the blur below is plain filter: blur.
    ------------------------------------------------------------------------ */
 /* --outlets-top is the stage's real distance from the top of the page,
@@ -2376,10 +2370,6 @@ html:has(.outlets-stage--page) {
    leaves the page's own scrolling alone. */
 .outlets-stage--embedded {
   height: calc(100dvh - var(--header-height));
-}
-
-body:has(.outlets-stage--page) footer {
-  display: none;
 }
 
 .outlets-stage .section-title {
@@ -5848,9 +5838,6 @@ body:has(.outlets-stage--page) footer {
     scroll-snap-type: y mandatory;
     scroll-padding-top: 0;
   }
-  body:has(.home-main) footer {
-    scroll-snap-align: end;
-  }
   .site-header {
     height: var(--header-height);
     min-height: 0;
@@ -6182,10 +6169,6 @@ body:has(.outlets-stage--page) footer {
     height: 100%;
     overflow: hidden;
     scroll-snap-type: none;
-  }
-  body:has(.home-main) > footer,
-  body:has(.fit-main) > footer {
-    display: none;
   }
   .home-main {
     position: fixed;
@@ -8216,19 +8199,25 @@ html.scroll-locked .home-main {
 }
 .pop-results__list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.5rem;
   max-height: 20rem;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   list-style: none;
   overscroll-behavior: contain;
+}
+.pop-results__list > li {
+  min-width: 0;
 }
 .pop-result {
   display: flex;
   align-items: center;
   gap: 0.9rem;
   width: 100%;
+  min-width: 0;
   padding: 0.6rem 0.8rem 0.6rem 0.6rem;
   border: 1px solid var(--pop-line);
   border-radius: 14px;
@@ -8264,14 +8253,17 @@ html.scroll-locked .home-main {
   color: var(--pop-ink);
 }
 .pop-result__desc {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-size: 0.8rem;
+  line-height: 1.4;
   color: var(--pop-muted);
 }
 .pop-result__price {
-  flex: none;
+  margin-top: 0.2rem;
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--pop-ink);
@@ -8535,28 +8527,48 @@ html.scroll-locked .home-main {
 }
 @media (max-width: 539px) {
   .ft-sheet {
-    padding-top: 2.75rem;
+    max-height: min(64dvh, 30rem);
+    padding: 1.4rem 1.25rem max(0.9rem, env(safe-area-inset-bottom));
+  }
+  .ft-close {
+    top: 0.5rem;
+    right: 0.5rem;
   }
   .ft-inner {
     grid-template-columns: 1fr;
-    gap: 1.4rem;
+    gap: 0.9rem;
   }
   .ft-wordmark {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
-  .ft-lede {
-    margin-top: 0.6rem;
-    font-size: 0.9rem;
-    line-height: 1.55;
-  }
+  .ft-lede,
   .ft-note {
     display: none;
   }
   .ft-col {
-    gap: 0.4rem;
+    gap: 0.15rem;
+  }
+  .ft-label {
+    margin-bottom: 0.1rem;
+    font-size: 0.68rem;
+  }
+  .ft-line {
+    min-height: 0;
+    font-size: 0.84rem;
+    line-height: 1.4;
   }
   .ft-bar {
-    margin-top: 1.4rem;
+    margin-top: 0.8rem;
+    padding-top: 0.75rem;
+    gap: 0.5rem 1rem;
+    font-size: 0.76rem;
+  }
+  .ft-policies {
+    gap: 0.15rem 1rem;
+  }
+  .ft-region {
+    min-height: 2.25rem;
+    font-size: 0.82rem;
   }
 }
 @media (prefers-reduced-motion: reduce) {

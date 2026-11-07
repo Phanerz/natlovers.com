@@ -16,26 +16,41 @@ import {siteConfig} from "@/lib/site";
 import {whatsappLink} from "@/lib/studio-contact";
 import {getDictionary} from "@/lib/translations";
 
-// Pages with no footer: the home page (the hero, which already carries About and Outlets as its
-// own sections), the About page, and the pages that are a tool rather than a document.
-function hasNoFooter(pathname: string | null): boolean {
-  if (!pathname) return true;
-  return (
-    pathname === "/" ||
-    pathname === "/about" ||
-    pathname === "/catalogue" ||
-    pathname === "/login" ||
-    pathname === "/aoh" ||
-    pathname.startsWith("/mimin") ||
-    pathname.startsWith("/account")
-  );
-}
-
 // How close to the very bottom counts as "at the bottom", and how far back up closes it again.
 const AT_BOTTOM_PX = 4;
 const LEAVE_PX = 70;
 // A page this close to the height of the screen has nothing to scroll, so no footer rises on its own.
 const MIN_SCROLLABLE_PX = 120;
+// A deliberate push (wheel or swipe) this far, with nothing left to scroll, also brings the footer up.
+const SWIPE_PX = 48;
+// After the footer is put away by hand, a wheel or swipe cannot bring it straight back.
+const REOPEN_COOLDOWN_MS = 700;
+
+// The thing that scrolls the page: the home page on a phone is its own fixed scroller, everything
+// else scrolls the window.
+function pageScroller(): HTMLElement {
+  const home = document.querySelector<HTMLElement>(".home-main");
+  if (home && window.getComputedStyle(home).position === "fixed") return home;
+  return (document.scrollingElement ?? document.documentElement) as HTMLElement;
+}
+
+function distanceToEnd(el: HTMLElement): number {
+  return el.scrollHeight - el.clientHeight - el.scrollTop;
+}
+
+// True when something under the finger or pointer (a list, a map panel) can still scroll down, so
+// the push belongs to it and not to the page.
+function innerCanScrollDown(from: EventTarget | null): boolean {
+  let node = from instanceof Element ? from : null;
+  while (node && node !== document.body && node !== document.documentElement) {
+    const overflow = window.getComputedStyle(node).overflowY;
+    if ((overflow === "auto" || overflow === "scroll") && node.scrollHeight > node.clientHeight + 1 && node.scrollTop + node.clientHeight < node.scrollHeight - 1) {
+      return true;
+    }
+    node = node.parentElement;
+  }
+  return false;
+}
 
 // The footer is not part of the page. When the visitor scrolls all the way to the bottom, it rises
 // from below as a sheet and the page behind softens; scrolling back up, pressing Escape, tapping
@@ -52,7 +67,7 @@ export function Footer() {
   // they are still at the bottom. Cleared once they scroll away from the bottom.
   const dismissed = useRef(false);
   const sheetRef = useRef<HTMLElement>(null);
-  const disabled = hasNoFooter(pathname);
+  const closedAt = useRef(0);
 
   useEffect(() => setMounted(true), []);
 
@@ -63,16 +78,15 @@ export function Footer() {
   }, [pathname]);
 
   useEffect(() => {
-    if (disabled) return;
     let frame = 0;
-    let lastY = window.scrollY;
+    let lastY = pageScroller().scrollTop;
 
     function check() {
       frame = 0;
-      const doc = document.documentElement;
-      const y = window.scrollY;
-      const distance = doc.scrollHeight - window.innerHeight - y;
-      const scrollable = doc.scrollHeight - window.innerHeight > MIN_SCROLLABLE_PX;
+      const scroller = pageScroller();
+      const y = scroller.scrollTop;
+      const distance = distanceToEnd(scroller);
+      const scrollable = scroller.scrollHeight - scroller.clientHeight > MIN_SCROLLABLE_PX;
       const goingDown = y > lastY;
       lastY = y;
       if (distance > LEAVE_PX) {
@@ -85,15 +99,63 @@ export function Footer() {
     const onScroll = () => {
       if (!frame) frame = window.requestAnimationFrame(check);
     };
-    window.addEventListener("scroll", onScroll, {passive: true});
+
+    // Pages with nothing to scroll (a short page, the 404, a fixed-height page) never fire a scroll
+    // event, so a deliberate push down brings the footer up, and a push back up puts it away.
+    function push(down: boolean, target: EventTarget | null) {
+      const inside = target instanceof Element && target.closest(".ft-sheet");
+      if (inside) return;
+      if (!down) {
+        setOpen(false);
+        return;
+      }
+      if (document.documentElement.classList.contains("scroll-locked")) return;
+      if (Date.now() - closedAt.current < REOPEN_COOLDOWN_MS) return;
+      if (innerCanScrollDown(target)) return;
+      if (distanceToEnd(pageScroller()) > AT_BOTTOM_PX) return;
+      setOpen(true);
+    }
+    const onWheel = (event: WheelEvent) => {
+      // A wheel something else already used (the outlets deck steps cards with it) is not a push.
+      if (event.defaultPrevented) return;
+      if (Math.abs(event.deltaY) < Math.abs(event.deltaX) || Math.abs(event.deltaY) < 4) return;
+      push(event.deltaY > 0, event.target);
+    };
+    let touchX = 0;
+    let touchY = 0;
+    let touchDone = false;
+    const onTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      touchX = touch.clientX;
+      touchY = touch.clientY;
+      touchDone = false;
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      if (touchDone) return;
+      const touch = event.touches[0];
+      const dy = touchY - touch.clientY;
+      const dx = touchX - touch.clientX;
+      if (Math.abs(dy) < SWIPE_PX || Math.abs(dy) < Math.abs(dx)) return;
+      touchDone = true;
+      push(dy > 0, event.target);
+    };
+
+    document.addEventListener("scroll", onScroll, {passive: true, capture: true});
+    window.addEventListener("wheel", onWheel, {passive: true});
+    window.addEventListener("touchstart", onTouchStart, {passive: true});
+    window.addEventListener("touchmove", onTouchMove, {passive: true});
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [disabled, pathname]);
+  }, [pathname]);
 
   const close = useCallback(() => {
     dismissed.current = true;
+    closedAt.current = Date.now();
     setOpen(false);
   }, []);
 
@@ -106,7 +168,7 @@ export function Footer() {
     return () => document.removeEventListener("keydown", onKey);
   }, [open, close]);
 
-  if (disabled || !mounted) return null;
+  if (!mounted) return null;
 
   return createPortal(
     <>
