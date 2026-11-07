@@ -2,7 +2,6 @@
 
 import {Suspense} from "react";
 import {AboutContent} from "@/components/about-content";
-import {Footer} from "@/components/footer";
 import {Hero} from "@/components/hero";
 import {OutletsContent} from "@/components/outlets-content";
 import {ScrollSection} from "@/components/scroll-section";
@@ -31,11 +30,6 @@ export default function HomePage() {
       <ScrollSection navHref="/about" className="snap-page">
         <AboutContent />
       </ScrollSection>
-
-      {/* Phones: the page is its own scroller, so the footer lives at the end of it. */}
-      <div className="home-footer sm:hidden">
-        <Footer />
-      </div>
     </main>
   );
 }

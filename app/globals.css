@@ -6212,9 +6212,6 @@ body:has(.outlets-stage--page) footer {
     scroll-snap-align: start;
     scroll-snap-stop: normal;
   }
-  .home-main > .home-footer {
-    scroll-snap-align: end;
-  }
   .fit-main {
     height: calc(100svh - var(--header-height));
     overflow: hidden;
@@ -7933,6 +7930,15 @@ dd {
   }
 }
 
+/* Page behind a pop-up does not scroll (see components/use-scroll-lock.ts). */
+html.scroll-locked,
+html.scroll-locked body {
+  overflow: hidden !important;
+}
+html.scroll-locked .home-main {
+  overflow: hidden !important;
+}
+
 /* Pop-up surfaces (cookie notice, cookie preferences, location, language and currency, and the
    small notes): ivory paper in light mode, olive in dark mode. One set of tokens, so every pop-up
    changes together. Flat colour only: no blur, no gradients, nothing that makes a phone lag. */
@@ -8059,50 +8065,48 @@ dd {
 .pop-option {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.8rem;
   width: 100%;
-  height: 4rem;
-  padding: 0 1rem 0 0.85rem;
-  border: 1.5px solid var(--pop-line);
-  border-radius: 14px;
-  background: var(--pop-field);
+  height: 3.25rem;
+  padding: 0 1rem 0 0.9rem;
+  border: 1px solid var(--pop-line);
+  border-radius: 12px;
+  background: transparent;
   color: var(--pop-text);
   text-align: left;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .pop-option:hover {
-  border-color: var(--pop-ink);
+  border-color: color-mix(in srgb, var(--pop-ink) 55%, var(--pop-line));
 }
 .pop-option.is-active {
   border-color: var(--pop-ink);
-  background: var(--pop-ink);
-  color: var(--pop-on-ink);
+  background: color-mix(in srgb, var(--pop-ink) 9%, transparent);
+  box-shadow: inset 0 0 0 1px var(--pop-ink);
 }
-.pop-chip {
+.pop-mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 1.75rem;
   flex: none;
-  overflow: hidden;
-  border-radius: 9999px;
-  background: var(--pop-chip);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--pop-muted);
+}
+.pop-option.is-active .pop-mark {
   color: var(--pop-ink);
-  font-size: 0.85rem;
-  font-weight: 600;
 }
-.pop-option.is-active .pop-chip {
-  background: color-mix(in srgb, var(--pop-on-ink) 20%, transparent);
-  color: var(--pop-on-ink);
-}
-.pop-chip--flag {
-  background: none;
+.pop-mark--flag {
+  height: 1.25rem;
+  overflow: hidden;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--pop-ink) 22%, transparent);
 }
 .pop-flag {
   height: 100%;
-  width: auto;
+  width: 100%;
   max-width: none;
   flex: none;
 }
@@ -8110,22 +8114,29 @@ dd {
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  font-size: 1rem;
-  font-weight: 600;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 0.98rem;
+  font-weight: 500;
   line-height: 1.2;
+  white-space: nowrap;
+}
+.pop-option.is-active .pop-option__label {
+  font-weight: 600;
+  color: var(--pop-ink);
 }
 .pop-option__sub {
-  margin-top: 0.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 0.8rem;
   font-weight: 400;
-  opacity: 0.75;
+  color: var(--pop-muted);
 }
 .pop-option__check {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1.05rem;
+  height: 1.05rem;
   flex: none;
+  color: var(--pop-ink);
 }
 .pop-note {
   margin-top: 0.9rem;
@@ -8143,6 +8154,170 @@ dd {
   font-size: 0.85rem;
   color: var(--pop-muted);
 }
+/* Search. */
+.pop-panel--search {
+  width: min(100%, 36rem);
+}
+.pop-eyebrow--plain {
+  margin-bottom: 0.35rem;
+}
+.pop-searchbar {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 1.25rem;
+  padding: 0 1.1rem;
+  border: 1px solid var(--pop-line);
+  border-radius: 9999px;
+  background: var(--pop-field);
+  color: var(--pop-muted);
+}
+.pop-searchbar:focus-within {
+  border-color: var(--pop-ink);
+  box-shadow: inset 0 0 0 1px var(--pop-ink);
+}
+.pop-searchbar input {
+  flex: 1;
+  min-width: 0;
+  min-height: 3rem;
+  border: 0;
+  background: none;
+  font-size: 0.95rem;
+  color: var(--pop-text);
+}
+.pop-searchbar input:focus,
+.pop-searchbar input:focus-visible {
+  outline: none;
+}
+.pop-searchbar input::placeholder {
+  color: var(--pop-muted);
+}
+.pop-results {
+  margin-top: 1.25rem;
+}
+.pop-results__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.pop-results__head .pop-eyebrow {
+  margin-bottom: 0.6rem;
+}
+.pop-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  color: var(--pop-muted);
+}
+.pop-link:hover {
+  color: var(--pop-ink);
+}
+.pop-results__list {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 20rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  overscroll-behavior: contain;
+}
+.pop-result {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 0.6rem 0.8rem 0.6rem 0.6rem;
+  border: 1px solid var(--pop-line);
+  border-radius: 14px;
+  background: var(--pop-field);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.pop-result:hover {
+  border-color: var(--pop-ink);
+}
+.pop-result__thumb {
+  position: relative;
+  width: 3.5rem;
+  height: 3.5rem;
+  flex: none;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--pop-chip);
+}
+.pop-result__text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.pop-result__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.05rem;
+  color: var(--pop-ink);
+}
+.pop-result__desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--pop-muted);
+}
+.pop-result__price {
+  flex: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--pop-ink);
+}
+.pop-empty {
+  padding: 2rem 0 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--pop-muted);
+}
+.pop-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--pop-line);
+  font-size: 0.8rem;
+  color: var(--pop-muted);
+}
+.pop-foot p {
+  flex: 1 1 14rem;
+}
+.pop-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.75rem;
+  padding: 0 1.25rem;
+  border-radius: 9999px;
+  background: var(--pop-ink);
+  color: var(--pop-on-ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pop-cta:hover {
+  background: color-mix(in srgb, var(--pop-ink) 88%, var(--pop-bg));
+}
+.pop-panel a:focus-visible {
+  outline: 3px solid var(--pop-ink);
+  outline-offset: 3px;
+}
+
 .pop-panel button:focus-visible {
   outline: 3px solid var(--pop-ink);
   outline-offset: 3px;
@@ -8167,6 +8342,228 @@ dd {
 @media (prefers-reduced-motion: reduce) {
   .pop-overlay,
   .pop-panel {
+    transition: none;
+  }
+}
+
+/* Footer: a sheet that rises from the bottom when the page is scrolled all the way down, over a
+   softened page. Ivory (light) or olive (dark), the same tokens as the pop-ups. The blur sits only
+   on the backdrop and only while it is showing, so a closed footer costs nothing. */
+.ft-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: color-mix(in srgb, var(--pop-overlay) 70%, transparent);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.35s ease, visibility 0s linear 0.35s;
+}
+.ft-backdrop.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.35s ease, visibility 0s;
+}
+.ft-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 61;
+  max-height: min(78dvh, 40rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 3rem max(1.5rem, calc((100vw - 72rem) / 2)) max(1.25rem, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--pop-line);
+  border-radius: 28px 28px 0 0;
+  background: var(--pop-bg);
+  color: var(--pop-text);
+  box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.22);
+  transform: translateY(104%);
+  visibility: hidden;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.5s;
+}
+.ft-sheet.is-open {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s;
+}
+.ft-close {
+  position: absolute;
+  top: 0.75rem;
+  right: max(0.75rem, calc((100vw - 74rem) / 2));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 9999px;
+  background: none;
+  color: var(--pop-muted);
+  cursor: pointer;
+}
+.ft-close:hover {
+  background: var(--pop-chip);
+  color: var(--pop-ink);
+}
+.ft-inner {
+  display: grid;
+  gap: 2.25rem 3rem;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+.ft-wordmark {
+  font-size: 2.4rem;
+  line-height: 1;
+  color: var(--pop-ink);
+}
+.ft-lede {
+  margin-top: 1.1rem;
+  max-width: 30rem;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--pop-text);
+  text-wrap: pretty;
+}
+.ft-note {
+  margin-top: 0.8rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--pop-muted);
+}
+.ft-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.ft-label {
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--pop-accent);
+}
+.ft-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  min-height: 1.75rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--pop-text);
+}
+.ft-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  margin-top: 0.2rem;
+  color: var(--pop-muted);
+}
+.ft-link {
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.ft-link:hover {
+  color: var(--pop-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ft-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-top: 2.25rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--pop-line);
+  font-size: 0.82rem;
+  color: var(--pop-muted);
+}
+.ft-policies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.4rem;
+}
+.ft-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.ft-region {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.5rem;
+  padding: 0 0.9rem;
+  border: 1px solid var(--pop-line);
+  border-radius: 9999px;
+  background: none;
+  font: inherit;
+  color: var(--pop-text);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.ft-region:hover {
+  border-color: var(--pop-ink);
+}
+.ft-sheet a:focus-visible,
+.ft-sheet button:focus-visible {
+  outline: 3px solid var(--pop-ink);
+  outline-offset: 3px;
+}
+@media (max-width: 859px) {
+  .ft-sheet {
+    padding-top: 3.25rem;
+    border-radius: 22px 22px 0 0;
+  }
+  .ft-inner {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.75rem 1.5rem;
+  }
+  .ft-brand {
+    grid-column: 1 / -1;
+  }
+  .ft-wordmark {
+    font-size: 2rem;
+  }
+}
+@media (max-width: 539px) {
+  .ft-sheet {
+    padding-top: 2.75rem;
+  }
+  .ft-inner {
+    grid-template-columns: 1fr;
+    gap: 1.4rem;
+  }
+  .ft-wordmark {
+    font-size: 1.75rem;
+  }
+  .ft-lede {
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+  .ft-note {
+    display: none;
+  }
+  .ft-col {
+    gap: 0.4rem;
+  }
+  .ft-bar {
+    margin-top: 1.4rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ft-sheet,
+  .ft-sheet.is-open,
+  .ft-backdrop,
+  .ft-backdrop.is-open {
     transition: none;
   }
 }

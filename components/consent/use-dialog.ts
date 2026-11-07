@@ -1,6 +1,7 @@
 "use client";
 
 import {RefObject, useEffect, useRef} from "react";
+import {useScrollLock} from "@/components/use-scroll-lock";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -10,14 +11,13 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), selec
 export function useDialog(open: boolean, containerRef: RefObject<HTMLElement | null>, onClose: () => void) {
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
+  useScrollLock(open);
 
   useEffect(() => {
     if (!open) return;
     const container = containerRef.current;
     if (!container) return;
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
 
     const focusables = () => Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((element) => element.offsetParent !== null);
     // Focus the dialog's first control a moment after it appears, once it is laid out.
@@ -50,7 +50,6 @@ export function useDialog(open: boolean, containerRef: RefObject<HTMLElement | n
     return () => {
       window.cancelAnimationFrame(frame);
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
       previouslyFocused?.focus?.();
     };
   }, [open, containerRef]);

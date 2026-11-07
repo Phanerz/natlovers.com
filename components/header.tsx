@@ -19,6 +19,7 @@ import {FlagIcon} from "@/components/flag-icon";
 import {NavAccountMenu} from "@/components/nav-account-menu";
 import {NavPreferencesModal} from "@/components/nav-preferences-modal";
 import {NavSearchModal} from "@/components/nav-search-modal";
+import {useScrollLock} from "@/components/use-scroll-lock";
 import {useActiveNavSection} from "@/components/use-active-nav-section";
 import {useClickOutside} from "@/components/use-click-outside";
 import {useDelayedMount} from "@/components/use-delayed-mount";
@@ -163,6 +164,7 @@ export function Header() {
   const {mounted: searchMounted, entered: searchEntered} = useDelayedMount(searchOpen);
   const {mounted: cabinetMounted, entered: cabinetEntered} = useDelayedMount(cabinetOpen);
   const {mounted: mobileMounted, entered: mobileEntered} = useDelayedMount(mobileOpen);
+  useScrollLock(mobileMounted);
 
   // The bar stays put on every screen: it is the fixed top of each page.
 

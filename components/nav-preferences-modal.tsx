@@ -98,7 +98,7 @@ export function NavPreferencesModal({
                     onClick={() => onSelectLocale(option)}
                     className={`pop-option ${active ? "is-active" : ""}`}
                   >
-                    <span className="pop-chip pop-chip--flag">
+                    <span className="pop-mark pop-mark--flag">
                       <FlagIcon locale={option} className="pop-flag" />
                     </span>
                     <span className="pop-option__label">{localeLabels[option]}</span>
@@ -128,7 +128,7 @@ export function NavPreferencesModal({
                     onClick={() => onSelectCurrency(option)}
                     className={`pop-option ${active ? "is-active" : ""}`}
                   >
-                    <span className="pop-chip">{currencySymbols[option].trim()}</span>
+                    <span className="pop-mark">{currencySymbols[option].trim()}</span>
                     <span className="pop-option__label">
                       {option}
                       <span className="pop-option__sub">{currencyNames[option]}</span>
