@@ -38,7 +38,7 @@ export default async function ActivityPage() {
           <div>
             <h2 className="font-display text-xl text-forest-900">Where new visitors come from</h2>
             <p className="mt-1 text-sm text-forest-600">
-              Last 30 days. Counted once per new device, only for visitors who chose &quot;Accept all&quot; on the cookie notice. No names or identifiers are kept.
+              Last 30 days. Counted once per new device, only for visitors who allowed Analytics in the cookie notice. No names or identifiers are kept.
             </p>
           </div>
           {countries.length === 0 ? (

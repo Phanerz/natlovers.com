@@ -1,23 +1,27 @@
 import type {Metadata} from "next";
 import {LegalPage} from "@/components/legal-page";
-import {LEGAL} from "@/lib/legal";
+import {getContactSettings} from "@/lib/site-content";
 
 export const metadata: Metadata = {
   title: "Returns & Shipping - Natlovers",
   description: "How Natlovers ships handmade pieces, and what happens if something is not right."
 };
 
-const mail = <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a>;
+// The contact details come from the admin panel, so this page is built fresh for each visit.
+export const dynamic = "force-dynamic";
 
-export default function ReturnsPage() {
+export default async function ReturnsPage() {
+  const contact = await getContactSettings();
+  const mail = <a href={`mailto:${contact.email}`}>{contact.email}</a>;
+
   return (
     <LegalPage
       title="Returns & Shipping"
       current="/returns"
       intro={
         <p>
-          Each piece is made by hand in Yogyakarta, so we would rather talk to you than follow a script. This page explains how delivery works and what to do if
-          something is not right.
+          Each piece is made by hand in Yogyakarta and often made just for you, so our rules are simple and firm. This page explains how delivery works, what we do
+          not accept back, and what to do if something is wrong.
         </p>
       }
       sections={[
@@ -31,6 +35,15 @@ export default function ReturnsPage() {
               </p>
               <p>When your order is sent, we add the courier and tracking number to your order, which you can see in your account.</p>
             </>
+          )
+        },
+        {
+          heading: "Shipping cost",
+          body: (
+            <p>
+              The cost of sending your order to you is paid by you, the buyer. We tell you the amount after you place your order, before we send it, so you know what
+              it is before anything leaves the studio.
+            </p>
           )
         },
         {
@@ -52,44 +65,35 @@ export default function ReturnsPage() {
           )
         },
         {
-          heading: "Customised pieces",
+          heading: "No returns",
           body: (
             <p>
-              Customised pieces cannot be returned once production begins, because they are made specially for you. If you want to change or cancel a customised order,
-              write to us as early as you can. If we have not started making it, we will do our best to help.
+              We do not accept returns, and we do not give money back, if you change your mind or the piece is simply not what you pictured. The only exception is a
+              piece that arrives damaged or is not the one you ordered, as described below.
             </p>
           )
         },
         {
-          heading: "If something is not right",
+          heading: "Damaged or wrong piece",
           body: (
             <>
               <p>
-                If your piece arrives damaged, or is not what you ordered, please write to us at {mail} as soon as you receive it. Include your order reference and a few
-                clear photographs, and we will work out the best way to put it right with you.
+                If your piece arrives damaged, or is not the one you ordered, tell us within one day (24 hours) of receiving it. Write to us at {mail} or on WhatsApp,
+                with your order reference and a few clear photographs.
               </p>
               <p>
-                Handmade pieces vary a little in colour and shape, as explained in our Terms of Service. A small natural difference is not a fault, but if you are not
-                happy, tell us and we will listen.
+                Reports made after that day cannot be accepted. Handmade pieces vary a little in colour and shape, as explained in our Terms of Service, and a small
+                natural difference is not a fault.
               </p>
             </>
           )
         },
         {
-          heading: "Ready-made pieces",
+          heading: "Changing a customised order",
           body: (
             <p>
-              If a ready-made piece is not right for you, contact us before sending anything back, so we can agree how to do it. Please do not send a parcel without
-              speaking to us first.
-            </p>
-          )
-        },
-        {
-          heading: "Refunds",
-          body: (
-            <p>
-              If we agree to a refund, we send it back by the same route you paid, a bank transfer for rupiah orders and PayPal or an international bank transfer for US
-              dollar orders. If we cancel an order we cannot make, we refund everything you paid for it.
+              You can change a customised order until we begin making it. Write to us as early as you can, with your order reference. Once production has begun, the
+              order cannot be changed or cancelled, because the piece is being made specially for you.
             </p>
           )
         },

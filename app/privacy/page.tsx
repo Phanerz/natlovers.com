@@ -1,15 +1,20 @@
 import type {Metadata} from "next";
 import {LegalPage} from "@/components/legal-page";
 import {LEGAL} from "@/lib/legal";
+import {getContactSettings} from "@/lib/site-content";
 
 export const metadata: Metadata = {
   title: "Privacy Policy - Natlovers",
   description: "What Natlovers collects, why, who it is shared with, how long it is kept, and your choices."
 };
 
-const mail = <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a>;
+// The contact details come from the admin panel, so this page is built fresh for each visit.
+export const dynamic = "force-dynamic";
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const contact = await getContactSettings();
+  const mail = <a href={`mailto:${contact.email}`}>{contact.email}</a>;
+
   return (
     <LegalPage
       title="Privacy Policy"
@@ -48,10 +53,10 @@ export default function PrivacyPage() {
                 your order.
               </li>
               <li>
-                <strong>Your country.</strong> Your connection tells us roughly which country you are in. We use it to suggest whether to show prices in rupiah or US
-                dollars, and we do not keep it for that. If you choose &ldquo;Accept all&rdquo; on our cookie notice, we also keep one anonymous record for each new
-                device: the country, and whether it was a phone or a laptop. It holds no name, email address, IP address or anything else that could identify you. If
-                you choose &ldquo;Essential only&rdquo;, we keep nothing.
+                <strong>Your country.</strong> Your connection tells us roughly which country you are in. We use it to suggest your country and whether to show prices in
+                rupiah or US dollars. The country and currency you confirm are kept only in your own browser, not on our servers. If you allow Analytics in our cookie
+                preferences, we also keep one anonymous record for each new device: the country, and whether it was a phone or a laptop. It holds no name, email
+                address, IP address or anything else that could identify you. If you do not allow Analytics, we keep nothing.
               </li>
               <li>
                 <strong>What you do while signed in.</strong> When you sign in, we can see which pieces you have ordered, put in your bag or saved as a favourite, so
@@ -80,13 +85,17 @@ export default function PrivacyPage() {
           body: (
             <>
               <p>
-                We use only what the site needs to work: a sign-in cookie that keeps you signed in, and small items in your browser that remember your theme, your
-                currency and language, a draft of a custom design, and your choice on our cookie notice and location question, so we do not ask you again on the
-                same device.
+                Necessary: a sign-in cookie that keeps you signed in, and small items in your browser that remember your bag, your theme, your currency and language, and
+                your choices on our cookie notice and location question, so we do not ask you again on the same device. These are always on, because the shop cannot
+                work without them.
               </p>
               <p>
-                We do not use advertising or tracking cookies. You can change your cookie choice at any time with &ldquo;Cookie settings&rdquo; at the foot of every
-                page. If we ever add analytics, we will say so here and ask you first where the law requires it.
+                Analytics (off until you allow it): one anonymous count of each new device, as described above. Marketing: we do not use any marketing or
+                advertising cookies today. The switch is in your cookie preferences so that, if we ever add any, nothing is switched on without your say-so.
+              </p>
+              <p>
+                You can change your cookie choices at any time with &ldquo;Cookie settings&rdquo; at the foot of every page, and your country and currency with the
+                location button next to it. If we ever add anything new, we will say so here and ask you first.
               </p>
             </>
           )
@@ -123,8 +132,9 @@ export default function PrivacyPage() {
           body: (
             <p>
               We keep your information only as long as we need it: to make and deliver your order, to answer questions afterwards, and to meet accounting and legal
-              duties. After that we delete it or remove what identifies you. Photos you upload are used to make your piece and are not shown publicly or used in our
-              marketing without asking you first. You can ask us to delete them sooner.
+              duties. After that we delete it or remove what identifies you. Photos you upload are used to make your piece. We keep them for one year after your order is
+              delivered and then delete them. You can ask us to delete them sooner, and we will. We only show a photo of your piece, or your own photo, on social
+              media with your written consent, which we usually ask for on WhatsApp.
             </p>
           )
         },

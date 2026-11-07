@@ -11,6 +11,7 @@ import {
   GalleryHorizontal,
   LayoutDashboard,
   LogOut,
+  Mail,
   MapPin,
   Newspaper,
   PawPrint,
@@ -132,6 +133,7 @@ export function AdminSidebar() {
   const isBanners = onDashboardRoute && tab === "banners";
   const isHeroPhotos = onDashboardRoute && tab === "hero-photos";
   const isDesignerCard = onDashboardRoute && tab === "designer-card";
+  const isContact = onDashboardRoute && tab === "contact";
   const isManageBodyShapes = onDashboardRoute && (tab === "manage-body-shapes" || tab === "edit-body-shape");
   const isAddBodyShape = onDashboardRoute && tab === "add-body-shape";
 
@@ -210,6 +212,10 @@ export function AdminSidebar() {
 
           <NavLink href="/mimin?tab=designer-card" active={isDesignerCard} icon={UserRound}>
             Anita Yan Card
+          </NavLink>
+
+          <NavLink href="/mimin?tab=contact" active={isContact} icon={Mail}>
+            Contact Details
           </NavLink>
 
           <NavLink href="/mimin?tab=banners" active={isBanners} icon={Newspaper}>

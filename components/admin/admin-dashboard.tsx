@@ -13,6 +13,7 @@ import {ManageBodyShapesPanel} from "./manage-body-shapes-panel";
 import {ManageBannersPanel} from "./manage-banners-panel";
 import {ManageHeroCardsPanel} from "./manage-hero-cards-panel";
 import {ManageDesignerCardPanel} from "./manage-designer-card-panel";
+import {ManageContactPanel} from "./manage-contact-panel";
 import {ManageHeroPhotosPanel} from "./manage-hero-photos-panel";
 import {ManageProductsPanel} from "./manage-products-panel";
 import {ProductForm} from "./product-form";
@@ -28,6 +29,7 @@ type Tab =
   | "manage-hero-cards"
   | "hero-photos"
   | "designer-card"
+  | "contact"
   | "banners"
   | "add-body-shape"
   | "manage-body-shapes"
@@ -41,6 +43,7 @@ const validTabs: Tab[] = [
   "manage-hero-cards",
   "hero-photos",
   "designer-card",
+  "contact",
   "banners",
   "add-body-shape",
   "manage-body-shapes",
@@ -641,6 +644,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
     "manage-hero-cards": "Manage Hero Cards",
     "hero-photos": "Home Photographs",
     "designer-card": "Anita Yan Card",
+    contact: "Contact Details",
     banners: "Editorial Banners",
     "add-body-shape": "Add Body Shape",
     "manage-body-shapes": "Manage Body Shapes",
@@ -735,6 +739,7 @@ export function AdminDashboard({userEmail, userName}: {userEmail: string; userNa
         {tab === "hero-photos" ? <ManageHeroPhotosPanel /> : null}
 
         {tab === "designer-card" ? <ManageDesignerCardPanel /> : null}
+        {tab === "contact" ? <ManageContactPanel /> : null}
 
         {tab === "banners" ? <ManageBannersPanel /> : null}
 

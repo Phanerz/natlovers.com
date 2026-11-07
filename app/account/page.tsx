@@ -3,6 +3,7 @@
 import {FormEvent, Suspense, useEffect, useState} from "react";
 import Image from "next/image";
 import Link from "next/link";
+import type {Route} from "next";
 import {useRouter, useSearchParams} from "next/navigation";
 import {signOut, useSession} from "next-auth/react";
 import {
@@ -27,6 +28,8 @@ import {DaisyLoader} from "@/components/daisy-loader";
 import {PhoneInput} from "@/components/phone-input";
 import {useRefreshOnReturn} from "@/components/use-refresh-on-return";
 import {useSitePreferences} from "@/components/site-preferences-provider";
+import {useContact} from "@/components/use-contact";
+import {whatsappLink} from "@/lib/studio-contact";
 import {ThemeToggle} from "@/components/theme-toggle";
 import {formatCurrency} from "@/lib/format";
 import {unitPrice} from "@/lib/pricing";
@@ -98,6 +101,7 @@ function AdminTelemetryRow({
 }
 
 function AccountContent() {
+  const contact = useContact();
   const {data: session, status} = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -535,15 +539,14 @@ function AccountContent() {
             <div>
               <h2 className="font-display text-2xl text-forest-900">Help & support</h2>
               <div className="mt-5 space-y-3 text-sm text-forest-700">
-                <Link href="mailto:natlovers@gmail.com" className="flex items-center gap-2 hover:text-forest-900">
-                  <Mail className="h-4 w-4" /> natlovers@gmail.com
+                <Link href={`mailto:${contact.email}` as Route} className="flex items-center gap-2 hover:text-forest-900">
+                  <Mail className="h-4 w-4" /> {contact.email}
                 </Link>
-                <Link href="https://wa.me/628122697007" className="flex items-center gap-2 hover:text-forest-900">
-                  <MessageCircle className="h-4 w-4" /> Anita Yan: +62 812-2697-007
-                </Link>
-                <Link href="https://wa.me/6281125001888" className="flex items-center gap-2 hover:text-forest-900">
-                  <MessageCircle className="h-4 w-4" /> Phanuel: +62 811-2500-1888
-                </Link>
+                {contact.whatsapp.map((entry) => (
+                  <Link key={entry.number} href={whatsappLink(entry.number) as Route} className="flex items-center gap-2 hover:text-forest-900">
+                    <MessageCircle className="h-4 w-4" /> {entry.name}: {entry.number}
+                  </Link>
+                ))}
               </div>
             </div>
           ) : null}

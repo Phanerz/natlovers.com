@@ -1,197 +1,195 @@
 "use client";
 
-import Link from "next/link";
 import {usePathname} from "next/navigation";
 import {useCallback, useEffect, useRef, useState} from "react";
-import {MapPin} from "lucide-react";
+import {CookieBanner} from "@/components/consent/cookie-banner";
+import {LocationModal} from "@/components/consent/location-modal";
+import {PreferencesModal} from "@/components/consent/preferences-modal";
 import {useSitePreferences} from "@/components/site-preferences-provider";
+import {countryName} from "@/lib/countries";
+import {
+  ConsentPreferences,
+  OPEN_CONSENT_EVENT,
+  OPEN_REGION_EVENT,
+  detectCountry,
+  logVisitIfAllowed,
+  readConsent,
+  readRegion,
+  recommendedCurrency,
+  saveConsent
+} from "@/lib/consent";
 import type {CurrencyCode} from "@/lib/site";
 
-// The cookie notice and, right after it, a one-line location check. Both appear once per
-// device: the choice is kept in this browser's own storage (and a small cookie the server can
-// read), so a returning visitor is never asked again, while a new device, a new guest or a
-// freshly signed-in user on a new device sees it once. It can be reopened from the footer.
+// Re-exported so the footer keeps one import for both of its buttons.
+export {OPEN_CONSENT_EVENT, OPEN_REGION_EVENT};
+
+// Two questions, each asked once per device, in this order:
+//   1. Cookies: a bar (laptop) or sheet (phone) with Manage preferences and Accept all.
+//   2. Location: "where are you?", to pick the country and the currency prices are shown in.
+// Both answers are kept in this browser's own storage, so a returning visitor is never asked again
+// and a new device is asked once. Either can be reopened from the footer.
 //
-// Choosing "Accept all" lets us count one anonymous visit per new device (country and phone or
-// laptop, nothing that identifies a person). "Essential only" records nothing.
+// Nothing optional runs before the visitor has answered. Today the only optional thing is a count of
+// anonymous visits (country and phone or laptop), which happens only if Analytics is allowed.
+//
+// A visitor who has since travelled is not switched silently: if their connection now shows a
+// different country, they are asked, and a choice they made by hand is never changed on their behalf.
 
-type Consent = "all" | "essential";
-type Step = "hidden" | "cookies" | "region";
+const SNOOZE_KEY = "natlovers-region-snoozed";
+const CHECKED_KEY = "natlovers-region-checked";
 
-const CONSENT_KEY = "natlovers-consent";
-const REGION_KEY = "natlovers-region";
-const VISIT_KEY = "natlovers-visit-logged";
-export const OPEN_CONSENT_EVENT = "natlovers:open-consent";
-
-function readConsent(): Consent | null {
+function sessionGet(key: string): string | null {
   try {
-    const raw = window.localStorage.getItem(CONSENT_KEY);
-    const parsed = raw ? (JSON.parse(raw) as {choice?: string}) : null;
-    return parsed?.choice === "all" || parsed?.choice === "essential" ? parsed.choice : null;
+    return window.sessionStorage.getItem(key);
   } catch {
     return null;
   }
 }
-
-function saveConsent(choice: Consent) {
+function sessionSet(key: string, value: string) {
   try {
-    window.localStorage.setItem(CONSENT_KEY, JSON.stringify({choice, at: new Date().toISOString()}));
+    window.sessionStorage.setItem(key, value);
   } catch {
-    // Storage blocked: the notice will simply show again next visit.
-  }
-  const secure = window.location.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `natlovers_consent=${choice}; max-age=31536000; path=/; SameSite=Lax${secure}`;
-}
-
-function countryName(code: string): string {
-  try {
-    return new Intl.DisplayNames(["en"], {type: "region"}).of(code) ?? code;
-  } catch {
-    return code;
+    // Not available: the question may simply be asked again on the next page load.
   }
 }
 
-const CURRENCY_NAMES: Record<CurrencyCode, string> = {IDR: "Indonesian rupiah", USD: "US dollars"};
+type Notice = {country: string; currency: CurrencyCode};
 
 export function CookieConsent() {
   const pathname = usePathname();
-  const {currency, setCurrency} = useSitePreferences();
-  const [step, setStep] = useState<Step>("hidden");
-  const [country, setCountry] = useState<string | null>(null);
-  const [consent, setConsent] = useState<Consent | null>(null);
-  const firstButton = useRef<HTMLButtonElement>(null);
-  const reopened = useRef(false);
+  const {currency, country, setRegion} = useSitePreferences();
+  const [consent, setConsent] = useState<ConsentPreferences | null>(null);
+  const [bannerOpen, setBannerOpen] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
+  const [regionOpen, setRegionOpen] = useState(false);
+  const [detected, setDetected] = useState<string | null>(null);
+  const [initialRegion, setInitialRegion] = useState<{country: string; currency: CurrencyCode} | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const started = useRef(false);
 
-  const suggested: CurrencyCode = country === "ID" ? "IDR" : "USD";
-
-  // Asks the connection which country this is, and records one anonymous visit when allowed.
-  const startRegionStep = useCallback(async (choice: Consent) => {
-    try {
-      if (window.localStorage.getItem(REGION_KEY)) {
-        setStep("hidden");
-        return;
-      }
-      const response = await fetch("/api/geo", {cache: "no-store"});
-      const data = (await response.json()) as {country?: string | null};
-      if (!data.country) {
-        // Country unknown (for example on a private connection): nothing to confirm.
-        setStep("hidden");
-        return;
-      }
-      setCountry(data.country.toUpperCase());
-      setStep("region");
-      if (choice === "all" && !window.localStorage.getItem(VISIT_KEY)) {
-        window.localStorage.setItem(VISIT_KEY, "1");
-        void fetch("/api/visit", {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({device: window.innerWidth < 768 ? "phone" : "laptop"})
-        }).catch(() => undefined);
-      }
-    } catch {
-      setStep("hidden");
+  // After the cookie question: ask where the visitor is, or, if they already said, check whether that
+  // has changed since.
+  const startRegionFlow = useCallback(async () => {
+    const saved = readRegion();
+    if (!saved) {
+      if (sessionGet(SNOOZE_KEY)) return;
+      setDetected(await detectCountry());
+      setInitialRegion(null);
+      setRegionOpen(true);
+      return;
+    }
+    if (saved.manual || sessionGet(CHECKED_KEY)) return;
+    sessionSet(CHECKED_KEY, "1");
+    const now = await detectCountry();
+    if (now && now !== saved.country) {
+      setNotice({country: now, currency: recommendedCurrency(now)});
     }
   }, []);
 
   useEffect(() => {
-    if (pathname?.startsWith("/mimin")) {
-      setStep("hidden");
-      return;
-    }
+    if (started.current) return;
+    started.current = true;
     const saved = readConsent();
     setConsent(saved);
-    if (reopened.current) return;
     if (!saved) {
-      // A short pause, so the page settles before the note rises.
-      const timer = window.setTimeout(() => setStep("cookies"), 900);
+      // A short pause, so the page settles before the bar rises.
+      const timer = window.setTimeout(() => setBannerOpen(true), 900);
       return () => window.clearTimeout(timer);
     }
-    void startRegionStep(saved);
-  }, [pathname, startRegionStep]);
+    logVisitIfAllowed(saved);
+    void startRegionFlow();
+  }, [startRegionFlow]);
 
+  // The footer reopens either question.
   useEffect(() => {
-    const reopen = () => {
-      reopened.current = true;
+    const openPrefs = () => {
       setConsent(readConsent());
-      setStep("cookies");
+      setBannerOpen(false);
+      setPrefsOpen(true);
     };
-    window.addEventListener(OPEN_CONSENT_EVENT, reopen);
-    return () => window.removeEventListener(OPEN_CONSENT_EVENT, reopen);
+    const openRegion = async () => {
+      setNotice(null);
+      setDetected(await detectCountry());
+      const saved = readRegion();
+      setInitialRegion(saved ? {country: saved.country, currency: saved.currency} : null);
+      setRegionOpen(true);
+    };
+    window.addEventListener(OPEN_CONSENT_EVENT, openPrefs);
+    window.addEventListener(OPEN_REGION_EVENT, openRegion);
+    return () => {
+      window.removeEventListener(OPEN_CONSENT_EVENT, openPrefs);
+      window.removeEventListener(OPEN_REGION_EVENT, openRegion);
+    };
   }, []);
 
-  function choose(choice: Consent) {
-    saveConsent(choice);
-    setConsent(choice);
-    if (reopened.current) {
-      // Changed from the footer: just close, the location question was already settled.
-      setStep("hidden");
-      return;
-    }
-    void startRegionStep(choice);
+  function answer(choice: {analytics: boolean; marketing: boolean}) {
+    const saved = saveConsent(choice);
+    setConsent(saved);
+    setBannerOpen(false);
+    setPrefsOpen(false);
+    logVisitIfAllowed(saved);
+    void startRegionFlow();
   }
 
-  function finishRegion(chosen: CurrencyCode | null) {
-    if (chosen) setCurrency(chosen);
-    try {
-      window.localStorage.setItem(REGION_KEY, JSON.stringify({country, currency: chosen ?? currency, at: new Date().toISOString()}));
-    } catch {
-      // Storage blocked: we will simply ask again next visit.
-    }
-    setStep("hidden");
+  function closeRegion() {
+    setRegionOpen(false);
+    // "Not now" is remembered for this visit so the question does not come straight back.
+    if (!readRegion()) sessionSet(SNOOZE_KEY, "1");
   }
 
-  if (step === "hidden") return null;
-  const other: CurrencyCode = suggested === "IDR" ? "USD" : "IDR";
+  function saveRegion(chosenCountry: string, chosenCurrency: CurrencyCode, manual: boolean) {
+    setRegion(chosenCountry, chosenCurrency, manual);
+    setRegionOpen(false);
+  }
+
+  // /mimin is the shop owner's own area: no notices there.
+  if (pathname?.startsWith("/mimin")) return null;
 
   return (
-    <div className="nl-consent" role="region" aria-label={step === "cookies" ? "Cookie notice" : "Your location"} aria-live="polite">
-      <div key={step} className="nl-consent__card">
-        <span className="nl-consent__hole" aria-hidden />
-        {step === "cookies" ? (
-          <>
-            <p className="nl-consent__eyebrow">A small note</p>
-            <h2 className="nl-consent__title">Cookies, kept simple</h2>
-            <p className="nl-consent__text">
-              We use only what keeps the shop working: your sign-in, your theme and your currency. If you say yes, we also count which country visitors come
-              from, never who they are.
-            </p>
-            <div className="nl-consent__actions">
-              <button ref={firstButton} type="button" className="nl-consent__primary" onClick={() => choose("all")}>
-                Accept all
-              </button>
-              <button type="button" className="nl-consent__secondary" onClick={() => choose("essential")}>
-                Essential only
-              </button>
-            </div>
-            <p className="nl-consent__small">
-              {consent ? `Currently: ${consent === "all" ? "accept all" : "essential only"}. ` : null}
-              <Link href="/privacy">Privacy Policy</Link>
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="nl-consent__eyebrow">
-              <MapPin aria-hidden className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
-              Where are you?
-            </p>
-            <h2 className="nl-consent__title">Shopping from {country ? countryName(country) : "here"}?</h2>
-            <p className="nl-consent__text">We will show prices in {CURRENCY_NAMES[suggested]}. You can change this any time from the menu at the top.</p>
-            <div className="nl-consent__actions">
-              <button type="button" className="nl-consent__primary" onClick={() => finishRegion(suggested)}>
-                Yes, that&apos;s right
-              </button>
-              <button type="button" className="nl-consent__secondary" onClick={() => finishRegion(other)}>
-                Use {CURRENCY_NAMES[other]}
-              </button>
-            </div>
-            <p className="nl-consent__small">
-              <button type="button" className="nl-consent__skip" onClick={() => finishRegion(null)}>
-                Not now
-              </button>
-            </p>
-          </>
-        )}
-      </div>
-    </div>
+    <>
+      {bannerOpen && !prefsOpen && !regionOpen ? (
+        <CookieBanner
+          onManage={() => setPrefsOpen(true)}
+          onAcceptAll={() => answer({analytics: true, marketing: true})}
+          onEssentialOnly={() => answer({analytics: false, marketing: false})}
+        />
+      ) : null}
+
+      <PreferencesModal open={prefsOpen} current={consent} onSave={answer} onClose={() => setPrefsOpen(false)} />
+
+      <LocationModal open={regionOpen} detected={detected} initial={initialRegion} onSave={saveRegion} onClose={closeRegion} />
+
+      {notice && !regionOpen ? (
+        <div className="nlc-notice" role="status" aria-live="polite">
+          <p className="nlc-notice__text">
+            It looks like you are in <strong>{countryName(notice.country)}</strong> now. Show prices in{" "}
+            <strong>{notice.currency === "IDR" ? "Indonesian rupiah" : "US dollars"}</strong>?
+          </p>
+          <div className="nlc-notice__actions">
+            <button
+              type="button"
+              className="nlc-primary nlc-primary--small"
+              onClick={() => {
+                setRegion(notice.country, notice.currency, false);
+                setNotice(null);
+              }}
+            >
+              switch to {notice.currency}
+            </button>
+            <button
+              type="button"
+              className="nlc-secondary nlc-secondary--small"
+              onClick={() => {
+                // Keeping what they had is a choice: they are not asked again.
+                if (country) setRegion(country, currency, true);
+                setNotice(null);
+              }}
+            >
+              keep {currency}
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

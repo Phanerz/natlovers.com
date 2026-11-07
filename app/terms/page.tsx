@@ -1,15 +1,20 @@
 import type {Metadata} from "next";
 import {LegalPage} from "@/components/legal-page";
 import {LEGAL} from "@/lib/legal";
+import {getContactSettings} from "@/lib/site-content";
 
 export const metadata: Metadata = {
   title: "Terms of Service - Natlovers",
   description: "The terms for using the Natlovers website and ordering handmade pieces."
 };
 
-const mail = <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a>;
+// The contact details come from the admin panel, so this page is built fresh for each visit.
+export const dynamic = "force-dynamic";
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const contact = await getContactSettings();
+  const mail = <a href={`mailto:${contact.email}`}>{contact.email}</a>;
+
   return (
     <LegalPage
       title="Terms of Service"
@@ -57,7 +62,8 @@ export default function TermsPage() {
             <>
               <p>
                 When you place an order we reserve it for you and give you an order reference. Your order is confirmed once we have received your payment. We may decline
-                or cancel an order, for example if we cannot make it, and if we do we will refund anything you have paid for it.
+                or cancel an order, for example if we cannot make it, and if we do we will give back anything you have paid for it. Apart from that, we do not give
+                money back, as set out in our Returns &amp; Shipping page.
               </p>
               <p>
                 Rupiah orders are paid by bank transfer to the account shown at checkout. US dollar orders are paid by an invoice we send you, by PayPal or international
@@ -75,9 +81,25 @@ export default function TermsPage() {
                 allows, but a handmade copy is an interpretation, not an exact likeness.
               </p>
               <p>
-                You confirm that you have the right to share any photo or text you give us. We use them only to make your piece and handle your order, and we do not
-                publish them without asking you first. Because customised pieces are made for you, they cannot be returned once production begins, as set out in our
-                Returns &amp; Shipping page.
+                You confirm that you have the right to share any photo or text you give us. We use them only to make your piece and handle your order. We keep them for
+                one year after your order is delivered and then delete them, or sooner if you ask us to. We only show a photo of your piece, or your own photo, on
+                social media with your written consent, which we usually ask for on WhatsApp.
+              </p>
+              <p>
+                You can change a customised order until we begin making it. After that it cannot be changed or cancelled, because it is made specially for you, as set
+                out in our Returns &amp; Shipping page.
+              </p>
+            </>
+          )
+        },
+        {
+          heading: "Shipping, returns and refunds",
+          body: (
+            <>
+              <p>The cost of sending your order to you is paid by the buyer. We tell you the amount after you place your order.</p>
+              <p>
+                We do not accept returns and we do not give money back if you change your mind. If your piece arrives damaged, or is not the one you ordered, tell us
+                within one day of receiving it, as explained in our Returns &amp; Shipping page.
               </p>
             </>
           )
