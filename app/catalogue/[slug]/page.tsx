@@ -89,7 +89,7 @@ export default async function ProductPage({
   const tint = (product.materials[0] ? materialImageStyle[product.materials[0]] : null) ?? DEFAULT_IMAGE_STYLE;
 
   return (
-    <main className="shell page-enter py-10 sm:py-14">
+    <main className="shell page-enter pb-10 pt-4 sm:pb-14 sm:pt-5">
       {isAdminPreview ? <PreviewBanner /> : null}
       <ProductBreadcrumb productType={product.productType as ShopProductType} productName={product.name} />
 

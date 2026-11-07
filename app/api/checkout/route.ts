@@ -5,10 +5,9 @@ import {createOrder} from "@/lib/orders";
 import {paymentRouteFor} from "@/lib/payment-routes";
 import {normalizeCurrency} from "@/lib/site";
 import {getSession} from "@/lib/auth";
-import {customConfigSchema} from "@/lib/custom-studio";
 import {productSelectionSchema} from "@/lib/product-selection";
 
-const orderConfigSchema = z.union([customConfigSchema, productSelectionSchema]);
+const orderConfigSchema = productSelectionSchema;
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -22,10 +21,8 @@ export async function POST(request: NextRequest) {
     ? body.items
         .map((item: {slug?: string; quantity?: number; config?: unknown}) => {
           // Same rule as the cart route: a config is only ever carried
-          // through once it's confirmed to match a real, known shape
-          // (either a Custom Studio CustomConfig or a plain
-          // ProductSelection), never trusted as opaque client JSON
-          // straight into an order record.
+          // through once it's confirmed to match a real ProductSelection,
+          // never trusted as opaque client JSON straight into an order record.
           const configResult = item.config != null ? orderConfigSchema.safeParse(item.config) : null;
           return {
             slug: String(item.slug ?? ""),

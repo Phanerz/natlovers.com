@@ -48,9 +48,6 @@ export default function PrivacyPage() {
                 your order.
               </li>
               <li>
-                <strong>Custom requests.</strong> Anything you send through our custom studio, including reference pictures.
-              </li>
-              <li>
                 <strong>Your country.</strong> Your connection tells us roughly which country you are in. We use it to suggest whether to show prices in rupiah or US
                 dollars, and we do not keep it for that. If you choose &ldquo;Accept all&rdquo; on our cookie notice, we also keep one anonymous record for each new
                 device: the country, and whether it was a phone or a laptop. It holds no name, email address, IP address or anything else that could identify you. If

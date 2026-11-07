@@ -2,7 +2,6 @@
 
 import {Suspense} from "react";
 import {AboutContent} from "@/components/about-content";
-import {CustomStudioSection} from "@/components/custom-studio/studio-section";
 import {Footer} from "@/components/footer";
 import {Hero} from "@/components/hero";
 import {OutletsContent} from "@/components/outlets-content";
@@ -23,11 +22,6 @@ export default function HomePage() {
         <Suspense fallback={null}>
           <CatalogueContent />
         </Suspense>
-      </ScrollSection>
-
-      {/* On phones and tablets Custom Studio stays its own page (via the menu), not a section of the home scroll. */}
-      <ScrollSection navHref="/custom" className="snap-page max-lg:hidden">
-        <CustomStudioSection />
       </ScrollSection>
 
       <ScrollSection navHref="/outlets" className="snap-page">

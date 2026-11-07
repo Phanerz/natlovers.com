@@ -13,7 +13,6 @@ import {
   LogOut,
   MapPin,
   Newspaper,
-  Palette,
   PawPrint,
   PlusCircle,
   Receipt,
@@ -101,17 +100,15 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [ordersAwaiting, setOrdersAwaiting] = useState<number | null>(null);
-  const [customRequestsOpen, setCustomRequestsOpen] = useState<number | null>(null);
   const [productsExpanded, setProductsExpanded] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/admin/sidebar-badges", {cache: "no-store"})
       .then((response) => (response.ok ? response.json() : null))
-      .then((data: {ordersAwaitingTransfer?: number; openCustomRequests?: number} | null) => {
+      .then((data: {ordersAwaitingTransfer?: number} | null) => {
         if (!cancelled && data) {
           setOrdersAwaiting(data.ordersAwaitingTransfer ?? null);
-          setCustomRequestsOpen(data.openCustomRequests ?? null);
         }
       })
       .catch(() => undefined);
@@ -261,24 +258,6 @@ export function AdminSidebar() {
           {ordersAwaiting ? (
             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#a4402b] px-1.5 text-[11px] font-semibold text-white">
               {ordersAwaiting}
-            </span>
-          ) : null}
-        </Link>
-        <Link
-          href="/mimin/custom-requests"
-          className={`button-lift mt-1 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-            pathname?.startsWith("/mimin/custom-requests")
-              ? "flat-nav-active text-sand-50"
-              : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
-          }`}
-        >
-          <span className="flex items-center gap-2.5">
-            <Palette className="h-4 w-4 shrink-0" />
-            Custom Studio
-          </span>
-          {customRequestsOpen ? (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#a4402b] px-1.5 text-[11px] font-semibold text-white">
-              {customRequestsOpen}
             </span>
           ) : null}
         </Link>

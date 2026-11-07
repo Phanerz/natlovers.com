@@ -222,7 +222,6 @@ export function Header() {
   const navItems: Array<{href: Route; label: string}> = [
     {href: "/", label: dict.nav.home},
     {href: "/catalogue", label: dict.nav.catalogue},
-    {href: "/custom", label: dict.nav.custom},
     {href: "/outlets", label: dict.nav.outlets},
     {href: "/about", label: dict.nav.about}
   ];
@@ -307,8 +306,7 @@ export function Header() {
 
     const target = document.querySelector(`[data-nav-href="${href}"]`);
     if (!target) {
-      // No such section on this page  -  the Custom Studio is a standalone
-      // route rather than a homepage section, so route to it instead of
+      // No such section on this page, so route to the page instead of
       // leaving the click dead.
       router.push(href);
       return;

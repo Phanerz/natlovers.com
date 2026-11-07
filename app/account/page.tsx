@@ -16,7 +16,6 @@ import {
   MapPin,
   MessageCircle,
   Package,
-  Palette,
   Settings,
   User
 } from "lucide-react";
@@ -24,7 +23,6 @@ import {AddressesManager} from "@/components/addresses-manager";
 import {OrderItemDetails} from "@/components/order-item-details";
 import {AdminWidgetPicker} from "@/components/admin-widget-picker";
 import {KpiCard} from "@/components/admin/kpi-card";
-import {CustomRequestsHistory} from "@/components/custom-requests-history";
 import {DaisyLoader} from "@/components/daisy-loader";
 import {PhoneInput} from "@/components/phone-input";
 import {useRefreshOnReturn} from "@/components/use-refresh-on-return";
@@ -40,12 +38,11 @@ import {CurrencyCode, Locale, currencies, currencySymbols, locales} from "@/lib/
 import type {AdminProduct} from "@/lib/admin-products";
 import type {OrderView} from "@/lib/orders";
 
-type TabKey = "profile" | "orders" | "custom" | "addresses" | "wishlist" | "payment" | "settings" | "help";
+type TabKey = "profile" | "orders" | "addresses" | "wishlist" | "payment" | "settings" | "help";
 
 const tabs: {key: TabKey; label: string; icon: typeof User}[] = [
   {key: "profile", label: "Profile information", icon: User},
   {key: "orders", label: "Orders & purchases", icon: Package},
-  {key: "custom", label: "Custom requests", icon: Palette},
   {key: "addresses", label: "Addresses", icon: MapPin},
   {key: "wishlist", label: "Wishlist", icon: Heart},
   {key: "payment", label: "Payment methods", icon: CreditCard},
@@ -440,8 +437,6 @@ function AccountContent() {
               </div>
             )
           ) : null}
-
-          {tab === "custom" ? <CustomRequestsHistory currency={currency} /> : null}
 
           {tab === "addresses" ? <AddressesManager /> : null}
 

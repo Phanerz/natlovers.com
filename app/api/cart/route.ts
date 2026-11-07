@@ -2,10 +2,9 @@ import {NextRequest, NextResponse} from "next/server";
 import {z} from "zod";
 import {getCartItems, setCartItemQuantity} from "@/lib/cart";
 import {getSession} from "@/lib/auth";
-import {customConfigSchema} from "@/lib/custom-studio";
 import {productSelectionSchema} from "@/lib/product-selection";
 
-const cartConfigSchema = z.union([customConfigSchema, productSelectionSchema]);
+const cartConfigSchema = productSelectionSchema;
 
 export async function GET() {
   const session = await getSession();
@@ -34,9 +33,7 @@ export async function POST(request: NextRequest) {
 
   // config is only ever validated, never trusted as-is  -  a malformed value
   // here would otherwise sit silently in the cart line all the way through
-  // to an order. A line can carry either a full Custom Studio CustomConfig
-  // (from "Customise This Bag") or a plain ProductSelection (size/colour
-  // picked directly on the product page)  -  see lib/product-selection.ts.
+  // to an order. It must match a ProductSelection (see lib/product-selection.ts).
   let config: z.infer<typeof cartConfigSchema> | null | undefined;
   if (body.config === null) {
     config = null;

@@ -1,13 +1,10 @@
 import {and, eq} from "drizzle-orm";
 import {cartItems, db} from "@/lib/db";
-import type {CustomConfig} from "@/lib/custom-studio";
 import type {ProductSelection} from "@/lib/product-selection";
 
-// A line's saved config is either a full Custom Studio CustomConfig (from
-// "Customise This Bag") or a plain ProductSelection (size/colour picked
-// directly on the product page)  -  see lib/product-selection.ts for why
-// these can't share one schema.
-export type CartConfig = CustomConfig | ProductSelection;
+// A line's saved config is what the customer chose on the product page: colours, a note,
+// custom options and felted animals (see lib/product-selection.ts).
+export type CartConfig = ProductSelection;
 
 export type CartLine = {slug: string; quantity: number; config: CartConfig | null};
 

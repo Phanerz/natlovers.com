@@ -3953,16 +3953,8 @@ body:has(.outlets-stage--page) footer {
    and facts, calm hairlines instead of boxes, and a photo rail that always shows
    every photograph whole.
    ============================================================ */
-.pdp-eyebrow {
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--pdp-muted);
-}
-
 .pdp-title {
-  margin-top: 0.6rem;
+  margin-top: 0;
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   font-size: clamp(1.65rem, 2.3vw, 2.2rem);
   line-height: 1.2;
@@ -4242,6 +4234,12 @@ body:has(.outlets-stage--page) footer {
 @media (max-width: 1023px) {
   .pdp-customise {
     transform: rotate(-0.3deg);
+  }
+}
+/* On phones the paper note sits almost flat: a tilt that is only just noticeable. */
+@media (max-width: 767px) {
+  .pdp-customise {
+    transform: rotate(-0.1deg);
   }
 }
 
@@ -7401,13 +7399,13 @@ body:has(.outlets-stage--page) footer {
     --g: 0.4rem;
     /* Tallest 3:4 photo that still leaves room for the rail beside it, capped to the screen.
        100cqw is the width of the photo column. */
-    --H: max(22rem, min(calc((8 * 100cqw - var(--g)) / 7), calc(100svh - 15rem)));
+    --H: max(22rem, min(calc((8 * 100cqw - var(--g)) / 7), calc(100svh - 12.5rem)));
     --s: calc((var(--H) - 7 * var(--g)) / 8);
     gap: var(--g);
     justify-content: center;
   }
   .pdp-gallery:not(:has(.pdp-thumbs)) {
-    --H: max(22rem, min(calc(100cqw * 4 / 3), calc(100svh - 15rem)));
+    --H: max(22rem, min(calc(100cqw * 4 / 3), calc(100svh - 12.5rem)));
   }
   .pdp-gallery .pdp-main {
     flex: none;
@@ -8072,5 +8070,29 @@ dd {
   .nl-consent__primary,
   .nl-consent__secondary {
     width: 100%;
+  }
+}
+
+/* Laptops with a short screen (such as 1366 by 768): a slightly tighter buying column, so
+   its height stays close to the photo's and the Add to Bag button can sit level with the
+   photo's bottom edge. */
+@media (min-width: 1024px) and (max-height: 820px) {
+  .pdp-lede {
+    margin-top: 0.5rem;
+    font-size: 1.08rem;
+    line-height: 1.5;
+  }
+  .pdp-spec-row {
+    padding-top: 0.22rem;
+    padding-bottom: 0.22rem;
+  }
+  .pdp-personalise {
+    min-height: 3.4rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  .pdp-personalise__icon {
+    width: 2.2rem;
+    height: 2.2rem;
   }
 }

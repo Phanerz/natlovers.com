@@ -364,9 +364,9 @@ export const cartItems = pgTable(
       .references(() => users.id, {onDelete: "cascade"}),
     productSlug: text("product_slug").notNull(),
     quantity: integer("quantity").notNull().default(1),
-    // The customisation chosen when this line was added (a Custom Studio
-    // CustomConfig  -  see lib/custom-studio.ts), or null for a product added
-    // with no customisation, e.g. an Accessory. One line per product per
+    // The customisation chosen when this line was added (a ProductSelection  -
+    // see lib/product-selection.ts), or null for a product added with no
+    // customisation, e.g. an Accessory. One line per product per
     // user (same composite PK as before), so re-adding the same product with
     // a different configuration replaces the stored config rather than
     // creating a second line  -  the same "last write wins" behaviour the
@@ -497,6 +497,10 @@ export const verificationTokens = pgTable(
   })
 ).enableRLS();
 
+// LEGACY: the Custom Studio was removed from the site. These tables (custom_requests,
+// custom_request_images and store_settings) are kept only so requests already received
+// are not lost; nothing reads or writes them any more, and they can be dropped later.
+//
 // Custom Studio intake. A request is the customer's *configuration* plus
 // their inspiration photos  -  not an order. It carries an estimated price
 // the studio can revise (finalPriceIdr) once someone has actually looked at

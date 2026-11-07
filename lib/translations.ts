@@ -12,7 +12,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
     nav: {
       home: "Home",
       catalogue: "Catalogue",
-      custom: "Custom",
       outlets: "Outlets",
       about: "About"
     },
@@ -22,7 +21,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
       subtitle:
         "Natlovers brings embroidery, weaving, and storytelling into fashion objects made slowly by Indonesian artisans.",
       ctaPrimary: "Explore Catalogue",
-      ctaSecondary: "Request a Custom Piece",
       featured: "Featured Works",
       storyTitle: "Crafted by many hands, guided by one vision.",
       storyBody:
@@ -35,7 +33,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
       currency: "Currency",
       locale: "Language",
       addToCart: "Add to cart",
-      startCustom: "Start custom request",
       search: "Search",
       viewAll: "View all",
       submit: "Submit"
@@ -45,7 +42,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
     nav: {
       home: "Beranda",
       catalogue: "Katalog",
-      custom: "Custom",
       outlets: "Outlet",
       about: "Tentang"
     },
@@ -55,7 +51,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
       subtitle:
         "Natlovers memadukan bordir, anyaman, dan storytelling menjadi karya fashion yang dibuat perlahan oleh artisan Indonesia.",
       ctaPrimary: "Jelajahi Katalog",
-      ctaSecondary: "Ajukan Pesanan Custom",
       featured: "Karya Unggulan",
       storyTitle: "Dibuat oleh banyak tangan, dipandu satu visi.",
       storyBody:
@@ -68,7 +63,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
       currency: "Mata Uang",
       locale: "Bahasa",
       addToCart: "Tambah ke keranjang",
-      startCustom: "Mulai pesanan custom",
       search: "Cari",
       viewAll: "Lihat semua",
       submit: "Kirim"

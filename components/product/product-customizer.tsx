@@ -8,8 +8,7 @@ import {colourSwatchStyle, type ColourOption} from "@/lib/colour-library";
 // personal note, each optional per product (see the admin form's Colours
 // section). It lives in the details section, on the right, so it never crowds
 // the buying column. Colour here is a free-form, admin-entered swatch per
-// product (the multicolour swatch included), not Custom Studio's fixed
-// material enum, so the two don't share a data shape.
+// product (the multicolour swatch included).
 function SwatchGroup({
   title,
   options,

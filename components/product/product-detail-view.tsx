@@ -1,6 +1,6 @@
 "use client";
 
-import {useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {lineExtrasTotal} from "@/lib/pricing";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {useStorefront} from "@/components/storefront-provider";
@@ -36,6 +36,37 @@ export function ProductDetailView({
   tintHex: string;
   addonCatalogue?: AddonCatalogue | null;
 }) {
+  // Measures the photo against the row it sits in: if the buying column makes the row a little taller
+  // than the photo (up to 64px), the photo is aligned to the foot of its column.
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [footAligned, setFootAligned] = useState(false);
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!row) return;
+    const photo = row.querySelector<HTMLElement>(".pdp-gallery");
+    if (!photo) return;
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const measure = () => {
+      const extra = row.clientHeight - photo.offsetHeight;
+      setFootAligned(desktop.matches && extra > 0 && extra <= 64);
+    };
+    measure();
+    // Text and fonts settle a moment after the first paint, so measure again once they have.
+    const frame = window.requestAnimationFrame(measure);
+    void document.fonts?.ready.then(measure);
+    const observer = new ResizeObserver(measure);
+    observer.observe(row);
+    observer.observe(photo);
+    window.addEventListener("resize", measure);
+    window.addEventListener("load", measure);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("load", measure);
+    };
+  }, []);
+
   const [addonPicks, setAddonPicks] = useState<AddonPick[]>([]);
   const [baseColour, setBaseColour] = useState<string | null>(product.baseColourOptions[0]?.label ?? null);
   const [handleColour, setHandleColour] = useState<string | null>(product.handleColourOptions[0]?.label ?? null);
@@ -81,8 +112,11 @@ export function ProductDetailView({
 
   return (
     <>
-      <div className="grid items-stretch gap-6 lg:grid-cols-2 lg:gap-[30px] xl:gap-[48px]">
-        <div className="flex flex-col">
+      <div ref={rowRef} className="grid items-stretch gap-6 lg:grid-cols-2 lg:gap-[30px] xl:gap-[48px]">
+        {/* On a laptop, when the buying column is only a little taller than the photo, the photo sits at
+            the foot of its column so its bottom edge and the Add to Bag button are level. When the
+            difference is large (a short screen) the photo stays top-aligned instead of being pushed far down. */}
+        <div className={`flex flex-col ${footAligned ? "lg:justify-end" : ""}`}>
           <ProductGallery images={images} name={product.name} tintHex={tintHex} zoomEnabled={product.imageZoomEnabled} />
         </div>
         <ProductPurchasePanel product={product} selection={selection} hasCustomisation={hasCustomisation} extra={extraNow} />
