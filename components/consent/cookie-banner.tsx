@@ -22,7 +22,7 @@ export function CookieBanner({
           <Cookie className="h-6 w-6" strokeWidth={1.6} />
         </span>
         <div className="nlc-banner__copy">
-          <h2 className="nlc-banner__title font-display">we use cookies</h2>
+          <h2 className="nlc-banner__title font-display">We use cookies</h2>
           <p className="nlc-banner__text">
             Some keep the shop working. With your permission, others count visits so we can see where people come from, never who they are.{" "}
             <Link href="/privacy" className="nlc-link">

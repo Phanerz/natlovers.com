@@ -77,7 +77,7 @@ export function LocationModal({
           <MapPin className="h-6 w-6" strokeWidth={1.6} />
         </span>
         <h2 id={titleId} className="nlc-title font-display">
-          where are you?
+          Where are you?
         </h2>
         <p id={descId} className="nlc-text">
           {detected ? `We think you are in ${countryName(detected)}. ` : null}
@@ -95,7 +95,7 @@ export function LocationModal({
         />
 
         <button type="button" className="nlc-primary nlc-primary--wide" disabled={!country} onClick={save}>
-          continue
+          Continue
         </button>
         <p className="nlc-fine">Delivery country is asked for separately when you check out.</p>
       </div>

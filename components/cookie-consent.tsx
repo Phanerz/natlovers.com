@@ -55,6 +55,8 @@ function sessionSet(key: string, value: string) {
 
 type Notice = {country: string; currency: CurrencyCode};
 
+const CURRENCY_NAMES: Record<CurrencyCode, string> = {IDR: "Indonesian rupiah", USD: "US dollars"};
+
 export function CookieConsent() {
   const pathname = usePathname();
   const {currency, country, setRegion} = useSitePreferences();
@@ -66,6 +68,8 @@ export function CookieConsent() {
   const [initialRegion, setInitialRegion] = useState<{country: string; currency: CurrencyCode} | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const started = useRef(false);
+  const setRegionRef = useRef(setRegion);
+  setRegionRef.current = setRegion;
 
   // After the cookie question: ask where the visitor is, or, if they already said, check whether that
   // has changed since.
@@ -82,7 +86,13 @@ export function CookieConsent() {
     sessionSet(CHECKED_KEY, "1");
     const now = await detectCountry();
     if (now && now !== saved.country) {
-      setNotice({country: now, currency: recommendedCurrency(now)});
+      const suggested = recommendedCurrency(now);
+      if (suggested === saved.currency) {
+        // Same prices either way, so there is nothing to ask: just keep the country up to date.
+        setRegionRef.current(now, saved.currency, false);
+      } else {
+        setNotice({country: now, currency: suggested});
+      }
     }
   }, []);
 
@@ -162,8 +172,8 @@ export function CookieConsent() {
       {notice && !regionOpen ? (
         <div className="nlc-notice" role="status" aria-live="polite">
           <p className="nlc-notice__text">
-            It looks like you are in <strong>{countryName(notice.country)}</strong> now. Show prices in{" "}
-            <strong>{notice.currency === "IDR" ? "Indonesian rupiah" : "US dollars"}</strong>?
+            It looks like you are in <strong>{countryName(notice.country)}</strong> now. Would you like prices in{" "}
+            <strong>{CURRENCY_NAMES[notice.currency]}</strong> instead of {CURRENCY_NAMES[currency]}?
           </p>
           <div className="nlc-notice__actions">
             <button
@@ -174,7 +184,7 @@ export function CookieConsent() {
                 setNotice(null);
               }}
             >
-              switch to {notice.currency}
+              Switch to {CURRENCY_NAMES[notice.currency]}
             </button>
             <button
               type="button"
@@ -185,7 +195,7 @@ export function CookieConsent() {
                 setNotice(null);
               }}
             >
-              keep {currency}
+              Keep {CURRENCY_NAMES[currency]}
             </button>
           </div>
         </div>

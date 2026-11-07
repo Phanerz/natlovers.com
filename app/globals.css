@@ -8088,14 +8088,19 @@ dd {
 }
 .nlc-primary:hover:not(:disabled) {
   background: #2c4b3a;
+  box-shadow: 0 4px 12px rgba(32, 56, 43, 0.28);
+}
+.nlc-primary:active:not(:disabled),
+.nlc-secondary:active {
+  transform: translateY(1px);
 }
 .nlc-primary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 .nlc-secondary {
-  border: 1px solid #20382b;
-  background: transparent;
+  border: 1.5px solid #20382b;
+  background: rgba(255, 253, 248, 0.6);
   color: #20382b;
 }
 .nlc-secondary:hover {
@@ -8107,9 +8112,9 @@ dd {
 }
 .nlc-primary--small,
 .nlc-secondary--small {
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   padding: 0 1rem;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 .nlc-link {
   color: #20382b;
@@ -8533,10 +8538,10 @@ dd {
   line-height: 1.5;
 }
 .nlc-notice__actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 0.5rem;
-  margin-top: 0.85rem;
+  margin-top: 1rem;
 }
 @media (max-width: 480px) {
   .nlc-notice {

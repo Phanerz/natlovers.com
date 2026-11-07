@@ -76,7 +76,7 @@ export function PreferencesModal({
           <Cookie className="h-6 w-6" strokeWidth={1.6} />
         </span>
         <h2 id={titleId} className="nlc-title font-display">
-          cookie preferences
+          Cookie preferences
         </h2>
         <p className="nlc-text">
           Choose what we may store on this device. You can change this any time with &ldquo;Cookie settings&rdquo; in the footer. Read more in our{" "}
@@ -117,10 +117,10 @@ export function PreferencesModal({
 
         <div className="nlc-actions nlc-actions--stack">
           <button type="button" className="nlc-primary" onClick={() => onSave({analytics, marketing})}>
-            save preferences
+            Save preferences
           </button>
           <button type="button" className="nlc-secondary" onClick={() => onSave({analytics: true, marketing: true})}>
-            accept all
+            Accept all
           </button>
         </div>
       </div>
