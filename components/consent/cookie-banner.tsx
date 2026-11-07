@@ -32,13 +32,13 @@ export function CookieBanner({
         </div>
         <div className="nlc-banner__actions">
           <button type="button" className="nlc-secondary" onClick={onManage}>
-            manage preferences
+            Manage preferences
           </button>
           <button type="button" className="nlc-primary" onClick={onAcceptAll}>
-            accept all
+            Accept all
           </button>
           <button type="button" className="nlc-banner__essential" onClick={onEssentialOnly}>
-            essential only
+            Essential only
           </button>
         </div>
       </div>
