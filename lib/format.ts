@@ -7,7 +7,8 @@ export function formatCurrency(amount: number, currency: CurrencyCode) {
   const whole = code === "IDR" || Number.isInteger(amount);
   return (
     currencySymbols[code] +
-    new Intl.NumberFormat(code === "IDR" ? "id-ID" : "en-US", {
+    // UK English number style for both currencies: a comma between thousands, a dot for decimals.
+    new Intl.NumberFormat("en-GB", {
       minimumFractionDigits: whole ? 0 : 2,
       maximumFractionDigits: whole ? 0 : 2
     }).format(amount)

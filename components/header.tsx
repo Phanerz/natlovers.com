@@ -9,7 +9,7 @@ import type {PointerEvent as ReactPointerEvent} from "react";
 import {ChevronDown, Menu, Search, ShoppingBag, User, X} from "lucide-react";
 import {signOut, useSession} from "next-auth/react";
 import {formatCurrency} from "@/lib/format";
-import {extraAmount, lineUnitPrice, unitPrice} from "@/lib/pricing";
+import {lineExtraAmount, lineUnitPrice, unitPrice} from "@/lib/pricing";
 import {paymentRouteFor} from "@/lib/payment-routes";
 import {selectionExtras} from "@/lib/product-options";
 import {htmlToPlainText} from "@/lib/html-text";
@@ -19,6 +19,7 @@ import {FlagIcon} from "@/components/flag-icon";
 import {NavAccountMenu} from "@/components/nav-account-menu";
 import {NavPreferencesModal} from "@/components/nav-preferences-modal";
 import {NavSearchModal} from "@/components/nav-search-modal";
+import {useScrollLock} from "@/components/use-scroll-lock";
 import {useActiveNavSection} from "@/components/use-active-nav-section";
 import {useClickOutside} from "@/components/use-click-outside";
 import {useDelayedMount} from "@/components/use-delayed-mount";
@@ -163,6 +164,7 @@ export function Header() {
   const {mounted: searchMounted, entered: searchEntered} = useDelayedMount(searchOpen);
   const {mounted: cabinetMounted, entered: cabinetEntered} = useDelayedMount(cabinetOpen);
   const {mounted: mobileMounted, entered: mobileEntered} = useDelayedMount(mobileOpen);
+  useScrollLock(mobileMounted);
 
   // The bar stays put on every screen: it is the fixed top of each page.
 
@@ -222,7 +224,6 @@ export function Header() {
   const navItems: Array<{href: Route; label: string}> = [
     {href: "/", label: dict.nav.home},
     {href: "/catalogue", label: dict.nav.catalogue},
-    {href: "/custom", label: dict.nav.custom},
     {href: "/outlets", label: dict.nav.outlets},
     {href: "/about", label: dict.nav.about}
   ];
@@ -307,8 +308,7 @@ export function Header() {
 
     const target = document.querySelector(`[data-nav-href="${href}"]`);
     if (!target) {
-      // No such section on this page  -  the Custom Studio is a standalone
-      // route rather than a homepage section, so route to it instead of
+      // No such section on this page, so route to the page instead of
       // leaving the click dead.
       router.push(href);
       return;
@@ -476,7 +476,7 @@ export function Header() {
       return {
         ...product,
         price: lineUnitPrice(product, extras.lines, currency),
-        details: extras.lines.map((line) => ({...line, extra: extraAmount(product, line.extraIdr, currency)})),
+        details: extras.lines.map((line) => ({...line, extra: lineExtraAmount(product, line, currency)})),
         quantity: item.quantity,
         config: item.config
       };
@@ -496,7 +496,7 @@ export function Header() {
         return {
           ...product,
           price: lineUnitPrice(product, extras.lines, currency),
-          details: extras.lines.map((line) => ({...line, extra: extraAmount(product, line.extraIdr, currency)})),
+          details: extras.lines.map((line) => ({...line, extra: lineExtraAmount(product, line, currency)})),
           quantity: item.quantity,
           config: item.config
         };
@@ -952,6 +952,22 @@ export function Header() {
             {addressError ? <p className="mt-3 text-sm text-[#f3b4a0]">{addressError}</p> : null}
 
             {!checkoutState ? (
+              <>
+              <p className="mt-4 text-xs leading-6 text-sand-100/80">
+                By placing your order you agree to our{" "}
+                <Link href={"/terms" as Route} target="_blank" rel="noopener noreferrer" className="underline hover:text-sand-50">
+                  Terms of Service
+                </Link>
+                ,{" "}
+                <Link href={"/returns" as Route} target="_blank" rel="noopener noreferrer" className="underline hover:text-sand-50">
+                  Returns &amp; Shipping
+                </Link>{" "}
+                and{" "}
+                <Link href={"/privacy" as Route} target="_blank" rel="noopener noreferrer" className="underline hover:text-sand-50">
+                  Privacy Policy
+                </Link>
+                .
+              </p>
               <button
                 type="button"
                 onClick={confirmBankTransfer}
@@ -968,6 +984,7 @@ export function Header() {
                       : "Generate bank transfer instructions"
                     : "Fill in your shipping address to continue"}
               </button>
+              </>
             ) : null}
             {checkoutState ? (
               checkoutState.route === "usd_invoice" ? (

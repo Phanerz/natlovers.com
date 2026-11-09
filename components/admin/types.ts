@@ -322,7 +322,10 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     handleColourOptions: upgradeLegacyColours(product.handleColourOptions),
     hasPersonalisation: product.hasPersonalisation,
     personalisationOptions: product.personalisationOptions,
-    customisation: product.customisation ?? {...EMPTY_PRODUCT_OPTIONS}
+    // Products saved before felted animals existed have no `animals` entry yet.
+    customisation: product.customisation
+      ? {...product.customisation, animals: product.customisation.animals ?? EMPTY_PRODUCT_OPTIONS.animals}
+      : {...EMPTY_PRODUCT_OPTIONS}
   };
 }
 
@@ -387,7 +390,11 @@ export function buildFormData(form: ProductFormState, bodyShapes: AdminBodyShape
   formData.set("handleColourOptions", JSON.stringify(form.handleColourOptions));
   formData.set("hasPersonalisation", String(form.hasPersonalisation));
   form.personalisationOptions.forEach((option) => formData.append("personalisationOptions", option));
-  formData.set("customisation", form.customisation.fields.length ? JSON.stringify(form.customisation) : "");
+  // Saved when there is anything to save: fields, or felted animals switched on.
+  formData.set(
+    "customisation",
+    form.customisation.fields.length || form.customisation.animals.mode !== "none" ? JSON.stringify(form.customisation) : ""
+  );
 
   return formData;
 }

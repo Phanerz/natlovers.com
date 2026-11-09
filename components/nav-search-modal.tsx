@@ -2,11 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import {useEffect, useRef} from "react";
 import {createPortal} from "react-dom";
 import {ArrowRight, Search, X} from "lucide-react";
 import {formatCurrency} from "@/lib/format";
+import {htmlToPlainText} from "@/lib/html-text";
 import {unitPrice} from "@/lib/pricing";
 import {CurrencyCode} from "@/lib/site";
+import {useDialog} from "@/components/consent/use-dialog";
 
 type SearchResult = {
   slug: string;
@@ -19,6 +22,8 @@ type SearchResult = {
 
 const MAX_VISIBLE_RESULTS = 4;
 
+// Search. Same ivory (light) and olive (dark) pop-up surface as the other dialogs (.pop-* in
+// globals.css): flat, no blur, and the page behind does not scroll while it is open.
 export function NavSearchModal({
   query,
   onQueryChange,
@@ -37,124 +42,87 @@ export function NavSearchModal({
   onClose: () => void;
 }) {
   const visible = results.slice(0, MAX_VISIBLE_RESULTS);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Portalled to <body>: the header this trigger lives in has backdrop-blur
-  // (a backdrop-filter), which becomes a containing block for
-  // position:fixed descendants, so "fixed inset-0" would otherwise resolve
-  // against the header's own small box instead of the real viewport.
+  useDialog(entered, panelRef, onClose);
+  // Typing should start at once, so the search field (not the close button) gets focus.
+  useEffect(() => {
+    if (!entered) return;
+    const frame = window.requestAnimationFrame(() => inputRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [entered]);
+
+  // Portalled to <body>: the header this trigger lives in has a backdrop-filter, which becomes a
+  // containing block for position:fixed descendants.
   return createPortal(
-    <div
-      data-scroll-lock
-      onClick={onClose}
-      className={`fixed inset-0 z-50 overflow-y-auto bg-black/30 px-4 py-16 backdrop-blur-md transition-opacity duration-150 ${
-        entered ? "opacity-100" : "opacity-0"
-      } ${!entered ? "pointer-events-none" : ""}`}
-    >
-      <div className="mx-auto flex min-h-full max-w-xl items-center">
+    <div data-scroll-lock onClick={onClose} className={`pop-overlay ${entered ? "is-in" : ""} ${!entered ? "pointer-events-none" : ""}`}>
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pop-search-title"
+        tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
-        className={`menu-surface w-full max-w-xl overflow-hidden rounded-xl border border-[#e4d9c1] bg-[rgba(250,246,236,0.98)] shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all ${
-          entered
-            ? "translate-y-0 scale-100 opacity-100 duration-[420ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
-            : "translate-y-4 scale-[0.88] opacity-0 duration-150 ease-out"
-        }`}
+        className={`pop-panel pop-panel--search ${entered ? "is-in" : ""}`}
       >
-        <div className="flex items-start justify-between gap-4 px-6 pt-6 sm:px-8">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-forest-500">Search</p>
-            <h2 className="mt-1 font-display text-2xl text-forest-900">Find a Natlovers piece</h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="glass-icon-btn rounded-full p-2 text-forest-700"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        <button type="button" onClick={onClose} aria-label="Close" className="pop-close">
+          <X aria-hidden className="h-5 w-5" />
+        </button>
 
-        <div className="px-6 pt-5 sm:px-8">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-5 top-1/2 h-4 w-4 -translate-y-1/2 text-forest-400" />
-            <input
-              autoFocus
-              value={query}
-              onChange={(event) => onQueryChange(event.target.value)}
-              placeholder="Search motif, material, or story..."
-              className="w-full rounded-full border border-[#e4d9c1] bg-white/70 py-3.5 pl-12 pr-5 text-sm text-forest-900 outline-none placeholder:text-forest-400"
-            />
-          </div>
-        </div>
+        <p className="pop-eyebrow pop-eyebrow--plain">Search</p>
+        <h2 id="pop-search-title" className="pop-title font-display">
+          Find a Natlovers piece
+        </h2>
+
+        <label className="pop-searchbar">
+          <Search aria-hidden className="h-4 w-4" />
+          <input
+            ref={inputRef}
+            type="search"
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+            placeholder="Search motif, material, or story..."
+            aria-label="Search the catalogue"
+            autoComplete="off"
+          />
+        </label>
 
         {visible.length ? (
-          <div className="mt-5 px-4 sm:px-5">
-            <div className="flex items-center justify-between px-2 pb-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest-500">Top Matches</p>
-              <Link
-                href="/catalogue"
-                onClick={onClose}
-                className="flex items-center gap-1 text-xs font-medium text-forest-600 hover:text-forest-900"
-              >
-                View all results <ArrowRight className="h-3 w-3" />
+          <div className="pop-results">
+            <div className="pop-results__head">
+              <p className="pop-eyebrow pop-eyebrow--plain">Top matches</p>
+              <Link href="/catalogue" onClick={onClose} className="pop-link">
+                View all results <ArrowRight aria-hidden className="h-3 w-3" />
               </Link>
             </div>
-            {/*
-              Same reasoning as the cart drawer's list: a rounded card
-              sitting flush against a plain overflow:auto edge gets hard-
-              clipped by the container's straight boundary the moment the
-              list scrolls, reading as a broken/cut-off card rather than
-              content that's simply scrolled past. The mask fades whichever
-              row is nearest the edge out gracefully instead.
-            */}
-            <div
-              className="max-h-[22rem] space-y-2 overflow-y-auto py-1 pb-2"
-              style={{
-                maskImage: "linear-gradient(to bottom, transparent, black 14px, black calc(100% - 14px), transparent)",
-                WebkitMaskImage:
-                  "linear-gradient(to bottom, transparent, black 14px, black calc(100% - 14px), transparent)"
-              }}
-            >
+            <ul className="pop-results__list">
               {visible.map((product) => (
-                <button
-                  key={product.slug}
-                  type="button"
-                  onClick={() => onSelect(product.slug)}
-                  className="motion-card flex w-full items-center gap-4 rounded-xl border border-[#e4d9c1] bg-white/70 p-3 text-left shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#d5c8b1] hover:bg-white hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
-                >
-                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#e4d9c1] bg-[#eee4cd]">
-                    {product.imageUrl ? (
-                      <Image src={product.imageUrl} alt="" fill sizes="64px" className="object-contain p-1" />
-                    ) : null}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-display text-base text-forest-900">{product.title}</p>
-                    <p className="truncate text-xs text-forest-500">{product.description}</p>
-                  </div>
-                  <span className="shrink-0 rounded-full border border-[#e4d9c1] bg-white px-3 py-1.5 text-xs font-semibold text-forest-800">
-                    {formatCurrency(unitPrice(product, currency), currency)}
-                  </span>
-                </button>
+                <li key={product.slug}>
+                  <button type="button" onClick={() => onSelect(product.slug)} className="pop-result">
+                    <span className="pop-result__thumb">
+                      {product.imageUrl ? <Image src={product.imageUrl} alt="" fill sizes="56px" className="object-contain p-1" /> : null}
+                    </span>
+                    <span className="pop-result__text">
+                      <span className="pop-result__title font-display">{product.title}</span>
+                      <span className="pop-result__desc">{htmlToPlainText(product.description)}</span>
+                      <span className="pop-result__price">{formatCurrency(unitPrice(product, currency), currency)}</span>
+                    </span>
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         ) : (
-          <p className="px-6 py-10 text-center text-sm text-forest-500 sm:px-8">
-            {query.trim() ? "No pieces match that search yet." : "Start typing to search the catalogue."}
-          </p>
+          <p className="pop-empty">{query.trim() ? "No pieces match that search yet." : "Start typing to search the catalogue."}</p>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e4d9c1] px-6 py-4 sm:px-8">
-          <p className="text-xs text-forest-500">Can&rsquo;t find what you&rsquo;re looking for? Try different keywords or explore the full catalogue.</p>
-          <Link
-            href="/catalogue"
-            onClick={onClose}
-            className="glass-btn-primary flex shrink-0 items-center gap-2 rounded-full px-5 py-2.5 text-xs font-semibold text-sand-50"
-          >
-            Browse Catalogue <ArrowRight className="h-3.5 w-3.5" />
+        <div className="pop-foot">
+          <p>Can&rsquo;t find what you&rsquo;re looking for? Try different keywords or explore the full catalogue.</p>
+          <Link href="/catalogue" onClick={onClose} className="pop-cta">
+            Browse Catalogue <ArrowRight aria-hidden className="h-3.5 w-3.5" />
           </Link>
         </div>
-      </div>
       </div>
     </div>,
     document.body

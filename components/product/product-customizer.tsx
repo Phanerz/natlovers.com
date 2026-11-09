@@ -1,13 +1,14 @@
 "use client";
 
+import {AddonPicker} from "@/components/product/addon-picker";
+import type {AddonCatalogue, AddonPick} from "@/lib/addon-shared";
 import {colourSwatchStyle, type ColourOption} from "@/lib/colour-library";
 
 // The product page's own customiser: base colour, handle colour and a
 // personal note, each optional per product (see the admin form's Colours
 // section). It lives in the details section, on the right, so it never crowds
 // the buying column. Colour here is a free-form, admin-entered swatch per
-// product (the multicolour swatch included), not Custom Studio's fixed
-// material enum, so the two don't share a data shape.
+// product (the multicolour swatch included).
 function SwatchGroup({
   title,
   options,
@@ -49,6 +50,9 @@ function SwatchGroup({
   );
 }
 
+// The most characters a customer may write in their note.
+const NOTE_MAX = 200;
+
 export function ProductCustomizer({
   hasBaseColour,
   baseColourOptions,
@@ -60,8 +64,21 @@ export function ProductCustomizer({
   onHandleColourChange,
   hasPersonalisation,
   personalisationNote,
-  onPersonalisationNoteChange
+  onPersonalisationNoteChange,
+  addonCatalogue = null,
+  addonPicks = [],
+  onAddonPicksChange,
+  onAddToBag,
+  addToBagLabel = "Add to Bag",
+  addToBagDisabled = false
 }: {
+  // The same Add to Bag as the one beside the photos, repeated at the foot of the note.
+  onAddToBag?: () => void;
+  addToBagLabel?: string;
+  addToBagDisabled?: boolean;
+  addonCatalogue?: AddonCatalogue | null;
+  addonPicks?: AddonPick[];
+  onAddonPicksChange?: (picks: AddonPick[]) => void;
   hasBaseColour: boolean;
   baseColourOptions: ColourOption[];
   baseColour: string | null;
@@ -100,26 +117,43 @@ export function ProductCustomizer({
           <SwatchGroup title="Handle colour" options={handleColourOptions} value={handleColour} onChange={onHandleColourChange} />
         ) : null}
 
-        {hasPersonalisation ? (
-          <div>
-            <div className="flex items-baseline justify-between gap-3">
-              <label htmlFor="personal-note" className="pdp-option-title">
-                Your note
-              </label>
-              <span className="pdp-option-value">{personalisationNote.length} / 500</span>
-            </div>
-            <textarea
-              id="personal-note"
-              value={personalisationNote}
-              onChange={(event) => onPersonalisationNoteChange(event.target.value.slice(0, 500))}
-              rows={3}
-              placeholder="Anything you would like us to know…"
-              className="pdp-input mt-3"
-            />
-            <p className="pdp-fineprint">Once you place your order, this note cannot be edited.</p>
-          </div>
-        ) : null}
       </div>
+
+      {hasPersonalisation && addonCatalogue && onAddonPicksChange ? (
+        <AddonPicker catalogue={addonCatalogue} picks={addonPicks} onChange={onAddonPicksChange} />
+      ) : null}
+
+      {hasPersonalisation ? (
+        <div className="mt-7">
+          <div className="flex items-baseline justify-between gap-3">
+            <label htmlFor="personal-note" className="pdp-option-title">
+              Your note
+            </label>
+            <span className="pdp-option-value">{personalisationNote.length} / {NOTE_MAX}</span>
+          </div>
+          <textarea
+            id="personal-note"
+            value={personalisationNote}
+            onChange={(event) => onPersonalisationNoteChange(event.target.value.slice(0, NOTE_MAX))}
+            maxLength={NOTE_MAX}
+            rows={3}
+            placeholder="Anything you would like us to know…"
+            className="pdp-input mt-3"
+          />
+          <p className="pdp-fineprint">Once you place your order, this note cannot be edited.</p>
+        </div>
+      ) : null}
+
+      {onAddToBag ? (
+        <button
+          type="button"
+          onClick={onAddToBag}
+          disabled={addToBagDisabled}
+          className="liquid-glass-dark button-lift mt-7 w-full rounded-full px-6 py-3.5 text-base font-semibold text-sand-50 backdrop-blur-[14px] backdrop-saturate-[160%] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
+        >
+          {addToBagLabel}
+        </button>
+      ) : null}
 
       <div className="pdp-note-rule mt-7" aria-hidden />
       <p className="pdp-note-sign">Made by hand, just for you</p>

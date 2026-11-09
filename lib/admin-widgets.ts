@@ -35,7 +35,7 @@ export const DEFAULT_WIDGETS: WidgetKey[] = ["totalCustomers", "newCustomersThis
 export const MAX_WIDGETS = 4;
 
 function formatIdr(value: number): string {
-  return `Rp${value.toLocaleString("id-ID")}`;
+  return `Rp${value.toLocaleString("en-GB")}`;
 }
 
 export type WidgetSourceData = {telemetry: CustomerTelemetry; stats: DashboardStats};

@@ -11,7 +11,7 @@ export function ProductBreadcrumb({productType, productName}: {productType: Shop
   return (
     <nav
       aria-label="Breadcrumb"
-      className="mb-6 flex flex-wrap items-center gap-2 text-sm font-medium tracking-[0.08em] text-forest-700"
+      className="mb-4 flex flex-wrap items-center gap-2 text-sm font-medium tracking-[0.08em] text-forest-700"
     >
       <Link href="/" className="transition-colors duration-200 hover:text-forest-900">
         {locale === "en" ? "Home" : "Beranda"}

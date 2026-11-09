@@ -246,6 +246,41 @@
       "when": 1793877791615,
       "tag": "0034_lumpy_lucky_pierre",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793929514042,
+      "tag": "0035_addons",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793934983993,
+      "tag": "0036_addon_reference_photos",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793944103420,
+      "tag": "0037_addon_colour_library",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1793945911787,
+      "tag": "0038_addon_carry_option",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1793948156359,
+      "tag": "0039_site_visits",
+      "breakpoints": true
     }
   ]
 }

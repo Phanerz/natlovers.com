@@ -1,7 +1,6 @@
 import {and, count, desc, eq, gte, inArray, isNotNull, lt, sql} from "drizzle-orm";
 import {db, heroCards, orderItems, orders, products, users} from "@/lib/db";
 import {getCustomerCount} from "@/lib/customers";
-import {countOpenCustomRequests} from "@/lib/custom-requests";
 import {withTtlCache} from "@/lib/ttl-cache";
 
 // A product only counts toward stock KPIs once it's opted into tracking
@@ -12,28 +11,20 @@ const LOW_STOCK_THRESHOLD = 5;
 
 export type DateRangeKey = "today" | "7d" | "month" | "year" | "all";
 
-// The sidebar's two nav badges used to be read off a full getDashboardStats(
-// "all") call  -  that endpoint alone fans out ~7 queries, then the sidebar's
-// concurrent invocation stacked directly on top of dashboard-home's own call
-// to the same heavy endpoint on every /mimin dashboard load (two overlapping
-// callers of the same expensive pipeline is exactly the pool-starvation
-// scenario this file has fought before). The sidebar only ever needed these
-// two indexed counts, so it gets its own 2-query path instead of paying for
-// the other ~9 fields (revenue, sales series, best sellers, etc.) it never
-// reads.
-export async function getSidebarBadgeCounts(): Promise<{ordersAwaitingTransfer: number; openCustomRequests: number}> {
+// The sidebar's nav badge used to be read off a full getDashboardStats("all")
+// call  -  that endpoint alone fans out ~7 queries, and the sidebar's concurrent
+// invocation stacked on top of dashboard-home's own call to the same heavy
+// endpoint on every /mimin dashboard load (two overlapping callers of the same
+// expensive pipeline is exactly the pool-starvation scenario this file has
+// fought before). The sidebar only needs this one indexed count, so it gets its
+// own single-query path.
+export async function getSidebarBadgeCounts(): Promise<{ordersAwaitingTransfer: number}> {
   // Cached briefly: every admin page nav re-mounts the sidebar, which
-  // re-fires this fetch  -  without a cache, clicking between Manage
-  // Products/Orders/Custom Requests re-runs these two counts on every
-  // single click for no reason, right alongside whatever that page's own
-  // load is already asking of the same connection pool.
+  // re-fires this fetch  -  without a cache, clicking between admin pages
+  // re-runs the count on every single click for no reason.
   return withTtlCache("sidebar-badges", 10_000, async () => {
-    const [[awaitingRow], openCustomRequests] = await Promise.all([
-      db.select({value: count()}).from(orders).where(eq(orders.status, "pending_transfer")),
-      countOpenCustomRequests()
-    ]);
-
-    return {ordersAwaitingTransfer: awaitingRow.value, openCustomRequests};
+    const [awaitingRow] = await db.select({value: count()}).from(orders).where(eq(orders.status, "pending_transfer"));
+    return {ordersAwaitingTransfer: awaitingRow.value};
   });
 }
 
@@ -147,7 +138,6 @@ export type DashboardStats = {
   customerCount: number;
   lowStockCount: number | null;
   outOfStockCount: number | null;
-  openCustomRequests: number;
 };
 
 export async function getDashboardStats(range: DateRangeKey): Promise<DashboardStats> {
@@ -189,17 +179,6 @@ async function computeDashboardStats(range: DateRangeKey): Promise<DashboardStat
       .where(isNotNull(products.stock))
   ]);
 
-  // Deliberately sequential, not folded into the Promise.all above. That
-  // batch already fans out close to the connection pool ceiling (see the
-  // max: 10 rationale in lib/db/index.ts  -  getPeriodMetrics and
-  // getCustomerCount each run several queries of their own), and adding a
-  // ninth parallel branch pushed a single dashboard load past it. Waiting
-  // for a pool slot has no timeout, so the overflow did not surface as an
-  // error: the endpoint simply took over 100 seconds while the sidebar and
-  // every KPI tile sat on a placeholder. One extra round trip for a cheap
-  // indexed count is the cheaper trade by a wide margin.
-  const openCustomRequests = await countOpenCustomRequests();
-
   const totalProducts = productsRow.total;
   const activeProducts = productsRow.active;
 
@@ -219,8 +198,7 @@ async function computeDashboardStats(range: DateRangeKey): Promise<DashboardStat
     ordersAwaitingTransfer: awaitingRow.value,
     customerCount,
     lowStockCount: stockRow.tracked > 0 ? stockRow.lowStock : null,
-    outOfStockCount: stockRow.tracked > 0 ? stockRow.outOfStock : null,
-    openCustomRequests
+    outOfStockCount: stockRow.tracked > 0 ? stockRow.outOfStock : null
   };
 }
 

@@ -3,13 +3,19 @@ import {AddressInput, createAddress, getDefaultAddress, updateAddress} from "@/l
 import {clearCart} from "@/lib/cart";
 import {db, orderItems, orders, products, users} from "@/lib/db";
 import type {CartConfig} from "@/lib/cart";
-import {resolveOptions, type ProductOptions} from "@/lib/product-options";
+import {allowedAnimals, resolveOptions, type ProductOptions} from "@/lib/product-options";
+import {addonOrderLineToResolved, getOrderAddons, resolveAddonPicks, saveOrderItemAddons, type OrderAddonRow} from "@/lib/addons";
+import type {AddonOrderLine} from "@/lib/addon-shared";
 import {lineExtrasTotal, unitPrice} from "@/lib/pricing";
 import {CurrencyCode, normalizeCurrency} from "@/lib/site";
 
 export {orderStatusLabels} from "@/lib/order-status";
 
 export type OrderItemView = {
+  id?: string;
+  // The felted animals added to this line, frozen at checkout: species, colour,
+  // pose, the customer's note and the reference photo shown to them.
+  addons?: (AddonOrderLine | OrderAddonRow)[];
   slug: string;
   name: string;
   priceIdr: number;
@@ -65,54 +71,86 @@ export async function createOrder(
       name: products.name,
       priceIdr: products.priceIdr,
       priceUsdCents: products.priceUsdCents,
-      customisation: products.customisation
+      customisation: products.customisation,
+      hasPersonalisation: products.hasPersonalisation
     })
     .from(products)
     .where(inArray(products.slug, slugs));
   const catalogueBySlug = new Map(catalogue.map((row) => [row.slug, row]));
 
-  const lineItems = requestedItems
-    .map((requested) => {
-      const product = catalogueBySlug.get(requested.slug);
-      if (!product || requested.quantity <= 0) {
-        return null;
+  const lineItems: {
+    id: string;
+    productSlug: string;
+    productName: string;
+    priceIdr: number;
+    priceUsdCents: number | null;
+    quantity: number;
+    config: CartConfig | null;
+    addons: AddonOrderLine[];
+  }[] = [];
+
+  for (const requested of requestedItems) {
+    const product = catalogueBySlug.get(requested.slug);
+    if (!product || requested.quantity <= 0) {
+      continue;
+    }
+    // Custom options (extra dolls, pets, part colours, photos): the price
+    // and the readable receipt are worked out here from the product's own
+    // definition, never taken from the request, so an order always charges
+    // exactly what the options cost and the studio reads exactly what was
+    // chosen. A product with the options off ignores any such answers.
+    const definition = product.customisation as ProductOptions | null;
+    let config = requested.config ?? null;
+    let unitPriceIdr = product.priceIdr;
+    let optionLines: {extraIdr: number}[] = [];
+    let addons: AddonOrderLine[] = [];
+    if (config && "kind" in config && config.kind === "productSelection") {
+      if (config.custom && definition?.enabled) {
+        const resolved = resolveOptions(definition, config.custom.answers);
+        config = {...config, custom: {answers: config.custom.answers, lines: resolved.lines, extraIdr: resolved.extraIdr}};
+        unitPriceIdr += resolved.extraIdr;
+        optionLines = resolved.lines;
+      } else if (config.custom) {
+        const {custom: _dropped, ...rest} = config;
+        void _dropped;
+        config = rest;
       }
-      // Custom options (extra dolls, pets, part colours, photos): the price
-      // and the readable receipt are worked out here from the product's own
-      // definition, never taken from the request, so an order always charges
-      // exactly what the options cost and the studio reads exactly what was
-      // chosen. A product with the options off ignores any such answers.
-      const definition = product.customisation as ProductOptions | null;
-      let config = requested.config ?? null;
-      let unitPriceIdr = product.priceIdr;
-      let optionLines: {extraIdr: number}[] = [];
-      if (config && "kind" in config && config.kind === "productSelection") {
-        if (config.custom && definition?.enabled) {
-          const resolved = resolveOptions(definition, config.custom.answers);
-          config = {...config, custom: {answers: config.custom.answers, lines: resolved.lines, extraIdr: resolved.extraIdr}};
-          unitPriceIdr += resolved.extraIdr;
-          optionLines = resolved.lines;
-        } else if (config.custom) {
-          const {custom: _dropped, ...rest} = config;
-          void _dropped;
-          config = rest;
-        }
+      // Felted animal add-ons: only on a product with personalisation switched
+      // on, re-checked against the live admin data, and charged the flat price
+      // from the settings row. Whatever the client claimed about them is dropped.
+      const picks = config.addons;
+      const {addons: _picks, addonLines: _lines, ...withoutAddons} = config;
+      void _picks;
+      void _lines;
+      // Offered only when this product's custom options switch felted animals on.
+      const allowed = allowedAnimals(definition);
+      if (allowed && picks?.length) {
+        addons = await resolveAddonPicks(picks, allowed);
+        config = {...withoutAddons, addons: picks, addonLines: addons.map(addonOrderLineToResolved)};
+        unitPriceIdr += addons.reduce((sum, line) => sum + line.priceIdr, 0);
+      } else {
+        config = withoutAddons;
       }
-      // A dollar order is charged the product's own fixed dollar price plus its options in dollars,
-      // never a converted rupiah amount. The rupiah list price is kept alongside for reference.
-      const priced = {priceIdr: product.priceIdr, priceUsdCents: product.priceUsdCents};
-      const priceUsdCents =
-        currency === "USD" ? Math.round((unitPrice(priced, "USD") + lineExtrasTotal(priced, optionLines, "USD")) * 100) : null;
-      return {
-        productSlug: product.slug,
-        productName: product.name,
-        priceIdr: unitPriceIdr,
-        priceUsdCents,
-        quantity: requested.quantity,
-        config
-      };
-    })
-    .filter((item): item is NonNullable<typeof item> => item !== null);
+    }
+    // A dollar order is charged the product's own fixed dollar price plus its options in dollars,
+    // never a converted rupiah amount. The rupiah list price is kept alongside for reference.
+    const priced = {priceIdr: product.priceIdr, priceUsdCents: product.priceUsdCents};
+    const priceUsdCents =
+      currency === "USD"
+        ? Math.round((unitPrice(priced, "USD") + lineExtrasTotal(priced, optionLines, "USD")) * 100) +
+          addons.reduce((sum, line) => sum + line.priceUsdCents, 0)
+        : null;
+    lineItems.push({
+      id: crypto.randomUUID(),
+      productSlug: product.slug,
+      productName: product.name,
+      priceIdr: unitPriceIdr,
+      priceUsdCents,
+      quantity: requested.quantity,
+      config,
+      addons
+    });
+  }
 
   if (!lineItems.length) {
     throw new Error("None of the requested items are available.");
@@ -143,7 +181,15 @@ export async function createOrder(
     })
     .returning();
 
-  await db.insert(orderItems).values(lineItems.map((item) => ({...item, orderId: order.id})));
+  await db.insert(orderItems).values(
+    lineItems.map(({addons: _addons, ...item}) => {
+      void _addons;
+      return {...item, orderId: order.id};
+    })
+  );
+  for (const item of lineItems) {
+    await saveOrderItemAddons(item.id, item.addons);
+  }
 
   // Checking out also keeps the customer's saved address current  -  updates
   // their existing default in place, or saves this as their first one  -  so
@@ -172,6 +218,8 @@ export async function createOrder(
     accountNumber: order.accountNumber,
     createdAt: order.createdAt.toISOString(),
     items: lineItems.map((item) => ({
+      id: item.id,
+      addons: item.addons,
       slug: item.productSlug,
       name: item.productName,
       priceIdr: item.priceIdr,
@@ -198,10 +246,13 @@ export async function getOrdersForUser(userId: string): Promise<OrderView[]> {
       )
     );
 
+  const addonsByItem = await getOrderAddons(itemRows.map((row) => row.id));
   const itemsByOrder = new Map<string, OrderItemView[]>();
   for (const row of itemRows) {
     const list = itemsByOrder.get(row.orderId) ?? [];
     list.push({
+      id: row.id,
+      addons: addonsByItem.get(row.id) ?? [],
       slug: row.productSlug,
       name: row.productName,
       priceIdr: row.priceIdr,
@@ -270,10 +321,13 @@ async function attachItemsForAdmin(
       )
     );
 
+  const addonsByItem = await getOrderAddons(itemRows.map((row) => row.id));
   const itemsByOrder = new Map<string, OrderItemView[]>();
   for (const row of itemRows) {
     const list = itemsByOrder.get(row.orderId) ?? [];
     list.push({
+      id: row.id,
+      addons: addonsByItem.get(row.id) ?? [],
       slug: row.productSlug,
       name: row.productName,
       priceIdr: row.priceIdr,

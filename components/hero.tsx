@@ -255,18 +255,12 @@ const cardTransform = useMemo(() => {
                   </p>
                 </div>
 
-                <div className="mt-[21px] max-sm:mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-[13px]">
+                <div className="mt-[21px] max-sm:mt-3 flex flex-wrap gap-2 sm:gap-[13px]">
                   <Link
                     href="/catalogue"
-                    className="glass-btn-secondary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-center text-sm font-semibold text-forest-900 max-sm:px-3 max-sm:text-[11px] max-sm:leading-tight"
+                    className="glass-btn-secondary inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-center text-sm font-semibold text-forest-900 max-sm:px-5 max-sm:text-xs max-sm:leading-tight"
                   >
                     EXPLORE CATALOGUE <ArrowRight className="h-4 w-4" />
-                  </Link>
-                  <Link
-                    href="/custom"
-                    className="liquid-glass button-lift inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-center text-sm font-semibold text-white max-sm:px-3 max-sm:text-[11px] max-sm:leading-tight"
-                  >
-                    REQUEST A CUSTOM PIECE
                   </Link>
                 </div>
               </div>

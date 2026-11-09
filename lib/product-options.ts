@@ -56,16 +56,35 @@ const addonField = z.object({
 
 export const optionFieldSchema = z.discriminatedUnion("kind", [colourField, choiceField, textField, imageField, addonField]);
 
+// Which felted animals (see lib/addon-shared.ts) this product offers: none, every
+// animal that is switched on in Add-ons, or only the ones ticked here. It sits
+// inside the custom options, so switching custom options off offers no animals.
+export const animalsSchema = z.object({
+  mode: z.enum(["none", "all", "selected"]).default("none"),
+  speciesIds: z.array(z.string().trim().min(1).max(64)).max(80).default([])
+});
+
 export const productOptionsSchema = z.object({
   enabled: z.boolean().default(false),
-  fields: z.array(optionFieldSchema).max(24).default([])
+  fields: z.array(optionFieldSchema).max(24).default([]),
+  animals: animalsSchema.default({mode: "none", speciesIds: []})
 });
 
 export type OptionField = z.infer<typeof optionFieldSchema>;
 export type SubField = z.infer<typeof subField>;
 export type ProductOptions = z.infer<typeof productOptionsSchema>;
 
-export const EMPTY_PRODUCT_OPTIONS: ProductOptions = {enabled: false, fields: []};
+export const EMPTY_PRODUCT_OPTIONS: ProductOptions = {enabled: false, fields: [], animals: {mode: "none", speciesIds: []}};
+
+// The animals this product may offer: null for none, "all", or the ticked ids.
+// Anything is "none" while custom options are off.
+export function allowedAnimals(options: ProductOptions | null | undefined): "all" | string[] | null {
+  if (!options || !options.enabled) return null;
+  const animals = options.animals;
+  if (!animals || animals.mode === "none") return null;
+  if (animals.mode === "all") return "all";
+  return animals.speciesIds.length ? animals.speciesIds : null;
+}
 
 // What the customer chose, keyed by field id. One loose shape for every kind
 // keeps it simple to store; resolveOptions() is what reads it strictly.
@@ -86,6 +105,8 @@ export type ResolvedLine = {
   label: string;
   value: string;
   extraIdr: number;
+  // Set on add-on lines, which have their own fixed dollar price.
+  extraUsdCents?: number;
   images?: string[];
   hex?: string;
 };
@@ -96,12 +117,13 @@ export const resolvedLineSchema = z.object({
   label: z.string().max(200),
   value: z.string().max(1200),
   extraIdr: z.number().int().min(0),
+  extraUsdCents: z.number().int().min(0).optional(),
   images: z.array(z.string().max(600)).max(5).optional(),
   hex: z.string().max(9).optional()
 });
 
 export function isOptionsEnabled(options: ProductOptions | null | undefined): options is ProductOptions {
-  return Boolean(options && options.enabled && options.fields.length);
+  return Boolean(options && options.enabled && (options.fields.length || allowedAnimals(options)));
 }
 
 // A fresh set of answers with every field at its starting point: first colour,
@@ -211,5 +233,9 @@ export function resolveOptions(options: ProductOptions | null | undefined, answe
 // on the storefront (the bag, the bank-transfer summary).
 export function selectionExtras(options: ProductOptions | null | undefined, config: unknown): ResolvedOptions {
   const answers = (config as {custom?: {answers?: OptionAnswers}} | null)?.custom?.answers;
-  return answers ? resolveOptions(options, answers) : {lines: [], extraIdr: 0};
+  const base = answers ? resolveOptions(options, answers) : {lines: [], extraIdr: 0};
+  // Add-on animals (see lib/addon-shared.ts) carry their own readable, priced lines.
+  const addonLines = (config as {addonLines?: ResolvedLine[]} | null)?.addonLines;
+  if (!Array.isArray(addonLines) || !addonLines.length) return base;
+  return {lines: [...base.lines, ...addonLines], extraIdr: base.extraIdr + addonLines.reduce((sum, line) => sum + line.extraIdr, 0)};
 }

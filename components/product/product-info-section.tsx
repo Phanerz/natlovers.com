@@ -8,7 +8,7 @@ import {sanitizeDescriptionHtml} from "@/lib/sanitize-html";
 // isn't run through an unreviewed translation.
 const SHIPPING_AND_RETURNS_COPY = [
   "All Natlovers pieces are handcrafted to order. Typical production and delivery time is 1–3 weeks, occasionally longer for complex custom work or during high demand.",
-  "As each item is handmade, we do not accept returns or exchanges on standard purchases. Custom and commissioned pieces cannot be returned once production has begun."
+  "As each item is handmade, we do not accept returns and we do not give money back. If a piece arrives damaged or is not the one you ordered, tell us within one day of receiving it. The buyer pays the shipping, and we tell you the amount after you order. A customised order can be changed until production begins."
 ];
 
 // Below the fold: the story of the piece on the left (with its care and

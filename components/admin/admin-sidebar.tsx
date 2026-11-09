@@ -11,9 +11,10 @@ import {
   GalleryHorizontal,
   LayoutDashboard,
   LogOut,
+  Mail,
   MapPin,
   Newspaper,
-  Palette,
+  PawPrint,
   PlusCircle,
   Receipt,
   ShoppingBag,
@@ -22,6 +23,7 @@ import {
   Warehouse
 } from "lucide-react";
 import {ShopProductType, productTypeLabels, shopProductTypes} from "@/app/catalogue/shop-data";
+import {ActivityFeed} from "./activity-feed";
 
 // Typography/spacing/interaction lifted directly from app/catalogue/
 // filter-sidebar.tsx's FilterSection  -  same uppercase tracked label, same
@@ -99,17 +101,15 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [ordersAwaiting, setOrdersAwaiting] = useState<number | null>(null);
-  const [customRequestsOpen, setCustomRequestsOpen] = useState<number | null>(null);
   const [productsExpanded, setProductsExpanded] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/admin/sidebar-badges", {cache: "no-store"})
       .then((response) => (response.ok ? response.json() : null))
-      .then((data: {ordersAwaitingTransfer?: number; openCustomRequests?: number} | null) => {
+      .then((data: {ordersAwaitingTransfer?: number} | null) => {
         if (!cancelled && data) {
           setOrdersAwaiting(data.ordersAwaitingTransfer ?? null);
-          setCustomRequestsOpen(data.openCustomRequests ?? null);
         }
       })
       .catch(() => undefined);
@@ -133,6 +133,7 @@ export function AdminSidebar() {
   const isBanners = onDashboardRoute && tab === "banners";
   const isHeroPhotos = onDashboardRoute && tab === "hero-photos";
   const isDesignerCard = onDashboardRoute && tab === "designer-card";
+  const isContact = onDashboardRoute && tab === "contact";
   const isManageBodyShapes = onDashboardRoute && (tab === "manage-body-shapes" || tab === "edit-body-shape");
   const isAddBodyShape = onDashboardRoute && tab === "add-body-shape";
 
@@ -213,6 +214,10 @@ export function AdminSidebar() {
             Anita Yan Card
           </NavLink>
 
+          <NavLink href="/mimin?tab=contact" active={isContact} icon={Mail}>
+            Contact Details
+          </NavLink>
+
           <NavLink href="/mimin?tab=banners" active={isBanners} icon={Newspaper}>
             Editorial Banners
           </NavLink>
@@ -234,6 +239,9 @@ export function AdminSidebar() {
         </div>
         <NavLink href="/mimin/outlets" active={pathname === "/mimin/outlets"} icon={MapPin}>
           Outlets
+        </NavLink>
+        <NavLink href="/mimin/add-ons" active={pathname === "/mimin/add-ons"} icon={PawPrint}>
+          Add-ons
         </NavLink>
       </div>
 
@@ -259,24 +267,6 @@ export function AdminSidebar() {
             </span>
           ) : null}
         </Link>
-        <Link
-          href="/mimin/custom-requests"
-          className={`button-lift mt-1 flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-            pathname?.startsWith("/mimin/custom-requests")
-              ? "flat-nav-active text-sand-50"
-              : "text-[#3c3c34] hover:bg-[#eee7d8] hover:text-[#344332]"
-          }`}
-        >
-          <span className="flex items-center gap-2.5">
-            <Palette className="h-4 w-4 shrink-0" />
-            Custom Studio
-          </span>
-          {customRequestsOpen ? (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#a4402b] px-1.5 text-[11px] font-semibold text-white">
-              {customRequestsOpen}
-            </span>
-          ) : null}
-        </Link>
       </div>
 
       <div className="border-b border-[#d9cfc0] pt-3 pb-3">
@@ -286,6 +276,16 @@ export function AdminSidebar() {
         <NavLink href="/mimin/customers" active={pathname?.startsWith("/mimin/customers") ?? false} icon={Users}>
           Customers
         </NavLink>
+      </div>
+
+      <div className="border-b border-[#d9cfc0] py-3">
+        <div className="flex items-center justify-between px-3 pb-2">
+          <SectionLabel>Live activity</SectionLabel>
+          <Link href={"/mimin/activity" as Route} className="text-[11px] font-medium text-[#6b6b5f] underline underline-offset-2 hover:text-[#344332]">
+            See all
+          </Link>
+        </div>
+        <ActivityFeed variant="compact" limit={6} />
       </div>
 
       <div className="pt-3">

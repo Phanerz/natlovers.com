@@ -5,6 +5,7 @@ import Link from "next/link";
 import type {ReactNode, Ref} from "react";
 import {ArrowRight, CreditCard, Minus, Plus, ShoppingBag, Trash2, X} from "lucide-react";
 import {formatCurrency} from "@/lib/format";
+import {useScrollLock} from "@/components/use-scroll-lock";
 import {htmlToPlainText} from "@/lib/html-text";
 import type {CurrencyCode} from "@/lib/site";
 
@@ -51,6 +52,7 @@ export function ShoppingBagDrawer({
   onCheckout: () => void;
   children?: ReactNode;
 }) {
+  useScrollLock(true);
   return (
     <div
       data-scroll-lock

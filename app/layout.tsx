@@ -1,6 +1,7 @@
 ﻿import "./globals.css";
 import {ReactNode} from "react";
 import {AuthSessionProvider} from "@/components/auth-session-provider";
+import {CookieConsent} from "@/components/cookie-consent";
 import {ErrorBoundary} from "@/components/error-boundary";
 import {Footer} from "@/components/footer";
 import {Header} from "@/components/header";
@@ -44,6 +45,10 @@ export default function RootLayout({children}: {children: ReactNode}) {
                 {children}
                 <ErrorBoundary fallback={null}>
                   <Footer />
+                </ErrorBoundary>
+                {/* The cookie notice and location check: shown once per new device. */}
+                <ErrorBoundary fallback={null}>
+                  <CookieConsent />
                 </ErrorBoundary>
               </StorefrontProvider>
             </SitePreferencesProvider>

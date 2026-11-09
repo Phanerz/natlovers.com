@@ -1,0 +1,1 @@
+ALTER TABLE "order_item_addons" ADD COLUMN "reference_images" jsonb DEFAULT '[]'::jsonb NOT NULL;

@@ -12,7 +12,6 @@ import {
   Eye,
   PackageCheck,
   PackageX,
-  Palette,
   ReceiptText,
   ShoppingBag,
   Tag,
@@ -55,7 +54,6 @@ type Stats = {
   customerCount: number;
   lowStockCount: number | null;
   outOfStockCount: number | null;
-  openCustomRequests: number;
   salesSeries: SalesSeriesPoint[];
   recentOrders: RecentOrder[];
   bestSellingProducts: BestSellingProduct[] | null;
@@ -71,7 +69,7 @@ const rangeLabels: Record<DateRangeKey, string> = {
 const rangeOrder: DateRangeKey[] = ["today", "7d", "month", "year", "all"];
 
 function formatIdr(value: number) {
-  return `Rp${value.toLocaleString("id-ID")}`;
+  return `Rp${value.toLocaleString("en-GB")}`;
 }
 
 function formatDate(iso: string) {
@@ -256,15 +254,6 @@ function NeedsAttentionCard({stats, loading}: {stats: Stats | null; loading: boo
       label: "orders awaiting transfer",
       count: stats.ordersAwaitingTransfer,
       href: "/mimin/orders"
-    });
-  }
-  if (stats.openCustomRequests) {
-    items.push({
-      key: "custom",
-      icon: Palette,
-      label: "custom requests waiting on the studio",
-      count: stats.openCustomRequests,
-      href: "/mimin/custom-requests"
     });
   }
   if (stats.hiddenProducts) {

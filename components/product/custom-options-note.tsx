@@ -1,11 +1,11 @@
 "use client";
 
-import {useRef, useState} from "react";
+import {useRef, useState, type ReactNode} from "react";
 import {Minus, Plus, X} from "lucide-react";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {colourSwatchStyle} from "@/lib/colour-library";
 import {formatCurrency} from "@/lib/format";
-import {extraAmount, lineExtrasTotal, unitPrice, type Priced} from "@/lib/pricing";
+import {extraAmount, lineExtraAmount, lineExtrasTotal, unitPrice, type ExtraLine, type Priced} from "@/lib/pricing";
 import {
   defaultItem,
   resolveOptions,
@@ -269,19 +269,33 @@ export function CustomOptionsNote({
   options,
   answers,
   onChange,
-  product
+  product,
+  extraLines = [],
+  animalPicker = null,
+  onAddToBag,
+  addToBagLabel = "Add to Bag",
+  addToBagDisabled = false
 }: {
   options: ProductOptions;
   answers: OptionAnswers;
   onChange: (next: OptionAnswers) => void;
   // The piece itself, for its fixed price in each currency.
   product: Priced;
+  // Priced lines from outside the admin-built fields (the felted animals), added to the receipt.
+  extraLines?: ExtraLine[] & {label?: string}[];
+  // The felted animals picker, shown after the fields when this product offers animals.
+  animalPicker?: ReactNode;
+  // The same Add to Bag as the one beside the photos, repeated at the foot of the note.
+  onAddToBag?: () => void;
+  addToBagLabel?: string;
+  addToBagDisabled?: boolean;
 }) {
   const {currency} = useSitePreferences();
   // Option prices are set in rupiah; here they are shown in the chosen currency, in step with this piece's own price.
   const money = (amountIdr: number) => formatCurrency(extraAmount(product, amountIdr, currency), currency);
   const resolved = resolveOptions(options, answers);
-  const priced = resolved.lines.filter((line) => line.extraIdr > 0);
+  const allLines = [...resolved.lines, ...extraLines];
+  const priced = allLines.filter((line) => line.extraIdr > 0);
 
   function setAnswer(id: string, next: OptionAnswer) {
     onChange({...answers, [id]: next});
@@ -321,6 +335,8 @@ export function CustomOptionsNote({
         })}
       </div>
 
+      {animalPicker}
+
       <div className="pdp-note-rule mt-8" aria-hidden />
       <dl className="pdp-receipt" aria-label="Price of your selection">
         <div>
@@ -330,14 +346,24 @@ export function CustomOptionsNote({
         {priced.map((line, index) => (
           <div key={`${line.label}-${index}`}>
             <dt>{line.label}</dt>
-            <dd>+{money(line.extraIdr)}</dd>
+            <dd>+{formatCurrency(lineExtraAmount(product, line, currency), currency)}</dd>
           </div>
         ))}
         <div className="pdp-receipt-total">
           <dt>Your total</dt>
-          <dd>{formatCurrency(unitPrice(product, currency) + lineExtrasTotal(product, resolved.lines, currency), currency)}</dd>
+          <dd>{formatCurrency(unitPrice(product, currency) + lineExtrasTotal(product, allLines, currency), currency)}</dd>
         </div>
       </dl>
+      {onAddToBag ? (
+        <button
+          type="button"
+          onClick={onAddToBag}
+          disabled={addToBagDisabled}
+          className="liquid-glass-dark button-lift mt-6 w-full rounded-full px-6 py-3.5 text-base font-semibold text-sand-50 backdrop-blur-[14px] backdrop-saturate-[160%] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
+        >
+          {addToBagLabel}
+        </button>
+      ) : null}
       <p className="pdp-note-sign">Made by hand, just for you</p>
     </section>
   );

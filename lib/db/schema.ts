@@ -364,9 +364,9 @@ export const cartItems = pgTable(
       .references(() => users.id, {onDelete: "cascade"}),
     productSlug: text("product_slug").notNull(),
     quantity: integer("quantity").notNull().default(1),
-    // The customisation chosen when this line was added (a Custom Studio
-    // CustomConfig  -  see lib/custom-studio.ts), or null for a product added
-    // with no customisation, e.g. an Accessory. One line per product per
+    // The customisation chosen when this line was added (a ProductSelection  -
+    // see lib/product-selection.ts), or null for a product added with no
+    // customisation, e.g. an Accessory. One line per product per
     // user (same composite PK as before), so re-adding the same product with
     // a different configuration replaces the stored config rather than
     // creating a second line  -  the same "last write wins" behaviour the
@@ -497,6 +497,10 @@ export const verificationTokens = pgTable(
   })
 ).enableRLS();
 
+// LEGACY: the Custom Studio was removed from the site. These tables (custom_requests,
+// custom_request_images and store_settings) are kept only so requests already received
+// are not lost; nothing reads or writes them any more, and they can be dropped later.
+//
 // Custom Studio intake. A request is the customer's *configuration* plus
 // their inspiration photos  -  not an order. It carries an estimated price
 // the studio can revise (finalPriceIdr) once someone has actually looked at
@@ -646,4 +650,205 @@ export const locations = pgTable(
       using: sql`${table.isActive} = true`
     })
   ]
+).enableRLS();
+
+// ---------------------------------------------------------------------------
+// Add-ons: the felted animals (and later Anita Dolls) a customer attaches to a
+// bag through Make it yours. Everything a customer can pick is admin data,
+// never hardcoded: species, their colour lists, pose variants and the image
+// library. The flat price is one global setting, not a per-record column.
+// ---------------------------------------------------------------------------
+
+// Single row (id "default"): the one flat price every add-on costs, whatever
+// the species or colour, in both currencies the shop sells in, plus the most
+// add-ons one bag may carry.
+export const addonSettings = pgTable("addon_settings", {
+  id: text("id").primaryKey().default("default"),
+  priceIdr: integer("price_idr").notNull().default(180000),
+  priceUsdCents: integer("price_usd_cents").notNull().default(1000),
+  maxPerBag: integer("max_per_bag").notNull().default(4),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}).enableRLS();
+
+// A named list of colours that more than one species can share (Kangaroo and
+// Koala point at the same group). Species with their own list get a group of
+// their own, so the model is uniform.
+export const addonColourGroups = pgTable("addon_colour_groups", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+}).enableRLS();
+
+// One colour in a group. `kind` is "solid" (one hex), "two_tone" (two hexes
+// split down the middle) or "gradient" (two or three hexes blended). `hexes`
+// holds the stops in order. `isDefault` means shown pre-selected to the
+// customer; `active` false hides it without deleting it.
+export const addonColours = pgTable(
+  "addon_colours",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => addonColourGroups.id, {onDelete: "cascade"}),
+    label: text("label").notNull(),
+    kind: text("kind").notNull().default("solid"),
+    hexes: jsonb("hexes").notNull().$type<string[]>(),
+    isDefault: boolean("is_default").notNull().default(false),
+    active: boolean("active").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0)
+  },
+  (table) => ({
+    groupIdx: index("addon_colours_group_idx").on(table.groupId)
+  })
+).enableRLS();
+
+// One add-on creature. `kind` is "animal" today and "doll" when Anita Dolls
+// join, so both reuse the same tables. `active` is the storefront curation
+// toggle: an inactive species stays in the system for later reactivation.
+export const addonSpecies = pgTable(
+  "addon_species",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    kind: text("kind").notNull().default("animal"),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    colourGroupId: text("colour_group_id")
+      .notNull()
+      .references(() => addonColourGroups.id, {onDelete: "restrict"}),
+    // What the pose selector is called for this species ("Pose", "View").
+    poseLabel: text("pose_label"),
+    // Whether customers choose if this animal is carried (held) or sits on its own.
+    carryOption: boolean("carry_option").notNull().default(false),
+    active: boolean("active").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow()
+  },
+  (table) => ({
+    slugIdx: uniqueIndex("addon_species_slug_idx").on(table.slug)
+  })
+).enableRLS();
+
+// Pose or view variants (Cow: Front / Side). A separate axis from colour.
+// A species with no rows here shows no pose selector.
+export const addonPoses = pgTable(
+  "addon_poses",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    speciesId: text("species_id")
+      .notNull()
+      .references(() => addonSpecies.id, {onDelete: "cascade"}),
+    label: text("label").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0)
+  },
+  (table) => ({
+    speciesIdx: index("addon_poses_species_idx").on(table.speciesId)
+  })
+).enableRLS();
+
+// The reference image library. A row with no species is an unassigned photo
+// waiting for a human to place it. A row may narrow to a pose and/or a colour;
+// the storefront picks the most specific match and falls back to the species'
+// primary image.
+export const addonImages = pgTable(
+  "addon_images",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    speciesId: text("species_id").references(() => addonSpecies.id, {onDelete: "set null"}),
+    poseId: text("pose_id").references(() => addonPoses.id, {onDelete: "set null"}),
+    colourId: text("colour_id").references(() => addonColours.id, {onDelete: "set null"}),
+    url: text("url").notNull(),
+    // Set for Blob uploads, null for files shipped in /public.
+    storageKey: text("storage_key"),
+    caption: text("caption"),
+    // Zoom applied when a shared photo stands in for a species without its own.
+    zoom: doublePrecision("zoom").notNull().default(1),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow()
+  },
+  (table) => ({
+    speciesIdx: index("addon_images_species_idx").on(table.speciesId)
+  })
+).enableRLS();
+
+// What a customer chose, frozen on the order line at checkout. Names and hexes
+// are copied, not referenced, so editing or deleting a species later never
+// changes an old order. The price columns are what was charged for this one.
+export const orderItemAddons = pgTable(
+  "order_item_addons",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    orderItemId: text("order_item_id")
+      .notNull()
+      .references(() => orderItems.id, {onDelete: "cascade"}),
+    speciesId: text("species_id"),
+    speciesName: text("species_name").notNull(),
+    colourLabel: text("colour_label").notNull(),
+    colourKind: text("colour_kind").notNull().default("solid"),
+    colourHexes: jsonb("colour_hexes").notNull().$type<string[]>(),
+    poseLabel: text("pose_label"),
+    // "Carried" or "On its own" when the animal offers that choice.
+    carryLabel: text("carry_label"),
+    note: text("note"),
+    imageUrl: text("image_url"),
+    // The customer's own photos of the pet, person or house to copy, shown
+    // inline in the admin order view.
+    referenceImages: jsonb("reference_images").notNull().$type<string[]>().default(sql`'[]'::jsonb`),
+    priceIdr: integer("price_idr").notNull(),
+    priceUsdCents: integer("price_usd_cents").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0)
+  },
+  (table) => ({
+    itemIdx: index("order_item_addons_item_idx").on(table.orderItemId)
+  })
+).enableRLS();
+
+// The shared colour palette admin builds every animal colour from: Brown, Black,
+// White, Grey, Dark Tan and so on. A swatch picks its stops from here (or a one-off
+// hex), so the same basic colour looks the same on every animal. Changing a shade
+// here does not rewrite colours already made; it is the palette for new ones.
+export const addonLibraryColours = pgTable(
+  "addon_library_colours",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    hex: text("hex").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow()
+  },
+  (table) => ({
+    nameIdx: uniqueIndex("addon_library_colours_name_idx").on(table.name)
+  })
+).enableRLS();
+
+// One anonymous row per new device whose visitor chose "Accept all" on the cookie notice:
+// the country their connection comes from and whether it was a phone or a laptop. No name,
+// email, IP address or any other identifier is stored, so a row cannot be traced to a person.
+export const siteVisits = pgTable(
+  "site_visits",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    country: text("country").notNull(),
+    device: text("device").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow()
+  },
+  (table) => ({
+    createdIdx: index("site_visits_created_idx").on(table.createdAt)
+  })
 ).enableRLS();

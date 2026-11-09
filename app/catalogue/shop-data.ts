@@ -5,10 +5,7 @@ export type ShopMaterial = "Agel" | "Mendong" | "Water Hyacinth" | "Gajih" | "Wo
 
 // A coarse, admin-assigned browsing tag for Bags/Dolls  -  independent of a
 // product's real dimensions, which live on its assigned body (see
-// lib/body-shapes.ts and products.bodyShapeId in lib/db/schema.ts). Also
-// reused as-is by Custom Studio's own commission-intake sizing (see
-// lib/custom-studio.ts), an unrelated system that happens to share the same
-// three-value vocabulary.
+// lib/body-shapes.ts and products.bodyShapeId in lib/db/schema.ts).
 export type ShopSize = "Small" | "Medium" | "Large";
 
 export type ShopShape = "Rectangle" | "Round" | "House Shaped" | "Other";

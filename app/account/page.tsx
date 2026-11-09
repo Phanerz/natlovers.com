@@ -3,6 +3,7 @@
 import {FormEvent, Suspense, useEffect, useState} from "react";
 import Image from "next/image";
 import Link from "next/link";
+import type {Route} from "next";
 import {useRouter, useSearchParams} from "next/navigation";
 import {signOut, useSession} from "next-auth/react";
 import {
@@ -16,7 +17,6 @@ import {
   MapPin,
   MessageCircle,
   Package,
-  Palette,
   Settings,
   User
 } from "lucide-react";
@@ -24,11 +24,12 @@ import {AddressesManager} from "@/components/addresses-manager";
 import {OrderItemDetails} from "@/components/order-item-details";
 import {AdminWidgetPicker} from "@/components/admin-widget-picker";
 import {KpiCard} from "@/components/admin/kpi-card";
-import {CustomRequestsHistory} from "@/components/custom-requests-history";
 import {DaisyLoader} from "@/components/daisy-loader";
 import {PhoneInput} from "@/components/phone-input";
 import {useRefreshOnReturn} from "@/components/use-refresh-on-return";
 import {useSitePreferences} from "@/components/site-preferences-provider";
+import {useContact} from "@/components/use-contact";
+import {whatsappLink} from "@/lib/studio-contact";
 import {ThemeToggle} from "@/components/theme-toggle";
 import {formatCurrency} from "@/lib/format";
 import {unitPrice} from "@/lib/pricing";
@@ -40,12 +41,11 @@ import {CurrencyCode, Locale, currencies, currencySymbols, locales} from "@/lib/
 import type {AdminProduct} from "@/lib/admin-products";
 import type {OrderView} from "@/lib/orders";
 
-type TabKey = "profile" | "orders" | "custom" | "addresses" | "wishlist" | "payment" | "settings" | "help";
+type TabKey = "profile" | "orders" | "addresses" | "wishlist" | "payment" | "settings" | "help";
 
 const tabs: {key: TabKey; label: string; icon: typeof User}[] = [
   {key: "profile", label: "Profile information", icon: User},
   {key: "orders", label: "Orders & purchases", icon: Package},
-  {key: "custom", label: "Custom requests", icon: Palette},
   {key: "addresses", label: "Addresses", icon: MapPin},
   {key: "wishlist", label: "Wishlist", icon: Heart},
   {key: "payment", label: "Payment methods", icon: CreditCard},
@@ -101,6 +101,7 @@ function AdminTelemetryRow({
 }
 
 function AccountContent() {
+  const contact = useContact();
   const {data: session, status} = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -418,6 +419,8 @@ function AccountContent() {
                           </div>
                           <OrderItemDetails
                             config={item.config}
+                            addons={item.addons}
+                            currency={order.currency}
                             // Option amounts were saved in rupiah; a dollar order shows them in step with its own dollar price.
                             formatMoney={(amount) =>
                               order.currency === "USD" && item.priceUsdCents && item.priceIdr
@@ -438,8 +441,6 @@ function AccountContent() {
               </div>
             )
           ) : null}
-
-          {tab === "custom" ? <CustomRequestsHistory currency={currency} /> : null}
 
           {tab === "addresses" ? <AddressesManager /> : null}
 
@@ -538,15 +539,14 @@ function AccountContent() {
             <div>
               <h2 className="font-display text-2xl text-forest-900">Help & support</h2>
               <div className="mt-5 space-y-3 text-sm text-forest-700">
-                <Link href="mailto:natlovers@gmail.com" className="flex items-center gap-2 hover:text-forest-900">
-                  <Mail className="h-4 w-4" /> natlovers@gmail.com
+                <Link href={`mailto:${contact.email}` as Route} className="flex items-center gap-2 hover:text-forest-900">
+                  <Mail className="h-4 w-4" /> {contact.email}
                 </Link>
-                <Link href="https://wa.me/628122697007" className="flex items-center gap-2 hover:text-forest-900">
-                  <MessageCircle className="h-4 w-4" /> Anita Yan: +62 812-2697-007
-                </Link>
-                <Link href="https://wa.me/6281125001888" className="flex items-center gap-2 hover:text-forest-900">
-                  <MessageCircle className="h-4 w-4" /> Phanuel: +62 811-2500-1888
-                </Link>
+                {contact.whatsapp.map((entry) => (
+                  <Link key={entry.number} href={whatsappLink(entry.number) as Route} className="flex items-center gap-2 hover:text-forest-900">
+                    <MessageCircle className="h-4 w-4" /> {entry.name}: {entry.number}
+                  </Link>
+                ))}
               </div>
             </div>
           ) : null}

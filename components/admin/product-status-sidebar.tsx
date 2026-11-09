@@ -2,6 +2,7 @@
 
 import {useState} from "react";
 import {Pencil} from "lucide-react";
+import {ActivityFeed} from "./activity-feed";
 import {GlassToggle} from "./glass-toggle";
 import {PillDropdown} from "./pill-dropdown";
 import {AdminProduct, ProductFormState, ProductStatus} from "./types";
@@ -175,6 +176,13 @@ export function ProductStatusSidebar({
           </>
         ) : null}
       </SidebarCard>
+
+      {product ? (
+        <SidebarCard title="Customer activity">
+          <p className="muted -mt-2">Who ordered, bagged or liked this piece lately</p>
+          <ActivityFeed productSlug={product.slug} variant="card" limit={8} />
+        </SidebarCard>
+      ) : null}
     </div>
   );
 }

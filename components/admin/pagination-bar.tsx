@@ -8,7 +8,7 @@ export type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 export const DEFAULT_PAGE_SIZE: PageSize = 10;
 
 // Shared "Show N per page" + Prev/Next footer for every admin list panel
-// (Products, Body Shapes, Orders, Custom Requests  -  deliberately not
+// (Products, Body Shapes, Orders  -  deliberately not
 // Customers, which has its own dedicated view, and not Hero Cards, whose
 // drag-and-drop reordering needs the full list on screen at once to make
 // sense). One component so every list paginates identically instead of

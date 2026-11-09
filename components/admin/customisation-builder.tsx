@@ -1,6 +1,7 @@
 "use client";
 
-import {ArrowDown, ArrowUp, Plus, Trash2} from "lucide-react";
+import {useEffect, useState} from "react";
+import {ArrowDown, ArrowUp, Check, Plus, Trash2} from "lucide-react";
 import {COLOUR_LIBRARY} from "@/lib/colour-library";
 import type {OptionField, ProductOptions, SubField} from "@/lib/product-options";
 import {ColourOptionsEditor} from "./colour-options-editor";
@@ -19,7 +20,8 @@ function colours(count = 8) {
 }
 
 // Starting points for the things this studio is actually asked for, so adding
-// "a dog" or "extra dolls" is one click and then a price, not a blank form.
+// "extra dolls" is one click and then a price, not a blank form. Felted animals
+// are not here: they have their own panel below, fed by the Add-ons page.
 const PRESETS: {key: string; title: string; hint: string; make: () => OptionField}[] = [
   {
     key: "part",
@@ -41,65 +43,6 @@ const PRESETS: {key: string; title: string; hint: string; make: () => OptionFiel
       maxCount: 4,
       unitPriceIdr: 150000,
       fields: [{kind: "colour", id: newId(), label: "Clothing colour", options: colours()}]
-    })
-  },
-  {
-    key: "dog",
-    title: "Dogs",
-    hint: "breed and colour",
-    make: () => ({
-      kind: "addon",
-      id: newId(),
-      label: "Dogs",
-      itemLabel: "dog",
-      includedCount: 0,
-      minCount: 0,
-      maxCount: 3,
-      unitPriceIdr: 100000,
-      fields: [
-        {
-          kind: "choice",
-          id: newId(),
-          label: "Breed",
-          options: ["Golden Retriever", "Pomeranian", "Shih Tzu", "Corgi", "Another breed"].map((label) => ({label, priceIdr: 0}))
-        },
-        {kind: "colour", id: newId(), label: "Coat colour", options: colours()}
-      ]
-    })
-  },
-  {
-    key: "cat",
-    title: "Cats",
-    hint: "coat colour",
-    make: () => ({
-      kind: "addon",
-      id: newId(),
-      label: "Cats",
-      itemLabel: "cat",
-      includedCount: 0,
-      minCount: 0,
-      maxCount: 3,
-      unitPriceIdr: 100000,
-      fields: [{kind: "colour", id: newId(), label: "Coat colour", options: colours()}]
-    })
-  },
-  {
-    key: "animal",
-    title: "Other animal",
-    hint: "type and colour",
-    make: () => ({
-      kind: "addon",
-      id: newId(),
-      label: "Other animals",
-      itemLabel: "animal",
-      includedCount: 0,
-      minCount: 0,
-      maxCount: 3,
-      unitPriceIdr: 100000,
-      fields: [
-        {kind: "text", id: newId(), label: "Which animal?", placeholder: "e.g. rabbit, parrot", maxLength: 80},
-        {kind: "colour", id: newId(), label: "Main colour", options: colours()}
-      ]
     })
   },
   {
@@ -408,6 +351,156 @@ function FieldEditor({
   );
 }
 
+// Which felted animals this product offers: one switch for the whole feature, then either
+// every animal or only the ones ticked. Switching Custom Options off above offers none too.
+// Selection is drawn with the text colour (a strong outline and a filled dot or tick), so it
+// reads the same in light and dark and never depends on a colour that blends in.
+type AnimalChoice = {id: string; name: string; active: boolean; photo: string | null};
+
+function AnimalsPanel({value, onChange}: {value: ProductOptions; onChange: (next: ProductOptions) => void}) {
+  const [species, setSpecies] = useState<AnimalChoice[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const animals = value.animals ?? {mode: "none" as const, speciesIds: []};
+  const on = animals.mode !== "none";
+  const mode: "all" | "selected" = animals.mode === "selected" ? "selected" : "all";
+
+  useEffect(() => {
+    let live = true;
+    fetch("/api/admin/addons", {cache: "no-store"})
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw new Error();
+        const rows = body.species as {id: string; name: string; active: boolean; images: {url: string; isPrimary: boolean}[]}[];
+        if (live) {
+          setSpecies(rows.map((row) => ({id: row.id, name: row.name, active: row.active, photo: (row.images.find((image) => image.isPrimary) ?? row.images[0])?.url ?? null})));
+        }
+      })
+      .catch(() => live && setFailed(true));
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const setAnimals = (next: Partial<typeof animals>) => onChange({...value, animals: {...animals, ...next}});
+  const options: {mode: "all" | "selected"; title: string; hint: string}[] = [
+    {mode: "all", title: "All animals", hint: "Every animal that is shown on the Add-ons page"},
+    {mode: "selected", title: "Only some animals", hint: "You tick which ones below"}
+  ];
+  const chosen = species ? species.filter((entry) => animals.speciesIds.includes(entry.id)).length : animals.speciesIds.length;
+  const pill = "rounded-lg border border-[#d4c5ab] bg-white px-3 py-1.5 text-xs font-semibold text-forest-900 hover:border-forest-400";
+
+  return (
+    <div className="rounded-xl border border-[#d4c5ab]">
+      <div className="flex items-start justify-between gap-4 p-4">
+        <div>
+          <p className="font-display text-lg text-forest-900">Felted animals</p>
+          <p className="mt-0.5 text-sm text-forest-600">
+            Let customers add little felted animals to this piece. Their price, order, colours and photos are set on the Add-ons page.
+          </p>
+        </div>
+        <GlassToggle
+          checked={on}
+          onChange={(checked) => setAnimals({mode: checked ? (animals.mode === "selected" ? "selected" : "all") : "none"})}
+          label="Offer felted animals"
+        />
+      </div>
+
+      {on ? (
+        <div className="space-y-4 border-t border-[#d4c5ab] p-4">
+          <div role="radiogroup" aria-label="Which animals to offer" className="grid gap-3 sm:grid-cols-2">
+            {options.map((option) => {
+              const selected = mode === option.mode;
+              return (
+                <button
+                  key={option.mode}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setAnimals({mode: option.mode})}
+                  className={`flex items-start gap-3 rounded-xl border-2 p-3 text-left text-forest-900 transition-colors ${
+                    selected ? "border-current" : "border-[#d4c5ab] opacity-70 hover:opacity-100"
+                  }`}
+                >
+                  <span aria-hidden className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full border-2 border-current">
+                    {selected ? <span className="h-2.5 w-2.5 rounded-full bg-current" /> : null}
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold">{option.title}</span>
+                    <span className="mt-0.5 block text-xs text-forest-600">{option.hint}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {mode === "selected" ? (
+            <div>
+              {failed ? <p className="text-sm text-red-600">Could not load the animals. Has the Add-ons migration been run?</p> : null}
+              {!species && !failed ? <p className="text-sm text-forest-600">Loading animals...</p> : null}
+              {species ? (
+                <>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-forest-900">
+                      {chosen} of {species.length} chosen
+                    </p>
+                    <div className="flex gap-2">
+                      <button type="button" className={pill} onClick={() => setAnimals({speciesIds: species.map((entry) => entry.id)})}>
+                        Select all
+                      </button>
+                      <button type="button" className={pill} onClick={() => setAnimals({speciesIds: []})}>
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                  <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {species.map((entry) => {
+                      const checked = animals.speciesIds.includes(entry.id);
+                      return (
+                        <li key={entry.id}>
+                          <button
+                            type="button"
+                            role="checkbox"
+                            aria-checked={checked}
+                            onClick={() =>
+                              setAnimals({speciesIds: checked ? animals.speciesIds.filter((id) => id !== entry.id) : [...animals.speciesIds, entry.id]})
+                            }
+                            className={`flex w-full items-center gap-3 rounded-xl border-2 p-2 text-left text-forest-900 transition-colors ${
+                              checked ? "border-current" : "border-[#d4c5ab] opacity-70 hover:opacity-100"
+                            }`}
+                          >
+                            {entry.photo ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={entry.photo} alt="" className="h-11 w-11 flex-none rounded-lg object-cover" />
+                            ) : (
+                              <span aria-hidden className="h-11 w-11 flex-none rounded-lg bg-black/10" />
+                            )}
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-semibold">{entry.name}</span>
+                              {entry.active ? null : <span className="block text-xs text-forest-600">Hidden on Add-ons</span>}
+                            </span>
+                            <span aria-hidden className="flex h-6 w-6 flex-none items-center justify-center rounded-full border-2 border-current">
+                              {checked ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : null}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {chosen === 0 ? (
+                    <p className="mt-3 text-sm font-medium text-red-600">Nothing is ticked, so customers will see no animals on this piece.</p>
+                  ) : (
+                    <p className="mt-3 text-xs text-forest-600">An animal that is hidden on the Add-ons page stays off the shop even when ticked here.</p>
+                  )}
+                </>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 // The product-form editor for lib/product-options.ts: switch it on for a
 // product, then build its list of choices. A product that has never used it
 // shows nothing and is untouched.
@@ -428,14 +521,16 @@ export function CustomisationBuilder({value, onChange}: {value: ProductOptions; 
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <span className="text-sm text-forest-700">
-          Let customers shape this piece: colours for its parts, extra dolls or pets, reference photos. Extras can add to the
-          price, and everything they choose is saved on their order for you to read.
+          Let customers shape this piece: colours for its parts, extra dolls, felted animals, reference photos. Extras can add
+          to the price, and everything they choose is saved on their order for you to read.
         </span>
         <GlassToggle checked={value.enabled} onChange={(enabled) => onChange({...value, enabled})} label="Offer custom options" />
       </div>
 
       {value.enabled ? (
         <>
+          <AnimalsPanel value={value} onChange={onChange} />
+
           <div>
             <span className={labelClass}>Add</span>
             <div className="mt-2 flex flex-wrap gap-2">

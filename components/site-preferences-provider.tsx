@@ -2,6 +2,7 @@
 
 import {createContext, ReactNode, useContext, useEffect, useMemo, useRef, useState} from "react";
 import {currencies, CurrencyCode, defaultCurrency, defaultLocale, locales, Locale} from "@/lib/site";
+import {readRegion, writeRegion} from "@/lib/consent";
 
 // A first guess from the device itself, available at once: an Indonesian time zone or an
 // Indonesian browser language means rupiah; anything else means US dollars.
@@ -24,8 +25,14 @@ function guessCurrencyFromDevice(): CurrencyCode {
 type SitePreferencesContextValue = {
   locale: Locale;
   currency: CurrencyCode;
+  // The country the visitor confirmed in the location question, or null before they have.
+  country: string | null;
+  // True when the visitor chose a country or currency different from what we detected.
+  regionManual: boolean;
   setLocale: (locale: Locale) => void;
   setCurrency: (currency: CurrencyCode) => void;
+  // Saves the country and currency together (the location question and the footer selector).
+  setRegion: (country: string, currency: CurrencyCode, manual: boolean) => void;
 };
 
 const SitePreferencesContext = createContext<SitePreferencesContextValue | null>(null);
@@ -38,15 +45,22 @@ const storageKeys = {
 export function SitePreferencesProvider({children}: {children: ReactNode}) {
   const [locale, setLocaleState] = useState<Locale>(defaultLocale);
   const [currency, setCurrencyState] = useState<CurrencyCode>(defaultCurrency);
+  const [country, setCountry] = useState<string | null>(null);
+  const [regionManual, setRegionManual] = useState(false);
   // Set once the visitor picks a currency themselves: from then on nothing detected may override it.
   const chosenByVisitor = useRef(false);
 
   useEffect(() => {
     const savedLocale = window.localStorage.getItem(storageKeys.locale);
     const savedCurrency = window.localStorage.getItem(storageKeys.currency);
+    const savedRegion = readRegion();
 
     if (savedLocale && locales.includes(savedLocale as Locale)) {
       setLocaleState(savedLocale as Locale);
+    }
+    if (savedRegion) {
+      setCountry(savedRegion.country);
+      setRegionManual(savedRegion.manual);
     }
 
     // A currency the visitor chose before always wins. Otherwise: the device's own settings first
@@ -56,6 +70,11 @@ export function SitePreferencesProvider({children}: {children: ReactNode}) {
     if (savedCurrency && currencies.includes(savedCurrency as CurrencyCode)) {
       chosenByVisitor.current = true;
       setCurrencyState(savedCurrency as CurrencyCode);
+      return;
+    }
+    if (savedRegion) {
+      chosenByVisitor.current = true;
+      setCurrencyState(savedRegion.currency);
       return;
     }
 
@@ -82,11 +101,28 @@ export function SitePreferencesProvider({children}: {children: ReactNode}) {
     chosenByVisitor.current = true;
     setCurrencyState(currencyValue);
     window.localStorage.setItem(storageKeys.currency, currencyValue);
+    // A currency picked by hand after the location question is a manual choice: keep the country, mark it.
+    const region = readRegion();
+    if (region && region.currency !== currencyValue) {
+      writeRegion({country: region.country, currency: currencyValue, manual: true});
+      setRegionManual(true);
+    }
+  }
+
+  function setRegion(countryValue: string, currencyValue: CurrencyCode, manual: boolean) {
+    chosenByVisitor.current = true;
+    setCountry(countryValue);
+    setRegionManual(manual);
+    setCurrencyState(currencyValue);
+    window.localStorage.setItem(storageKeys.currency, currencyValue);
+    writeRegion({country: countryValue, currency: currencyValue, manual});
   }
 
   const value = useMemo(
-    () => ({locale, currency, setLocale, setCurrency}),
-    [currency, locale]
+    () => ({locale, currency, country, regionManual, setLocale, setCurrency, setRegion}),
+    // The three setters only close over refs and setState functions, so they are stable in effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currency, locale, country, regionManual]
   );
 
   return <SitePreferencesContext.Provider value={value}>{children}</SitePreferencesContext.Provider>;
