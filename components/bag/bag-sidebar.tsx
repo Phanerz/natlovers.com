@@ -11,7 +11,7 @@ import {LimitNoticeBox} from "@/components/atelier/limit-notice";
 import {useScrollLock} from "@/components/use-scroll-lock";
 import {useStorefront, type LimitHit} from "@/components/storefront-provider";
 import {bagCopy, copy as atelierCopy, langForCurrency} from "@/lib/atelier-copy";
-import {leadTimeRange, type LimitViolation} from "@/lib/atelier-limits";
+import {combinedLeadTime, isReadyToShip, type LimitViolation} from "@/lib/atelier-limits";
 import {formatCurrency} from "@/lib/format";
 import {htmlToPlainText} from "@/lib/html-text";
 import {paymentRouteFor} from "@/lib/payment-routes";
@@ -239,21 +239,14 @@ export function BagSidebar({
       ? new Intl.DateTimeFormat(lang === "id" ? "id-ID" : "en-GB", {dateStyle: "long", timeStyle: "short", timeZone: "Asia/Jakarta"}).format(new Date(placed.expiresAt))
       : null;
 
-  // The longest lead time across what was ordered; nothing is shown unless a product has one set.
-  const lead = (() => {
-    let min = 0;
-    let max = 0;
-    let any = false;
-    for (const item of placedItems) {
-      const product = resolveProduct(item.slug);
-      const range = leadTimeRange(product?.leadTimeWeeksMin, product?.leadTimeWeeksMax);
-      if (!range) continue;
-      any = true;
-      min = Math.max(min, range.min);
-      max = Math.max(max, range.max);
-    }
-    return any ? {min, max} : null;
-  })();
+  // The longest lead time among the made-to-order items ordered, since everything ships together.
+  // Ready-to-ship items have none. Nothing is shown unless a product has one set.
+  const placedProducts = placedItems.map((item) => resolveProduct(item.slug));
+  const lead = combinedLeadTime(
+    placedProducts.map((product) => ({fulfilmentType: product?.fulfilmentType, min: product?.leadTimeWeeksMin, max: product?.leadTimeWeeksMax}))
+  );
+  const placedReady = placedProducts.filter((product) => isReadyToShip(product?.fulfilmentType)).length;
+  const placedMade = placedProducts.length - placedReady;
 
   const contactUrl = availability?.wholesaleContactUrl ?? null;
   const bagNotice = limitHit && step !== "done" ? limitHit : null;
@@ -322,6 +315,7 @@ export function BagSidebar({
                         ) : (
                           <p className="bs-detail line-clamp-2">{htmlToPlainText(item.description, {firstParagraph: true})}</p>
                         )}
+                        {isReadyToShip(resolveProduct(item.slug)?.fulfilmentType) ? <p className="bs-detail">{atelierCopy[lang].readyToShip}</p> : null}
                         <div className="bs-item-bottom">
                           <div role="group" aria-label={t.quantity(item.title)} className="bs-stepper">
                             <button type="button" onClick={() => onQuantity(item.slug, item.quantity - 1)} disabled={item.quantity <= 1} aria-label={t.decrease(item.title)}>
@@ -500,6 +494,8 @@ export function BagSidebar({
                 ))}
               </ol>
               {lead ? <p className="bs-text mt-4">{atelierCopy[lang].readyIn(lead.min, lead.max)}</p> : null}
+              {placedReady > 0 && placedMade === 0 ? <p className="bs-text mt-4">{atelierCopy[lang].readyToShip}</p> : null}
+              {placedReady > 0 && placedMade > 0 ? <p className="bs-text mt-2">{atelierCopy[lang].shipsTogether}</p> : null}
             </div>
           ) : null}
         </div>

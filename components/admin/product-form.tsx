@@ -701,6 +701,27 @@ export function ProductForm({
             <fieldset className="space-y-3 rounded-xl border border-[#d4c5ab] p-4 text-sm text-forest-700">
               <legend className="px-1 text-xs uppercase tracking-[0.2em] text-forest-500">Atelier limits</legend>
               <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block space-y-1 sm:col-span-2">
+                  <span className="muted">Fulfilment</span>
+                  <select value={form.fulfilmentType} onChange={(event) => onChange({...form, fulfilmentType: event.target.value})} className={fieldClass}>
+                    <option value="made_to_order">Made to order (counts towards the monthly cap)</option>
+                    <option value="ready_to_ship">Ready to ship (finished stock, limited by its stock quantity)</option>
+                  </select>
+                </label>
+                {form.fulfilmentType === "ready_to_ship" ? (
+                  <label className="block space-y-1 sm:col-span-2">
+                    <span className="muted">Dispatch note (optional)</span>
+                    <input
+                      type="text"
+                      maxLength={160}
+                      value={form.dispatchNote}
+                      onChange={(event) => onChange({...form, dispatchNote: event.target.value})}
+                      placeholder="For example: posted within two working days"
+                      className={fieldClass}
+                    />
+                    <CharCount value={form.dispatchNote} max={160} />
+                  </label>
+                ) : null}
                 <label className="block space-y-1">
                   <span className="muted">Limit group</span>
                   <select value={form.capGroup} onChange={(event) => onChange({...form, capGroup: event.target.value})} className={fieldClass}>
@@ -729,6 +750,7 @@ export function ProductForm({
                     inputMode="numeric"
                     value={form.leadTimeWeeksMin}
                     onChange={(event) => onChange({...form, leadTimeWeeksMin: event.target.value})}
+                    disabled={form.fulfilmentType === "ready_to_ship"}
                     placeholder="Not shown"
                     className={fieldClass}
                   />
@@ -741,6 +763,7 @@ export function ProductForm({
                     inputMode="numeric"
                     value={form.leadTimeWeeksMax}
                     onChange={(event) => onChange({...form, leadTimeWeeksMax: event.target.value})}
+                    disabled={form.fulfilmentType === "ready_to_ship"}
                     placeholder="Not shown"
                     className={fieldClass}
                   />
@@ -748,6 +771,9 @@ export function ProductForm({
               </div>
               <p className="text-xs text-forest-500">
                 The lead time is shown to customers only when it is filled in. The per-order and monthly limits are set on the Atelier page.
+                {form.fulfilmentType === "ready_to_ship"
+                  ? " A ready to ship product is not counted towards the monthly cap, shows no lead time and cannot be ordered beyond its stock quantity, so fill in the stock under Inventory."
+                  : ""}
               </p>
             </fieldset>
 

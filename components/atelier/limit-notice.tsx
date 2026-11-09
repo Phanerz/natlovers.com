@@ -34,7 +34,7 @@ export function LimitNoticeBox({
           </>
         ) : null}
       </p>
-      {notice.kind === "month_full" ? <WaitingListForm lang={lang} className="mt-3" /> : null}
+      {notice.showWaitingList ? <WaitingListForm lang={lang} className="mt-3" /> : null}
       {onDismiss ? (
         <button type="button" onClick={onDismiss} className="atelier-notice-dismiss" aria-label={lang === "id" ? "Tutup catatan" : "Dismiss note"}>
           &times;

@@ -3,12 +3,13 @@ import {db, products} from "@/lib/db";
 import {getCartItems, type CartConfig} from "@/lib/cart";
 import {
   checkAll,
+  isReadyToShip,
   productMaxPerOrder,
   resolveCapGroup,
   type LimitLine,
   type LimitViolation
 } from "@/lib/atelier-limits";
-import {getLimits, getMonthlyUsage, nextMonthNumber} from "@/lib/limits";
+import {getLimits, getMonthlyUsage, getReadyAvailability, nextMonthNumber} from "@/lib/limits";
 
 export type CartLimitResult = {ok: true} | {ok: false; violation: LimitViolation; nextMonth: number};
 
@@ -32,7 +33,8 @@ export async function checkBagChange(userId: string, slug: string, newQuantity: 
         slug: products.slug,
         productType: products.productType,
         capGroup: products.capGroup,
-        maxPerOrder: products.maxPerOrder
+        maxPerOrder: products.maxPerOrder,
+        fulfilmentType: products.fulfilmentType
       })
       .from(products)
       .where(
@@ -43,6 +45,10 @@ export async function checkBagChange(userId: string, slug: string, newQuantity: 
       )
   ]);
   const bySlug = new Map(rows.map((row) => [row.slug, row]));
+  const available = await getReadyAvailability(
+    db,
+    rows.filter((row) => isReadyToShip(row.fulfilmentType)).map((row) => row.slug)
+  );
 
   const limitLines: LimitLine[] = [];
   for (const line of lines) {
@@ -54,7 +60,8 @@ export async function checkBagChange(userId: string, slug: string, newQuantity: 
       quantity: line.quantity,
       group,
       maxPerOrder: productMaxPerOrder(product, group, limits),
-      addonCount: line.config?.addons?.length ?? 0
+      addonCount: line.config?.addons?.length ?? 0,
+      ...(isReadyToShip(product.fulfilmentType) ? {ready: true, available: available.get(line.slug) ?? 0} : {})
     });
   }
 

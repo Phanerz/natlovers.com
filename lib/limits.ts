@@ -6,6 +6,7 @@ import {
   jakartaMonth,
   jakartaMonthRange,
   nextMonth,
+  readyAvailable,
   type CapGroup,
   type Limits
 } from "@/lib/atelier-limits";
@@ -49,8 +50,36 @@ export async function lockLimits(tx: Tx): Promise<StoreLimits> {
 
 export type MonthlyUsage = {PIECES: number; ATELIER_EXTRAS: number};
 
+// How many of each ready-to-ship product can still be ordered: its stock, less what unpaid orders
+// already hold. Stock is taken off when an order is marked paid, so a paid order is no longer held.
+// A cancelled or expired order holds nothing. Products that are not ready to ship are left out.
+export async function getReadyAvailability(executor: Executor, slugs: string[], now: Date = new Date()): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  if (!slugs.length) return result;
+  const nowIso = now.toISOString();
+  const rows = await executor.execute<{slug: string; stock: number | null; held: string | number | null}>(sql`
+    select p.slug, p.stock,
+      (
+        select sum(oi.quantity)
+        from order_items oi
+        join orders o on o.id = oi.order_id
+        where oi.product_slug = p.slug
+          and o.status = 'pending_transfer'
+          and (o.expires_at is null or o.expires_at > ${nowIso}::timestamp)
+      ) as held
+    from products p
+    where p.fulfilment_type = 'ready_to_ship'
+      and p.slug in (${sql.join(slugs.map((slug) => sql`${slug}`), sql`, `)})
+  `);
+  for (const row of rows) {
+    result.set(row.slug, readyAvailable(row.stock == null ? null : Number(row.stock) - Number(row.held ?? 0)));
+  }
+  return result;
+}
+
 // What the current Jakarta calendar month has already used. Counted: orders awaiting transfer that
 // have not expired, paid orders and shipped orders. Cancelled and expired orders free their slots.
+// Ready-to-ship pieces are not counted: only what the atelier has to make.
 export async function getMonthlyUsage(executor: Executor = db, now: Date = new Date()): Promise<MonthlyUsage> {
   const {start, end} = jakartaMonthRange(jakartaMonth(now));
   const startIso = start.toISOString();
@@ -67,6 +96,7 @@ export async function getMonthlyUsage(executor: Executor = db, now: Date = new D
     left join products p on p.slug = oi.product_slug
     where o.created_at >= ${startIso}::timestamp
       and o.created_at < ${endIso}::timestamp
+      and coalesce(oi.fulfilment_type, 'made_to_order') <> 'ready_to_ship'
       and (
         o.status in ('paid', 'fulfilled')
         or (o.status = 'pending_transfer' and (o.expires_at is null or o.expires_at > ${nowIso}::timestamp))
@@ -80,6 +110,7 @@ export async function getMonthlyUsage(executor: Executor = db, now: Date = new D
     join orders o on o.id = oi.order_id
     where o.created_at >= ${startIso}::timestamp
       and o.created_at < ${endIso}::timestamp
+      and coalesce(oi.fulfilment_type, 'made_to_order') <> 'ready_to_ship'
       and (
         o.status in ('paid', 'fulfilled')
         or (o.status = 'pending_transfer' and (o.expires_at is null or o.expires_at > ${nowIso}::timestamp))

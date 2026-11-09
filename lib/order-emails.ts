@@ -2,7 +2,7 @@ import {inArray} from "drizzle-orm";
 import {logFailure} from "@/lib/safe-log";
 import {db, products} from "@/lib/db";
 import {emailCopy, stageLabels, type Lang} from "@/lib/atelier-copy";
-import {leadTimeRange, type FulfilmentStage} from "@/lib/atelier-limits";
+import {combinedLeadTime, type FulfilmentStage} from "@/lib/atelier-limits";
 import {renderEmail, sendEmail, siteUrl} from "@/lib/email";
 import {formatCurrency} from "@/lib/format";
 
@@ -53,20 +53,13 @@ export async function estimatedReadyRange(slugs: string[], from: Date, lang: Lan
   if (!slugs.length) return null;
   try {
     const rows = await db
-      .select({min: products.leadTimeWeeksMin, max: products.leadTimeWeeksMax})
+      .select({min: products.leadTimeWeeksMin, max: products.leadTimeWeeksMax, fulfilmentType: products.fulfilmentType})
       .from(products)
       .where(inArray(products.slug, slugs));
-    let min = 0;
-    let max = 0;
-    let any = false;
-    for (const row of rows) {
-      const range = leadTimeRange(row.min, row.max);
-      if (!range) continue;
-      any = true;
-      min = Math.max(min, range.min);
-      max = Math.max(max, range.max);
-    }
-    if (!any) return null;
+    // Ready-to-ship items have no lead time, so only made-to-order items set the date.
+    const longest = combinedLeadTime(rows);
+    if (!longest) return null;
+    const {min, max} = longest;
     const week = 7 * 24 * 60 * 60 * 1000;
     const start = new Date(from.getTime() + min * week);
     const end = new Date(from.getTime() + max * week);

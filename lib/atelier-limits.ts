@@ -4,6 +4,29 @@
 export const CAP_GROUPS = ["PIECES", "ATELIER_EXTRAS"] as const;
 export type CapGroup = (typeof CAP_GROUPS)[number];
 
+// How a product reaches the customer. Made to order is the atelier's normal way and counts towards
+// the monthly cap. Ready to ship is finished stock: it is limited by its stock quantity instead, is
+// not counted towards the cap and has no lead time.
+export const FULFILMENT_TYPES = ["made_to_order", "ready_to_ship"] as const;
+export type FulfilmentType = (typeof FULFILMENT_TYPES)[number];
+
+// Anything that is not exactly "ready_to_ship" is made to order, so a missing value changes nothing.
+export function resolveFulfilmentType(value: string | null | undefined): FulfilmentType {
+  return value === "ready_to_ship" ? "ready_to_ship" : "made_to_order";
+}
+
+export function isReadyToShip(value: string | null | undefined): boolean {
+  return value === "ready_to_ship";
+}
+
+// A ready-to-ship product with no stock number, or none left, cannot be bought. An untracked ready
+// product is treated as having nothing, because a piece we do not count cannot be promised.
+export function readyAvailable(stock: number | null | undefined): number {
+  return stock != null && stock > 0 ? Math.floor(stock) : 0;
+}
+
+export const DISPATCH_NOTE_MAX = 160;
+
 export const DEFAULT_LIMITS = {
   piecesMonthlyCap: 50,
   piecesMaxPerOrder: 5,
@@ -46,11 +69,16 @@ export type LimitLine = {
   maxPerOrder: number;
   // Felted add-ons carried by one unit of this line. They count towards the extras total.
   addonCount?: number;
+  // A ready-to-ship line is held to `available` (its stock, less what unpaid orders already hold)
+  // and is left out of the monthly count.
+  ready?: boolean;
+  available?: number;
 };
 
 export type LimitViolation =
   | {code: "product_max"; slug: string; max: number}
   | {code: "group_max"; group: CapGroup; max: number}
+  | {code: "stock"; slug: string; available: number}
   | {code: "month_full"; group: CapGroup; remaining: number};
 
 // Both per-order limits apply: the total quantity in a group, and each product on its own.
@@ -59,20 +87,34 @@ export function checkPerOrder(lines: LimitLine[], limits: Limits): LimitViolatio
     if (line.quantity > line.maxPerOrder) return {code: "product_max", slug: line.slug, max: line.maxPerOrder};
   }
   for (const group of CAP_GROUPS) {
-    const total = groupQuantity(lines, group);
+    // The per-order limit is about the size of one order, so ready pieces count here.
+    const total = groupQuantity(lines, group, true);
     const max = groupMaxPerOrder(group, limits);
     if (total > max) return {code: "group_max", group, max};
   }
   return null;
 }
 
-export function groupQuantity(lines: LimitLine[], group: CapGroup): number {
+// What a group asks of the atelier. Ready-to-ship lines are finished already, so they are left out
+// unless `includeReady` is set (the per-order check). Their add-ons are left out with them.
+export function groupQuantity(lines: LimitLine[], group: CapGroup, includeReady = false): number {
   return lines.reduce((sum, line) => {
+    if (line.ready && !includeReady) return sum;
     if (line.group === group) return sum + line.quantity;
     // Add-ons ride on a piece but belong to the extras group.
     if (group === "ATELIER_EXTRAS") return sum + (line.addonCount ?? 0) * line.quantity;
     return sum;
   }, 0);
+}
+
+// A ready-to-ship line may not ask for more than is in stock.
+export function checkStock(lines: LimitLine[]): LimitViolation | null {
+  for (const line of lines) {
+    if (!line.ready) continue;
+    const available = line.available ?? 0;
+    if (line.quantity > available) return {code: "stock", slug: line.slug, available};
+  }
+  return null;
 }
 
 // Checks the monthly limit for a group against what the month has already used. Only the pieces
@@ -95,7 +137,7 @@ export function checkMonthly(
 }
 
 export function checkAll(lines: LimitLine[], limits: Limits, used: {PIECES: number; ATELIER_EXTRAS: number}): LimitViolation | null {
-  return checkPerOrder(lines, limits) ?? checkMonthly(lines, limits, used);
+  return checkPerOrder(lines, limits) ?? checkStock(lines) ?? checkMonthly(lines, limits, used);
 }
 
 // ---------------------------------------------------------------------------
@@ -190,6 +232,25 @@ export function leadTimeRange(min: number | null | undefined, max: number | null
   const a = low ?? high!;
   const b = high ?? low!;
   return a <= b ? {min: a, max: b} : {min: b, max: a};
+}
+
+// The lead time of a bag or an order: the longest among its made-to-order items, because everything
+// ships together. Ready-to-ship items have none and never shorten or lengthen it.
+export function combinedLeadTime(
+  items: {fulfilmentType?: string | null; min: number | null | undefined; max: number | null | undefined}[]
+): {min: number; max: number} | null {
+  let min = 0;
+  let max = 0;
+  let any = false;
+  for (const item of items) {
+    if (isReadyToShip(item.fulfilmentType)) continue;
+    const range = leadTimeRange(item.min, item.max);
+    if (!range) continue;
+    any = true;
+    min = Math.max(min, range.min);
+    max = Math.max(max, range.max);
+  }
+  return any ? {min, max} : null;
 }
 
 export type ExtendVerdict = "ok" | "expired" | "month_full";
