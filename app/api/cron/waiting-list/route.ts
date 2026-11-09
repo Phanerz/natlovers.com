@@ -1,4 +1,5 @@
 import {NextResponse} from "next/server";
+import {logFailure} from "@/lib/safe-log";
 import {jakartaDayOfMonth, jakartaMonth} from "@/lib/atelier-limits";
 import {rejectUnlessCron} from "@/lib/cron-auth";
 import {notifyWaitingList} from "@/lib/waiting-list";
@@ -18,7 +19,7 @@ export async function GET(request: Request) {
     const result = await notifyWaitingList(now, jakartaMonth(now).month);
     return NextResponse.json({ok: true, ...result});
   } catch (error) {
-    console.error("Waiting list job failed", error);
+    logFailure("Waiting list job failed", error);
     return NextResponse.json({error: "Failed."}, {status: 500});
   }
 }

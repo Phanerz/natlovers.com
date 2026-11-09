@@ -21,20 +21,24 @@ export function unsubscribeUrl(token: string): string {
 
 export {allowRequest};
 
-// A confirmation email goes out only when something changes: a new address, or one coming back after
-// being notified or unsubscribed. Joining again while already waiting sends nothing, so the form
-// cannot be used to mail the same person over and over.
+// A confirmation email goes out only for a new address, or one coming back after the reopening notice.
+// Joining again while already waiting sends nothing, so the form cannot be used to mail the same
+// person over and over. An address that has unsubscribed is never emailed again by this form: the
+// request is ignored silently, with the same answer as a new signup.
 export function shouldSendJoinEmail(existing: {notifiedAt: Date | null; unsubscribedAt: Date | null} | undefined): boolean {
-  return !existing || existing.notifiedAt != null || existing.unsubscribedAt != null;
+  if (!existing) return true;
+  if (existing.unsubscribedAt != null) return false;
+  return existing.notifiedAt != null;
 }
 
 export async function joinWaitingList(email: string, lang: Lang): Promise<void> {
   const token = randomBytes(24).toString("hex");
   const [existing] = await db.select().from(waitingList).where(eq(waitingList.email, email));
+  if (existing?.unsubscribedAt) return;
   let unsubscribeToken = token;
   if (existing) {
     unsubscribeToken = existing.unsubscribeToken;
-    // Joining again after unsubscribing, or after being notified, puts the person back on the list.
+    // Joining again after being notified puts the person back on the list.
     await db.update(waitingList).set({unsubscribedAt: null, notifiedAt: null, language: lang}).where(eq(waitingList.id, existing.id));
   } else {
     await db.insert(waitingList).values({email, language: lang, unsubscribeToken: token});

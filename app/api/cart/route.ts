@@ -1,4 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
+import {INVALID_QUANTITY_MESSAGE, isWholeQuantity} from "@/lib/quantity";
+import {logFailure} from "@/lib/safe-log";
 import {z} from "zod";
 import {getCartItems, setCartItemQuantity} from "@/lib/cart";
 import {getSession} from "@/lib/auth";
@@ -31,6 +33,10 @@ export async function POST(request: NextRequest) {
   if (!body.slug || typeof body.quantity !== "number") {
     return NextResponse.json({error: "Missing slug or quantity."}, {status: 400});
   }
+  // 0 removes the line; otherwise a whole number. Anything else is refused calmly, before the database.
+  if (!isWholeQuantity(body.quantity, {allowZero: true})) {
+    return NextResponse.json({error: "invalid_quantity", message: INVALID_QUANTITY_MESSAGE}, {status: 400});
+  }
 
   // config is only ever validated, never trusted as-is  -  a malformed value
   // here would otherwise sit silently in the cart line all the way through
@@ -59,7 +65,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     // If the limits cannot be read (for example the migration has not been run yet), the bag
     // still works; the order itself is checked again, inside a transaction, at checkout.
-    console.error("Bag limit check failed", error);
+    logFailure("Bag limit check failed", error);
   }
 
   await setCartItemQuantity(userId, body.slug, body.quantity, config);

@@ -1,4 +1,5 @@
 import {NextResponse} from "next/server";
+import {logFailure} from "@/lib/safe-log";
 import {rejectUnlessCron} from "@/lib/cron-auth";
 import {expireOverdueOrders} from "@/lib/orders";
 
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
   try {
     return NextResponse.json({ok: true, ...(await expireOverdueOrders())});
   } catch (error) {
-    console.error("Expire job failed", error);
+    logFailure("Expire job failed", error);
     return NextResponse.json({error: "Failed."}, {status: 500});
   }
 }

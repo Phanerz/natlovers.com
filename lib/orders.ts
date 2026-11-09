@@ -1,4 +1,6 @@
 import {and, count, desc, eq, gt, inArray, isNotNull, isNull, lte, or, sql} from "drizzle-orm";
+import {logFailure} from "@/lib/safe-log";
+import {INVALID_QUANTITY_MESSAGE, isWholeQuantity} from "@/lib/quantity";
 import {AddressInput, createAddress, getDefaultAddress, updateAddress} from "@/lib/addresses";
 import {clearCart} from "@/lib/cart";
 import {db, orderItems, orders, products, users} from "@/lib/db";
@@ -12,6 +14,7 @@ import {
   checkAll,
   orderExpiry,
   extendedExpiry,
+  extensionVerdict,
   checkOpenOrders,
   productMaxPerOrder,
   resolveCapGroup,
@@ -64,6 +67,10 @@ export type OrderView = {
 // Raised when an order would break a limit. Carries the rule that was hit so the checkout can say
 // it in the customer's own language.
 // Raised when the account already has the most open unpaid orders it may have.
+// A refusal caused by the request itself (nothing to order, a bad quantity). Its message is safe to
+// show to the customer; no other error message ever is.
+export class OrderInputError extends Error {}
+
 export class OpenOrdersError extends Error {
   constructor() {
     super("Too many open orders");
@@ -152,7 +159,7 @@ async function safely(label: string, work: () => Promise<void>): Promise<void> {
   try {
     await work();
   } catch (error) {
-    console.error(`${label} failed`, error);
+    logFailure(`${label} failed`, error);
   }
 }
 
@@ -217,10 +224,35 @@ export async function createOrder(
   currencyInput: CurrencyCode = "IDR",
   options: CreateOrderOptions
 ): Promise<{order: OrderView; replayed: boolean}> {
+  const trace: {orderRef?: string} = {};
+  try {
+    return await placeOrder(trace, userId, requestedItems, bank, address, currencyInput, options);
+  } catch (error) {
+    // Expected refusals are not failures. Anything else is logged by order reference and error
+    // type only: a database error can quote the name, phone and street it was given.
+    if (!(error instanceof OrderInputError || error instanceof OpenOrdersError || error instanceof LimitError)) {
+      logFailure("Order failed", error, trace.orderRef);
+    }
+    throw error;
+  }
+}
+
+async function placeOrder(
+  trace: {orderRef?: string},
+  userId: string,
+  requestedItems: {slug: string; quantity: number; config?: CartConfig | null}[],
+  bank: {bankName: string; accountName: string; accountNumber: string},
+  address: AddressInput,
+  currencyInput: CurrencyCode,
+  options: CreateOrderOptions
+): Promise<{order: OrderView; replayed: boolean}> {
   const currency = normalizeCurrency(currencyInput);
   const slugs = requestedItems.map((item) => item.slug);
   if (!slugs.length) {
-    throw new Error("No items to order.");
+    throw new OrderInputError("No items to order.");
+  }
+  if (!requestedItems.every((item) => isWholeQuantity(item.quantity))) {
+    throw new OrderInputError(INVALID_QUANTITY_MESSAGE);
   }
 
   const catalogue = await db
@@ -307,12 +339,13 @@ export async function createOrder(
   }
 
   if (!lineItems.length) {
-    throw new Error("None of the requested items are available.");
+    throw new OrderInputError("None of the requested items are available.");
   }
 
   const totalIdr = lineItems.reduce((sum, item) => sum + item.priceIdr * item.quantity, 0);
   const totalUsdCents = currency === "USD" ? lineItems.reduce((sum, item) => sum + (item.priceUsdCents ?? 0) * item.quantity, 0) : null;
   const orderRef = generateOrderRef();
+  trace.orderRef = orderRef;
   const createdAt = new Date();
   // A bank-transfer order is held for 24 hours and a dollar order, which waits for a manual
   // invoice, for 72 hours. An admin can extend a hold. The expiry job then releases it.
@@ -608,20 +641,31 @@ export async function expireOverdueOrders(now: Date = new Date()): Promise<{expi
 
 export type ExtendHoldResult =
   | {ok: true; order: AdminOrderView}
-  | {ok: false; error: "not_found" | "invalid_status"};
+  | {ok: false; error: "not_found" | "invalid_status" | "expired" | "month_full"};
 
-// Gives an unpaid order another 72 hours. Only an order still awaiting payment can be extended.
+// Gives an unpaid order another 72 hours. Only an order still awaiting payment can be extended, and
+// only while its hold is still running: once it has passed its expiry its slots were released, and
+// they are not quietly taken back. Inside the same lock every checkout takes, it also confirms the
+// month still has room for this order.
 export async function extendOrderHold(orderId: string, now: Date = new Date()): Promise<ExtendHoldResult> {
-  const [row] = await db.select({status: orders.status, expiresAt: orders.expiresAt}).from(orders).where(eq(orders.id, orderId));
-  if (!row) return {ok: false, error: "not_found"};
-  if (row.status !== "pending_transfer") return {ok: false, error: "invalid_status"};
-  const [updated] = await db
-    .update(orders)
-    .set({expiresAt: extendedExpiry(row.expiresAt, now)})
-    .where(and(eq(orders.id, orderId), eq(orders.status, "pending_transfer")))
-    .returning({id: orders.id});
+  const outcome = await db.transaction(async (tx) => {
+    const limits = await lockLimits(tx);
+    const [row] = await tx
+      .select({status: orders.status, expiresAt: orders.expiresAt, createdAt: orders.createdAt})
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .for("update");
+    if (!row) return "not_found" as const;
+    if (row.status !== "pending_transfer") return "invalid_status" as const;
+    const used = await getMonthlyUsage(tx, now);
+    const verdict = extensionVerdict(row, now, limits, used);
+    if (verdict !== "ok") return verdict;
+    await tx.update(orders).set({expiresAt: extendedExpiry(row.expiresAt, now)}).where(eq(orders.id, orderId));
+    return "ok" as const;
+  });
+  if (outcome !== "ok") return {ok: false, error: outcome};
   const order = await getAdminOrderById(orderId);
-  if (!updated || !order) return {ok: false, error: "invalid_status"};
+  if (!order) return {ok: false, error: "not_found"};
   return {ok: true, order};
 }
 

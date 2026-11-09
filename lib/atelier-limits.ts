@@ -191,3 +191,27 @@ export function leadTimeRange(min: number | null | undefined, max: number | null
   const b = high ?? low!;
   return a <= b ? {min: a, max: b} : {min: b, max: a};
 }
+
+export type ExtendVerdict = "ok" | "expired" | "month_full";
+
+// Whether an admin may give an unpaid order another 72 hours. Not once its hold has run out (its
+// slots were already released), and not if the month it was placed in no longer has room for it.
+// `used` is the month's usage as it stands now, which includes this order while its hold runs.
+export function extensionVerdict(
+  order: {createdAt: Date; expiresAt: Date | null},
+  now: Date,
+  limits: Limits,
+  used: {PIECES: number; ATELIER_EXTRAS: number}
+): ExtendVerdict {
+  if (order.expiresAt != null && order.expiresAt.getTime() <= now.getTime()) return "expired";
+  const placed = jakartaMonth(order.createdAt);
+  const current = jakartaMonth(now);
+  // An order from an earlier month does not hold a slot in this one.
+  if (placed.year !== current.year || placed.month !== current.month) return "ok";
+  const caps: Record<CapGroup, number | null> = {PIECES: limits.piecesMonthlyCap, ATELIER_EXTRAS: limits.extrasMonthlyCap};
+  for (const group of CAP_GROUPS) {
+    const cap = caps[group];
+    if (cap != null && used[group] > cap) return "month_full";
+  }
+  return "ok";
+}

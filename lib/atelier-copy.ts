@@ -48,7 +48,8 @@ export const copy = {
     bankUnavailable: "Bank transfer is not available just now, so your order has not been placed. Please try again later, or get in touch with us.",
     orderFailed: "We could not place your order. Please try again.",
     tooManyOpenOrders: "You already have two orders waiting for payment. Please complete or wait for one of them to be released before placing another.",
-    tooManyAttempts: "You have placed several orders in a short time. Please wait a little while before trying again."
+    tooManyAttempts: "You have placed several orders in a short time. Please wait a little while before trying again.",
+    invalidQuantity: "Please choose a whole number of pieces, at least one."
   },
   id: {
     madeInSmallNumbers: "Dibuat dalam jumlah kecil, setiap karya oleh sepasang tangan.",
@@ -78,7 +79,8 @@ export const copy = {
     bankUnavailable: "Transfer bank sedang tidak tersedia, sehingga pesanan Anda belum dibuat. Silakan coba lagi nanti, atau hubungi kami.",
     orderFailed: "Kami belum dapat membuat pesanan Anda. Silakan coba lagi.",
     tooManyOpenOrders: "Anda sudah memiliki dua pesanan yang menunggu pembayaran. Mohon selesaikan atau tunggu salah satunya dilepas sebelum membuat pesanan lain.",
-    tooManyAttempts: "Anda membuat beberapa pesanan dalam waktu singkat. Mohon tunggu sebentar sebelum mencoba lagi."
+    tooManyAttempts: "Anda membuat beberapa pesanan dalam waktu singkat. Mohon tunggu sebentar sebelum mencoba lagi.",
+    invalidQuantity: "Mohon pilih jumlah bulat, minimal satu."
   }
 } as const;
 

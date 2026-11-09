@@ -1,4 +1,5 @@
-// Removes every customer order, bag item and wishlist heart. NOT to be run against production.
+// Removes every customer order, bag item and wishlist heart. Local-only by default; a remote host
+// needs --allow-remote, which is a deliberate act.
 //
 // Dry run (default, deletes nothing, prints row counts):
 //   RESET_DATABASE_URL="postgres://...local or scratch..." npx tsx scripts/reset-commerce-data.ts
@@ -8,7 +9,8 @@
 //   add --include-paid if any order is Paid or Shipped
 //
 // The database URL is read from RESET_DATABASE_URL, which you pass in your own terminal. It is
-// never read from .env files. A non-local host is refused unless you add --allow-remote.
+// never read from .env files. The address is parsed, a host override in its query string is refused,
+// and a non-local host is refused unless you add --allow-remote.
 //
 // Never deleted: user accounts, products, add-ons, settings. Stock counters are never changed:
 // the script only reports whether the deleted orders had reduced them, so you can reset by hand.
@@ -16,6 +18,7 @@ import {createInterface} from "node:readline/promises";
 import {mkdirSync, writeFileSync} from "node:fs";
 import path from "node:path";
 import postgres from "postgres";
+import {parseResetUrl} from "./reset-url";
 
 const PHRASE = "DELETE ALL ORDERS";
 
@@ -30,18 +33,13 @@ if (!url) {
   process.exit(1);
 }
 
-const host = (() => {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return "";
-  }
-})();
-const isLocal = host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]";
-if (!isLocal && !allowRemote) {
-  console.error(`Refusing to run against "${host}". This script is for a local or scratch database. Add --allow-remote only for a scratch database you are sure is not production.`);
+const parsed = parseResetUrl(url, {allowRemote});
+if (!parsed.ok) {
+  console.error(`${parsed.reason} Nothing was done.`);
   process.exit(1);
 }
+const host = parsed.host;
+const connection = {url: parsed.connectionUrl, isLocal: parsed.isLocal};
 
 function csvCell(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -66,7 +64,7 @@ function photoUrls(value: unknown, found: Set<string>) {
 }
 
 async function main() {
-  const sql = postgres(url!, {max: 1, onnotice: () => {}});
+  const sql = postgres(connection.url, {max: 1, onnotice: () => {}, ...(connection.isLocal ? {} : {ssl: "require"})});
   try {
     const count = async (table: string, where = "") => Number((await sql.unsafe(`select count(*)::int as n from ${table} ${where}`))[0].n);
 

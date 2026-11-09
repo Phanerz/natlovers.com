@@ -1,8 +1,10 @@
 import {NextRequest, NextResponse} from "next/server";
+import {isWholeQuantity} from "@/lib/quantity";
+import {logFailure} from "@/lib/safe-log";
 import {z} from "zod";
 import {addressInputSchema} from "@/lib/addresses";
 import {copy, langForCurrency} from "@/lib/atelier-copy";
-import {createOrder, LimitError, OpenOrdersError} from "@/lib/orders";
+import {createOrder, LimitError, OpenOrdersError, OrderInputError} from "@/lib/orders";
 import {allowRequest} from "@/lib/rate-limit";
 import {paymentRouteFor} from "@/lib/payment-routes";
 import {normalizeCurrency} from "@/lib/site";
@@ -39,11 +41,11 @@ export async function POST(request: NextRequest) {
           const configResult = item.config != null ? orderConfigSchema.safeParse(item.config) : null;
           return {
             slug: String(item.slug ?? ""),
-            quantity: Number(item.quantity) || 0,
+            quantity: item.quantity as unknown,
             config: configResult?.success ? configResult.data : null
           };
         })
-        .filter((item: {slug: string; quantity: number}) => item.slug && item.quantity > 0)
+        .filter((item: {slug: string}) => item.slug)
     : [];
 
   if (!items.length) {
@@ -71,6 +73,12 @@ export async function POST(request: NextRequest) {
   const route = paymentRouteFor(currency);
   const lang = langForCurrency(currency);
 
+  // Whole numbers only. Anything else gets a calm message, never a database error. How many is too
+  // many for a product is decided by its limit, below, inside the order itself.
+  if (!items.every((item: {quantity: unknown}) => isWholeQuantity(item.quantity))) {
+    return NextResponse.json({error: copy[lang].invalidQuantity, code: "invalid_quantity"}, {status: 400});
+  }
+
   // Rate limit order creation, per account and per network address. Quiet: a calm message, no detail.
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   try {
@@ -80,7 +88,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     // If the limiter cannot be read, the open-order cap and the idempotency key still protect the order.
-    console.error("Order rate limit unavailable", error);
+    logFailure("Order rate limit unavailable", error);
   }
 
   let bank = {bankName: "", accountName: "", accountNumber: ""};
@@ -137,8 +145,10 @@ export async function POST(request: NextRequest) {
     if (error instanceof LimitError) {
       return NextResponse.json({error: "limit", violation: error.violation, nextMonth: error.nextMonth}, {status: 409});
     }
-    console.error("Checkout failed", error);
-    const message = error instanceof Error && !/^(Failed query|error:)/i.test(error.message) ? error.message : copy[lang].orderFailed;
-    return NextResponse.json({error: message}, {status: 400});
+    if (error instanceof OrderInputError) {
+      return NextResponse.json({error: error.message}, {status: 400});
+    }
+    // createOrder has already logged the failure against the order reference.
+    return NextResponse.json({error: copy[lang].orderFailed}, {status: 400});
   }
 }

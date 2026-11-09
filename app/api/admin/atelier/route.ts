@@ -1,4 +1,5 @@
 import {NextResponse} from "next/server";
+import {logFailure} from "@/lib/safe-log";
 import {z} from "zod";
 import {getSession, isAdminEmail} from "@/lib/auth";
 import {updateLimits} from "@/lib/limits";
@@ -31,7 +32,7 @@ export async function PATCH(request: Request) {
     const limits = await updateLimits(parsed.data, email);
     return NextResponse.json({limits});
   } catch (error) {
-    console.error("Could not update limits", error);
+    logFailure("Could not update limits", error);
     return NextResponse.json({error: "Could not save the limits."}, {status: 500});
   }
 }

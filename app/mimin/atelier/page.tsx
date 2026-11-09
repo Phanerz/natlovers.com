@@ -1,4 +1,5 @@
 import {desc} from "drizzle-orm";
+import {logFailure} from "@/lib/safe-log";
 import {AtelierPanel} from "@/components/admin/atelier-panel";
 import {limitChanges, db} from "@/lib/db";
 import {jakartaMonth, monthName} from "@/lib/atelier-limits";
@@ -22,7 +23,7 @@ export default async function AtelierPage() {
     const rows = await db.select().from(limitChanges).orderBy(desc(limitChanges.changedAt)).limit(100);
     log = rows.map((row) => ({...row, changedAt: row.changedAt.toISOString()}));
   } catch (error) {
-    console.error("Atelier page data unavailable", error);
+    logFailure("Atelier page data unavailable", error);
     setupError = "The atelier tables are not in the database yet. Run the latest migration, then reload this page.";
   }
   const month = jakartaMonth(now);

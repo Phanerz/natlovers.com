@@ -1,4 +1,5 @@
 import {emailCopy} from "@/lib/atelier-copy";
+import {logFailure} from "@/lib/safe-log";
 import {unsubscribe} from "@/lib/waiting-list";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export default async function UnsubscribePage({searchParams}: {searchParams: Pro
   try {
     done = await unsubscribe(String(token ?? ""));
   } catch (error) {
-    console.error("Unsubscribe failed", error);
+    logFailure("Unsubscribe failed", error);
   }
   return (
     <main className="shell mx-auto max-w-[680px] px-4 py-24 text-center">

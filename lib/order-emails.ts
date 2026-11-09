@@ -1,4 +1,5 @@
 import {inArray} from "drizzle-orm";
+import {logFailure} from "@/lib/safe-log";
 import {db, products} from "@/lib/db";
 import {emailCopy, stageLabels, type Lang} from "@/lib/atelier-copy";
 import {leadTimeRange, type FulfilmentStage} from "@/lib/atelier-limits";
@@ -71,7 +72,7 @@ export async function estimatedReadyRange(slugs: string[], from: Date, lang: Lan
     const end = new Date(from.getTime() + max * week);
     return min === max ? formatDay(end, lang) : `${formatDay(start, lang)} - ${formatDay(end, lang)}`;
   } catch (error) {
-    console.error("Lead time lookup failed", error);
+    logFailure("Lead time lookup failed", error);
     return null;
   }
 }

@@ -1,4 +1,5 @@
 import {Resend} from "resend";
+import {logFailure} from "@/lib/safe-log";
 
 // The sender and the key are the ones the sign-in email already uses.
 export const emailFrom = process.env.RESEND_FROM_EMAIL ?? "Natlovers <onboarding@resend.dev>";
@@ -104,12 +105,12 @@ export async function sendEmail(input: {to: string | string[]; subject: string; 
     }
     const {error} = await resend.emails.send({from: emailFrom, to: input.to, subject: input.subject, html: input.html});
     if (error) {
-      console.error(`Email failed (${input.subject}): ${error.message}`);
+      console.error(`Email failed (${input.subject}): ${error.name}`);
       return {ok: false};
     }
     return {ok: true};
   } catch (error) {
-    console.error(`Email failed (${input.subject})`, error);
+    logFailure(`Email failed (${input.subject})`, error);
     return {ok: false};
   }
 }

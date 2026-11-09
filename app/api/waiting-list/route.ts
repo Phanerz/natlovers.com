@@ -1,4 +1,5 @@
 import {NextRequest, NextResponse} from "next/server";
+import {logFailure} from "@/lib/safe-log";
 import {allowRequest, joinWaitingList, parseEmail} from "@/lib/waiting-list";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     await joinWaitingList(email, lang);
     return NextResponse.json({ok: true});
   } catch (error) {
-    console.error("Waiting list join failed", error);
+    logFailure("Waiting list join failed", error);
     return NextResponse.json({error: "failed"}, {status: 500});
   }
 }

@@ -1,4 +1,5 @@
 import {NextResponse} from "next/server";
+import {logFailure} from "@/lib/safe-log";
 import {cancelOrder, extendOrderHold, markOrderPaid, setFulfilmentStage, setOrderTracking} from "@/lib/orders";
 import {isFulfilmentStage} from "@/lib/atelier-limits";
 import {getSession, isAdminEmail} from "@/lib/auth";
@@ -62,6 +63,12 @@ export async function PATCH(request: Request, {params}: {params: Promise<{id: st
         if (result.error === "not_found") {
           return NextResponse.json({error: "Order not found."}, {status: 404});
         }
+        if (result.error === "expired") {
+          return NextResponse.json({error: "This order has already passed its hold and can no longer be extended."}, {status: 409});
+        }
+        if (result.error === "month_full") {
+          return NextResponse.json({error: "This month no longer has room for this order, so its hold cannot be extended."}, {status: 409});
+        }
         return NextResponse.json({error: "Only an order awaiting payment can be extended."}, {status: 409});
       }
       return NextResponse.json({order: result.order});
@@ -91,7 +98,7 @@ export async function PATCH(request: Request, {params}: {params: Promise<{id: st
     }
     return NextResponse.json({order: result.order, alreadyPaid: result.alreadyPaid});
   } catch (error) {
-    console.error("Failed to update order:", error);
+    logFailure("Failed to update order:", error);
     return NextResponse.json({error: "Could not update the order. Please try again."}, {status: 500});
   }
 }

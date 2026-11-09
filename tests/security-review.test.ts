@@ -23,7 +23,7 @@ test("waiting list: joining again while already waiting sends no second email", 
   assert.equal(shouldSendJoinEmail(undefined), true);
   assert.equal(shouldSendJoinEmail({notifiedAt: null, unsubscribedAt: null}), false);
   assert.equal(shouldSendJoinEmail({notifiedAt: new Date(), unsubscribedAt: null}), true);
-  assert.equal(shouldSendJoinEmail({notifiedAt: null, unsubscribedAt: new Date()}), true);
+  assert.equal(shouldSendJoinEmail({notifiedAt: null, unsubscribedAt: new Date()}), false);
 });
 
 test("rate limiter: a simultaneous burst still gets exactly the limit", {skip: safe ? false : "needs a local scratch database (DB_POSTGRES_URL)"}, async () => {

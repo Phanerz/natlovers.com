@@ -1,4 +1,5 @@
 import {eq, sql} from "drizzle-orm";
+import {logFailure} from "@/lib/safe-log";
 import {db, limitChanges, storeSettings} from "@/lib/db";
 import {
   DEFAULT_LIMITS,
@@ -33,7 +34,7 @@ export async function getLimits(executor: Executor = db): Promise<StoreLimits> {
     const [row] = await executor.select().from(storeSettings).where(eq(storeSettings.id, "default"));
     return row ? fromRow(row) : DEFAULTS;
   } catch (error) {
-    console.error("Atelier limits unavailable, using defaults", error);
+    logFailure("Atelier limits unavailable, using defaults", error);
     return DEFAULTS;
   }
 }
@@ -114,7 +115,7 @@ export async function getAvailability(now: Date = new Date()): Promise<Availabil
     const used = await getMonthlyUsage(db, now);
     piecesMonthFull = used.PIECES >= limits.piecesMonthlyCap;
   } catch (error) {
-    console.error("Monthly usage unavailable", error);
+    logFailure("Monthly usage unavailable", error);
   }
   return {
     piecesMonthFull,
