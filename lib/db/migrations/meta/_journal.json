@@ -281,6 +281,13 @@
       "when": 1793948156359,
       "tag": "0039_site_visits",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1794204840560,
+      "tag": "0040_atelier_limits",
+      "breakpoints": true
     }
   ]
 }

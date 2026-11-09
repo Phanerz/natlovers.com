@@ -5,5 +5,7 @@
 export const orderStatusLabels: Record<string, string> = {
   pending_transfer: "Awaiting transfer",
   paid: "Paid",
-  fulfilled: "Shipped"
+  fulfilled: "Shipped",
+  cancelled: "Cancelled",
+  expired: "Expired"
 };

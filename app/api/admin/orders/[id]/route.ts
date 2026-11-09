@@ -1,5 +1,6 @@
 import {NextResponse} from "next/server";
-import {deleteOrder, markOrderPaid, setOrderTracking} from "@/lib/orders";
+import {cancelOrder, markOrderPaid, setFulfilmentStage, setOrderTracking} from "@/lib/orders";
+import {isFulfilmentStage} from "@/lib/atelier-limits";
 import {getSession, isAdminEmail} from "@/lib/auth";
 
 async function requireAdminEmail(): Promise<string | null> {
@@ -12,8 +13,8 @@ async function requireAdminEmail(): Promise<string | null> {
 // server-side rather than trusted from the client  -  the button being
 // hidden from non-admins in the UI is not a security boundary, this is.
 // No body = mark_paid (Stop 1's original contract, kept working); a body
-// with action: "set_tracking" attaches a courier + tracking number and
-// moves the order to fulfilled.
+// with action "set_tracking" attaches a courier + tracking number and moves the order to shipped,
+// "set_stage" moves the production stage, and "cancel" cancels an order still awaiting transfer.
 export async function PATCH(request: Request, {params}: {params: Promise<{id: string}>}) {
   const adminEmail = await requireAdminEmail();
   if (!adminEmail) {
@@ -25,7 +26,7 @@ export async function PATCH(request: Request, {params}: {params: Promise<{id: st
 
   try {
     if (body?.action === "set_tracking") {
-      const result = await setOrderTracking(id, String(body.courier ?? ""), String(body.trackingNumber ?? ""));
+      const result = await setOrderTracking(id, String(body.courier ?? ""), String(body.trackingNumber ?? ""), body.notify === true);
       if (!result.ok) {
         if (result.error === "not_found") {
           return NextResponse.json({error: "Order not found."}, {status: 404});
@@ -36,6 +37,38 @@ export async function PATCH(request: Request, {params}: {params: Promise<{id: st
         return NextResponse.json({error: "Order must be paid before it can be shipped."}, {status: 409});
       }
       return NextResponse.json({order: result.order});
+    }
+
+    if (body?.action === "set_stage") {
+      if (!isFulfilmentStage(body.stage)) {
+        return NextResponse.json({error: "Unknown production stage."}, {status: 400});
+      }
+      const result = await setFulfilmentStage(id, body.stage, body.notify === true);
+      if (!result.ok) {
+        if (result.error === "not_found") {
+          return NextResponse.json({error: "Order not found."}, {status: 404});
+        }
+        if (result.error === "invalid_stage") {
+          return NextResponse.json({error: "Add a courier and tracking number to mark an order as shipped."}, {status: 400});
+        }
+        return NextResponse.json({error: "Only a paid order has a production stage."}, {status: 409});
+      }
+      return NextResponse.json({order: result.order});
+    }
+
+    if (body?.action === "cancel") {
+      const result = await cancelOrder(id, adminEmail);
+      if (!result.ok) {
+        if (result.error === "not_found") {
+          return NextResponse.json({error: "Order not found."}, {status: 404});
+        }
+        return NextResponse.json({error: "Only an order awaiting transfer can be cancelled."}, {status: 409});
+      }
+      return NextResponse.json({order: result.order, alreadyCancelled: result.alreadyCancelled});
+    }
+
+    if (body && body.action !== undefined && body.action !== "mark_paid") {
+      return NextResponse.json({error: "Unknown action."}, {status: 400});
     }
 
     const result = await markOrderPaid(id, adminEmail);
@@ -49,27 +82,5 @@ export async function PATCH(request: Request, {params}: {params: Promise<{id: st
   } catch (error) {
     console.error("Failed to update order:", error);
     return NextResponse.json({error: "Could not update the order. Please try again."}, {status: 500});
-  }
-}
-
-// Permanent delete, for clearing test/junk orders out of the admin list  - 
-// re-verifies admin server-side same as PATCH.
-export async function DELETE(_request: Request, {params}: {params: Promise<{id: string}>}) {
-  const adminEmail = await requireAdminEmail();
-  if (!adminEmail) {
-    return NextResponse.json({error: "Unauthorized."}, {status: 401});
-  }
-
-  const {id} = await params;
-
-  try {
-    const deleted = await deleteOrder(id);
-    if (!deleted) {
-      return NextResponse.json({error: "Order not found."}, {status: 404});
-    }
-    return NextResponse.json({ok: true});
-  } catch (error) {
-    console.error("Failed to delete order:", error);
-    return NextResponse.json({error: "Could not delete the order. Please try again."}, {status: 500});
   }
 }

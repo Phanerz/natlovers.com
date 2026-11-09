@@ -160,9 +160,9 @@ export function addonOrderLineToResolved(line: AddonOrderLine, index: number): R
   };
 }
 
-export async function saveOrderItemAddons(orderItemId: string, lines: AddonOrderLine[]) {
+export async function saveOrderItemAddons(orderItemId: string, lines: AddonOrderLine[], executor: Pick<typeof db, "insert"> = db) {
   if (!lines.length) return;
-  await db.insert(orderItemAddons).values(lines.map((line, index) => ({...line, orderItemId, sortOrder: index})));
+  await executor.insert(orderItemAddons).values(lines.map((line, index) => ({...line, orderItemId, sortOrder: index})));
 }
 
 export type OrderAddonRow = AddonOrderLine & {id: string; orderItemId: string};

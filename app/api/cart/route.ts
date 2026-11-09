@@ -2,6 +2,7 @@ import {NextRequest, NextResponse} from "next/server";
 import {z} from "zod";
 import {getCartItems, setCartItemQuantity} from "@/lib/cart";
 import {getSession} from "@/lib/auth";
+import {checkBagChange} from "@/lib/cart-limits";
 import {productSelectionSchema} from "@/lib/product-selection";
 
 const cartConfigSchema = productSelectionSchema;
@@ -43,6 +44,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({error: "Invalid customisation."}, {status: 400});
     }
     config = parsed.data;
+  }
+
+  // The atelier's limits are enforced here, not just in the browser. A refused change leaves the
+  // bag exactly as it was, and says which rule was hit so the page can say it in the right words.
+  try {
+    const verdict = await checkBagChange(userId, body.slug, body.quantity, config);
+    if (!verdict.ok) {
+      return NextResponse.json(
+        {error: "limit", violation: verdict.violation, nextMonth: verdict.nextMonth, items: await getCartItems(userId)},
+        {status: 409}
+      );
+    }
+  } catch (error) {
+    // If the limits cannot be read (for example the migration has not been run yet), the bag
+    // still works; the order itself is checked again, inside a transaction, at checkout.
+    console.error("Bag limit check failed", error);
   }
 
   await setCartItemQuantity(userId, body.slug, body.quantity, config);
