@@ -1,3 +1,4 @@
+import {isAdminEmail} from "@/lib/auth";
 import {getXenditConfig} from "@/lib/payments/config";
 import type {PaymentProvider} from "@/lib/payments/provider";
 import {XenditProvider} from "@/lib/payments/xendit";
@@ -19,4 +20,19 @@ export function getPaymentProvider(): PaymentProvider | null {
 
 export function onlinePaymentsEnabled(): boolean {
   return getPaymentProvider() !== null;
+}
+
+// The provider this particular customer may pay with, or null for the manual bank transfer flow.
+// With a test key (test money only) the hosted page is for admins alone: a signed-in user whose
+// email is in ADMIN_EMAILS. Everyone else stays on the bank transfer flow, so a real customer can
+// never be sent to pay with test money. A live key applies to everyone.
+export function getPaymentProviderFor(email: string | null | undefined): PaymentProvider | null {
+  const provider = getPaymentProvider();
+  if (!provider) return null;
+  if (provider.mode === "test" && !isAdminEmail(email)) return null;
+  return provider;
+}
+
+export function onlinePaymentsEnabledFor(email: string | null | undefined): boolean {
+  return getPaymentProviderFor(email) !== null;
 }

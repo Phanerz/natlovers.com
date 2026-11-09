@@ -88,8 +88,44 @@ export class LimitError extends Error {
   }
 }
 
-function generateOrderRef(): string {
-  return `NAT-${Date.now().toString().slice(-8)}`;
+// Letters and digits with nothing easy to misread aloud (no 0, O, 1, I, L), so a customer can quote it.
+const REF_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+const REF_SUFFIX_LENGTH = 8;
+// A clash on 31^8 combinations is near impossible, but the database is the judge: a second order that
+// draws the same reference is refused by the unique constraint and simply draws again.
+const MAX_REF_ATTEMPTS = 5;
+
+// NAT- and eight random characters, from the system's secure random source. Not built from the clock,
+// so two orders placed in the same instant cannot share a reference.
+export function generateOrderRef(random: (size: number) => Uint8Array = (size) => crypto.getRandomValues(new Uint8Array(size))): string {
+  // Bytes at or above this would favour the first letters of the alphabet, so they are skipped.
+  const limit = 256 - (256 % REF_ALPHABET.length);
+  let suffix = "";
+  while (suffix.length < REF_SUFFIX_LENGTH) {
+    for (const byte of random(REF_SUFFIX_LENGTH * 2)) {
+      if (byte < limit && suffix.length < REF_SUFFIX_LENGTH) suffix += REF_ALPHABET[byte % REF_ALPHABET.length];
+    }
+  }
+  return `NAT-${suffix}`;
+}
+
+let refGenerator: () => string = () => generateOrderRef();
+
+// Tests force a clash by handing out a reference that is already taken. Pass undefined to reset.
+export function setOrderRefGeneratorForTests(generator: (() => string) | undefined): void {
+  refGenerator = generator ?? (() => generateOrderRef());
+}
+
+// True when a failed insert was refused because the order reference already exists. Drizzle wraps the
+// driver error, so the cause is checked as well.
+export function isOrderRefConflict(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; current && typeof current === "object" && depth < 4; depth += 1) {
+    const {code, constraint_name: constraint, cause} = current as {code?: string; constraint_name?: string; cause?: unknown};
+    if (code === "23505" && constraint === "orders_order_ref_unique") return true;
+    current = cause;
+  }
+  return false;
 }
 
 type OrderRow = typeof orders.$inferSelect;
@@ -348,14 +384,12 @@ async function placeOrder(
 
   const totalIdr = lineItems.reduce((sum, item) => sum + item.priceIdr * item.quantity, 0);
   const totalUsdCents = currency === "USD" ? lineItems.reduce((sum, item) => sum + (item.priceUsdCents ?? 0) * item.quantity, 0) : null;
-  const orderRef = generateOrderRef();
-  trace.orderRef = orderRef;
   const createdAt = new Date();
   // A bank-transfer order is held for 24 hours and a dollar order, which waits for a manual
   // invoice, for 72 hours. An admin can extend a hold. The expiry job then releases it.
   const expiresAt = orderExpiry(createdAt, currency);
 
-  const result = await db.transaction(async (tx) => {
+  const attemptOrder = (orderRef: string) => db.transaction(async (tx) => {
     // 1. Serialise every order placement behind one row lock.
     const limits = await lockLimits(tx);
 
@@ -426,6 +460,18 @@ async function placeOrder(
     }
     return {replayedOrderId: undefined, created: order};
   });
+
+  // Each attempt is its own transaction with its own reference. A reference clash rolls that attempt
+  // back whole (nothing half-made is left behind) and the next one draws a new reference.
+  let result: Awaited<ReturnType<typeof attemptOrder>> | undefined;
+  for (let attempt = 1; !result; attempt += 1) {
+    trace.orderRef = refGenerator();
+    try {
+      result = await attemptOrder(trace.orderRef);
+    } catch (error) {
+      if (!isOrderRefConflict(error) || attempt >= MAX_REF_ATTEMPTS) throw error;
+    }
+  }
 
   if (result.replayedOrderId) {
     const view = await getOrderViewById(result.replayedOrderId);

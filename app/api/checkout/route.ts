@@ -1,5 +1,5 @@
 import {NextRequest, NextResponse} from "next/server";
-import {onlinePaymentsEnabled} from "@/lib/payments";
+import {onlinePaymentsEnabledFor} from "@/lib/payments";
 import {ensureInvoice} from "@/lib/payments/service";
 import {isWholeQuantity} from "@/lib/quantity";
 import {logFailure} from "@/lib/safe-log";
@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
   // own fixed price in each currency) and which payment route the order takes.
   const currency = normalizeCurrency(body?.currency);
   // With Xendit set up, rupiah goes to the hosted payment page. Without it, the manual bank flow.
-  const route = paymentRouteFor(currency, {online: onlinePaymentsEnabled()});
+  // A test key is for admins only; everyone else gets the bank transfer flow.
+  const route = paymentRouteFor(currency, {online: onlinePaymentsEnabledFor(session?.user?.email)});
   const lang = langForCurrency(currency);
 
   // Whole numbers only. Anything else gets a calm message, never a database error. How many is too

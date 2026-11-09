@@ -438,6 +438,8 @@ test("pay page: the invoice is for the exact stored total, reused while open, re
   console.error = () => {};
   try {
     const {order, payment, user} = await w.onlineOrder(2);
+    // The test key is on, so only an admin's order gets a page.
+    process.env.ADMIN_EMAILS = user.email ?? "";
     // Start from an order with no live page: the one made by the helper is open, so close it.
     await w.db.update(payments).set({status: "expired"}).where(eq(payments.id, payment.id));
 
@@ -524,4 +526,77 @@ test("manual Mark as paid is audited: who, when, which order, once", needsDb, as
   await markOrderPaid(order.id, "admin@example.test");
   assert.equal((await w.db.select().from(auditLog).where(eq(auditLog.orderId, order.id))).length, 1);
   assert.equal(await w.stock(), 8);
+});
+
+// --- Test key is for admins only --------------------------------------------------------------
+
+test("test key: only a signed-in admin gets Xendit, everyone else gets the bank transfer flow", async () => {
+  const {getPaymentProviderFor, onlinePaymentsEnabledFor, setPaymentProviderForTests} = await import("../lib/payments");
+  const keep = {...process.env};
+  try {
+    process.env.ADMIN_EMAILS = "Owner@Example.test, second@example.test";
+    const testProvider = new MockProvider();
+    setPaymentProviderForTests(testProvider);
+    // Admins, whatever the letter case.
+    assert.equal(getPaymentProviderFor("owner@example.test"), testProvider);
+    assert.equal(getPaymentProviderFor("SECOND@example.test"), testProvider);
+    // Customers, signed-out visitors and empty emails never get test money.
+    assert.equal(getPaymentProviderFor("customer@example.test"), null);
+    assert.equal(getPaymentProviderFor(null), null);
+    assert.equal(getPaymentProviderFor(undefined), null);
+    assert.equal(getPaymentProviderFor(""), null);
+    assert.equal(paymentRouteFor("IDR", {online: onlinePaymentsEnabledFor("customer@example.test")}), "idr_bank_transfer");
+    assert.equal(paymentRouteFor("IDR", {online: onlinePaymentsEnabledFor("owner@example.test")}), "idr_online");
+    // An empty allowlist means nobody is an admin.
+    process.env.ADMIN_EMAILS = "";
+    assert.equal(getPaymentProviderFor("owner@example.test"), null);
+
+    // A live key applies to everyone.
+    const live = new MockProvider();
+    (live as {mode: "test" | "live"}).mode = "live";
+    setPaymentProviderForTests(live);
+    assert.equal(getPaymentProviderFor("customer@example.test"), live);
+    assert.equal(getPaymentProviderFor(null), live);
+    // Not set up at all: nobody.
+    setPaymentProviderForTests(null);
+    assert.equal(getPaymentProviderFor("owner@example.test"), null);
+  } finally {
+    setPaymentProviderForTests(undefined);
+    process.env = keep;
+  }
+});
+
+test("test key: a customer order cannot get a payment page, an admin order can, a live key serves both", needsDb, async () => {
+  useXenditEnv();
+  const w = await world();
+  const {payments} = await import("../lib/db");
+  const {eq} = await import("drizzle-orm");
+  const {setPaymentProviderForTests} = await import("../lib/payments");
+  const {ensureInvoice} = await import("../lib/payments/service");
+  const mock = new MockProvider();
+  setPaymentProviderForTests(mock);
+  try {
+    const customer = await w.onlineOrder(1);
+    const admin = await w.onlineOrder(1);
+    process.env.ADMIN_EMAILS = admin.user.email ?? "";
+    await w.db.update(payments).set({status: "expired"}).where(eq(payments.orderId, customer.order.id));
+    await w.db.update(payments).set({status: "expired"}).where(eq(payments.orderId, admin.order.id));
+
+    assert.deepEqual(await ensureInvoice(customer.order.orderRef, {userId: customer.user.id}), {ok: false, error: "unavailable"});
+    assert.equal(mock.created.length, 0, "the provider was never asked");
+    assert.equal((await w.db.select().from(payments).where(eq(payments.orderId, customer.order.id))).length, 1, "no new payment row");
+
+    const ok = await ensureInvoice(admin.order.orderRef, {userId: admin.user.id});
+    assert.equal(ok.ok, true);
+    assert.equal(mock.created.length, 1);
+
+    // With a live key the same customer is served.
+    (mock as {mode: "test" | "live"}).mode = "live";
+    const served = await ensureInvoice(customer.order.orderRef, {userId: customer.user.id});
+    assert.equal(served.ok, true);
+    assert.equal(mock.created.length, 2);
+  } finally {
+    setPaymentProviderForTests(undefined);
+    delete process.env.ADMIN_EMAILS;
+  }
 });

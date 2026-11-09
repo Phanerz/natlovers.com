@@ -3,7 +3,7 @@ import {and, desc, eq, inArray, isNull, ne, sql} from "drizzle-orm";
 import {db, orders, payments, users} from "@/lib/db";
 import {siteUrl} from "@/lib/email";
 import {decrementStockForOrder, notifyOrderPaid} from "@/lib/orders";
-import {getPaymentProvider} from "@/lib/payments";
+import {getPaymentProvider, getPaymentProviderFor} from "@/lib/payments";
 import type {ProviderEvent} from "@/lib/payments/provider";
 import type {PaymentView} from "@/lib/payments/view";
 import {allowRequest} from "@/lib/rate-limit";
@@ -121,8 +121,7 @@ export type EnsureInvoiceResult =
 // exists if it is still open, otherwise a new invoice for the exact stored total, lasting no longer
 // than the order hold.
 export async function ensureInvoice(orderRef: string, options: {userId?: string} = {}): Promise<EnsureInvoiceResult> {
-  const provider = getPaymentProvider();
-  if (!provider) return {ok: false, error: "unavailable"};
+  if (!getPaymentProvider()) return {ok: false, error: "unavailable"};
 
   const [row] = await db
     .select({order: orders, email: users.email})
@@ -131,6 +130,9 @@ export async function ensureInvoice(orderRef: string, options: {userId?: string}
     .where(options.userId ? and(eq(orders.orderRef, orderRef), eq(orders.userId, options.userId)) : eq(orders.orderRef, orderRef));
   if (!row) return {ok: false, error: "not_found"};
   const {order} = row;
+  // With a test key only an admin's own order may get a payment page, whichever route asked for it.
+  const provider = getPaymentProviderFor(row.email);
+  if (!provider) return {ok: false, error: "unavailable"};
 
   const now = new Date();
   if (order.status !== "pending_transfer" || order.currency !== "IDR" || order.totalIdr < 1) return {ok: false, error: "not_payable"};
