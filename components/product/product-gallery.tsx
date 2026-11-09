@@ -5,6 +5,7 @@ import {createPortal} from "react-dom";
 import {ChevronLeft, ChevronRight, Maximize2, X} from "lucide-react";
 import {ImageWithFallback} from "@/components/image-with-fallback";
 import {useLoopingTrack} from "@/components/use-looping-track";
+import {warmImages} from "@/lib/warm-images";
 
 function Lightbox({
   images,
@@ -105,6 +106,14 @@ function Lightbox({
   );
 }
 
+// Stable keys: the copies at either end are their own elements, so the real photographs are never
+// rebuilt (and re-fetched) when the copies appear.
+function swipeKey(index: number, count: number, url: string) {
+  if (index < 0) return `copy-start-${url}`;
+  if (index >= count) return `copy-end-${url}`;
+  return `slide-${index}-${url}`;
+}
+
 // How many places apart two photographs are on the endless loop.
 function swipeDistance(index: number, active: number, count: number) {
   const real = ((index % count) + count) % count;
@@ -130,6 +139,13 @@ export function ProductGallery({
   // Phones: no thumbnails, just a swipeable strip that loops round in both directions.
   const swipe = useLoopingTrack(images.length, setActiveImage);
   const {showInstantly} = swipe;
+  // Phone layout: fetch and decode every photograph in the background so the endless loop never waits.
+  const imageKey = images.join("|");
+  useEffect(() => {
+    if (images.length < 2 || !window.matchMedia("(max-width: 1023px)").matches) return;
+    return warmImages(images, "(max-width: 1024px) 100vw, 55vw");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageKey]);
   useEffect(() => {
     if (!lightboxOpen) showInstantly(activeImage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -163,7 +179,7 @@ export function ProductGallery({
         // Every photo shown whole in an equal square, never a side scroll: a
         // wrapping grid on phones, and on desktop a rail exactly as tall as the
         // main photo (its own height never stretches the row).
-        <div className="pdp-thumbs order-2 max-sm:hidden lg:order-1">
+        <div className="pdp-thumbs order-2 max-lg:hidden lg:order-1">
           <div className="pdp-thumbs-inner">
             {images.map((url, index) => (
               <button
@@ -182,7 +198,7 @@ export function ProductGallery({
       ) : null}
 
       <div
-        className="pdp-main relative order-1 aspect-[3/4] w-full overflow-hidden rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] max-sm:hidden lg:order-2"
+        className="pdp-main relative order-1 aspect-[3/4] w-full overflow-hidden rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] max-lg:hidden lg:order-2"
         style={{backgroundColor: tintHex}}
       >
         {images[activeImage] ? (
@@ -230,7 +246,7 @@ export function ProductGallery({
       </div>
 
       <div
-        className="pdp-swipe relative hidden aspect-square w-full overflow-hidden rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] max-sm:block"
+        className="pdp-swipe relative mx-auto hidden aspect-square w-full max-w-[34rem] overflow-hidden rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] max-lg:block"
         style={{backgroundColor: tintHex}}
       >
         <div
@@ -240,6 +256,11 @@ export function ProductGallery({
           onTouchStart={swipe.touchHandlers.onTouchStart}
           onTouchEnd={swipe.touchHandlers.onTouchEnd}
           onTouchCancel={swipe.touchHandlers.onTouchCancel}
+          onPointerDown={swipe.dragHandlers.onPointerDown}
+          onPointerMove={swipe.dragHandlers.onPointerMove}
+          onPointerUp={swipe.dragHandlers.onPointerUp}
+          onPointerCancel={swipe.dragHandlers.onPointerCancel}
+          onClickCapture={swipe.dragHandlers.onClickCapture}
         >
           {(swipe.loop ? [images[images.length - 1], ...images, images[0]] : images).map((url, position) => {
             const index = swipe.loop ? position - 1 : position;
@@ -265,7 +286,7 @@ export function ProductGallery({
             );
             return zoomEnabled ? (
               <button
-                key={`${position}-${url}`}
+                key={swipeKey(index, images.length, url)}
                 type="button"
                 onClick={() => setLightboxOpen(true)}
                 aria-label="Expand image"
@@ -274,7 +295,7 @@ export function ProductGallery({
                 {picture}
               </button>
             ) : (
-              <div key={`${position}-${url}`} className="pdp-swipe-slide">
+              <div key={swipeKey(index, images.length, url)} className="pdp-swipe-slide">
                 {picture}
               </div>
             );

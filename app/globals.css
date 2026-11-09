@@ -9284,3 +9284,10 @@ html.scroll-locked .home-main {
   transform: scale(1.3);
   filter: blur(22px) saturate(1.1);
 }
+
+@media (hover: hover) and (pointer: fine) {
+  .m-hero__track,
+  .pdp-swipe-track {
+    cursor: grab;
+  }
+}

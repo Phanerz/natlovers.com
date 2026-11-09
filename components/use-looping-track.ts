@@ -35,7 +35,7 @@ export function useLoopingTrack(count: number, onIndexChange: (index: number) =>
 
   const settle = useCallback(() => {
     const track = trackRef.current;
-    if (!track || !loop || touching.current) return;
+    if (!track || !loop || touching.current || drag.current?.moved) return;
     const width = track.clientWidth;
     if (!width) return;
     const raw = Math.round(track.scrollLeft / width);
@@ -103,6 +103,66 @@ export function useLoopingTrack(count: number, onIndexChange: (index: number) =>
     }
   };
 
+  // Laptop and desktop browsers in the phone layout: the strip can be dragged with the mouse, then it
+  // eases to the picture it was dragged towards. A drag never counts as a click on what is inside.
+  const drag = useRef<{x: number; left: number; moved: boolean; id: number} | null>(null);
+  const suppressClick = useRef(false);
+  const dragHandlers = {
+    onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => {
+      const track = trackRef.current;
+      if (!track || !loop || event.pointerType !== "mouse" || event.button !== 0) return;
+      drag.current = {x: event.clientX, left: track.scrollLeft, moved: false, id: event.pointerId};
+    },
+    onPointerMove: (event: React.PointerEvent<HTMLDivElement>) => {
+      const track = trackRef.current;
+      const state = drag.current;
+      if (!track || !state) return;
+      const delta = event.clientX - state.x;
+      if (!state.moved && Math.abs(delta) > 5) {
+        state.moved = true;
+        track.style.scrollSnapType = "none";
+        track.style.cursor = "grabbing";
+        try {
+          track.setPointerCapture(state.id);
+        } catch {
+          // Capture only keeps the drag going outside the strip.
+        }
+      }
+      if (state.moved) track.scrollLeft = state.left - delta;
+    },
+    onPointerUp: (event: React.PointerEvent<HTMLDivElement>) => endDrag(event.clientX),
+    onPointerCancel: (event: React.PointerEvent<HTMLDivElement>) => endDrag(event.clientX),
+    onClickCapture: (event: React.MouseEvent) => {
+      if (suppressClick.current) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }
+  };
+  function endDrag(clientX: number) {
+    const track = trackRef.current;
+    const state = drag.current;
+    drag.current = null;
+    if (!track || !state || !state.moved) return;
+    const width = Math.max(1, track.clientWidth);
+    const delta = clientX - state.x;
+    const start = Math.round(state.left / width);
+    const target = start + (delta < -40 ? 1 : delta > 40 ? -1 : 0);
+    track.style.scrollSnapType = "";
+    track.style.cursor = "";
+    try {
+      track.releasePointerCapture(state.id);
+    } catch {
+      // Already released.
+    }
+    track.scrollTo({left: target * width, behavior: "smooth"});
+    suppressClick.current = true;
+    window.setTimeout(() => {
+      suppressClick.current = false;
+    }, 0);
+    queueSettle();
+  }
+
   // Slide forward by one, wrapping round from the last to the first.
   const next = useCallback(() => {
     const track = trackRef.current;
@@ -123,5 +183,5 @@ export function useLoopingTrack(count: number, onIndexChange: (index: number) =>
     [jump, loop]
   );
 
-  return {trackRef, loop, onScroll, touchHandlers, next, showInstantly};
+  return {trackRef, loop, onScroll, touchHandlers, dragHandlers, next, showInstantly};
 }

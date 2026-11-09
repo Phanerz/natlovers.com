@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import {useLoopingTrack} from "@/components/use-looping-track";
+import {warmImages} from "@/lib/warm-images";
 import Link from "next/link";
 import {useEffect, useMemo, useRef, useState} from "react";
 import {ArrowDown, ArrowRight, Hand, Infinity as InfinityIcon, Leaf} from "lucide-react";
@@ -79,7 +80,7 @@ export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
     [slides]
   );
   const slideCount = mobileSlides.length;
-  const {trackRef, loop, onScroll: onTrackScroll, touchHandlers, next: nextSlide} = useLoopingTrack(slideCount, setSlide);
+  const {trackRef, loop, onScroll: onTrackScroll, touchHandlers, next: nextSlide, dragHandlers} = useLoopingTrack(slideCount, setSlide);
   const lastTouchRef = useRef(0);
 
   useEffect(() => {
@@ -113,6 +114,17 @@ export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
     }, 15000);
     return () => window.clearInterval(timer);
   }, [slideCount, nextSlide, trackRef]);
+
+  // Phone layout: every photograph is fetched and decoded in the background (one at a time, after the
+  // first has painted), so going round and round the loop never waits on a picture.
+  useEffect(() => {
+    if (slideCount < 2 || !window.matchMedia("(max-width: 1023px)").matches) return;
+    return warmImages(
+      mobileSlides.map((item) => item.src),
+      "100vw",
+      70
+    );
+  }, [mobileSlides, slideCount]);
 
   // Phones only: once the page is idle, fetch the pictures the fact cards use.
   useEffect(() => {
@@ -301,12 +313,18 @@ const cardTransform = useMemo(() => {
             }}
             onTouchEnd={touchHandlers.onTouchEnd}
             onTouchCancel={touchHandlers.onTouchCancel}
-            onPointerDown={() => (lastTouchRef.current = Date.now())}
+            onPointerDown={(event) => {
+              lastTouchRef.current = Date.now();
+              dragHandlers.onPointerDown(event);
+            }}
+            onPointerMove={dragHandlers.onPointerMove}
+            onPointerUp={dragHandlers.onPointerUp}
+            onPointerCancel={dragHandlers.onPointerCancel}
           >
             {(loop ? [mobileSlides[mobileSlides.length - 1], ...mobileSlides, mobileSlides[0]] : mobileSlides).map((item, position) => {
               const index = loop ? position - 1 : position;
               return (
-              <div key={`${position}-${item.src}`} className="m-hero__slide">
+              <div key={index < 0 ? "start-copy" : index >= slideCount ? "end-copy" : `slide-${index}-${item.src}`} className="m-hero__slide">
                 <Image
                   src={item.src}
                   alt={item.alt}

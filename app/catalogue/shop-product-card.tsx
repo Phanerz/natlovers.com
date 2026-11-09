@@ -138,7 +138,7 @@ export function ShopProductCard({
   const [galleryOpened, setGalleryOpened] = useState(false);
   // Phones: the photographs loop round endlessly (a swipe left from the last arrives at the first).
   const [phone, setPhone] = useState(false);
-  useEffect(() => setPhone(window.matchMedia("(max-width: 639px)").matches), []);
+  useEffect(() => setPhone(window.matchMedia("(max-width: 1023px)").matches), []);
   const swipe = useLoopingTrack(images.length, setActiveIndex, phone && galleryOpened);
   const galleryRef = swipe.trackRef;
   // On a phone the other photographs are fetched as soon as the tile comes near the screen, so a
@@ -296,15 +296,16 @@ export function ShopProductCard({
           onTouchStart={phone ? swipe.touchHandlers.onTouchStart : undefined}
           onTouchEnd={phone ? swipe.touchHandlers.onTouchEnd : undefined}
           onTouchCancel={phone ? swipe.touchHandlers.onTouchCancel : undefined}
-          onPointerDown={handleDragStart}
-          onPointerMove={handleDragMove}
-          onPointerUp={handleDragEnd}
-          onPointerCancel={handleDragEnd}
+          onPointerDown={swipe.loop ? swipe.dragHandlers.onPointerDown : handleDragStart}
+          onPointerMove={swipe.loop ? swipe.dragHandlers.onPointerMove : handleDragMove}
+          onPointerUp={swipe.loop ? swipe.dragHandlers.onPointerUp : handleDragEnd}
+          onPointerCancel={swipe.loop ? swipe.dragHandlers.onPointerCancel : handleDragEnd}
+          onClickCapture={swipe.loop ? swipe.dragHandlers.onClickCapture : undefined}
         >
           {(swipe.loop ? [images[images.length - 1], ...images, images[0]] : images).map((src, position) => {
             const index = swipe.loop ? position - 1 : position;
             return (
-            <div key={`${position}-${src}`} className="catalogue-gallery-slide">
+            <div key={index < 0 ? "copy-start" : index >= images.length ? "copy-end" : `slide-${index}-${src}`} className="catalogue-gallery-slide">
               {index === 0 || galleryOpened ? (
                 <TileImage
                   src={src}
