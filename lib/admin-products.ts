@@ -1,3 +1,4 @@
+import {resolveCapGroup, type CapGroup} from "@/lib/atelier-limits";
 import {and, desc, eq} from "drizzle-orm";
 import {z} from "zod";
 import {AdminBodyShape, assertBodyShapeExists, getBodyShapeById} from "@/lib/admin-body-shapes";
@@ -78,6 +79,13 @@ export type AdminProduct = ShopProduct & {
   // Admin-built extras (dolls, pets, per-part colours, reference photos). Null
   // when the product has none  -  every product created before this existed.
   customisation: ProductOptions | null;
+  // Atelier limits. capGroup is the group in force (the override, or the default for the type);
+  // capGroupOverride, maxPerOrder and the lead time are what was typed in admin, or null.
+  capGroup: CapGroup;
+  capGroupOverride: CapGroup | null;
+  maxPerOrder: number | null;
+  leadTimeWeeksMin: number | null;
+  leadTimeWeeksMax: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -85,6 +93,33 @@ export type AdminProduct = ShopProduct & {
 export const PRODUCT_CODE_PREFIX = "NAT-";
 
 export const MAX_PRODUCT_IMAGES = 8;
+
+// The atelier limit fields from the product form. Blank means "use the default": no override, no
+// own limit, no lead time shown.
+function positiveIntOrNull(value: FormDataEntryValue | null, label: string): number | null {
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+  const number = Number(text);
+  if (!Number.isInteger(number) || number < 1 || number > 520) {
+    throw new Error(`${label} must be a whole number of 1 or more.`);
+  }
+  return number;
+}
+
+function limitFieldsFromForm(formData: FormData) {
+  const group = String(formData.get("capGroup") ?? "");
+  const leadTimeWeeksMin = positiveIntOrNull(formData.get("leadTimeWeeksMin"), "Lead time (from)");
+  const leadTimeWeeksMax = positiveIntOrNull(formData.get("leadTimeWeeksMax"), "Lead time (to)");
+  if (leadTimeWeeksMin != null && leadTimeWeeksMax != null && leadTimeWeeksMin > leadTimeWeeksMax) {
+    throw new Error("Lead time (from) cannot be longer than lead time (to).");
+  }
+  return {
+    capGroup: group === "PIECES" || group === "ATELIER_EXTRAS" ? group : null,
+    maxPerOrder: positiveIntOrNull(formData.get("maxPerOrder"), "Max per order"),
+    leadTimeWeeksMin,
+    leadTimeWeeksMax
+  };
+}
 
 const HEX_COLOUR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
@@ -338,6 +373,11 @@ function toAdminProduct(row: typeof products.$inferSelect, bodyShape: AdminBodyS
     hasPersonalisation: row.hasPersonalisation,
     personalisationOptions: (row.personalisationOptions as string[] | null) ?? [],
     customisation: (row.customisation as ProductOptions | null) ?? null,
+    capGroup: resolveCapGroup(row.capGroup, row.productType),
+    capGroupOverride: row.capGroup === "PIECES" || row.capGroup === "ATELIER_EXTRAS" ? row.capGroup : null,
+    maxPerOrder: row.maxPerOrder,
+    leadTimeWeeksMin: row.leadTimeWeeksMin,
+    leadTimeWeeksMax: row.leadTimeWeeksMax,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString()
   };
@@ -628,6 +668,7 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       imageZoomEnabled: formData.get("imageZoomEnabled") !== "false",
       productType: parsed.productType,
       subcategory: parsed.subcategory ?? null,
+      ...limitFieldsFromForm(formData),
       materials: attributes.materials,
       bodyShapeId: attributes.bodyShapeId,
       size: attributes.size,
@@ -800,6 +841,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       ...(parsed.shortDescription !== undefined ? {shortDescription: parsed.shortDescription} : {}),
       ...(parsed.productType !== undefined ? {productType: parsed.productType} : {}),
       ...(parsed.subcategory !== undefined ? {subcategory: parsed.subcategory} : {}),
+      ...(formData.has("capGroup") ? limitFieldsFromForm(formData) : {}),
       ...(parsed.vendor !== undefined ? {vendor: parsed.vendor} : {}),
       ...(parsed.metaTitle !== undefined ? {metaTitle: parsed.metaTitle} : {}),
       ...(parsed.metaDescription !== undefined ? {metaDescription: parsed.metaDescription} : {}),

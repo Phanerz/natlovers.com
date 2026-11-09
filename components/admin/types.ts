@@ -40,6 +40,10 @@ export type AdminProduct = {
   imageZoomEnabled: boolean;
   description: string | null;
   shortDescription: string | null;
+  capGroupOverride?: "PIECES" | "ATELIER_EXTRAS" | null;
+  maxPerOrder?: number | null;
+  leadTimeWeeksMin?: number | null;
+  leadTimeWeeksMax?: number | null;
   productType: ShopProductType;
   subcategory: string | null;
   materials: ShopMaterial[];
@@ -91,6 +95,10 @@ export type ProductFormState = {
   costPriceIdr: string;
   description: string;
   shortDescription: string;
+  capGroup: string;
+  maxPerOrder: string;
+  leadTimeWeeksMin: string;
+  leadTimeWeeksMax: string;
   productType: ShopProductType;
   subcategory: string;
   // Empty string means "unassigned"  -  the grandfathered state every
@@ -243,6 +251,10 @@ export function emptyForm(): ProductFormState {
     costPriceIdr: "",
     description: "",
     shortDescription: "",
+    capGroup: "",
+    maxPerOrder: "",
+    leadTimeWeeksMin: "",
+    leadTimeWeeksMax: "",
     productType: shopProductTypes[0],
     subcategory: "",
     bodyShapeId: "",
@@ -291,6 +303,10 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     costPriceIdr: product.costPriceIdr !== null ? String(product.costPriceIdr) : "",
     description: product.description ?? "",
     shortDescription: product.shortDescription ?? "",
+    capGroup: product.capGroupOverride ?? "",
+    maxPerOrder: product.maxPerOrder != null ? String(product.maxPerOrder) : "",
+    leadTimeWeeksMin: product.leadTimeWeeksMin != null ? String(product.leadTimeWeeksMin) : "",
+    leadTimeWeeksMax: product.leadTimeWeeksMax != null ? String(product.leadTimeWeeksMax) : "",
     productType: product.productType,
     subcategory: product.subcategory ?? "",
     bodyShapeId: product.bodyShapeId ?? "",
@@ -343,6 +359,10 @@ export function buildFormData(form: ProductFormState, bodyShapes: AdminBodyShape
   formData.set("costPriceIdr", form.costPriceIdr.trim());
   formData.set("description", form.description);
   formData.set("shortDescription", form.shortDescription.trim());
+  formData.set("capGroup", form.capGroup);
+  formData.set("maxPerOrder", form.maxPerOrder.trim());
+  formData.set("leadTimeWeeksMin", form.leadTimeWeeksMin.trim());
+  formData.set("leadTimeWeeksMax", form.leadTimeWeeksMax.trim());
   formData.set("productType", form.productType);
   formData.set("subcategory", form.subcategory.trim());
 
