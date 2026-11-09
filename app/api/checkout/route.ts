@@ -1,4 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
+import {onlinePaymentsEnabled} from "@/lib/payments";
+import {ensureInvoice} from "@/lib/payments/service";
 import {isWholeQuantity} from "@/lib/quantity";
 import {logFailure} from "@/lib/safe-log";
 import {z} from "zod";
@@ -70,7 +72,8 @@ export async function POST(request: NextRequest) {
   // The customer's chosen currency decides both the price they are charged (each product has its
   // own fixed price in each currency) and which payment route the order takes.
   const currency = normalizeCurrency(body?.currency);
-  const route = paymentRouteFor(currency);
+  // With Xendit set up, rupiah goes to the hosted payment page. Without it, the manual bank flow.
+  const route = paymentRouteFor(currency, {online: onlinePaymentsEnabled()});
   const lang = langForCurrency(currency);
 
   // Whole numbers only. Anything else gets a calm message, never a database error. How many is too
@@ -93,6 +96,7 @@ export async function POST(request: NextRequest) {
 
   let bank = {bankName: "", accountName: "", accountNumber: ""};
   if (route === "idr_bank_transfer") {
+    // Manual flow only: online payment needs no bank details.
     const details = readBankDetails();
     if (!details.ok) {
       console.error(`Rupiah checkout refused: missing environment variable(s) ${details.missing.join(", ")}`);
@@ -105,8 +109,29 @@ export async function POST(request: NextRequest) {
     const {order, replayed} = await createOrder(userId, items, bank, addressResult.data, currency, {
       idempotencyKey: keyResult.data,
       customerEmail: session?.user?.email ?? null,
-      customerName: session?.user?.name ?? null
+      customerName: session?.user?.name ?? null,
+      paymentMethod: route === "idr_online" ? "online" : "bank"
     });
+
+    if (route === "idr_online") {
+      // The order is placed exactly as before, then a payment page is made for its exact stored
+      // total. If the provider is unreachable the order still stands and the customer pays from the
+      // order page, where the button makes the page again. The return URL never marks anything paid.
+      const invoice = await ensureInvoice(order.orderRef, {userId});
+      return NextResponse.json({
+        ok: true,
+        route,
+        currency,
+        replayed,
+        orderRef: order.orderRef,
+        createdAt: order.createdAt,
+        expiresAt: order.expiresAt,
+        items: order.items,
+        total: order.totalIdr,
+        paymentUrl: invoice.ok ? invoice.url : null,
+        orderUrl: `/account/orders/${encodeURIComponent(order.orderRef)}`
+      });
+    }
 
     if (route === "usd_invoice") {
       // Dollar orders take the international route. Until a provider is connected the order is

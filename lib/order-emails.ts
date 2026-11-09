@@ -21,6 +21,8 @@ export type EmailOrder = {
   customerName?: string | null;
   itemSlugs: string[];
   itemCount: number;
+  // True when the customer pays on the hosted payment page rather than by manual bank transfer.
+  payOnline?: boolean;
 };
 
 export function languageFor(currency: "IDR" | "USD"): Lang {
@@ -83,6 +85,24 @@ export async function sendOrderPlacedEmail(order: EmailOrder): Promise<void> {
   const t = emailCopy[lang];
   const amount = orderAmount(order);
   const ready = await estimatedReadyRange(order.itemSlugs, new Date(), lang);
+
+  if (order.currency === "IDR" && order.payOnline) {
+    // No bank details: the customer pays on the hosted page, reached from the order page.
+    const expiry = order.expiresAt ? formatWhen(order.expiresAt, lang) : "";
+    const html = renderEmail({
+      heading: t.placedHeading,
+      paragraphs: [expiry ? t.placedIntroOnline(expiry) : "", t.placedNextOnline, ready ? t.estimatedReady(ready) : ""],
+      rows: [
+        {label: t.orderRef, value: order.orderRef},
+        {label: t.amount, value: amount},
+        ...(expiry ? [{label: t.holdUntil, value: expiry}] : [])
+      ],
+      button: {label: t.viewOrder, url: orderUrl(order.orderRef)},
+      footer: t.footer
+    });
+    await sendEmail({to: order.customerEmail, subject: t.placedSubjectIdr(order.orderRef), html});
+    return;
+  }
 
   if (order.currency === "IDR") {
     const expiry = order.expiresAt ? formatWhen(order.expiresAt, lang) : "";

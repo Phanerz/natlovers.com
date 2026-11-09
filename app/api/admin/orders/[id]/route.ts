@@ -1,6 +1,7 @@
 import {NextResponse} from "next/server";
 import {logFailure} from "@/lib/safe-log";
-import {cancelOrder, extendOrderHold, markOrderPaid, setFulfilmentStage, setOrderTracking} from "@/lib/orders";
+import {cancelOrder, extendOrderHold, getAdminOrderById, markOrderPaid, setFulfilmentStage, setOrderTracking} from "@/lib/orders";
+import {reconcileOrder} from "@/lib/payments/service";
 import {isFulfilmentStage} from "@/lib/atelier-limits";
 import {getSession, isAdminEmail} from "@/lib/auth";
 
@@ -72,6 +73,16 @@ export async function PATCH(request: Request, {params}: {params: Promise<{id: st
         return NextResponse.json({error: "Only an order awaiting payment can be extended."}, {status: 409});
       }
       return NextResponse.json({order: result.order});
+    }
+
+    // "Check payment now": asks the payment provider about this order open payments and applies the
+    // answer exactly as a webhook would. Changes nothing if nothing was paid.
+    if (body?.action === "check_payment") {
+      if (!(await getAdminOrderById(id))) {
+        return NextResponse.json({error: "Order not found."}, {status: 404});
+      }
+      const {checked} = await reconcileOrder(id);
+      return NextResponse.json({order: await getAdminOrderById(id), checked});
     }
 
     if (body?.action === "cancel") {

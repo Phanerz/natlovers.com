@@ -29,6 +29,19 @@ type AdminOrder = {
   trackingCourier: string | null;
   trackingNumber: string | null;
   items: AdminOrderItem[];
+  payments?: AdminPayment[];
+};
+
+type AdminPayment = {
+  id: string;
+  provider: string;
+  providerRef: string | null;
+  amount: number;
+  currency: string;
+  kind: string;
+  status: string;
+  createdAt: string;
+  paidAt: string | null;
 };
 
 // Color alone never carries the status  -  every badge pairs a distinct
@@ -141,6 +154,29 @@ function TrackingForm({order, onSave, saving}: {order: AdminOrder; onSave: (cour
   );
 }
 
+// Every payment attempt for an order, as the provider has reported it. Read-only: only the provider
+// confirmation, or the audited Mark as paid button, ever changes an order status.
+function PaymentsSection({order}: {order: AdminOrder}) {
+  const rows = order.payments ?? [];
+  if (!rows.length) return null;
+  const closedButPaid = rows.some((row) => row.status === "paid") && order.status !== "paid" && order.status !== "fulfilled";
+  return (
+    <div className="mt-2 rounded-lg border border-[#e6dcc8] px-2.5 py-2 text-[11px] leading-snug text-forest-600">
+      <p className="font-semibold text-forest-700">Payments</p>
+      <ul className="mt-1 space-y-1">
+        {rows.map((row) => (
+          <li key={row.id}>
+            {row.provider} · {row.kind} · {formatIdr(row.amount)} · <strong>{row.status}</strong>
+            {row.paidAt ? <> · paid {formatDate(row.paidAt)}</> : null}
+            {row.providerRef ? <span className="block break-all text-forest-500">ref {row.providerRef}</span> : null}
+          </li>
+        ))}
+      </ul>
+      {closedButPaid ? <p className="mt-1 font-semibold text-[#8a4a1f]">Money was received for an order that is no longer awaiting payment. Check it by hand.</p> : null}
+    </div>
+  );
+}
+
 export function ManageOrdersPanel() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,6 +266,28 @@ export function ManageOrdersPanel() {
         return;
       }
       setToast({type: "success", message: `${order.orderRef} is now ${stageNames[stage] ?? stage}.`});
+      await loadOrders();
+    } catch {
+      setToast({type: "error", message: "Could not reach the server. Please try again."});
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function checkPayment(order: AdminOrder) {
+    setBusyId(order.id);
+    try {
+      const response = await fetch(`/api/admin/orders/${order.id}`, {
+        method: "PATCH",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({action: "check_payment"})
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setToast({type: "error", message: data?.error ?? "Could not check the payment."});
+        return;
+      }
+      setToast({type: "success", message: data?.checked ? `Asked the payment provider about ${order.orderRef}.` : `${order.orderRef} has no open online payment to check.`});
       await loadOrders();
     } catch {
       setToast({type: "error", message: "Could not reach the server. Please try again."});
@@ -373,6 +431,7 @@ export function ManageOrdersPanel() {
                     {order.status === "pending_transfer" && order.expiresAt ? (
                       <p className="mt-1.5 text-[11px] leading-tight text-forest-500">held until {new Date(order.expiresAt).toLocaleString("en-GB", {dateStyle: "medium", timeStyle: "short"})}</p>
                     ) : null}
+                    <PaymentsSection order={order} />
                     {order.status === "paid" || order.status === "fulfilled" ? (
                       <StageControl order={order} busy={busyId === order.id} onChange={(stage, notify) => changeStage(order, stage, notify)} onShip={() => setTrackingOpenId(order.id)} />
                     ) : null}
@@ -387,10 +446,21 @@ export function ManageOrdersPanel() {
                   <td className="py-3 pr-3 whitespace-nowrap text-forest-600">{formatDate(order.createdAt)}</td>
                   <td className="py-3 text-right">
                     <div className="flex flex-col items-end gap-1.5">
+                      {order.status === "pending_transfer" && (order.payments?.length ?? 0) > 0 ? (
+                        <button
+                          type="button"
+                          disabled={busyId === order.id}
+                          onClick={() => checkPayment(order)}
+                          className="rounded-full border border-[#d4c5ab] px-4 py-2 text-xs font-semibold text-forest-700 disabled:opacity-50"
+                        >
+                          Check payment now
+                        </button>
+                      ) : null}
                       {order.status === "pending_transfer" ? (
                         <button
                           type="button"
                           disabled={busyId === order.id}
+                          title="Manual. Recorded in the audit log with your email."
                           onClick={() => markPaid(order)}
                           className="glass-btn-primary rounded-full px-4 py-2 text-xs font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
                         >

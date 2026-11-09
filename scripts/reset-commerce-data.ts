@@ -72,6 +72,7 @@ async function main() {
       orders: await count("orders"),
       order_items: await count("order_items"),
       order_item_addons: await count("order_item_addons"),
+      payments: await count("payments"),
       cart_items: await count("cart_items"),
       wishlist_items: await count("wishlist_items")
     };
@@ -132,7 +133,7 @@ async function main() {
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const dir = path.join(process.cwd(), "backups", stamp);
     mkdirSync(dir, {recursive: true});
-    for (const table of ["orders", "order_items", "order_item_addons", "cart_items", "wishlist_items"]) {
+    for (const table of ["orders", "order_items", "order_item_addons", "payments", "cart_items", "wishlist_items"]) {
       writeFileSync(path.join(dir, `${table}.csv`), toCsv([...(await sql.unsafe(`select * from ${table}`))]));
     }
     writeFileSync(path.join(dir, "orphaned-photo-urls.txt"), [...photos].join("\n"));
@@ -140,6 +141,7 @@ async function main() {
 
     // One transaction. Orders cascade to their items; add-on lines are removed explicitly too.
     await sql.begin(async (tx) => {
+      await tx.unsafe("delete from payments");
       await tx.unsafe("delete from order_item_addons");
       await tx.unsafe("delete from order_items");
       await tx.unsafe("delete from orders");

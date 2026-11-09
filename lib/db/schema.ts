@@ -926,3 +926,55 @@ export const siteVisits = pgTable(
     createdIdx: index("site_visits_created_idx").on(table.createdAt)
   })
 ).enableRLS();
+
+// One row per payment attempt for an order. An order can have several (a later feature adds deposits
+// and balances); today only full payments are made. `provider_ref` is the provider's own id for the
+// payment (for Xendit, the invoice id); it is empty for the instant between asking the provider and
+// storing its answer, so `external_id` (our own reference, sent to the provider) is unique as well.
+// `amount` is in minor units of `currency`; rupiah has none, so it is whole rupiah.
+export const payments = pgTable(
+  "payments",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, {onDelete: "cascade"}),
+    provider: text("provider").notNull(),
+    providerRef: text("provider_ref").unique(),
+    externalId: text("external_id").notNull().unique(),
+    amount: integer("amount").notNull(),
+    currency: text("currency").notNull(),
+    // "full" today. Plain text rather than an enum so deposits can be added without a migration.
+    kind: text("kind").notNull().default("full"),
+    // pending, paid, expired or failed.
+    status: text("status").notNull().default("pending"),
+    // The hosted payment page and when it stops working, so the customer can be sent back to it.
+    checkoutUrl: text("checkout_url"),
+    expiresAt: timestamp("expires_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    paidAt: timestamp("paid_at"),
+    // The provider's event id (or a stable stand-in) for the last event applied. A repeat is ignored.
+    lastEventId: text("last_event_id")
+  },
+  (table) => [index("payments_order_id").on(table.orderId)]
+).enableRLS();
+
+// Who did something sensitive, when, and to which order. Plain snapshots (no foreign keys) so the
+// record survives whatever happens to the order or the account later.
+export const auditLog = pgTable(
+  "audit_log",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    action: text("action").notNull(),
+    actorEmail: text("actor_email").notNull(),
+    orderId: text("order_id"),
+    orderRef: text("order_ref"),
+    detail: text("detail"),
+    createdAt: timestamp("created_at").notNull().defaultNow()
+  },
+  (table) => [index("audit_log_order_id").on(table.orderId)]
+).enableRLS();

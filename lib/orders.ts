@@ -3,11 +3,12 @@ import {logFailure} from "@/lib/safe-log";
 import {INVALID_QUANTITY_MESSAGE, isWholeQuantity} from "@/lib/quantity";
 import {AddressInput, createAddress, getDefaultAddress, updateAddress} from "@/lib/addresses";
 import {clearCart} from "@/lib/cart";
-import {db, orderItems, orders, products, users} from "@/lib/db";
+import {auditLog, db, orderItems, orders, payments, products, users} from "@/lib/db";
 import type {CartConfig} from "@/lib/cart";
 import {allowedAnimals, resolveOptions, type ProductOptions} from "@/lib/product-options";
 import {addonOrderLineToResolved, getOrderAddons, resolveAddonPicks, saveOrderItemAddons, type OrderAddonRow} from "@/lib/addons";
 import type {AddonOrderLine} from "@/lib/addon-shared";
+import type {PaymentView} from "@/lib/payments/view";
 import {lineExtrasTotal, unitPrice} from "@/lib/pricing";
 import {CurrencyCode, normalizeCurrency} from "@/lib/site";
 import {
@@ -23,7 +24,7 @@ import {
   type LimitLine,
   type LimitViolation
 } from "@/lib/atelier-limits";
-import {getMonthlyUsage, lockLimits, nextMonthNumber} from "@/lib/limits";
+import {getMonthlyUsage, lockLimits, nextMonthNumber, type Executor} from "@/lib/limits";
 import {sendOrderPlacedEmail, sendOwnerNotice, sendPaymentReceivedEmail, sendStageEmail, type EmailOrder} from "@/lib/order-emails";
 
 export {orderStatusLabels} from "@/lib/order-status";
@@ -204,6 +205,9 @@ export type CreateOrderOptions = {
   idempotencyKey: string;
   customerEmail?: string | null;
   customerName?: string | null;
+  // "bank" (manual transfer, the default) or "online" (the hosted payment page). Decides which
+  // payment instructions the order email carries.
+  paymentMethod?: "bank" | "online";
 };
 
 // Prices/names are looked up server-side from the live catalogue rather
@@ -462,7 +466,7 @@ async function placeOrder(
     }))
   );
 
-  const emailOrder = toEmailOrder(view, {email: options.customerEmail ?? null, name: options.customerName ?? null});
+  const emailOrder = {...toEmailOrder(view, {email: options.customerEmail ?? null, name: options.customerName ?? null}), payOnline: options.paymentMethod === "online"};
   await safely("Order placed email", () => sendOrderPlacedEmail(emailOrder));
   await safely("Owner notice", () => sendOwnerNotice("placed", emailOrder));
 
@@ -500,6 +504,7 @@ export type AdminOrderView = OrderView & {
   confirmedAt: string | null;
   cancelledAt: string | null;
   cancelledByEmail: string | null;
+  payments: PaymentView[];
 };
 
 const adminOrderColumns = {
@@ -513,12 +518,29 @@ async function attachItemsForAdmin(rows: {order: OrderRow; customerName: string 
     return [];
   }
   const itemsByOrder = await loadItems(rows.map((row) => row.order.id));
+  const paymentRows = await db
+    .select()
+    .from(payments)
+    .where(
+      inArray(
+        payments.orderId,
+        rows.map((row) => row.order.id)
+      )
+    )
+    .orderBy(desc(payments.createdAt));
+  const paymentsByOrder = new Map<string, PaymentView[]>();
+  for (const row of paymentRows) {
+    const list = paymentsByOrder.get(row.orderId) ?? [];
+    list.push(paymentToView(row));
+    paymentsByOrder.set(row.orderId, list);
+  }
   return rows.map(({order, customerName, customerEmail}) => ({
     ...toOrderView(order, itemsByOrder.get(order.id) ?? []),
     confirmedByEmail: order.confirmedByEmail,
     confirmedAt: order.confirmedAt ? order.confirmedAt.toISOString() : null,
     cancelledAt: order.cancelledAt ? order.cancelledAt.toISOString() : null,
     cancelledByEmail: order.cancelledByEmail,
+    payments: paymentsByOrder.get(order.id) ?? [],
     customerName,
     customerEmail
   }));
@@ -534,7 +556,7 @@ export async function getAllOrdersAdmin(): Promise<AdminOrderView[]> {
   return attachItemsForAdmin(rows);
 }
 
-async function getAdminOrderById(orderId: string): Promise<AdminOrderView | null> {
+export async function getAdminOrderById(orderId: string): Promise<AdminOrderView | null> {
   const rows = await db
     .select(adminOrderColumns)
     .from(orders)
@@ -554,18 +576,28 @@ function adminToEmail(view: AdminOrderView): EmailOrder {
 // the only link back to the catalogue an order keeps. A product renamed,
 // deleted, or with an untracked slug (stock still null) is silently
 // skipped, floored at 0 rather than going negative for oversold items.
-async function decrementStockForOrder(orderId: string): Promise<void> {
-  const items = await db
+export async function decrementStockForOrder(orderId: string, executor: Executor = db): Promise<void> {
+  const items = await executor
     .select({productSlug: orderItems.productSlug, quantity: orderItems.quantity})
     .from(orderItems)
     .where(eq(orderItems.orderId, orderId));
 
   for (const item of items) {
-    await db
+    await executor
       .update(products)
       .set({stock: sql`greatest(${products.stock} - ${item.quantity}, 0)`})
       .where(and(eq(products.slug, item.productSlug), sql`${products.stock} is not null`));
   }
+}
+
+// The payment-received email and the owner notice. Used by every way an order becomes paid (an admin
+// clicking Mark as paid, the provider webhook, and the reconciliation check). Never throws.
+export async function notifyOrderPaid(orderId: string): Promise<void> {
+  const order = await getAdminOrderById(orderId);
+  if (!order) return;
+  const emailOrder = adminToEmail(order);
+  await safely("Payment received email", () => sendPaymentReceivedEmail(emailOrder));
+  await safely("Owner notice", () => sendOwnerNotice("paid", emailOrder));
 }
 
 export type MarkOrderPaidResult =
@@ -580,18 +612,23 @@ export type MarkOrderPaidResult =
 // through to the idempotent "already paid" path below. A cancelled or expired
 // order is not pending_transfer, so it is refused by the same condition.
 export async function markOrderPaid(orderId: string, adminEmail: string): Promise<MarkOrderPaidResult> {
-  const [updated] = await db
-    .update(orders)
-    .set({status: "paid", confirmedByEmail: adminEmail, confirmedAt: new Date()})
-    .where(and(eq(orders.id, orderId), eq(orders.status, "pending_transfer")))
-    .returning({id: orders.id});
+  // The update, the stock change and the audit row are one transaction: a manual "Mark as paid" can
+  // never happen without leaving a record of who did it, when, and to which order.
+  const updated = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(orders)
+      .set({status: "paid", confirmedByEmail: adminEmail, confirmedAt: new Date()})
+      .where(and(eq(orders.id, orderId), eq(orders.status, "pending_transfer")))
+      .returning({id: orders.id, orderRef: orders.orderRef});
+    if (!row) return null;
+    await tx.insert(auditLog).values({action: "mark_paid_manually", actorEmail: adminEmail, orderId: row.id, orderRef: row.orderRef});
+    await decrementStockForOrder(orderId, tx);
+    return row;
+  });
 
   if (updated) {
-    await decrementStockForOrder(orderId);
+    await notifyOrderPaid(orderId);
     const order = await getAdminOrderById(orderId);
-    const emailOrder = adminToEmail(order!);
-    await safely("Payment received email", () => sendPaymentReceivedEmail(emailOrder));
-    await safely("Owner notice", () => sendOwnerNotice("paid", emailOrder));
     return {ok: true, alreadyPaid: false, order: order!};
   }
 
@@ -734,4 +771,19 @@ export async function setOrderTracking(
     await safely("Shipped email", () => sendStageEmail(adminToEmail(order), "shipped"));
   }
   return {ok: true, order: order!};
+}
+
+function paymentToView(row: typeof payments.$inferSelect): PaymentView {
+  return {
+    id: row.id,
+    provider: row.provider,
+    providerRef: row.providerRef,
+    amount: row.amount,
+    currency: row.currency,
+    kind: row.kind,
+    status: row.status,
+    createdAt: row.createdAt.toISOString(),
+    paidAt: row.paidAt ? row.paidAt.toISOString() : null,
+    expiresAt: row.expiresAt ? row.expiresAt.toISOString() : null
+  };
 }

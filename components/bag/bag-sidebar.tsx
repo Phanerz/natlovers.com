@@ -10,7 +10,7 @@ import {useSession} from "next-auth/react";
 import {LimitNoticeBox} from "@/components/atelier/limit-notice";
 import {useScrollLock} from "@/components/use-scroll-lock";
 import {useStorefront, type LimitHit} from "@/components/storefront-provider";
-import {bagCopy, copy as atelierCopy, langForCurrency} from "@/lib/atelier-copy";
+import {bagCopy, copy as atelierCopy, langForCurrency, orderCopy} from "@/lib/atelier-copy";
 import {leadTimeRange, type LimitViolation} from "@/lib/atelier-limits";
 import {formatCurrency} from "@/lib/format";
 import {htmlToPlainText} from "@/lib/html-text";
@@ -41,6 +41,10 @@ type Placed = {
   bankName?: string;
   accountName?: string;
   accountNumber?: string;
+  // Rupiah orders paid online: the hosted payment page (null if it could not be made just now) and
+  // the order page, where the customer can pay later.
+  paymentUrl?: string | null;
+  orderUrl?: string;
 };
 
 const EMPTY_ADDRESS: Address = {recipientName: "", phone: "", street: "", city: "", province: "", postalCode: "", country: "Indonesia"};
@@ -208,6 +212,9 @@ export function BagSidebar({
         setPlaced(payload as Placed);
         setStep("done");
         onOrderPlaced();
+        if (payload.route === "idr_online" && typeof payload.paymentUrl === "string") {
+          window.location.assign(payload.paymentUrl);
+        }
         return;
       }
       // A definite answer from the server: the next attempt is a new attempt.
@@ -444,7 +451,24 @@ export function BagSidebar({
 
           {step === "done" && placed ? (
             <div>
-              {route === "idr_bank_transfer" ? (
+              {placed.route === "idr_online" ? (
+                <>
+                  <p className="bs-text">{placed.paymentUrl ? orderCopy[lang].payOpening : orderCopy[lang].paymentUnavailable}</p>
+                  <dl className="bs-dl bs-card">
+                    <div className="bs-dl-row">
+                      <dt>{t.doneRef}</dt>
+                      <dd>{placed.orderRef}</dd>
+                    </div>
+                    <div className="bs-dl-row">
+                      <dt>{t.doneAmount}</dt>
+                      <dd>{formatCurrency(placed.total, "IDR")}</dd>
+                    </div>
+                  </dl>
+                  <a className="bs-btn bs-btn-primary mt-4" href={placed.paymentUrl ?? placed.orderUrl ?? "/account"}>
+                    {placed.paymentUrl ? orderCopy[lang].payNow : t.doneRef}
+                  </a>
+                </>
+              ) : placed.route === "idr_bank_transfer" ? (
                 <>
                   <p className="bs-text">{expiryText ? t.transferBefore(expiryText) : null}</p>
                   <dl className="bs-dl bs-card">
@@ -493,12 +517,16 @@ export function BagSidebar({
                 </dl>
               )}
 
-              <h3 className="bs-heading mt-6">{t.nextTitle}</h3>
-              <ol className="bs-ol">
-                {(route === "idr_bank_transfer" ? t.nextIdr : t.nextUsd).map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ol>
+              {placed.route === "idr_online" ? null : (
+                <>
+                  <h3 className="bs-heading mt-6">{t.nextTitle}</h3>
+                  <ol className="bs-ol">
+                    {(placed.route === "idr_bank_transfer" ? t.nextIdr : t.nextUsd).map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ol>
+                </>
+              )}
               {lead ? <p className="bs-text mt-4">{atelierCopy[lang].readyIn(lead.min, lead.max)}</p> : null}
             </div>
           ) : null}

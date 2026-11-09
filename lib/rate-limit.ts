@@ -27,3 +27,22 @@ export async function allowRequest(rawKey: string, limit: number, windowMs: numb
   }
   return allowed;
 }
+
+// Failure counting, for endpoints that must never turn away valid traffic (the payment webhook).
+// Only failures are recorded, so a sender that is behaving is never counted or slowed.
+function failureKey(rawKey: string): string {
+  return createHash("sha256").update(`failure:${rawKey}`).digest("hex");
+}
+
+export async function tooManyFailures(rawKey: string, limit: number, windowMs: number): Promise<boolean> {
+  const since = new Date(Date.now() - windowMs);
+  const [row] = await db
+    .select({value: count()})
+    .from(rateLimitHits)
+    .where(and(eq(rateLimitHits.key, failureKey(rawKey)), gt(rateLimitHits.createdAt, since)));
+  return (row?.value ?? 0) >= limit;
+}
+
+export async function recordFailure(rawKey: string): Promise<void> {
+  await db.insert(rateLimitHits).values({key: failureKey(rawKey)});
+}

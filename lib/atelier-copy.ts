@@ -126,6 +126,9 @@ export const emailCopy = {
       `Please transfer the amount below by ${expiry}. After that time the order is released, and nothing has been taken from you.`,
     placedReference: "Please quote the order reference when you confirm your transfer.",
     placedNextIdr: "Once we have confirmed your payment you will receive another email, and your piece will be taken into the atelier.",
+    placedIntroOnline: (expiry: string) =>
+      `Please complete your payment on our secure payment page by ${expiry}. After that time the order is released, and nothing has been taken from you.`,
+    placedNextOnline: "Your payment is confirmed automatically. You will receive another email as soon as it arrives, and your piece will be taken into the atelier.",
     placedIntroUsd: (amount: string) => `We have received your order for ${amount}. There is nothing more you need to do for now.`,
     placedNextUsd:
       "What happens next: we will email you an invoice in US dollars for exactly this amount, payable by PayPal or international bank transfer. Your order is held while you wait for it. Once payment is confirmed, we begin making your piece.",
@@ -176,6 +179,9 @@ export const emailCopy = {
       `Mohon transfer jumlah di bawah ini sebelum ${expiry}. Setelah waktu tersebut pesanan dilepas, dan tidak ada yang diambil dari Anda.`,
     placedReference: "Mohon cantumkan referensi pesanan saat mengonfirmasi transfer Anda.",
     placedNextIdr: "Setelah pembayaran kami konfirmasi, Anda akan menerima email lagi, dan karya Anda akan kami ambil ke dalam atelier.",
+    placedIntroOnline: (expiry: string) =>
+      `Mohon selesaikan pembayaran Anda di halaman pembayaran aman kami sebelum ${expiry}. Setelah waktu itu pesanan dilepas, dan tidak ada yang ditagihkan kepada Anda.`,
+    placedNextOnline: "Pembayaran Anda dikonfirmasi secara otomatis. Anda akan menerima email lagi begitu pembayaran masuk, dan karya Anda akan kami ambil ke dalam atelier.",
     placedIntroUsd: (amount: string) => `Kami telah menerima pesanan Anda sebesar ${amount}.`,
     placedNextUsd:
       "Selanjutnya: kami akan mengirim invoice dalam dolar AS untuk jumlah ini, yang dapat dibayar melalui PayPal atau transfer bank internasional. Pesanan Anda ditahan selama Anda menunggunya.",
@@ -224,7 +230,12 @@ export const orderCopy = {
     cancelledNote: "This order has been cancelled.",
     awaiting: "Awaiting payment",
     heldUntil: (when: string) => `Held until ${when}.`,
-    usdAwaiting: "We will email you an invoice in US dollars for this order."
+    usdAwaiting: "We will email you an invoice in US dollars for this order.",
+    payNow: "Pay now",
+    payOpening: "Opening the payment page...",
+    paymentReturned: "Thank you. We are confirming your payment. This page updates once it arrives.",
+    paymentFailed: "The payment did not go through. Nothing has been taken. You can try again below.",
+    paymentUnavailable: "The payment page is not available just now. Please try again in a moment."
   },
   id: {
     progressLabel: "Perkembangan pesanan",
@@ -235,7 +246,12 @@ export const orderCopy = {
     cancelledNote: "Pesanan ini telah dibatalkan.",
     awaiting: "Menunggu pembayaran",
     heldUntil: (when: string) => `Ditahan hingga ${when}.`,
-    usdAwaiting: "Kami akan mengirim invoice dalam dolar AS untuk pesanan ini melalui email."
+    usdAwaiting: "Kami akan mengirim invoice dalam dolar AS untuk pesanan ini melalui email.",
+    payNow: "Bayar sekarang",
+    payOpening: "Membuka halaman pembayaran...",
+    paymentReturned: "Terima kasih. Kami sedang mengonfirmasi pembayaran Anda. Halaman ini diperbarui begitu pembayaran masuk.",
+    paymentFailed: "Pembayaran tidak berhasil. Tidak ada yang ditagihkan. Anda dapat mencoba lagi di bawah.",
+    paymentUnavailable: "Halaman pembayaran sedang tidak tersedia. Mohon coba lagi sebentar lagi."
   }
 } as const;
 
