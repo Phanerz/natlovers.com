@@ -1,0 +1,474 @@
+/* Atelier tokens: shared by the bag and checkout sidebar, the waiting list and the limit notes.
+   Every text pair is at least 4.5:1 and every control edge at least 3:1, in both themes
+   (computed in the Part 6 report). Warm throughout, no cold greys, no glass except the primary
+   button. */
+:root {
+  --at-bg: #f3ecdc;
+  --at-surface: #fbf6ea;
+  --at-ink: #20241b;
+  --at-soft: #464d3b;
+  --at-muted: #595643;
+  --at-line: #d8cfb8;
+  --at-edge: #7a7258;
+  --at-accent: #2f3f2d;
+  --at-danger: #8f2f1c;
+  --at-btn-top: #24351f;
+  --at-btn-bottom: #101c12;
+  --at-btn-ink: #f7f0de;
+  --at-shadow: rgba(12, 22, 13, 0.16);
+}
+
+.dark {
+  --at-bg: #232b21;
+  --at-surface: #2c3629;
+  --at-ink: #f2ead7;
+  --at-soft: #d9d0b8;
+  --at-muted: #b9b098;
+  --at-line: #3d4839;
+  --at-edge: #8d9984;
+  --at-accent: #e6dbbd;
+  --at-danger: #f2a894;
+  --at-btn-top: #efe5c9;
+  --at-btn-bottom: #d5c7a0;
+  --at-btn-ink: #1d2418;
+  --at-shadow: rgba(0, 0, 0, 0.35);
+}
+
+/* ---------- limit notes and the waiting list ---------- */
+.atelier-notice {
+  position: relative;
+  border: 1px solid var(--at-line);
+  border-radius: 12px;
+  background: var(--at-surface);
+  padding: 0.9rem 2.2rem 0.9rem 1rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--at-ink);
+}
+.atelier-notice-link,
+.atelier-link {
+  color: var(--at-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.atelier-notice-dismiss {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--at-soft);
+}
+.atelier-wl-open {
+  border: 1px solid var(--at-edge);
+  border-radius: 8px;
+  background: var(--at-surface);
+  padding: 0.6rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--at-ink);
+}
+.atelier-wl-intro {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--at-soft);
+}
+.atelier-wl-label {
+  display: block;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--at-ink);
+}
+.atelier-wl-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+.atelier-wl-input,
+.bs-input {
+  min-width: 0;
+  flex: 1 1 12rem;
+  border: 1px solid var(--at-edge);
+  border-radius: 8px;
+  background: var(--at-surface);
+  padding: 0.65rem 0.85rem;
+  font-size: 1rem;
+  line-height: 1.4;
+  color: var(--at-ink);
+}
+.atelier-wl-input::placeholder,
+.bs-input::placeholder {
+  color: var(--at-muted);
+}
+.atelier-wl-submit {
+  border: 1px solid var(--at-edge);
+  border-radius: 8px;
+  background: var(--at-surface);
+  padding: 0.65rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--at-ink);
+}
+.atelier-wl-submit:disabled {
+  opacity: 0.65;
+}
+.atelier-wl-error,
+.bs-error {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--at-danger);
+}
+.atelier-wl-done {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--at-ink);
+}
+.atelier-small {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--at-soft);
+}
+.atelier-wl-open:focus-visible,
+.atelier-wl-input:focus-visible,
+.atelier-wl-submit:focus-visible,
+.atelier-notice-link:focus-visible,
+.atelier-notice-dismiss:focus-visible,
+.bs-input:focus-visible,
+.bs-btn:focus-visible,
+.bs-icon:focus-visible,
+.bs-link:focus-visible,
+.bs-copy:focus-visible,
+.bs-step-back:focus-visible {
+  outline: 2px solid var(--at-accent);
+  outline-offset: 2px;
+}
+
+/* ---------- the bag and checkout sidebar ---------- */
+.bs-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(10, 16, 10, 0.5);
+  overscroll-behavior: contain;
+}
+.bs-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 30rem;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--at-bg);
+  color: var(--at-ink);
+  border-left: 1px solid var(--at-line);
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.06);
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .bs-panel {
+    transition: none;
+  }
+}
+.bs-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: max(1rem, env(safe-area-inset-top)) 1.25rem 0.5rem;
+}
+.bs-title {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.625rem;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--at-ink);
+}
+.bs-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--at-edge);
+  border-radius: 9999px;
+  background: var(--at-surface);
+  color: var(--at-ink);
+}
+.bs-steps {
+  flex: none;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.25rem 1.25rem 0.75rem;
+  margin: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  color: var(--at-muted);
+}
+.bs-steps li {
+  flex: 1;
+  border-top: 2px solid var(--at-line);
+  padding-top: 0.4rem;
+}
+.bs-steps li[aria-current="step"] {
+  border-top-color: var(--at-accent);
+  color: var(--at-ink);
+  font-weight: 600;
+}
+.bs-steps li[data-done="true"] {
+  border-top-color: var(--at-soft);
+  color: var(--at-soft);
+}
+.bs-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.5rem 1.25rem 1.25rem;
+}
+.bs-foot {
+  flex: none;
+  border-top: 1px solid var(--at-line);
+  background: var(--at-bg);
+  padding: 0.85rem 1.25rem max(0.85rem, env(safe-area-inset-bottom));
+}
+.bs-total-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.9375rem;
+  color: var(--at-soft);
+}
+.bs-total-row strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: var(--at-ink);
+}
+.bs-actions {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.bs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.9rem;
+  border-radius: 9999px;
+  padding: 0.7rem 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-align: center;
+}
+.bs-btn-primary {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(165deg, var(--at-btn-top) 0%, var(--at-btn-bottom) 90%);
+  color: var(--at-btn-ink);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3), 0 5px 12px var(--at-shadow);
+}
+.bs-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.bs-btn-quiet {
+  border: 1px solid var(--at-edge);
+  background: transparent;
+  color: var(--at-ink);
+  font-weight: 500;
+}
+.bs-link {
+  color: var(--at-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.bs-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bs-item {
+  display: grid;
+  grid-template-columns: 5rem 1fr;
+  gap: 0.9rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--at-line);
+}
+.bs-item:first-child {
+  border-top: 0;
+}
+.bs-thumb {
+  position: relative;
+  width: 5rem;
+  height: 5rem;
+  overflow: hidden;
+  border: 1px solid var(--at-line);
+  border-radius: 12px;
+  background: var(--at-surface);
+}
+.bs-name {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  color: var(--at-ink);
+  text-align: left;
+}
+.bs-detail {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--at-muted);
+}
+.bs-item-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+}
+.bs-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--at-edge);
+  border-radius: 9999px;
+  background: var(--at-surface);
+}
+.bs-stepper button {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  color: var(--at-ink);
+}
+.bs-stepper button:disabled {
+  opacity: 0.4;
+}
+.bs-stepper button:focus-visible {
+  outline: 2px solid var(--at-accent);
+  outline-offset: 1px;
+}
+.bs-stepper output {
+  min-width: 1.75rem;
+  text-align: center;
+  font-size: 0.9375rem;
+  color: var(--at-ink);
+}
+.bs-price {
+  font-size: 0.9375rem;
+  color: var(--at-ink);
+}
+.bs-field {
+  display: block;
+  margin-top: 0.85rem;
+}
+.bs-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--at-ink);
+}
+.bs-field .bs-input {
+  width: 100%;
+  flex: none;
+}
+.bs-input[aria-invalid="true"] {
+  border-color: var(--at-danger);
+}
+.bs-card {
+  border: 1px solid var(--at-line);
+  border-radius: 12px;
+  background: var(--at-surface);
+  padding: 0.9rem 1rem;
+}
+.bs-summary summary {
+  cursor: pointer;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--at-ink);
+}
+.bs-summary-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--at-soft);
+}
+.bs-heading {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.375rem;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--at-ink);
+}
+.bs-text {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--at-soft);
+}
+.bs-dl {
+  margin: 0.75rem 0 0;
+}
+.bs-dl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--at-line);
+  font-size: 0.9375rem;
+}
+.bs-dl-row:first-child {
+  border-top: 0;
+}
+.bs-dl dt {
+  color: var(--at-muted);
+}
+.bs-dl dd {
+  margin: 0;
+  text-align: right;
+  color: var(--at-ink);
+  word-break: break-word;
+}
+.bs-copy {
+  border: 1px solid var(--at-edge);
+  border-radius: 8px;
+  background: var(--at-surface);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--at-ink);
+  white-space: nowrap;
+}
+.bs-ol {
+  list-style: decimal;
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--at-soft);
+}
+.bs-ol li + li {
+  margin-top: 0.35rem;
+}
+.bs-step-back {
+  font-size: 0.9rem;
+  color: var(--at-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.bs-empty {
+  padding: 2.5rem 0;
+  text-align: center;
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import {useMonthFull} from "@/components/atelier/product-atelier-notes";
 import {useEffect, useRef, useState} from "react";
 import {lineExtrasTotal} from "@/lib/pricing";
 import {useSitePreferences} from "@/components/site-preferences-provider";
@@ -103,6 +104,7 @@ export function ProductDetailView({
   // The same Add to Bag as the one in the purchase column, repeated under the note.
   const {addToCart} = useStorefront();
   const [addedNotice, setAddedNotice] = useState(false);
+  const monthFull = useMonthFull(product);
   const outOfStock = product.soldOut || (product.stock !== null && product.stock <= 0);
   function handleAddToBag() {
     addToCart(product.slug, 1, selection ?? null);
@@ -137,7 +139,7 @@ export function ProductDetailView({
               }
               onAddToBag={handleAddToBag}
               addToBagLabel={outOfStock ? "Sold Out" : addedNotice ? "Added to Bag" : "Add to Bag"}
-              addToBagDisabled={outOfStock}
+              addToBagDisabled={outOfStock || monthFull}
             />
           ) : hasCustomisation ? (
             <ProductCustomizer
@@ -154,7 +156,7 @@ export function ProductDetailView({
               onPersonalisationNoteChange={setPersonalisationNote}
               onAddToBag={handleAddToBag}
               addToBagLabel={outOfStock ? "Sold Out" : addedNotice ? "Added to Bag" : "Add to Bag"}
-              addToBagDisabled={outOfStock}
+              addToBagDisabled={outOfStock || monthFull}
             />
           ) : null
         }
