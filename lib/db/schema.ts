@@ -206,6 +206,13 @@ export const products = pgTable(
     // updateProduct), since the live row now supersedes it. Never read by
     // any public/customer-facing query.
     draftData: jsonb("draft_data"),
+    // Atelier limits (see lib/limits.ts). capGroup is PIECES or ATELIER_EXTRAS; null means "use the
+    // default for this product type". maxPerOrder null means "use the group's per-order limit".
+    // The lead time range, in weeks, is optional: nothing is shown on the storefront unless set.
+    capGroup: text("cap_group"),
+    maxPerOrder: integer("max_per_order"),
+    leadTimeWeeksMin: integer("lead_time_weeks_min"),
+    leadTimeWeeksMax: integer("lead_time_weeks_max"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow()
   },
@@ -418,8 +425,19 @@ export const orders = pgTable("orders", {
   shippingCity: text("shipping_city").notNull(),
   shippingProvince: text("shipping_province"),
   shippingPostalCode: text("shipping_postal_code").notNull(),
-  shippingCountry: text("shipping_country").notNull()
-}).enableRLS();
+  shippingCountry: text("shipping_country").notNull(),
+  // A bank-transfer order is held for 24 hours; after that the expiry job marks it expired and its
+  // slots are released. Null for orders placed before this existed (they never expire).
+  expiresAt: timestamp("expires_at"),
+  // Where the piece is in the atelier, separate from payment status: received, in_atelier,
+  // finishing, shipped.
+  fulfilmentStage: text("fulfilment_stage").notNull().default("received"),
+  fulfilmentStageUpdatedAt: timestamp("fulfilment_stage_updated_at"),
+  cancelledAt: timestamp("cancelled_at"),
+  cancelledByEmail: text("cancelled_by_email"),
+  // Client-generated key for one checkout attempt; a repeated submit returns the same order.
+  idempotencyKey: text("idempotency_key")
+}, (table) => [uniqueIndex("orders_user_idempotency_key").on(table.userId, table.idempotencyKey)]).enableRLS();
 
 // Snapshots product name/price at order time  -  deliberately not a foreign
 // key to `products`, so an order stays accurate even if the product is
@@ -436,6 +454,8 @@ export const orderItems = pgTable("order_items", {
   priceIdr: integer("price_idr").notNull(),
   priceUsdCents: integer("price_usd_cents"),
   quantity: integer("quantity").notNull(),
+  // The limit group this line counted against when it was ordered (PIECES or ATELIER_EXTRAS).
+  capGroup: text("cap_group"),
   // Snapshot of the cart line's config at checkout time, same snapshot
   // philosophy as productName/priceIdr above  -  what was actually ordered
   // must stay legible even if the cart line it came from is long gone.
@@ -610,9 +630,63 @@ export const storeSettings = pgTable("store_settings", {
   // Optional override for the message shown in place of the studio form.
   // Null falls back to the default copy in lib/custom-studio.ts.
   customIntakePausedMessage: text("custom_intake_paused_message"),
+  // Atelier limits, editable on the admin Atelier page. The extras group has no monthly cap unless
+  // one is set. wholesaleContactUrl is where "get in touch" links go; empty until set.
+  piecesMonthlyCap: integer("pieces_monthly_cap").notNull().default(50),
+  piecesMaxPerOrder: integer("pieces_max_per_order").notNull().default(5),
+  extrasMaxPerOrder: integer("extras_max_per_order").notNull().default(10),
+  extrasMonthlyCap: integer("extras_monthly_cap"),
+  wholesaleContactUrl: text("wholesale_contact_url"),
   updatedByEmail: text("updated_by_email"),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 }).enableRLS();
+
+// Who changed which limit, when, from what to what.
+export const limitChanges = pgTable("limit_changes", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  setting: text("setting").notNull(),
+  oldValue: text("old_value"),
+  newValue: text("new_value"),
+  changedByEmail: text("changed_by_email").notNull(),
+  changedAt: timestamp("changed_at").notNull().defaultNow()
+}).enableRLS();
+
+// Email-only waiting list for when the atelier's monthly limit is reached.
+export const waitingList = pgTable(
+  "waiting_list",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    email: text("email").notNull(),
+    // "id" or "en": the language the person saw the form in, used for the emails sent to them.
+    language: text("language").notNull().default("en"),
+    unsubscribeToken: text("unsubscribe_token").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    notifiedAt: timestamp("notified_at"),
+    unsubscribedAt: timestamp("unsubscribed_at")
+  },
+  (table) => [
+    uniqueIndex("waiting_list_email_unique").on(table.email),
+    uniqueIndex("waiting_list_unsubscribe_token_unique").on(table.unsubscribeToken)
+  ]
+).enableRLS();
+
+// A tiny hit log for rate limiting public forms (the waiting list). The key is a hash, never a raw
+// address.
+export const rateLimitHits = pgTable(
+  "rate_limit_hits",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    key: text("key").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow()
+  },
+  (table) => [index("rate_limit_hits_key_created").on(table.key, table.createdAt)]
+).enableRLS();
 
 // The public /outlets page's studio + stockist list. type is plain text
 // rather than a Postgres enum, matching bodyShapes.shapeType's own pattern

@@ -6,6 +6,7 @@ import {usePathname, useSearchParams} from "next/navigation";
 import {useEffect, useState} from "react";
 import {signOut} from "next-auth/react";
 import {
+  Gauge,
   Boxes,
   ChevronUp,
   GalleryHorizontal,
@@ -192,6 +193,10 @@ export function AdminSidebar() {
               ))}
             </div>
           </div>
+
+          <NavLink href={"/mimin/atelier" as Route} active={pathname === "/mimin/atelier"} icon={Gauge}>
+            Atelier
+          </NavLink>
 
           <NavLink href="/mimin/stock" active={pathname === "/mimin/stock"} icon={Warehouse}>
             Stock &amp; Inventory

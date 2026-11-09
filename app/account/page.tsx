@@ -388,7 +388,7 @@ function AccountContent() {
             ) : orders.length === 0 ? (
               <EmptyState
                 title="Orders & purchases"
-                body="No orders yet. Pieces you buy through bank-transfer checkout will show up here."
+                body="No orders yet. Pieces you order will show up here."
               />
             ) : (
               <div className="space-y-4">
@@ -403,6 +403,10 @@ function AccountContent() {
                     </div>
                     <p className="mt-1 text-xs text-forest-500">
                       {new Date(order.createdAt).toLocaleDateString(undefined, {dateStyle: "medium"})}
+                      {" · "}
+                      <Link href={`/account/orders/${encodeURIComponent(order.orderRef)}` as Route} className="underline underline-offset-2">
+                        View order
+                      </Link>
                     </p>
                     <div className="mt-3 space-y-1.5 border-t border-[#e4d9c1] pt-3">
                       {order.items.map((item) => (

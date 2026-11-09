@@ -1,4 +1,6 @@
-import {and, desc, eq, inArray, sql} from "drizzle-orm";
+import {and, count, desc, eq, gt, inArray, isNotNull, isNull, lte, or, sql} from "drizzle-orm";
+import {logFailure} from "@/lib/safe-log";
+import {INVALID_QUANTITY_MESSAGE, isWholeQuantity} from "@/lib/quantity";
 import {AddressInput, createAddress, getDefaultAddress, updateAddress} from "@/lib/addresses";
 import {clearCart} from "@/lib/cart";
 import {db, orderItems, orders, products, users} from "@/lib/db";
@@ -8,6 +10,21 @@ import {addonOrderLineToResolved, getOrderAddons, resolveAddonPicks, saveOrderIt
 import type {AddonOrderLine} from "@/lib/addon-shared";
 import {lineExtrasTotal, unitPrice} from "@/lib/pricing";
 import {CurrencyCode, normalizeCurrency} from "@/lib/site";
+import {
+  checkAll,
+  orderExpiry,
+  extendedExpiry,
+  extensionVerdict,
+  checkOpenOrders,
+  productMaxPerOrder,
+  resolveCapGroup,
+  type CapGroup,
+  type FulfilmentStage,
+  type LimitLine,
+  type LimitViolation
+} from "@/lib/atelier-limits";
+import {getMonthlyUsage, lockLimits, nextMonthNumber} from "@/lib/limits";
+import {sendOrderPlacedEmail, sendOwnerNotice, sendPaymentReceivedEmail, sendStageEmail, type EmailOrder} from "@/lib/order-emails";
 
 export {orderStatusLabels} from "@/lib/order-status";
 
@@ -38,12 +55,156 @@ export type OrderView = {
   accountName: string;
   accountNumber: string;
   createdAt: string;
+  // When an unpaid bank-transfer order is released. Null for dollar orders and for older orders.
+  expiresAt: string | null;
+  // Where the piece is in the atelier: received, in_atelier, finishing, shipped.
+  fulfilmentStage: string;
+  trackingCourier: string | null;
+  trackingNumber: string | null;
   items: OrderItemView[];
 };
+
+// Raised when an order would break a limit. Carries the rule that was hit so the checkout can say
+// it in the customer's own language.
+// Raised when the account already has the most open unpaid orders it may have.
+// A refusal caused by the request itself (nothing to order, a bad quantity). Its message is safe to
+// show to the customer; no other error message ever is.
+export class OrderInputError extends Error {}
+
+export class OpenOrdersError extends Error {
+  constructor() {
+    super("Too many open orders");
+  }
+}
+
+export class LimitError extends Error {
+  violation: LimitViolation;
+  nextMonth: number;
+  constructor(violation: LimitViolation, nextMonth: number) {
+    super(`Limit reached: ${violation.code}`);
+    this.violation = violation;
+    this.nextMonth = nextMonth;
+  }
+}
 
 function generateOrderRef(): string {
   return `NAT-${Date.now().toString().slice(-8)}`;
 }
+
+type OrderRow = typeof orders.$inferSelect;
+
+function toOrderView(order: OrderRow, items: OrderItemView[]): OrderView {
+  return {
+    id: order.id,
+    orderRef: order.orderRef,
+    status: order.status,
+    totalIdr: order.totalIdr,
+    currency: normalizeCurrency(order.currency),
+    totalUsdCents: order.totalUsdCents,
+    bankName: order.bankName,
+    accountName: order.accountName,
+    accountNumber: order.accountNumber,
+    createdAt: order.createdAt.toISOString(),
+    expiresAt: order.expiresAt ? order.expiresAt.toISOString() : null,
+    fulfilmentStage: order.fulfilmentStage,
+    trackingCourier: order.trackingCourier,
+    trackingNumber: order.trackingNumber,
+    items
+  };
+}
+
+async function loadItems(orderIds: string[]): Promise<Map<string, OrderItemView[]>> {
+  const itemsByOrder = new Map<string, OrderItemView[]>();
+  if (!orderIds.length) return itemsByOrder;
+  const itemRows = await db.select().from(orderItems).where(inArray(orderItems.orderId, orderIds));
+  const addonsByItem = await getOrderAddons(itemRows.map((row) => row.id));
+  for (const row of itemRows) {
+    const list = itemsByOrder.get(row.orderId) ?? [];
+    list.push({
+      id: row.id,
+      addons: addonsByItem.get(row.id) ?? [],
+      slug: row.productSlug,
+      name: row.productName,
+      priceIdr: row.priceIdr,
+      priceUsdCents: row.priceUsdCents,
+      quantity: row.quantity,
+      config: row.config as CartConfig | null
+    });
+    itemsByOrder.set(row.orderId, list);
+  }
+  return itemsByOrder;
+}
+
+function toEmailOrder(view: OrderView, customer: {email: string | null; name?: string | null}): EmailOrder {
+  return {
+    orderRef: view.orderRef,
+    currency: view.currency,
+    totalIdr: view.totalIdr,
+    totalUsdCents: view.totalUsdCents,
+    bankName: view.bankName,
+    accountName: view.accountName,
+    accountNumber: view.accountNumber,
+    expiresAt: view.expiresAt ? new Date(view.expiresAt) : null,
+    trackingCourier: view.trackingCourier,
+    trackingNumber: view.trackingNumber,
+    customerEmail: customer.email,
+    customerName: customer.name ?? null,
+    itemSlugs: view.items.map((item) => item.slug),
+    itemCount: view.items.reduce((sum, item) => sum + item.quantity, 0)
+  };
+}
+
+// An email must never block or undo the action that caused it.
+async function safely(label: string, work: () => Promise<void>): Promise<void> {
+  try {
+    await work();
+  } catch (error) {
+    logFailure(`${label} failed`, error);
+  }
+}
+
+type PricedLine = {
+  id: string;
+  productSlug: string;
+  productName: string;
+  priceIdr: number;
+  priceUsdCents: number | null;
+  quantity: number;
+  config: CartConfig | null;
+  addons: AddonOrderLine[];
+  group: CapGroup;
+  ownMaxPerOrder: number | null;
+};
+
+// Merges lines for the same product, so a product's own per-order limit applies to its whole
+// quantity however the lines were sent.
+function toLimitLines(lines: PricedLine[], limits: Parameters<typeof productMaxPerOrder>[2]): LimitLine[] {
+  const bySlug = new Map<string, LimitLine>();
+  for (const line of lines) {
+    const existing = bySlug.get(line.productSlug);
+    const addonCount = line.addons.length;
+    if (existing) {
+      existing.quantity += line.quantity;
+      existing.addonCount = (existing.addonCount ?? 0) + addonCount;
+      continue;
+    }
+    bySlug.set(line.productSlug, {
+      slug: line.productSlug,
+      quantity: line.quantity,
+      group: line.group,
+      maxPerOrder: productMaxPerOrder({maxPerOrder: line.ownMaxPerOrder}, line.group, limits),
+      addonCount
+    });
+  }
+  return [...bySlug.values()];
+}
+
+export type CreateOrderOptions = {
+  // One key per checkout attempt. A repeated submit with the same key returns the same order.
+  idempotencyKey: string;
+  customerEmail?: string | null;
+  customerName?: string | null;
+};
 
 // Prices/names are looked up server-side from the live catalogue rather
 // than trusted from the client request, so a tampered request can't submit
@@ -52,23 +213,55 @@ function generateOrderRef(): string {
 // The shipping address gets the same snapshot treatment: what's stored on
 // the order is a frozen copy, independent of the reusable `addresses` row
 // it's also saved to below (for next time's checkout to prefill from).
+//
+// The limits are checked again here, inside one transaction that first locks the settings row, so
+// two checkouts racing for the last slot are served one after the other.
 export async function createOrder(
   userId: string,
   requestedItems: {slug: string; quantity: number; config?: CartConfig | null}[],
   bank: {bankName: string; accountName: string; accountNumber: string},
   address: AddressInput,
-  currencyInput: CurrencyCode = "IDR"
-): Promise<OrderView> {
+  currencyInput: CurrencyCode = "IDR",
+  options: CreateOrderOptions
+): Promise<{order: OrderView; replayed: boolean}> {
+  const trace: {orderRef?: string} = {};
+  try {
+    return await placeOrder(trace, userId, requestedItems, bank, address, currencyInput, options);
+  } catch (error) {
+    // Expected refusals are not failures. Anything else is logged by order reference and error
+    // type only: a database error can quote the name, phone and street it was given.
+    if (!(error instanceof OrderInputError || error instanceof OpenOrdersError || error instanceof LimitError)) {
+      logFailure("Order failed", error, trace.orderRef);
+    }
+    throw error;
+  }
+}
+
+async function placeOrder(
+  trace: {orderRef?: string},
+  userId: string,
+  requestedItems: {slug: string; quantity: number; config?: CartConfig | null}[],
+  bank: {bankName: string; accountName: string; accountNumber: string},
+  address: AddressInput,
+  currencyInput: CurrencyCode,
+  options: CreateOrderOptions
+): Promise<{order: OrderView; replayed: boolean}> {
   const currency = normalizeCurrency(currencyInput);
   const slugs = requestedItems.map((item) => item.slug);
   if (!slugs.length) {
-    throw new Error("No items to order.");
+    throw new OrderInputError("No items to order.");
+  }
+  if (!requestedItems.every((item) => isWholeQuantity(item.quantity))) {
+    throw new OrderInputError(INVALID_QUANTITY_MESSAGE);
   }
 
   const catalogue = await db
     .select({
       slug: products.slug,
       name: products.name,
+      productType: products.productType,
+      capGroup: products.capGroup,
+      maxPerOrder: products.maxPerOrder,
       priceIdr: products.priceIdr,
       priceUsdCents: products.priceUsdCents,
       customisation: products.customisation,
@@ -78,16 +271,7 @@ export async function createOrder(
     .where(inArray(products.slug, slugs));
   const catalogueBySlug = new Map(catalogue.map((row) => [row.slug, row]));
 
-  const lineItems: {
-    id: string;
-    productSlug: string;
-    productName: string;
-    priceIdr: number;
-    priceUsdCents: number | null;
-    quantity: number;
-    config: CartConfig | null;
-    addons: AddonOrderLine[];
-  }[] = [];
+  const lineItems: PricedLine[] = [];
 
   for (const requested of requestedItems) {
     const product = catalogueBySlug.get(requested.slug);
@@ -148,76 +332,125 @@ export async function createOrder(
       priceUsdCents,
       quantity: requested.quantity,
       config,
-      addons
+      addons,
+      group: resolveCapGroup(product.capGroup, product.productType),
+      ownMaxPerOrder: product.maxPerOrder
     });
   }
 
   if (!lineItems.length) {
-    throw new Error("None of the requested items are available.");
+    throw new OrderInputError("None of the requested items are available.");
   }
 
   const totalIdr = lineItems.reduce((sum, item) => sum + item.priceIdr * item.quantity, 0);
   const totalUsdCents = currency === "USD" ? lineItems.reduce((sum, item) => sum + (item.priceUsdCents ?? 0) * item.quantity, 0) : null;
   const orderRef = generateOrderRef();
+  trace.orderRef = orderRef;
+  const createdAt = new Date();
+  // A bank-transfer order is held for 24 hours and a dollar order, which waits for a manual
+  // invoice, for 72 hours. An admin can extend a hold. The expiry job then releases it.
+  const expiresAt = orderExpiry(createdAt, currency);
 
-  const [order] = await db
-    .insert(orders)
-    .values({
-      userId,
-      orderRef,
-      totalIdr,
-      currency,
-      totalUsdCents,
-      bankName: bank.bankName,
-      accountName: bank.accountName,
-      accountNumber: bank.accountNumber,
-      shippingRecipientName: address.recipientName,
-      shippingPhone: address.phone,
-      shippingStreet: address.street,
-      shippingCity: address.city,
-      shippingProvince: address.province || null,
-      shippingPostalCode: address.postalCode,
-      shippingCountry: address.country
-    })
-    .returning();
+  const result = await db.transaction(async (tx) => {
+    // 1. Serialise every order placement behind one row lock.
+    const limits = await lockLimits(tx);
 
-  await db.insert(orderItems).values(
-    lineItems.map(({addons: _addons, ...item}) => {
-      void _addons;
-      return {...item, orderId: order.id};
-    })
-  );
-  for (const item of lineItems) {
-    await saveOrderItemAddons(item.id, item.addons);
+    // 2. A repeated submit of the same checkout returns the order already made.
+    const [existing] = await tx
+      .select()
+      .from(orders)
+      .where(and(eq(orders.userId, userId), eq(orders.idempotencyKey, options.idempotencyKey)));
+    if (existing) {
+      return {replayedOrderId: existing.id as string, created: undefined};
+    }
+
+    // The account may have only a few open unpaid orders at once.
+    const [openRow] = await tx
+      .select({value: count()})
+      .from(orders)
+      .where(
+        and(
+          eq(orders.userId, userId),
+          eq(orders.status, "pending_transfer"),
+          or(isNull(orders.expiresAt), gt(orders.expiresAt, createdAt))
+        )
+      );
+    if (!checkOpenOrders(openRow?.value ?? 0)) {
+      throw new OpenOrdersError();
+    }
+
+    // 3. The limits, against what the month has used so far. Inside the lock, so the answer holds.
+    const used = await getMonthlyUsage(tx, createdAt);
+    const violation = checkAll(toLimitLines(lineItems, limits), limits, used);
+    if (violation) {
+      throw new LimitError(violation, nextMonthNumber(createdAt));
+    }
+
+    const [order] = await tx
+      .insert(orders)
+      .values({
+        userId,
+        orderRef,
+        totalIdr,
+        currency,
+        totalUsdCents,
+        bankName: bank.bankName,
+        accountName: bank.accountName,
+        accountNumber: bank.accountNumber,
+        shippingRecipientName: address.recipientName,
+        shippingPhone: address.phone,
+        shippingStreet: address.street,
+        shippingCity: address.city,
+        shippingProvince: address.province || null,
+        shippingPostalCode: address.postalCode,
+        shippingCountry: address.country,
+        createdAt,
+        expiresAt,
+        idempotencyKey: options.idempotencyKey
+      })
+      .returning();
+
+    await tx.insert(orderItems).values(
+      lineItems.map(({addons: _addons, group, ownMaxPerOrder: _own, ...item}) => {
+        void _addons;
+        void _own;
+        return {...item, orderId: order.id, capGroup: group};
+      })
+    );
+    for (const item of lineItems) {
+      await saveOrderItemAddons(item.id, item.addons, tx);
+    }
+    return {replayedOrderId: undefined, created: order};
+  });
+
+  if (result.replayedOrderId) {
+    const view = await getOrderViewById(result.replayedOrderId);
+    if (!view) throw new Error("Could not load the order.");
+    return {order: view, replayed: true};
   }
 
-  // Checking out also keeps the customer's saved address current  -  updates
-  // their existing default in place, or saves this as their first one  -  so
-  // the next checkout (and the admin's view of this customer) reflects
-  // where they actually just had something shipped.
-  const existingDefault = await getDefaultAddress(userId);
-  if (existingDefault) {
-    await updateAddress(userId, existingDefault.id, address, true);
-  } else {
-    await createAddress(userId, address, true);
-  }
+  const order = result.created!;
 
+  // Everything below is housekeeping after the order exists. None of it may fail the order.
+  await safely("Saving the address", async () => {
+    // Checking out also keeps the customer's saved address current  -  updates
+    // their existing default in place, or saves this as their first one  -  so
+    // the next checkout (and the admin's view of this customer) reflects
+    // where they actually just had something shipped.
+    const existingDefault = await getDefaultAddress(userId);
+    if (existingDefault) {
+      await updateAddress(userId, existingDefault.id, address, true);
+    } else {
+      await createAddress(userId, address, true);
+    }
+  });
   // The order is now the record of these items  -  clear them out of the
   // active cart so the drawer doesn't show already-ordered pieces.
-  await clearCart(userId);
+  await safely("Clearing the bag", () => clearCart(userId));
 
-  return {
-    id: order.id,
-    orderRef: order.orderRef,
-    status: order.status,
-    totalIdr: order.totalIdr,
-    currency: normalizeCurrency(order.currency),
-    totalUsdCents: order.totalUsdCents,
-    bankName: order.bankName,
-    accountName: order.accountName,
-    accountNumber: order.accountNumber,
-    createdAt: order.createdAt.toISOString(),
-    items: lineItems.map((item) => ({
+  const view = toOrderView(
+    order,
+    lineItems.map((item) => ({
       id: item.id,
       addons: item.addons,
       slug: item.productSlug,
@@ -225,9 +458,22 @@ export async function createOrder(
       priceIdr: item.priceIdr,
       priceUsdCents: item.priceUsdCents,
       quantity: item.quantity,
-      config: item.config as CartConfig | null
+      config: item.config
     }))
-  };
+  );
+
+  const emailOrder = toEmailOrder(view, {email: options.customerEmail ?? null, name: options.customerName ?? null});
+  await safely("Order placed email", () => sendOrderPlacedEmail(emailOrder));
+  await safely("Owner notice", () => sendOwnerNotice("placed", emailOrder));
+
+  return {order: view, replayed: false};
+}
+
+async function getOrderViewById(orderId: string): Promise<OrderView | null> {
+  const [row] = await db.select().from(orders).where(eq(orders.id, orderId));
+  if (!row) return null;
+  const items = await loadItems([row.id]);
+  return toOrderView(row, items.get(row.id) ?? []);
 }
 
 export async function getOrdersForUser(userId: string): Promise<OrderView[]> {
@@ -235,47 +481,16 @@ export async function getOrdersForUser(userId: string): Promise<OrderView[]> {
   if (!orderRows.length) {
     return [];
   }
+  const itemsByOrder = await loadItems(orderRows.map((order) => order.id));
+  return orderRows.map((order) => toOrderView(order, itemsByOrder.get(order.id) ?? []));
+}
 
-  const itemRows = await db
-    .select()
-    .from(orderItems)
-    .where(
-      inArray(
-        orderItems.orderId,
-        orderRows.map((order) => order.id)
-      )
-    );
-
-  const addonsByItem = await getOrderAddons(itemRows.map((row) => row.id));
-  const itemsByOrder = new Map<string, OrderItemView[]>();
-  for (const row of itemRows) {
-    const list = itemsByOrder.get(row.orderId) ?? [];
-    list.push({
-      id: row.id,
-      addons: addonsByItem.get(row.id) ?? [],
-      slug: row.productSlug,
-      name: row.productName,
-      priceIdr: row.priceIdr,
-      priceUsdCents: row.priceUsdCents,
-      quantity: row.quantity,
-      config: row.config as CartConfig | null
-    });
-    itemsByOrder.set(row.orderId, list);
-  }
-
-  return orderRows.map((order) => ({
-    id: order.id,
-    orderRef: order.orderRef,
-    status: order.status,
-    totalIdr: order.totalIdr,
-    currency: normalizeCurrency(order.currency),
-    totalUsdCents: order.totalUsdCents,
-    bankName: order.bankName,
-    accountName: order.accountName,
-    accountNumber: order.accountNumber,
-    createdAt: order.createdAt.toISOString(),
-    items: itemsByOrder.get(order.id) ?? []
-  }));
+// One of the customer's own orders, by its reference. Another customer's order is never returned.
+export async function getOrderForUserByRef(userId: string, orderRef: string): Promise<OrderView | null> {
+  const [row] = await db.select().from(orders).where(and(eq(orders.userId, userId), eq(orders.orderRef, orderRef)));
+  if (!row) return null;
+  const items = await loadItems([row.id]);
+  return toOrderView(row, items.get(row.id) ?? []);
 }
 
 export type AdminOrderView = OrderView & {
@@ -283,120 +498,55 @@ export type AdminOrderView = OrderView & {
   customerEmail: string | null;
   confirmedByEmail: string | null;
   confirmedAt: string | null;
-  trackingCourier: string | null;
-  trackingNumber: string | null;
+  cancelledAt: string | null;
+  cancelledByEmail: string | null;
 };
 
-async function attachItemsForAdmin(
-  orderRows: {
-    id: string;
-    orderRef: string;
-    status: string;
-    totalIdr: number;
-    currency: string;
-    totalUsdCents: number | null;
-    bankName: string;
-    accountName: string;
-    accountNumber: string;
-    createdAt: Date;
-    confirmedByEmail: string | null;
-    confirmedAt: Date | null;
-    trackingCourier: string | null;
-    trackingNumber: string | null;
-    customerName: string | null;
-    customerEmail: string | null;
-  }[]
-): Promise<AdminOrderView[]> {
-  if (!orderRows.length) {
-    return [];
-  }
-
-  const itemRows = await db
-    .select()
-    .from(orderItems)
-    .where(
-      inArray(
-        orderItems.orderId,
-        orderRows.map((order) => order.id)
-      )
-    );
-
-  const addonsByItem = await getOrderAddons(itemRows.map((row) => row.id));
-  const itemsByOrder = new Map<string, OrderItemView[]>();
-  for (const row of itemRows) {
-    const list = itemsByOrder.get(row.orderId) ?? [];
-    list.push({
-      id: row.id,
-      addons: addonsByItem.get(row.id) ?? [],
-      slug: row.productSlug,
-      name: row.productName,
-      priceIdr: row.priceIdr,
-      priceUsdCents: row.priceUsdCents,
-      quantity: row.quantity,
-      config: row.config as CartConfig | null
-    });
-    itemsByOrder.set(row.orderId, list);
-  }
-
-  return orderRows.map((order) => ({
-    id: order.id,
-    orderRef: order.orderRef,
-    status: order.status,
-    totalIdr: order.totalIdr,
-    currency: normalizeCurrency(order.currency),
-    totalUsdCents: order.totalUsdCents,
-    bankName: order.bankName,
-    accountName: order.accountName,
-    accountNumber: order.accountNumber,
-    createdAt: order.createdAt.toISOString(),
-    confirmedByEmail: order.confirmedByEmail,
-    confirmedAt: order.confirmedAt ? order.confirmedAt.toISOString() : null,
-    trackingCourier: order.trackingCourier,
-    trackingNumber: order.trackingNumber,
-    customerName: order.customerName,
-    customerEmail: order.customerEmail,
-    items: itemsByOrder.get(order.id) ?? []
-  }));
-}
-
 const adminOrderColumns = {
-  id: orders.id,
-  orderRef: orders.orderRef,
-  status: orders.status,
-  totalIdr: orders.totalIdr,
-  currency: orders.currency,
-  totalUsdCents: orders.totalUsdCents,
-  bankName: orders.bankName,
-  accountName: orders.accountName,
-  accountNumber: orders.accountNumber,
-  createdAt: orders.createdAt,
-  confirmedByEmail: orders.confirmedByEmail,
-  confirmedAt: orders.confirmedAt,
-  trackingCourier: orders.trackingCourier,
-  trackingNumber: orders.trackingNumber,
+  order: orders,
   customerName: users.name,
   customerEmail: users.email
 } as const;
 
+async function attachItemsForAdmin(rows: {order: OrderRow; customerName: string | null; customerEmail: string | null}[]): Promise<AdminOrderView[]> {
+  if (!rows.length) {
+    return [];
+  }
+  const itemsByOrder = await loadItems(rows.map((row) => row.order.id));
+  return rows.map(({order, customerName, customerEmail}) => ({
+    ...toOrderView(order, itemsByOrder.get(order.id) ?? []),
+    confirmedByEmail: order.confirmedByEmail,
+    confirmedAt: order.confirmedAt ? order.confirmedAt.toISOString() : null,
+    cancelledAt: order.cancelledAt ? order.cancelledAt.toISOString() : null,
+    cancelledByEmail: order.cancelledByEmail,
+    customerName,
+    customerEmail
+  }));
+}
+
 export async function getAllOrdersAdmin(): Promise<AdminOrderView[]> {
-  const orderRows = await db
+  const rows = await db
     .select(adminOrderColumns)
     .from(orders)
     .leftJoin(users, eq(orders.userId, users.id))
     .orderBy(desc(orders.createdAt));
 
-  return attachItemsForAdmin(orderRows);
+  return attachItemsForAdmin(rows);
 }
 
 async function getAdminOrderById(orderId: string): Promise<AdminOrderView | null> {
-  const orderRows = await db
+  const rows = await db
     .select(adminOrderColumns)
     .from(orders)
     .leftJoin(users, eq(orders.userId, users.id))
     .where(eq(orders.id, orderId));
 
-  const [view] = await attachItemsForAdmin(orderRows);
+  const [view] = await attachItemsForAdmin(rows);
   return view ?? null;
+}
+
+function adminToEmail(view: AdminOrderView): EmailOrder {
+  return toEmailOrder(view, {email: view.customerEmail, name: view.customerName});
 }
 
 // Only touches products that opted into stock tracking (stock IS NOT NULL)
@@ -427,7 +577,8 @@ export type MarkOrderPaidResult =
 // SELECT-then-UPDATE, so two concurrent "Mark as Paid" clicks on the same
 // order can't both pass the check and both write a confirmation  -  only one
 // UPDATE can ever match the row, the other affects zero rows and falls
-// through to the idempotent "already paid" path below.
+// through to the idempotent "already paid" path below. A cancelled or expired
+// order is not pending_transfer, so it is refused by the same condition.
 export async function markOrderPaid(orderId: string, adminEmail: string): Promise<MarkOrderPaidResult> {
   const [updated] = await db
     .update(orders)
@@ -438,6 +589,9 @@ export async function markOrderPaid(orderId: string, adminEmail: string): Promis
   if (updated) {
     await decrementStockForOrder(orderId);
     const order = await getAdminOrderById(orderId);
+    const emailOrder = adminToEmail(order!);
+    await safely("Payment received email", () => sendPaymentReceivedEmail(emailOrder));
+    await safely("Owner notice", () => sendOwnerNotice("paid", emailOrder));
     return {ok: true, alreadyPaid: false, order: order!};
   }
 
@@ -454,6 +608,90 @@ export async function markOrderPaid(orderId: string, adminEmail: string): Promis
   return {ok: false, error: "invalid_status"};
 }
 
+export type CancelOrderResult =
+  | {ok: true; alreadyCancelled: boolean; order: AdminOrderView}
+  | {ok: false; error: "not_found" | "invalid_status"};
+
+// Cancel replaces the old hard delete. Only an order still awaiting transfer can be cancelled;
+// a paid order is refused. The slots it held are freed straight away.
+export async function cancelOrder(orderId: string, adminEmail: string): Promise<CancelOrderResult> {
+  const [updated] = await db
+    .update(orders)
+    .set({status: "cancelled", cancelledAt: new Date(), cancelledByEmail: adminEmail})
+    .where(and(eq(orders.id, orderId), eq(orders.status, "pending_transfer")))
+    .returning({id: orders.id});
+
+  const order = await getAdminOrderById(orderId);
+  if (updated && order) return {ok: true, alreadyCancelled: false, order};
+  if (!order) return {ok: false, error: "not_found"};
+  if (order.status === "cancelled") return {ok: true, alreadyCancelled: true, order};
+  return {ok: false, error: "invalid_status"};
+}
+
+// Marks overdue Awaiting transfer orders as expired. Safe to run twice: the second run matches
+// nothing. Touches no other status.
+export async function expireOverdueOrders(now: Date = new Date()): Promise<{expired: number}> {
+  const rows = await db
+    .update(orders)
+    .set({status: "expired"})
+    .where(and(eq(orders.status, "pending_transfer"), isNotNull(orders.expiresAt), lte(orders.expiresAt, now)))
+    .returning({id: orders.id});
+  return {expired: rows.length};
+}
+
+export type ExtendHoldResult =
+  | {ok: true; order: AdminOrderView}
+  | {ok: false; error: "not_found" | "invalid_status" | "expired" | "month_full"};
+
+// Gives an unpaid order another 72 hours. Only an order still awaiting payment can be extended, and
+// only while its hold is still running: once it has passed its expiry its slots were released, and
+// they are not quietly taken back. Inside the same lock every checkout takes, it also confirms the
+// month still has room for this order.
+export async function extendOrderHold(orderId: string, now: Date = new Date()): Promise<ExtendHoldResult> {
+  const outcome = await db.transaction(async (tx) => {
+    const limits = await lockLimits(tx);
+    const [row] = await tx
+      .select({status: orders.status, expiresAt: orders.expiresAt, createdAt: orders.createdAt})
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .for("update");
+    if (!row) return "not_found" as const;
+    if (row.status !== "pending_transfer") return "invalid_status" as const;
+    const used = await getMonthlyUsage(tx, now);
+    const verdict = extensionVerdict(row, now, limits, used);
+    if (verdict !== "ok") return verdict;
+    await tx.update(orders).set({expiresAt: extendedExpiry(row.expiresAt, now)}).where(eq(orders.id, orderId));
+    return "ok" as const;
+  });
+  if (outcome !== "ok") return {ok: false, error: outcome};
+  const order = await getAdminOrderById(orderId);
+  if (!order) return {ok: false, error: "not_found"};
+  return {ok: true, order};
+}
+
+export type SetStageResult =
+  | {ok: true; order: AdminOrderView}
+  | {ok: false; error: "not_found" | "invalid_status" | "invalid_stage"};
+
+// The production stage, separate from payment status. Only a paid order moves through
+// received, in the atelier and finishing; shipping goes through setOrderTracking.
+export async function setFulfilmentStage(orderId: string, stage: FulfilmentStage, notify: boolean): Promise<SetStageResult> {
+  if (stage === "shipped") return {ok: false, error: "invalid_stage"};
+  const [updated] = await db
+    .update(orders)
+    .set({fulfilmentStage: stage, fulfilmentStageUpdatedAt: new Date()})
+    .where(and(eq(orders.id, orderId), eq(orders.status, "paid")))
+    .returning({id: orders.id});
+
+  const order = await getAdminOrderById(orderId);
+  if (!order) return {ok: false, error: "not_found"};
+  if (!updated) return {ok: false, error: "invalid_status"};
+  if (notify) {
+    await safely("Stage email", () => sendStageEmail(adminToEmail(order), stage));
+  }
+  return {ok: true, order};
+}
+
 export type SetTrackingResult =
   | {ok: true; order: AdminOrderView}
   | {ok: false; error: "not_found" | "invalid_status" | "missing_fields"};
@@ -465,7 +703,8 @@ export type SetTrackingResult =
 export async function setOrderTracking(
   orderId: string,
   courier: string,
-  trackingNumber: string
+  trackingNumber: string,
+  notify = false
 ): Promise<SetTrackingResult> {
   const courierTrimmed = courier.trim();
   const trackingTrimmed = trackingNumber.trim();
@@ -475,7 +714,13 @@ export async function setOrderTracking(
 
   const [updated] = await db
     .update(orders)
-    .set({status: "fulfilled", trackingCourier: courierTrimmed, trackingNumber: trackingTrimmed})
+    .set({
+      status: "fulfilled",
+      fulfilmentStage: "shipped",
+      fulfilmentStageUpdatedAt: new Date(),
+      trackingCourier: courierTrimmed,
+      trackingNumber: trackingTrimmed
+    })
     .where(and(eq(orders.id, orderId), inArray(orders.status, ["paid", "fulfilled"])))
     .returning({id: orders.id});
 
@@ -485,14 +730,8 @@ export async function setOrderTracking(
   }
 
   const order = await getAdminOrderById(orderId);
+  if (notify && order) {
+    await safely("Shipped email", () => sendStageEmail(adminToEmail(order), "shipped"));
+  }
   return {ok: true, order: order!};
 }
-
-// Permanently removes an order and its line items (order_items cascades on
-// delete)  -  for clearing out test/junk orders, not something a storefront
-// flow ever calls.
-export async function deleteOrder(orderId: string): Promise<boolean> {
-  const [deleted] = await db.delete(orders).where(eq(orders.id, orderId)).returning({id: orders.id});
-  return Boolean(deleted);
-}
-

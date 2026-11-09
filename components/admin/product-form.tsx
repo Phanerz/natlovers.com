@@ -698,6 +698,59 @@ export function ProductForm({
               <CharCount value={form.shortDescription} max={160} />
             </label>
 
+            <fieldset className="space-y-3 rounded-xl border border-[#d4c5ab] p-4 text-sm text-forest-700">
+              <legend className="px-1 text-xs uppercase tracking-[0.2em] text-forest-500">Atelier limits</legend>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block space-y-1">
+                  <span className="muted">Limit group</span>
+                  <select value={form.capGroup} onChange={(event) => onChange({...form, capGroup: event.target.value})} className={fieldClass}>
+                    <option value="">Default for this type ({form.productType === "Dolls" || form.productType === "Accessories" ? "Atelier extras" : "Pieces"})</option>
+                    <option value="PIECES">Pieces (counts towards the monthly cap)</option>
+                    <option value="ATELIER_EXTRAS">Atelier extras</option>
+                  </select>
+                </label>
+                <label className="block space-y-1">
+                  <span className="muted">Max per order</span>
+                  <input
+                    type="number"
+                    min={1}
+                    inputMode="numeric"
+                    value={form.maxPerOrder}
+                    onChange={(event) => onChange({...form, maxPerOrder: event.target.value})}
+                    placeholder="The group limit"
+                    className={fieldClass}
+                  />
+                </label>
+                <label className="block space-y-1">
+                  <span className="muted">Lead time from (weeks)</span>
+                  <input
+                    type="number"
+                    min={1}
+                    inputMode="numeric"
+                    value={form.leadTimeWeeksMin}
+                    onChange={(event) => onChange({...form, leadTimeWeeksMin: event.target.value})}
+                    placeholder="Not shown"
+                    className={fieldClass}
+                  />
+                </label>
+                <label className="block space-y-1">
+                  <span className="muted">Lead time to (weeks)</span>
+                  <input
+                    type="number"
+                    min={1}
+                    inputMode="numeric"
+                    value={form.leadTimeWeeksMax}
+                    onChange={(event) => onChange({...form, leadTimeWeeksMax: event.target.value})}
+                    placeholder="Not shown"
+                    className={fieldClass}
+                  />
+                </label>
+              </div>
+              <p className="text-xs text-forest-500">
+                The lead time is shown to customers only when it is filled in. The per-order and monthly limits are set on the Atelier page.
+              </p>
+            </fieldset>
+
             {/* A div, not a <label>: a label forwards any click inside it (including the
                 mouseup that ends a drag-selection) to its first labelable descendant,
                 which here is the toolbar's Bold button. */}

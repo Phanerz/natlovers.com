@@ -9,6 +9,18 @@ import {CurrencyCode, Locale} from "@/lib/site";
 import {lineUnitPrice} from "@/lib/pricing";
 import type {AdminProduct} from "@/lib/admin-products";
 import type {CartConfig} from "@/lib/cart";
+import {checkPerOrder, productMaxPerOrder, type LimitLine, type LimitViolation} from "@/lib/atelier-limits";
+
+// What the storefront may know about the atelier limits: never a count, only whether the month is full.
+export type Availability = {
+  piecesMonthFull: boolean;
+  nextMonth: number;
+  piecesMaxPerOrder: number;
+  extrasMaxPerOrder: number;
+  wholesaleContactUrl: string | null;
+};
+
+export type LimitHit = {violation: LimitViolation; nextMonth: number};
 
 type CartItem = {
   slug: string;
@@ -41,6 +53,12 @@ type StorefrontContextValue = {
   startBankTransferForCart: () => void;
   clearCheckoutDraft: () => void;
   getCartSubtotal: (currency: CurrencyCode) => number;
+  availability: Availability | null;
+  // The last limit the customer ran into, in the bag or on a product page. Quiet and factual.
+  limitHit: LimitHit | null;
+  dismissLimitHit: () => void;
+  // The most of this product one order can hold, as far as the browser knows. The server decides.
+  maxFor: (slug: string) => number | null;
 };
 
 const StorefrontContext = createContext<StorefrontContextValue | null>(null);
@@ -60,7 +78,11 @@ function toProductCard(product: AdminProduct): ProductCardType {
     story: product.description ?? "",
     materials: product.materials,
     collection: "bags",
-    customisation: product.customisation ?? null
+    customisation: product.customisation ?? null,
+    capGroup: product.capGroup,
+    maxPerOrder: product.maxPerOrder,
+    leadTimeWeeksMin: product.leadTimeWeeksMin,
+    leadTimeWeeksMax: product.leadTimeWeeksMax
   };
 }
 
@@ -74,6 +96,21 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
   const [cabinetOpen, setCabinetOpen] = useState(false);
   const [previewSlug, setPreviewSlug] = useState<string | null>(null);
   const [checkoutDraft, setCheckoutDraft] = useState<CheckoutDraft>(null);
+  const [availability, setAvailability] = useState<Availability | null>(null);
+  const [limitHit, setLimitHit] = useState<LimitHit | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/atelier/status", {cache: "no-store"})
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: Availability | null) => {
+        if (!cancelled && data) setAvailability(data);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [cabinetOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -123,8 +160,57 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify(config !== undefined ? {slug, quantity, config} : {slug, quantity})
-    }).catch(() => undefined);
+    })
+      .then(async (response) => {
+        if (response.status !== 409) return;
+        // The server refused: put the bag back as the server has it, and say which rule was hit.
+        const payload = (await response.json().catch(() => null)) as {error?: string; violation?: LimitViolation; nextMonth?: number; items?: CartItem[]} | null;
+        if (payload?.error === "limit" && payload.violation) {
+          if (Array.isArray(payload.items)) setCartItems(payload.items);
+          setLimitHit({violation: payload.violation, nextMonth: payload.nextMonth ?? 1});
+        }
+      })
+      .catch(() => undefined);
   }, []);
+
+  // The browser early check, so the bag answers at once. It mirrors the server rules and is never
+  // the last word: the server checks every change again.
+  function checkLocally(nextItems: CartItem[]): LimitHit | null {
+    if (!availability) return null;
+    const limits = {
+      piecesMonthlyCap: 0,
+      piecesMaxPerOrder: availability.piecesMaxPerOrder,
+      extrasMaxPerOrder: availability.extrasMaxPerOrder,
+      extrasMonthlyCap: null
+    };
+    const lines: LimitLine[] = [];
+    for (const item of nextItems) {
+      const product = products.find((entry) => entry.slug === item.slug);
+      if (!product) continue;
+      const group = product.capGroup ?? "PIECES";
+      lines.push({
+        slug: item.slug,
+        quantity: item.quantity,
+        group,
+        maxPerOrder: productMaxPerOrder({maxPerOrder: product.maxPerOrder}, group, limits),
+        addonCount: item.config?.addons?.length ?? 0
+      });
+    }
+    const violation = checkPerOrder(lines, limits);
+    return violation ? {violation, nextMonth: availability.nextMonth} : null;
+  }
+
+  function maxFor(slug: string): number | null {
+    const product = products.find((entry) => entry.slug === slug);
+    if (!product || !availability) return null;
+    const group = product.capGroup ?? "PIECES";
+    return productMaxPerOrder({maxPerOrder: product.maxPerOrder}, group, {
+      piecesMonthlyCap: 0,
+      piecesMaxPerOrder: availability.piecesMaxPerOrder,
+      extrasMaxPerOrder: availability.extrasMaxPerOrder,
+      extrasMonthlyCap: null
+    });
+  }
 
   function getProducts() {
     return products;
@@ -146,6 +232,22 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
     // whatever the line already had; re-adding with none leaves it as-is.
     const nextConfig = config !== undefined ? config : (existing?.config ?? null);
 
+    const nextItems = existing
+      ? cartItems.map((item) => (item.slug === slug ? {...item, quantity: nextQuantity, config: nextConfig} : item))
+      : [...cartItems, {slug, quantity: nextQuantity, config: nextConfig}];
+    const product = products.find((entry) => entry.slug === slug);
+    if (availability?.piecesMonthFull && (product?.capGroup ?? "PIECES") === "PIECES") {
+      setLimitHit({violation: {code: "month_full", group: "PIECES", remaining: 0}, nextMonth: availability.nextMonth});
+      return;
+    }
+    const hit = checkLocally(nextItems);
+    if (hit) {
+      setLimitHit(hit);
+      setCabinetOpen(true);
+      return;
+    }
+    setLimitHit(null);
+
     setCartItems((current) =>
       existing
         ? current.map((item) => (item.slug === slug ? {...item, quantity: nextQuantity, config: nextConfig} : item))
@@ -161,7 +263,16 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
       return;
     }
 
-    setCartItems((current) => current.map((item) => (item.slug === slug ? {...item, quantity} : item)));
+    const current = cartItems.find((item) => item.slug === slug);
+    if (current && quantity > current.quantity) {
+      const hit = checkLocally(cartItems.map((item) => (item.slug === slug ? {...item, quantity} : item)));
+      if (hit) {
+        setLimitHit(hit);
+        return;
+      }
+    }
+    setLimitHit(null);
+    setCartItems((items) => items.map((item) => (item.slug === slug ? {...item, quantity} : item)));
     persistQuantity(slug, quantity);
   }
 
@@ -239,10 +350,14 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
       startBankTransferForProduct,
       startBankTransferForCart,
       clearCheckoutDraft,
-      getCartSubtotal
+      getCartSubtotal,
+      availability,
+      limitHit,
+      dismissLimitHit: () => setLimitHit(null),
+      maxFor
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [products, cartItems, cabinetOpen, previewSlug, checkoutDraft, status]
+    [products, cartItems, cabinetOpen, previewSlug, checkoutDraft, status, availability, limitHit]
   );
 
   return <StorefrontContext.Provider value={value}>{children}</StorefrontContext.Provider>;

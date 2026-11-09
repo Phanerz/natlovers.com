@@ -24,6 +24,8 @@ type AdminOrder = {
   customerEmail: string | null;
   confirmedByEmail: string | null;
   confirmedAt: string | null;
+  expiresAt: string | null;
+  fulfilmentStage: string;
   trackingCourier: string | null;
   trackingNumber: string | null;
   items: AdminOrderItem[];
@@ -35,7 +37,9 @@ type AdminOrder = {
 const statusBadgeStyles: Record<string, string> = {
   pending_transfer: "bg-[#f6ddc9] text-[#8a4a1f]",
   paid: "bg-[#dcead0] text-[#2f5b2b]",
-  fulfilled: "bg-[#dbe6f2] text-[#2a4a70]"
+  fulfilled: "bg-[#dbe6f2] text-[#2a4a70]",
+  cancelled: "bg-[#ece7e1] text-[#5a5248]",
+  expired: "bg-[#ece7e1] text-[#5a5248]"
 };
 
 const statusIcons: Record<string, typeof Clock> = {
@@ -63,9 +67,50 @@ function formatDate(value: string) {
   return new Date(value).toLocaleDateString(undefined, {dateStyle: "medium"});
 }
 
-function TrackingForm({order, onSave, saving}: {order: AdminOrder; onSave: (courier: string, tracking: string) => void; saving: boolean}) {
+const stageNames: Record<string, string> = {received: "Received", in_atelier: "In the atelier", finishing: "Finishing", shipped: "Shipped"};
+
+// The production stage, separate from payment status. Shipping goes through the tracking form.
+function StageControl({
+  order,
+  busy,
+  onChange,
+  onShip
+}: {
+  order: AdminOrder;
+  busy: boolean;
+  onChange: (stage: string, notify: boolean) => void;
+  onShip: () => void;
+}) {
+  const [notify, setNotify] = useState(true);
+  return (
+    <div className="mt-2 space-y-1">
+      <label className="block text-[11px] text-forest-500">
+        Production stage
+        <select
+          value={order.fulfilmentStage}
+          disabled={busy || order.status === "fulfilled"}
+          onChange={(event) => (event.target.value === "shipped" ? onShip() : onChange(event.target.value, notify))}
+          className="mt-0.5 block w-full rounded-full border border-[#d4c5ab] bg-white px-3 py-1.5 text-xs text-forest-900 outline-none focus:border-forest-400 disabled:opacity-60"
+        >
+          <option value="received">Received</option>
+          <option value="in_atelier">In the atelier</option>
+          <option value="finishing">Finishing</option>
+          <option value="shipped">Shipped (add tracking)</option>
+        </select>
+      </label>
+      {order.status === "paid" ? (
+        <label className="flex items-center gap-1.5 text-[11px] text-forest-600">
+          <input type="checkbox" checked={notify} onChange={(event) => setNotify(event.target.checked)} /> Email the customer
+        </label>
+      ) : null}
+    </div>
+  );
+}
+
+function TrackingForm({order, onSave, saving}: {order: AdminOrder; onSave: (courier: string, tracking: string, notify: boolean) => void; saving: boolean}) {
   const [courier, setCourier] = useState(order.trackingCourier ?? "");
   const [trackingNumber, setTrackingNumber] = useState(order.trackingNumber ?? "");
+  const [notify, setNotify] = useState(true);
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -81,10 +126,13 @@ function TrackingForm({order, onSave, saving}: {order: AdminOrder; onSave: (cour
         placeholder="Tracking number"
         className="w-36 rounded-full border border-[#d4c5ab] bg-white px-3 py-1.5 text-xs text-forest-900 outline-none focus:border-forest-400"
       />
+      <label className="flex items-center gap-1.5 text-[11px] text-forest-600">
+        <input type="checkbox" checked={notify} onChange={(event) => setNotify(event.target.checked)} /> Email the customer
+      </label>
       <button
         type="button"
         disabled={saving || !courier.trim() || !trackingNumber.trim()}
-        onClick={() => onSave(courier, trackingNumber)}
+        onClick={() => onSave(courier, trackingNumber, notify)}
         className="glass-btn-primary rounded-full px-3 py-1.5 text-xs font-semibold text-sand-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {saving ? "Saving..." : order.status === "fulfilled" ? "Update" : "Mark Shipped"}
@@ -145,13 +193,13 @@ export function ManageOrdersPanel() {
     }
   }
 
-  async function saveTracking(order: AdminOrder, courier: string, trackingNumber: string) {
+  async function saveTracking(order: AdminOrder, courier: string, trackingNumber: string, notify: boolean) {
     setBusyId(order.id);
     try {
       const response = await fetch(`/api/admin/orders/${order.id}`, {
         method: "PATCH",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({action: "set_tracking", courier, trackingNumber})
+        body: JSON.stringify({action: "set_tracking", courier, trackingNumber, notify})
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -168,12 +216,56 @@ export function ManageOrdersPanel() {
     }
   }
 
-  async function removeOrder(order: AdminOrder) {
+  async function changeStage(order: AdminOrder, stage: string, notify: boolean) {
+    setBusyId(order.id);
+    try {
+      const response = await fetch(`/api/admin/orders/${order.id}`, {
+        method: "PATCH",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({action: "set_stage", stage, notify})
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setToast({type: "error", message: data?.error ?? "Could not change the stage."});
+        return;
+      }
+      setToast({type: "success", message: `${order.orderRef} is now ${stageNames[stage] ?? stage}.`});
+      await loadOrders();
+    } catch {
+      setToast({type: "error", message: "Could not reach the server. Please try again."});
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function extendHold(order: AdminOrder) {
+    setBusyId(order.id);
+    try {
+      const response = await fetch(`/api/admin/orders/${order.id}`, {
+        method: "PATCH",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({action: "extend_hold"})
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setToast({type: "error", message: data?.error ?? "Could not extend the order."});
+        return;
+      }
+      setToast({type: "success", message: `${order.orderRef} is held for another 72 hours.`});
+      await loadOrders();
+    } catch {
+      setToast({type: "error", message: "Could not reach the server. Please try again."});
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function cancelOrder(order: AdminOrder) {
     if (
       !(await confirm({
-        title: `Delete order ${order.orderRef}?`,
-        description: "This permanently removes the order. This cannot be undone.",
-        confirmLabel: "Delete",
+        title: `Cancel order ${order.orderRef}?`,
+        description: "The order is kept in the list as Cancelled, and the places it held are released. This cannot be undone.",
+        confirmLabel: "Cancel order",
         tone: "danger"
       }))
     ) {
@@ -181,13 +273,17 @@ export function ManageOrdersPanel() {
     }
     setBusyId(order.id);
     try {
-      const response = await fetch(`/api/admin/orders/${order.id}`, {method: "DELETE"});
+      const response = await fetch(`/api/admin/orders/${order.id}`, {
+        method: "PATCH",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({action: "cancel"})
+      });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        setToast({type: "error", message: data?.error ?? "Could not delete the order."});
+        setToast({type: "error", message: data?.error ?? "Could not cancel the order."});
         return;
       }
-      setToast({type: "success", message: `${order.orderRef} was deleted.`});
+      setToast({type: "success", message: `${order.orderRef} was cancelled.`});
       await loadOrders();
     } catch {
       setToast({type: "error", message: "Could not reach the server. Please try again."});
@@ -274,11 +370,17 @@ export function ManageOrdersPanel() {
                         {order.trackingCourier} · {order.trackingNumber}
                       </p>
                     ) : null}
+                    {order.status === "pending_transfer" && order.expiresAt ? (
+                      <p className="mt-1.5 text-[11px] leading-tight text-forest-500">held until {new Date(order.expiresAt).toLocaleString("en-GB", {dateStyle: "medium", timeStyle: "short"})}</p>
+                    ) : null}
+                    {order.status === "paid" || order.status === "fulfilled" ? (
+                      <StageControl order={order} busy={busyId === order.id} onChange={(stage, notify) => changeStage(order, stage, notify)} onShip={() => setTrackingOpenId(order.id)} />
+                    ) : null}
                     {(order.status === "paid" || order.status === "fulfilled") && trackingOpenId === order.id ? (
                       <TrackingForm
                         order={order}
                         saving={busyId === order.id}
-                        onSave={(courier, trackingNumber) => saveTracking(order, courier, trackingNumber)}
+                        onSave={(courier, trackingNumber, notify) => saveTracking(order, courier, trackingNumber, notify)}
                       />
                     ) : null}
                   </td>
@@ -304,14 +406,35 @@ export function ManageOrdersPanel() {
                           {order.status === "fulfilled" ? "Edit tracking" : "Add tracking"}
                         </button>
                       ) : null}
-                      <button
-                        type="button"
-                        disabled={busyId === order.id}
-                        onClick={() => removeOrder(order)}
-                        className="text-xs font-medium text-red-700 hover:text-red-900 disabled:opacity-50"
-                      >
-                        Delete
-                      </button>
+                      {order.status === "pending_transfer" ? (
+                        <button
+                          type="button"
+                          disabled={busyId === order.id}
+                          onClick={() => extendHold(order)}
+                          className="rounded-full border border-[#d4c5ab] px-4 py-2 text-xs font-semibold text-forest-700 disabled:opacity-50"
+                        >
+                          Extend hold (72 hours)
+                        </button>
+                      ) : null}
+                      {order.status === "pending_transfer" ? (
+                        <button
+                          type="button"
+                          disabled={busyId === order.id}
+                          onClick={() => cancelOrder(order)}
+                          className="text-xs font-medium text-red-700 hover:text-red-900 disabled:opacity-50"
+                        >
+                          Cancel order
+                        </button>
+                      ) : order.status === "paid" || order.status === "fulfilled" ? (
+                        <div className="text-right">
+                          <button type="button" disabled aria-describedby={`cancel-note-${order.id}`} className="text-xs font-medium text-forest-400 opacity-60">
+                            Cancel order
+                          </button>
+                          <p id={`cancel-note-${order.id}`} className="mt-0.5 max-w-[11rem] text-[11px] leading-tight text-forest-500">
+                            A paid order cannot be cancelled here.
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

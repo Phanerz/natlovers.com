@@ -10,10 +10,8 @@ import {ChevronDown, Menu, Search, ShoppingBag, User, X} from "lucide-react";
 import {signOut, useSession} from "next-auth/react";
 import {formatCurrency} from "@/lib/format";
 import {lineExtraAmount, lineUnitPrice, unitPrice} from "@/lib/pricing";
-import {paymentRouteFor} from "@/lib/payment-routes";
 import {selectionExtras} from "@/lib/product-options";
-import {htmlToPlainText} from "@/lib/html-text";
-import {ShoppingBagDrawer} from "@/components/shopping-bag-drawer";
+import {BagSidebar} from "@/components/bag/bag-sidebar";
 import {getDictionary} from "@/lib/translations";
 import {FlagIcon} from "@/components/flag-icon";
 import {NavAccountMenu} from "@/components/nav-account-menu";
@@ -87,80 +85,6 @@ export function Header() {
   const [accountOpen, setAccountOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   useClickOutside(accountMenuRef, () => setAccountOpen(false), accountOpen);
-  const [checkoutState, setCheckoutState] = useState<null | {
-    route: string;
-    orderRef: string;
-    accountName?: string;
-    accountNumber?: string;
-    bankName?: string;
-    total: number;
-  }>(null);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-
-  const [addressForm, setAddressForm] = useState({
-    recipientName: "",
-    phone: "",
-    street: "",
-    city: "",
-    province: "",
-    postalCode: "",
-    country: "Indonesia"
-  });
-  const [addressLoaded, setAddressLoaded] = useState(false);
-  const [addressError, setAddressError] = useState<string | null>(null);
-
-  // Prefills from the customer's saved default address (see /api/account/
-  // addresses) the first time the checkout panel opens, so a returning
-  // customer isn't retyping their address on every order  -  falls back to
-  // their account name for the recipient field when there's no saved
-  // address yet.
-  useEffect(() => {
-    if (!checkoutDraft || addressLoaded) {
-      return;
-    }
-    let cancelled = false;
-    fetch("/api/account/addresses", {cache: "no-store"})
-      .then((response) => (response.ok ? response.json() : []))
-      .then((list: Array<typeof addressForm & {isDefault: boolean}>) => {
-        if (cancelled) return;
-        const defaultAddress = Array.isArray(list) ? list.find((item) => item.isDefault) ?? list[0] : null;
-        if (defaultAddress) {
-          setAddressForm({
-            recipientName: defaultAddress.recipientName,
-            phone: defaultAddress.phone,
-            street: defaultAddress.street,
-            city: defaultAddress.city,
-            province: defaultAddress.province ?? "",
-            postalCode: defaultAddress.postalCode,
-            country: defaultAddress.country
-          });
-        } else if (session?.user?.name) {
-          setAddressForm((current) => ({...current, recipientName: session.user!.name ?? ""}));
-        }
-      })
-      .catch(() => {
-        // A network failure here just means the form starts blank instead
-        // of prefilled  -  .finally() below still flips `addressLoaded`
-        // either way, so this only exists to stop the rejection from going
-        // unhandled.
-      })
-      .finally(() => {
-        if (!cancelled) setAddressLoaded(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [checkoutDraft, addressLoaded, session]);
-
-  const addressComplete = Boolean(
-    addressForm.recipientName.trim() &&
-      addressForm.phone.trim() &&
-      addressForm.street.trim() &&
-      addressForm.city.trim() &&
-      addressForm.postalCode.trim() &&
-      addressForm.country.trim()
-  );
-
   const {mounted: searchMounted, entered: searchEntered} = useDelayedMount(searchOpen);
   const {mounted: cabinetMounted, entered: cabinetEntered} = useDelayedMount(cabinetOpen);
   const {mounted: mobileMounted, entered: mobileEntered} = useDelayedMount(mobileOpen);
@@ -484,7 +408,6 @@ export function Header() {
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
   const subtotal = cartProducts.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const previewProduct = previewSlug ? resolveProduct(previewSlug, locale) : undefined;
   const checkoutProducts =
     checkoutDraft?.items
       .map((item) => {
@@ -502,52 +425,9 @@ export function Header() {
         };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null) ?? [];
-  const checkoutTotal = checkoutProducts.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const checkoutRoute = paymentRouteFor(currency);
-
-  async function confirmBankTransfer() {
-    if (!checkoutProducts.length || !addressComplete) {
-      return;
-    }
-
-    setCheckoutLoading(true);
-    setAddressError(null);
-
-    try {
-      const response = await fetch("/api/checkout", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-          // The route follows the chosen currency; the server prices the order itself.
-          method: checkoutRoute,
-          currency,
-          items: checkoutProducts.map((item) => ({slug: item.slug, quantity: item.quantity, config: item.config})),
-          address: addressForm
-        })
-      });
-
-      const payload = await response.json();
-      if (!response.ok) {
-        setAddressError(payload?.error ?? "Could not place the order.");
-        return;
-      }
-      setCheckoutState(payload);
-      // The server always clears the full cart on a successful order (even
-      // for a "direct buy" of one item), so the client cart needs to mirror
-      // that immediately  -  otherwise the drawer keeps showing the
-      // just-ordered item as if it were still sitting in the bag.
-      if (payload?.ok) {
-        clearCart();
-      }
-    } finally {
-      setCheckoutLoading(false);
-    }
-  }
-
   function closeAllCabinetViews() {
     clearCheckoutDraft();
     closePreview();
-    setCheckoutState(null);
   }
 
   if (pathname === "/aoh") {
@@ -786,7 +666,7 @@ export function Header() {
           currency={currency}
           entered={searchEntered}
           onSelect={(slug) => {
-            openPreview(slug);
+            router.push(`/catalogue/${slug}` as Route);
             setSearchOpen(false);
           }}
           onClose={() => setSearchOpen(false)}
@@ -794,228 +674,23 @@ export function Header() {
       ) : null}
 
       {cabinetMounted ? (
-        <ShoppingBagDrawer
+        <BagSidebar
+          // A new checkout (or a closed and reopened bag) starts at the right step.
+          key={checkoutDraft ? "direct" : "bag"}
           entered={cabinetEntered}
           panelRef={bagPanelRef}
           items={cartProducts}
+          checkoutItems={checkoutDraft ? checkoutProducts : undefined}
           currency={currency}
-          subtotal={subtotal}
+          initialStep={checkoutDraft ? "delivery" : "bag"}
           onClose={() => {
             closeCabinet();
             closeAllCabinetViews();
           }}
-          onOpenPreview={openPreview}
           onRemove={removeFromCart}
           onQuantity={updateQuantity}
-          onCheckout={startBankTransferForCart}
-        >
-        {previewProduct ? (
-          <div className="bag-panel mt-5 flex-none p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="bag-label">Preview</p>
-              <button type="button" onClick={closePreview} className="bag-link">
-                Close
-              </button>
-            </div>
-            <div className="mt-3 overflow-hidden rounded-xl border border-white/15">
-              <div
-                className="aspect-[4/3] w-full bg-[#efe8d6] bg-contain bg-center bg-no-repeat"
-                style={{backgroundImage: `url(${previewProduct.imageUrl})`}}
-                role="img"
-                aria-label={previewProduct.title}
-              />
-            </div>
-            <p className="bag-panel-title mt-4">{previewProduct.title}</p>
-            <p className="bag-text mt-2 line-clamp-4">{htmlToPlainText(previewProduct.story)}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {previewProduct.materials.map((material) => (
-                <span key={material} className="bag-chip">
-                  {material}
-                </span>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {checkoutDraft ? (
-          <div className="mt-5 rounded-xl border border-[#32503b] bg-[#102418] p-5 text-sand-50 shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.28em] text-sand-200/80">
-                  {checkoutRoute === "usd_invoice" ? "Checkout in US dollars" : "Bank transfer checkout"}
-                </p>
-                <p className="mt-2 font-display text-2xl">{checkoutRoute === "usd_invoice" ? "Review your order" : "Review your transfer"}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  clearCheckoutDraft();
-                  setCheckoutState(null);
-                  setAddressError(null);
-                }}
-                className="text-sm font-medium text-sand-100/85 hover:text-sand-50"
-              >
-                Clear
-              </button>
-            </div>
-            <div className="mt-4 space-y-3 text-sm text-sand-100/90">
-              {checkoutProducts.map((item) => (
-                <div
-                  key={item.slug}
-                  className="flex items-center gap-4 rounded-xl border border-white/18 bg-white/8 px-3 py-3"
-                >
-                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-white/10">
-                    {item.imageUrl ? (
-                      <Image src={item.imageUrl} alt="" fill sizes="56px" className="object-contain p-1" />
-                    ) : null}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-sand-50">{item.title}</p>
-                    <p className="text-xs uppercase tracking-[0.24em] text-sand-100/68">
-                      Qty {item.quantity}
-                    </p>
-                    {item.details.length ? (
-                      <ul className="mt-1 space-y-0.5 text-xs text-sand-100/80">
-                        {item.details.map((line, index) => (
-                          <li key={`${line.label}-${index}`}>
-                            {line.label}: {line.value}
-                            {line.extra > 0 ? ` (+${formatCurrency(line.extra, currency)})` : ""}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                  <span className="shrink-0">{formatCurrency(item.price * item.quantity, currency)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 flex items-center justify-between text-sm text-sand-50">
-              <span>Total</span>
-              <span>{formatCurrency(checkoutTotal, currency)}</span>
-            </div>
-            <p className="mt-2 text-xs text-sand-100/70">
-              {currency === "USD"
-                ? "Prices in US dollars are fixed by Natlovers. You pay exactly the amount shown."
-                : "Harga dalam rupiah ditetapkan oleh Natlovers. Anda membayar sesuai jumlah yang tertera."}
-            </p>
-
-            {!checkoutState ? (
-              <div className="mt-4 space-y-3 border-t border-white/15 pt-4">
-                <p className="text-[11px] uppercase tracking-[0.28em] text-sand-200/80">Shipping address</p>
-                <div className="grid gap-2.5 sm:grid-cols-2">
-                  <input
-                    value={addressForm.recipientName}
-                    onChange={(event) => setAddressForm((current) => ({...current, recipientName: event.target.value}))}
-                    placeholder="Recipient name"
-                    className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
-                  />
-                  <input
-                    value={addressForm.phone}
-                    onChange={(event) => setAddressForm((current) => ({...current, phone: event.target.value}))}
-                    placeholder="Phone (for WhatsApp)"
-                    className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
-                  />
-                  <input
-                    value={addressForm.street}
-                    onChange={(event) => setAddressForm((current) => ({...current, street: event.target.value}))}
-                    placeholder="Street address"
-                    className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60 sm:col-span-2"
-                  />
-                  <input
-                    value={addressForm.city}
-                    onChange={(event) => setAddressForm((current) => ({...current, city: event.target.value}))}
-                    placeholder="City"
-                    className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
-                  />
-                  <input
-                    value={addressForm.province}
-                    onChange={(event) => setAddressForm((current) => ({...current, province: event.target.value}))}
-                    placeholder="Province / state (optional)"
-                    className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
-                  />
-                  <input
-                    value={addressForm.postalCode}
-                    onChange={(event) => setAddressForm((current) => ({...current, postalCode: event.target.value}))}
-                    placeholder="Postal code"
-                    className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
-                  />
-                  <input
-                    value={addressForm.country}
-                    onChange={(event) => setAddressForm((current) => ({...current, country: event.target.value}))}
-                    placeholder="Country"
-                    className="rounded-lg border border-white/18 bg-white/8 px-3.5 py-2.5 text-sm text-sand-50 placeholder:text-sand-200/50 outline-none focus:border-sand-100/60"
-                  />
-                </div>
-              </div>
-            ) : null}
-
-            {addressError ? <p className="mt-3 text-sm text-[#f3b4a0]">{addressError}</p> : null}
-
-            {!checkoutState ? (
-              <>
-              <p className="mt-4 text-xs leading-6 text-sand-100/80">
-                By placing your order you agree to our{" "}
-                <Link href={"/terms" as Route} target="_blank" rel="noopener noreferrer" className="underline hover:text-sand-50">
-                  Terms of Service
-                </Link>
-                ,{" "}
-                <Link href={"/returns" as Route} target="_blank" rel="noopener noreferrer" className="underline hover:text-sand-50">
-                  Returns &amp; Shipping
-                </Link>{" "}
-                and{" "}
-                <Link href={"/privacy" as Route} target="_blank" rel="noopener noreferrer" className="underline hover:text-sand-50">
-                  Privacy Policy
-                </Link>
-                .
-              </p>
-              <button
-                type="button"
-                onClick={confirmBankTransfer}
-                disabled={checkoutLoading || !addressComplete}
-                className="glass-btn-secondary mt-4 w-full rounded-full px-5 py-3 text-sm font-semibold text-forest-900 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {checkoutLoading
-                  ? checkoutRoute === "usd_invoice"
-                    ? "Placing your order..."
-                    : "Preparing transfer details..."
-                  : addressComplete
-                    ? checkoutRoute === "usd_invoice"
-                      ? "Place order in US dollars"
-                      : "Generate bank transfer instructions"
-                    : "Fill in your shipping address to continue"}
-              </button>
-              </>
-            ) : null}
-            {checkoutState ? (
-              checkoutState.route === "usd_invoice" ? (
-                <div className="mt-4 rounded-xl border border-white/16 bg-white/10 p-4 text-sm leading-7 text-sand-50/94">
-                  <p className="font-medium">Order ref: {checkoutState.orderRef}</p>
-                  <p className="mt-2">Order total: {formatCurrency(checkoutState.total, "USD")}</p>
-                  <p className="mt-2 text-sand-100/78">
-                    Your order is reserved. We will send you a secure payment invoice in US dollars (PayPal, or an international bank transfer) shortly.
-                    Please keep this reference handy.
-                  </p>
-                </div>
-              ) : (
-                <div className="mt-4 rounded-xl border border-white/16 bg-white/10 p-4 text-sm leading-7 text-sand-50/94">
-                  <p className="font-medium">Order ref: {checkoutState.orderRef}</p>
-                  <p className="mt-2">Bank: {checkoutState.bankName}</p>
-                  <p>Account name: {checkoutState.accountName}</p>
-                  <p>Account number: {checkoutState.accountNumber}</p>
-                  <p>
-                    Transfer total: {formatCurrency(checkoutState.total, "IDR")}
-                  </p>
-                  <p className="mt-2 text-sand-100/78">
-                    Use this reference when sending payment confirmation to WhatsApp.
-                  </p>
-                </div>
-              )
-            ) : null}
-          </div>
-        ) : null}
-
-
-        </ShoppingBagDrawer>
+          onOrderPlaced={clearCart}
+        />
       ) : null}
 
       {mobileMounted ? (
@@ -1060,7 +735,7 @@ export function Header() {
                         <button
                           type="button"
                           onClick={() => {
-                            openPreview(product.slug);
+                            router.push(`/catalogue/${product.slug}` as Route);
                             setMobileOpen(false);
                           }}
                         >

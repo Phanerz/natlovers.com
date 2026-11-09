@@ -11,6 +11,7 @@ import {useSitePreferences} from "@/components/site-preferences-provider";
 import type {ProductSelection} from "@/lib/product-selection";
 import type {AdminProduct} from "@/lib/admin-products";
 import {ProductSpecsPanel} from "@/components/product/product-specs-panel";
+import {ProductAtelierNotes, useMonthFull} from "@/components/atelier/product-atelier-notes";
 
 // The colour/note selection is owned by ProductDetailView (the customiser sits
 // in the details section below); this column only carries it to the bag.
@@ -35,6 +36,7 @@ export function ProductPurchasePanel({
 
   const wishlisted = isWishlisted(product.slug);
 
+  const monthFull = useMonthFull(product);
   const outOfStock = product.soldOut || (product.stock !== null && product.stock <= 0);
   const stockLabel = product.soldOut
     ? "Sold out"
@@ -87,6 +89,7 @@ export function ProductPurchasePanel({
         ) : null}
       </p>
       {product.shortDescription ? <p className="pdp-lede">{product.shortDescription}</p> : null}
+      <ProductAtelierNotes product={product} />
 
       <ProductSpecsPanel product={product} outOfStock={outOfStock} stockLabel={stockLabel} locale={locale} />
 
@@ -134,7 +137,7 @@ export function ProductPurchasePanel({
         <button
           type="button"
           onClick={handleAddToBag}
-          disabled={outOfStock}
+          disabled={outOfStock || monthFull}
           className="liquid-glass-dark button-lift w-full rounded-full px-6 py-3 text-sm font-semibold text-sand-50 backdrop-blur-[14px] backdrop-saturate-[160%] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-700"
         >
           {outOfStock ? "Sold Out" : addedNotice ? "Added to Bag" : "Add to Bag"}

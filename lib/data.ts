@@ -16,6 +16,11 @@ export type ProductCard = {
   featured?: boolean;
   // Admin-built custom options (extra dolls, pets…); used to price and list a cart line.
   customisation?: import("@/lib/product-options").ProductOptions | null;
+  // Atelier limits: the group the product counts in, its own per-order limit if set, and its lead time.
+  capGroup?: "PIECES" | "ATELIER_EXTRAS";
+  maxPerOrder?: number | null;
+  leadTimeWeeksMin?: number | null;
+  leadTimeWeeksMax?: number | null;
 };
 
 export const featuredProducts: Record<Locale, ProductCard[]> = {
