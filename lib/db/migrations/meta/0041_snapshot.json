@@ -1,5 +1,5 @@
 {
-  "id": "52359172-7aad-4d10-acf7-9afff19f78d1",
+  "id": "475360ab-4d2c-438a-aa8a-0ddc8828f4a6",
   "prevId": "42a3e6c8-4496-4764-ba72-c4b4d8e5c150",
   "version": "7",
   "dialect": "postgresql",
@@ -798,78 +798,6 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": true
-    },
-    "public.audit_log": {
-      "name": "audit_log",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "action": {
-          "name": "action",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "actor_email": {
-          "name": "actor_email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "order_id": {
-          "name": "order_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "order_ref": {
-          "name": "order_ref",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "detail": {
-          "name": "detail",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "audit_log_order_id": {
-          "name": "audit_log_order_id",
-          "columns": [
-            {
-              "expression": "order_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -1844,6 +1772,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "fulfilment_type": {
+          "name": "fulfilment_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "config": {
           "name": "config",
           "type": "jsonb",
@@ -2095,151 +2029,6 @@
           "nullsNotDistinct": false,
           "columns": [
             "order_ref"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": true
-    },
-    "public.payments": {
-      "name": "payments",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "order_id": {
-          "name": "order_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "provider": {
-          "name": "provider",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "provider_ref": {
-          "name": "provider_ref",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "external_id": {
-          "name": "external_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "amount": {
-          "name": "amount",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "currency": {
-          "name": "currency",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'full'"
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "checkout_url": {
-          "name": "checkout_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "paid_at": {
-          "name": "paid_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_event_id": {
-          "name": "last_event_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "payments_order_id": {
-          "name": "payments_order_id",
-          "columns": [
-            {
-              "expression": "order_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "payments_order_id_orders_id_fk": {
-          "name": "payments_order_id_orders_id_fk",
-          "tableFrom": "payments",
-          "tableTo": "orders",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "payments_provider_ref_unique": {
-          "name": "payments_provider_ref_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "provider_ref"
-          ]
-        },
-        "payments_external_id_unique": {
-          "name": "payments_external_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "external_id"
           ]
         }
       },
@@ -2548,6 +2337,19 @@
         "lead_time_weeks_max": {
           "name": "lead_time_weeks_max",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fulfilment_type": {
+          "name": "fulfilment_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'made_to_order'"
+        },
+        "dispatch_note": {
+          "name": "dispatch_note",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },

@@ -22,6 +22,13 @@ function numberWord(value: number, lang: Lang) {
 export const copy = {
   en: {
     madeInSmallNumbers: "Made in small numbers, each piece by one pair of hands.",
+    readyToShip: "Ready to ship",
+    soldOut: "Sold out",
+    stockLimit: (available: number) =>
+      available <= 0
+        ? "This piece is sold out for now."
+        : `Only ${numberWord(available, "en")} of these ${available === 1 ? "is" : "are"} ready to ship.`,
+    shipsTogether: "Your bag ships together, once the longest-made piece is ready.",
     readyIn: (min: number, max: number) =>
       min === max
         ? `Made for you by hand. Ready in approximately ${min} ${min === 1 ? "week" : "weeks"}.`
@@ -53,6 +60,13 @@ export const copy = {
   },
   id: {
     madeInSmallNumbers: "Dibuat dalam jumlah kecil, setiap karya oleh sepasang tangan.",
+    readyToShip: "Siap dikirim",
+    soldOut: "Habis terjual",
+    stockLimit: (available: number) =>
+      available <= 0
+        ? "Karya ini sedang habis terjual."
+        : `Hanya ${numberWord(available, "id")} buah yang siap dikirim.`,
+    shipsTogether: "Tas Anda dikirim bersamaan, setelah karya yang paling lama dibuat selesai.",
     readyIn: (min: number, max: number) =>
       min === max
         ? `Dibuat untuk Anda dengan tangan. Siap dalam sekitar ${min} minggu.`
@@ -84,7 +98,7 @@ export const copy = {
   }
 } as const;
 
-export type LimitNotice = {text: string; kind: "limit" | "month_full"; showContactLink: boolean};
+export type LimitNotice = {text: string; kind: "limit" | "month_full" | "stock"; showContactLink: boolean; showWaitingList: boolean};
 
 // The customer-facing sentence for a limit that was hit.
 export function limitNotice(violation: LimitViolation, lang: Lang, nextMonthNumber: number, context: "bag" | "order" = "bag"): LimitNotice {
@@ -94,11 +108,16 @@ export function limitNotice(violation: LimitViolation, lang: Lang, nextMonthNumb
     return {
       kind: "month_full",
       text: context === "order" ? strings.monthFullAtOrder(month) : strings.monthFull(month),
-      showContactLink: false
+      showContactLink: false,
+      showWaitingList: true
     };
   }
+  if (violation.code === "stock") {
+    // A sold-out ready piece offers the same waiting list. Some left: just say how many.
+    return {kind: "stock", text: strings.stockLimit(violation.available), showContactLink: false, showWaitingList: violation.available <= 0};
+  }
   const base = violation.code === "product_max" ? strings.productLimit(violation.max) : strings.groupLimit(violation.max);
-  return {kind: "limit", text: `${base} ${strings.largerOrders}`, showContactLink: true};
+  return {kind: "limit", text: `${base} ${strings.largerOrders}`, showContactLink: true, showWaitingList: false};
 }
 
 // ---------------------------------------------------------------------------

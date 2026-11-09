@@ -9,7 +9,7 @@ import {CurrencyCode, Locale} from "@/lib/site";
 import {lineUnitPrice} from "@/lib/pricing";
 import type {AdminProduct} from "@/lib/admin-products";
 import type {CartConfig} from "@/lib/cart";
-import {checkPerOrder, productMaxPerOrder, type LimitLine, type LimitViolation} from "@/lib/atelier-limits";
+import {checkPerOrder, checkStock, isReadyToShip, productMaxPerOrder, readyAvailable, type LimitLine, type LimitViolation} from "@/lib/atelier-limits";
 
 // What the storefront may know about the atelier limits: never a count, only whether the month is full.
 export type Availability = {
@@ -82,7 +82,10 @@ function toProductCard(product: AdminProduct): ProductCardType {
     capGroup: product.capGroup,
     maxPerOrder: product.maxPerOrder,
     leadTimeWeeksMin: product.leadTimeWeeksMin,
-    leadTimeWeeksMax: product.leadTimeWeeksMax
+    leadTimeWeeksMax: product.leadTimeWeeksMax,
+    fulfilmentType: product.fulfilmentType,
+    stock: product.stock,
+    dispatchNote: product.dispatchNote
   };
 }
 
@@ -193,10 +196,11 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
         quantity: item.quantity,
         group,
         maxPerOrder: productMaxPerOrder({maxPerOrder: product.maxPerOrder}, group, limits),
-        addonCount: item.config?.addons?.length ?? 0
+        addonCount: item.config?.addons?.length ?? 0,
+        ...(isReadyToShip(product.fulfilmentType) ? {ready: true, available: readyAvailable(product.stock)} : {})
       });
     }
-    const violation = checkPerOrder(lines, limits);
+    const violation = checkPerOrder(lines, limits) ?? checkStock(lines);
     return violation ? {violation, nextMonth: availability.nextMonth} : null;
   }
 
@@ -236,7 +240,7 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
       ? cartItems.map((item) => (item.slug === slug ? {...item, quantity: nextQuantity, config: nextConfig} : item))
       : [...cartItems, {slug, quantity: nextQuantity, config: nextConfig}];
     const product = products.find((entry) => entry.slug === slug);
-    if (availability?.piecesMonthFull && (product?.capGroup ?? "PIECES") === "PIECES") {
+    if (availability?.piecesMonthFull && (product?.capGroup ?? "PIECES") === "PIECES" && !isReadyToShip(product?.fulfilmentType)) {
       setLimitHit({violation: {code: "month_full", group: "PIECES", remaining: 0}, nextMonth: availability.nextMonth});
       return;
     }

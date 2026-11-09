@@ -213,6 +213,11 @@ export const products = pgTable(
     maxPerOrder: integer("max_per_order"),
     leadTimeWeeksMin: integer("lead_time_weeks_min"),
     leadTimeWeeksMax: integer("lead_time_weeks_max"),
+    // "made_to_order" (the default, counted towards the monthly cap) or "ready_to_ship" (finished
+    // stock: limited by `stock`, not counted, no lead time). dispatchNote is an optional line shown
+    // with a ready-to-ship product, for example how soon it is posted.
+    fulfilmentType: text("fulfilment_type").notNull().default("made_to_order"),
+    dispatchNote: text("dispatch_note"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow()
   },
@@ -456,6 +461,10 @@ export const orderItems = pgTable("order_items", {
   quantity: integer("quantity").notNull(),
   // The limit group this line counted against when it was ordered (PIECES or ATELIER_EXTRAS).
   capGroup: text("cap_group"),
+  // "ready_to_ship" when the product was ready stock at the time. Null (every older line) means made
+  // to order. Ready lines are not counted towards the monthly cap, and the snapshot keeps that
+  // true even if the product is switched later.
+  fulfilmentType: text("fulfilment_type"),
   // Snapshot of the cart line's config at checkout time, same snapshot
   // philosophy as productName/priceIdr above  -  what was actually ordered
   // must stay legible even if the cart line it came from is long gone.

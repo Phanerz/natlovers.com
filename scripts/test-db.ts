@@ -12,7 +12,9 @@ import path from "node:path";
 import EmbeddedPostgres from "embedded-postgres";
 import postgres from "postgres";
 
-const PORT = 54329;
+// Another worktree may already be running its own scratch database on the default port. Set
+// TEST_DB_PORT to run alongside it.
+const PORT = Number(process.env.TEST_DB_PORT) || 54329;
 const DB_NAME = "natlovers_scratch";
 const USER = "scratch";
 const PASSWORD = "scratch";
