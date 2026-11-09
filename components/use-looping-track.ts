@@ -11,10 +11,10 @@ import {useCallback, useEffect, useLayoutEffect, useRef, useState} from "react";
 // `loop` is false until the page has loaded (the server-rendered strip is the plain one, so the first
 // photograph is what paints first). Render `loop ? [last, ...slides, first] : slides`, and use
 // `onIndexChange` for dots or anything else that follows the real slide.
-export function useLoopingTrack(count: number, onIndexChange: (index: number) => void) {
+export function useLoopingTrack(count: number, onIndexChange: (index: number) => void, enabled = true) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
-  const loop = ready && count > 1;
+  const loop = enabled && ready && count > 1;
   const realRef = useRef(0);
   const settleTimer = useRef<number | null>(null);
   const touching = useRef(false);

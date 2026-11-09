@@ -4,6 +4,7 @@ import Link from "next/link";
 import {useCallback, useEffect, useRef, useState, type CSSProperties} from "react";
 import {ChevronLeft, ChevronRight, Heart, ShoppingBag} from "lucide-react";
 import {ImageWithFallback} from "@/components/image-with-fallback";
+import {useLoopingTrack} from "@/components/use-looping-track";
 import {useStorefront} from "@/components/storefront-provider";
 import {useWishlist} from "@/components/use-wishlist";
 import {colourSwatchStyle} from "@/lib/colour-library";
@@ -133,9 +134,30 @@ export function ShopProductCard({
   // and vertical page scrolling is never fought over. The extra photographs are
   // only mounted once someone touches, hovers or focuses the tile, so a page of
   // products loads one photograph each, not every gallery up front.
-  const galleryRef = useRef<HTMLDivElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [galleryOpened, setGalleryOpened] = useState(false);
+  // Phones: the photographs loop round endlessly (a swipe left from the last arrives at the first).
+  const [phone, setPhone] = useState(false);
+  useEffect(() => setPhone(window.matchMedia("(max-width: 639px)").matches), []);
+  const swipe = useLoopingTrack(images.length, setActiveIndex, phone && galleryOpened);
+  const galleryRef = swipe.trackRef;
+  // On a phone the other photographs are fetched as soon as the tile comes near the screen, so a
+  // swipe never waits for a picture.
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!phone || images.length < 2 || !stage || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setGalleryOpened(true);
+          observer.disconnect();
+        }
+      },
+      {rootMargin: "200px"}
+    );
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [phone, images.length]);
   const scrollFrame = useRef<number | null>(null);
 
   const openGallery = useCallback(() => setGalleryOpened(true), []);
@@ -270,14 +292,19 @@ export function ShopProductCard({
         <div
           ref={galleryRef}
           className="catalogue-gallery"
-          onScroll={images.length > 1 ? handleScroll : undefined}
+          onScroll={images.length > 1 ? (phone ? swipe.onScroll : handleScroll) : undefined}
+          onTouchStart={phone ? swipe.touchHandlers.onTouchStart : undefined}
+          onTouchEnd={phone ? swipe.touchHandlers.onTouchEnd : undefined}
+          onTouchCancel={phone ? swipe.touchHandlers.onTouchCancel : undefined}
           onPointerDown={handleDragStart}
           onPointerMove={handleDragMove}
           onPointerUp={handleDragEnd}
           onPointerCancel={handleDragEnd}
         >
-          {images.map((src, index) => (
-            <div key={src} className="catalogue-gallery-slide">
+          {(swipe.loop ? [images[images.length - 1], ...images, images[0]] : images).map((src, position) => {
+            const index = swipe.loop ? position - 1 : position;
+            return (
+            <div key={`${position}-${src}`} className="catalogue-gallery-slide">
               {index === 0 || galleryOpened ? (
                 <TileImage
                   src={src}
@@ -288,7 +315,8 @@ export function ShopProductCard({
                 />
               ) : null}
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {product.soldOut ? <span className="catalogue-item-soldout">{locale === "en" ? "Sold Out" : "Habis Terjual"}</span> : null}
@@ -298,7 +326,7 @@ export function ShopProductCard({
             <button
               type="button"
               aria-label="Previous photo"
-              disabled={activeIndex === 0}
+              disabled={!swipe.loop && activeIndex === 0}
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -311,7 +339,7 @@ export function ShopProductCard({
             <button
               type="button"
               aria-label="Next photo"
-              disabled={activeIndex >= images.length - 1}
+              disabled={!swipe.loop && activeIndex >= images.length - 1}
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();

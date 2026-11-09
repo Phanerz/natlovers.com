@@ -105,6 +105,13 @@ function Lightbox({
   );
 }
 
+// How many places apart two photographs are on the endless loop.
+function swipeDistance(index: number, active: number, count: number) {
+  const real = ((index % count) + count) % count;
+  const gap = Math.abs(real - active);
+  return Math.min(gap, count - gap);
+}
+
 export function ProductGallery({
   images,
   name,
@@ -223,7 +230,7 @@ export function ProductGallery({
       </div>
 
       <div
-        className="pdp-swipe relative hidden aspect-[3/4] w-full overflow-hidden rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] max-sm:block"
+        className="pdp-swipe relative hidden aspect-square w-full overflow-hidden rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] max-sm:block"
         style={{backgroundColor: tintHex}}
       >
         <div
@@ -236,15 +243,25 @@ export function ProductGallery({
         >
           {(swipe.loop ? [images[images.length - 1], ...images, images[0]] : images).map((url, position) => {
             const index = swipe.loop ? position - 1 : position;
+            // Every phone picture sits in a square. A photograph that is not square is shown whole,
+            // and the space beside it is filled with a soft blur of the same photograph, so it blends in
+            // and nothing is cut off.
+            const near = swipeDistance(index, activeImage, images.length) <= 2;
             const picture = (
-              <ImageWithFallback
-                src={url}
-                alt={name}
-                fill
-                priority={index === 0 && position === (swipe.loop ? 1 : 0)}
-                sizes="(max-width: 1024px) 100vw, 55vw"
-                className="object-cover"
-              />
+              <>
+                <div className="pdp-swipe-blur" aria-hidden>
+                  <ImageWithFallback src={url} alt="" fill sizes="48px" className="object-cover" />
+                </div>
+                <ImageWithFallback
+                  src={url}
+                  alt={name}
+                  fill
+                  priority={index === 0 && position === (swipe.loop ? 1 : 0)}
+                  loading={near ? "eager" : "lazy"}
+                  sizes="(max-width: 1024px) 100vw, 55vw"
+                  className="object-contain"
+                />
+              </>
             );
             return zoomEnabled ? (
               <button

@@ -55,6 +55,13 @@ function DesktopSlides({urls}: {urls: string[]}) {
   );
 }
 
+// How many places apart two slides are on the endless loop.
+function slideDistance(index: number, active: number, count: number) {
+  const real = ((index % count) + count) % count;
+  const gap = Math.abs(real - active);
+  return Math.min(gap, count - gap);
+}
+
 export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
   const [offset, setOffset] = useState({x: 0, y: 0});
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -306,6 +313,10 @@ const cardTransform = useMemo(() => {
                   fill
                   sizes="100vw"
                   priority={index === 0}
+                  // The visible photograph and the two either side of it are fetched at once, the rest
+                  // wait their turn; so a swipe always lands on a picture that is already there.
+                  loading={index === 0 || slideDistance(index, slide, slideCount) <= 2 ? "eager" : "lazy"}
+                  quality={70}
                   className="object-cover"
                 />
               </div>
