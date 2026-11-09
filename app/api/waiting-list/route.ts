@@ -13,8 +13,13 @@ export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
   try {
-    // Five tries per address per hour, and twenty per network address per hour.
-    const allowed = (await allowRequest(`wl-email:${email}`, 5, 3600_000)) && (await allowRequest(`wl-ip:${ip}`, 20, 3600_000));
+    // Five tries per address per hour, twenty per network address per hour, and a ceiling on the
+    // whole form per hour so a spread-out attack cannot use it to flood strangers with email or
+    // exhaust the sending quota the order emails depend on.
+    const allowed =
+      (await allowRequest(`wl-email:${email}`, 5, 3600_000)) &&
+      (await allowRequest(`wl-ip:${ip}`, 20, 3600_000)) &&
+      (await allowRequest("wl-global", 200, 3600_000));
     if (!allowed) {
       return NextResponse.json({error: "rate_limited"}, {status: 429});
     }
