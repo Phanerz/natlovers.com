@@ -137,9 +137,26 @@ export function monthName(month: number, language: "en" | "id"): string {
 
 // The 24-hour hold on a bank-transfer order.
 export const ORDER_HOLD_MS = 24 * 60 * 60 * 1000;
+// A dollar order waits for a manual invoice, so it is held for longer: 72 hours, unless an admin
+// extends it.
+export const USD_ORDER_HOLD_MS = 72 * 60 * 60 * 1000;
 
-export function orderExpiry(createdAt: Date): Date {
-  return new Date(createdAt.getTime() + ORDER_HOLD_MS);
+export function orderExpiry(createdAt: Date, currency: "IDR" | "USD" = "IDR"): Date {
+  return new Date(createdAt.getTime() + (currency === "USD" ? USD_ORDER_HOLD_MS : ORDER_HOLD_MS));
+}
+
+// One click in admin gives an unpaid order another 72 hours, counted from now or from its current
+// expiry, whichever is later.
+export function extendedExpiry(current: Date | null, now: Date): Date {
+  const base = current && current.getTime() > now.getTime() ? current.getTime() : now.getTime();
+  return new Date(base + USD_ORDER_HOLD_MS);
+}
+
+// Each account may have at most this many open unpaid orders at once.
+export const MAX_OPEN_UNPAID_ORDERS = 2;
+
+export function checkOpenOrders(openCount: number): boolean {
+  return openCount < MAX_OPEN_UNPAID_ORDERS;
 }
 
 // Statuses that hold a slot in the month: an unpaid order only while it has not expired.

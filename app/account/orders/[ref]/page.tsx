@@ -84,7 +84,8 @@ export default async function OrderPage({params}: {params: Promise<{ref: string}
       {order.status === "pending_transfer" ? (
         <section className="atelier-notice mt-8" style={{paddingRight: "1rem"}}>
           <p>{t.awaiting}</p>
-          {usd ? <p className="mt-1">{t.usdAwaiting}</p> : expires ? <p className="mt-1">{t.heldUntil(expires)}</p> : null}
+          {usd ? <p className="mt-1">{t.usdAwaiting}</p> : null}
+          {expires ? <p className="mt-1">{t.heldUntil(expires)}</p> : null}
         </section>
       ) : null}
       {order.status === "expired" ? <p className="atelier-notice mt-8" style={{paddingRight: "1rem"}}>{t.expiredNote}</p> : null}

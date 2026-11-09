@@ -2,7 +2,8 @@ import {NextRequest, NextResponse} from "next/server";
 import {z} from "zod";
 import {addressInputSchema} from "@/lib/addresses";
 import {copy, langForCurrency} from "@/lib/atelier-copy";
-import {createOrder, LimitError} from "@/lib/orders";
+import {createOrder, LimitError, OpenOrdersError} from "@/lib/orders";
+import {allowRequest} from "@/lib/rate-limit";
 import {paymentRouteFor} from "@/lib/payment-routes";
 import {normalizeCurrency} from "@/lib/site";
 import {getSession} from "@/lib/auth";
@@ -70,6 +71,18 @@ export async function POST(request: NextRequest) {
   const route = paymentRouteFor(currency);
   const lang = langForCurrency(currency);
 
+  // Rate limit order creation, per account and per network address. Quiet: a calm message, no detail.
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  try {
+    const allowed = (await allowRequest(`order-user:${userId}`, 6, 3600_000)) && (await allowRequest(`order-ip:${ip}`, 20, 3600_000));
+    if (!allowed) {
+      return NextResponse.json({error: copy[lang].tooManyAttempts, code: "rate_limited"}, {status: 429});
+    }
+  } catch (error) {
+    // If the limiter cannot be read, the open-order cap and the idempotency key still protect the order.
+    console.error("Order rate limit unavailable", error);
+  }
+
   let bank = {bankName: "", accountName: "", accountNumber: ""};
   if (route === "idr_bank_transfer") {
     const details = readBankDetails();
@@ -118,6 +131,9 @@ export async function POST(request: NextRequest) {
       total: order.totalIdr
     });
   } catch (error) {
+    if (error instanceof OpenOrdersError) {
+      return NextResponse.json({error: copy[lang].tooManyOpenOrders, code: "open_orders"}, {status: 409});
+    }
     if (error instanceof LimitError) {
       return NextResponse.json({error: "limit", violation: error.violation, nextMonth: error.nextMonth}, {status: 409});
     }

@@ -1,5 +1,5 @@
 import {NextResponse} from "next/server";
-import {cancelOrder, markOrderPaid, setFulfilmentStage, setOrderTracking} from "@/lib/orders";
+import {cancelOrder, extendOrderHold, markOrderPaid, setFulfilmentStage, setOrderTracking} from "@/lib/orders";
 import {isFulfilmentStage} from "@/lib/atelier-limits";
 import {getSession, isAdminEmail} from "@/lib/auth";
 
@@ -52,6 +52,17 @@ export async function PATCH(request: Request, {params}: {params: Promise<{id: st
           return NextResponse.json({error: "Add a courier and tracking number to mark an order as shipped."}, {status: 400});
         }
         return NextResponse.json({error: "Only a paid order has a production stage."}, {status: 409});
+      }
+      return NextResponse.json({order: result.order});
+    }
+
+    if (body?.action === "extend_hold") {
+      const result = await extendOrderHold(id);
+      if (!result.ok) {
+        if (result.error === "not_found") {
+          return NextResponse.json({error: "Order not found."}, {status: 404});
+        }
+        return NextResponse.json({error: "Only an order awaiting payment can be extended."}, {status: 409});
       }
       return NextResponse.json({order: result.order});
     }

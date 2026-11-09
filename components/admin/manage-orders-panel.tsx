@@ -238,6 +238,28 @@ export function ManageOrdersPanel() {
     }
   }
 
+  async function extendHold(order: AdminOrder) {
+    setBusyId(order.id);
+    try {
+      const response = await fetch(`/api/admin/orders/${order.id}`, {
+        method: "PATCH",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({action: "extend_hold"})
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setToast({type: "error", message: data?.error ?? "Could not extend the order."});
+        return;
+      }
+      setToast({type: "success", message: `${order.orderRef} is held for another 72 hours.`});
+      await loadOrders();
+    } catch {
+      setToast({type: "error", message: "Could not reach the server. Please try again."});
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function cancelOrder(order: AdminOrder) {
     if (
       !(await confirm({
@@ -382,6 +404,16 @@ export function ManageOrdersPanel() {
                           className="rounded-full border border-[#d4c5ab] px-4 py-2 text-xs font-semibold text-forest-700"
                         >
                           {order.status === "fulfilled" ? "Edit tracking" : "Add tracking"}
+                        </button>
+                      ) : null}
+                      {order.status === "pending_transfer" ? (
+                        <button
+                          type="button"
+                          disabled={busyId === order.id}
+                          onClick={() => extendHold(order)}
+                          className="rounded-full border border-[#d4c5ab] px-4 py-2 text-xs font-semibold text-forest-700 disabled:opacity-50"
+                        >
+                          Extend hold (72 hours)
                         </button>
                       ) : null}
                       {order.status === "pending_transfer" ? (

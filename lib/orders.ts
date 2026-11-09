@@ -1,4 +1,4 @@
-import {and, desc, eq, inArray, isNotNull, lte, sql} from "drizzle-orm";
+import {and, count, desc, eq, gt, inArray, isNotNull, isNull, lte, or, sql} from "drizzle-orm";
 import {AddressInput, createAddress, getDefaultAddress, updateAddress} from "@/lib/addresses";
 import {clearCart} from "@/lib/cart";
 import {db, orderItems, orders, products, users} from "@/lib/db";
@@ -11,6 +11,8 @@ import {CurrencyCode, normalizeCurrency} from "@/lib/site";
 import {
   checkAll,
   orderExpiry,
+  extendedExpiry,
+  checkOpenOrders,
   productMaxPerOrder,
   resolveCapGroup,
   type CapGroup,
@@ -61,6 +63,13 @@ export type OrderView = {
 
 // Raised when an order would break a limit. Carries the rule that was hit so the checkout can say
 // it in the customer's own language.
+// Raised when the account already has the most open unpaid orders it may have.
+export class OpenOrdersError extends Error {
+  constructor() {
+    super("Too many open orders");
+  }
+}
+
 export class LimitError extends Error {
   violation: LimitViolation;
   nextMonth: number;
@@ -305,9 +314,9 @@ export async function createOrder(
   const totalUsdCents = currency === "USD" ? lineItems.reduce((sum, item) => sum + (item.priceUsdCents ?? 0) * item.quantity, 0) : null;
   const orderRef = generateOrderRef();
   const createdAt = new Date();
-  // Only a bank-transfer order is held for 24 hours. A dollar order waits for a manual invoice and
-  // is released by cancelling it in admin.
-  const expiresAt = currency === "IDR" ? orderExpiry(createdAt) : null;
+  // A bank-transfer order is held for 24 hours and a dollar order, which waits for a manual
+  // invoice, for 72 hours. An admin can extend a hold. The expiry job then releases it.
+  const expiresAt = orderExpiry(createdAt, currency);
 
   const result = await db.transaction(async (tx) => {
     // 1. Serialise every order placement behind one row lock.
@@ -320,6 +329,21 @@ export async function createOrder(
       .where(and(eq(orders.userId, userId), eq(orders.idempotencyKey, options.idempotencyKey)));
     if (existing) {
       return {replayedOrderId: existing.id as string, created: undefined};
+    }
+
+    // The account may have only a few open unpaid orders at once.
+    const [openRow] = await tx
+      .select({value: count()})
+      .from(orders)
+      .where(
+        and(
+          eq(orders.userId, userId),
+          eq(orders.status, "pending_transfer"),
+          or(isNull(orders.expiresAt), gt(orders.expiresAt, createdAt))
+        )
+      );
+    if (!checkOpenOrders(openRow?.value ?? 0)) {
+      throw new OpenOrdersError();
     }
 
     // 3. The limits, against what the month has used so far. Inside the lock, so the answer holds.
@@ -580,6 +604,25 @@ export async function expireOverdueOrders(now: Date = new Date()): Promise<{expi
     .where(and(eq(orders.status, "pending_transfer"), isNotNull(orders.expiresAt), lte(orders.expiresAt, now)))
     .returning({id: orders.id});
   return {expired: rows.length};
+}
+
+export type ExtendHoldResult =
+  | {ok: true; order: AdminOrderView}
+  | {ok: false; error: "not_found" | "invalid_status"};
+
+// Gives an unpaid order another 72 hours. Only an order still awaiting payment can be extended.
+export async function extendOrderHold(orderId: string, now: Date = new Date()): Promise<ExtendHoldResult> {
+  const [row] = await db.select({status: orders.status, expiresAt: orders.expiresAt}).from(orders).where(eq(orders.id, orderId));
+  if (!row) return {ok: false, error: "not_found"};
+  if (row.status !== "pending_transfer") return {ok: false, error: "invalid_status"};
+  const [updated] = await db
+    .update(orders)
+    .set({expiresAt: extendedExpiry(row.expiresAt, now)})
+    .where(and(eq(orders.id, orderId), eq(orders.status, "pending_transfer")))
+    .returning({id: orders.id});
+  const order = await getAdminOrderById(orderId);
+  if (!updated || !order) return {ok: false, error: "invalid_status"};
+  return {ok: true, order};
 }
 
 export type SetStageResult =

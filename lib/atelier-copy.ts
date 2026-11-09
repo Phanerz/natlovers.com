@@ -46,7 +46,9 @@ export const copy = {
       `Our atelier has reached its limit for this month, so we could not place this order. Next available in ${month}.`,
     bagUpdateFailed: "We could not update your bag. Please try again.",
     bankUnavailable: "Bank transfer is not available just now, so your order has not been placed. Please try again later, or get in touch with us.",
-    orderFailed: "We could not place your order. Please try again."
+    orderFailed: "We could not place your order. Please try again.",
+    tooManyOpenOrders: "You already have two orders waiting for payment. Please complete or wait for one of them to be released before placing another.",
+    tooManyAttempts: "You have placed several orders in a short time. Please wait a little while before trying again."
   },
   id: {
     madeInSmallNumbers: "Dibuat dalam jumlah kecil, setiap karya oleh sepasang tangan.",
@@ -74,7 +76,9 @@ export const copy = {
       `Atelier kami telah mencapai batas untuk bulan ini, sehingga pesanan ini belum dapat dibuat. Tersedia kembali pada ${month}.`,
     bagUpdateFailed: "Kami belum dapat memperbarui tas Anda. Silakan coba lagi.",
     bankUnavailable: "Transfer bank sedang tidak tersedia, sehingga pesanan Anda belum dibuat. Silakan coba lagi nanti, atau hubungi kami.",
-    orderFailed: "Kami belum dapat membuat pesanan Anda. Silakan coba lagi."
+    orderFailed: "Kami belum dapat membuat pesanan Anda. Silakan coba lagi.",
+    tooManyOpenOrders: "Anda sudah memiliki dua pesanan yang menunggu pembayaran. Mohon selesaikan atau tunggu salah satunya dilepas sebelum membuat pesanan lain.",
+    tooManyAttempts: "Anda membuat beberapa pesanan dalam waktu singkat. Mohon tunggu sebentar sebelum mencoba lagi."
   }
 } as const;
 

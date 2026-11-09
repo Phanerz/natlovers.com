@@ -1,4 +1,5 @@
-import {createHash, randomBytes} from "node:crypto";
+import {randomBytes} from "node:crypto";
+import {allowRequest} from "@/lib/rate-limit";
 import {and, asc, count, eq, gt, isNull, sql} from "drizzle-orm";
 import {z} from "zod";
 import {db, rateLimitHits, waitingList} from "@/lib/db";
@@ -18,20 +19,7 @@ export function unsubscribeUrl(token: string): string {
   return `${siteUrl()}/waiting-list/unsubscribe?token=${encodeURIComponent(token)}`;
 }
 
-// At most `limit` hits per key per window. The key is hashed, so no address is stored here.
-export async function allowRequest(rawKey: string, limit: number, windowMs: number): Promise<boolean> {
-  const key = createHash("sha256").update(rawKey).digest("hex");
-  const since = new Date(Date.now() - windowMs);
-  const [row] = await db
-    .select({value: count()})
-    .from(rateLimitHits)
-    .where(and(eq(rateLimitHits.key, key), gt(rateLimitHits.createdAt, since)));
-  if ((row?.value ?? 0) >= limit) return false;
-  await db.insert(rateLimitHits).values({key});
-  // Keep the table small.
-  await db.delete(rateLimitHits).where(sql`${rateLimitHits.createdAt} < now() - interval '2 days'`);
-  return true;
-}
+export {allowRequest};
 
 export async function joinWaitingList(email: string, lang: Lang): Promise<void> {
   const token = randomBytes(24).toString("hex");
