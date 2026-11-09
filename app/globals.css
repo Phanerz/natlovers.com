@@ -7411,6 +7411,8 @@ html:has(.outlets-stage--page) {
 .pdp-swipe-dots span.is-active {
   width: 1.1rem;
   background: #fff;
+}
+
 /* Product page photos on a laptop. The main photo is always a true 3:4 portrait and is never
    stretched. Its height is the largest that fits both the column width and the screen
    (viewport height less the header and breadcrumb), so the whole photo is on screen at once.
