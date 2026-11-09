@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import Image from "next/image";
+import {useLoopingTrack} from "@/components/use-looping-track";
 import Link from "next/link";
 import {useEffect, useMemo, useRef, useState} from "react";
 import {ArrowDown, ArrowRight, Hand, Infinity as InfinityIcon, Leaf} from "lucide-react";
@@ -71,7 +72,7 @@ export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
     [slides]
   );
   const slideCount = mobileSlides.length;
-  const trackRef = useRef<HTMLDivElement>(null);
+  const {trackRef, loop, onScroll: onTrackScroll, touchHandlers, next: nextSlide} = useLoopingTrack(slideCount, setSlide);
   const lastTouchRef = useRef(0);
 
   useEffect(() => {
@@ -101,11 +102,10 @@ export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
       if (Date.now() - lastTouchRef.current < 15000) return;
       const box = track.getBoundingClientRect();
       if (box.width === 0 || box.bottom <= 0 || box.top >= window.innerHeight) return;
-      const index = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
-      track.scrollTo({left: ((index + 1) % slideCount) * track.clientWidth, behavior: "smooth"});
+      nextSlide();
     }, 15000);
     return () => window.clearInterval(timer);
-  }, [slideCount]);
+  }, [slideCount, nextSlide, trackRef]);
 
   // Phones only: once the page is idle, fetch the pictures the fact cards use.
   useEffect(() => {
@@ -113,12 +113,6 @@ export function Hero({locale}: {locale: Locale; currency: CurrencyCode}) {
     const idle = window.setTimeout(warmFactImages, 1800);
     return () => window.clearTimeout(idle);
   }, []);
-
-  function handleSlideScroll(event: React.UIEvent<HTMLDivElement>) {
-    const track = event.currentTarget;
-    const index = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
-    setSlide((current) => (current === index ? current : Math.min(slideCount - 1, Math.max(0, index))));
-  }
 
   // The poster image is what needs to paint fast (it's the LCP candidate on
   // this page) \u2014 the video itself is deferred until after the browser has
@@ -299,12 +293,19 @@ const cardTransform = useMemo(() => {
           <div
             ref={trackRef}
             className="m-hero__track"
-            onScroll={handleSlideScroll}
-            onTouchStart={() => (lastTouchRef.current = Date.now())}
+            onScroll={onTrackScroll}
+            onTouchStart={() => {
+              lastTouchRef.current = Date.now();
+              touchHandlers.onTouchStart();
+            }}
+            onTouchEnd={touchHandlers.onTouchEnd}
+            onTouchCancel={touchHandlers.onTouchCancel}
             onPointerDown={() => (lastTouchRef.current = Date.now())}
           >
-            {mobileSlides.map((item, index) => (
-              <div key={item.src} className="m-hero__slide">
+            {(loop ? [mobileSlides[mobileSlides.length - 1], ...mobileSlides, mobileSlides[0]] : mobileSlides).map((item, position) => {
+              const index = loop ? position - 1 : position;
+              return (
+              <div key={`${position}-${item.src}`} className="m-hero__slide">
                 <Image
                   src={item.src}
                   alt={item.alt}
@@ -314,7 +315,8 @@ const cardTransform = useMemo(() => {
                   className="object-cover"
                 />
               </div>
-            ))}
+              );
+            })}
           </div>
           {/* A mirrored copy of the visible photograph sits just above it, so pulling the page down
               past the top shows more of the picture, never a gap. */}

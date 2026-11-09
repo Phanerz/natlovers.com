@@ -4,6 +4,7 @@ import {useEffect, useRef, useState} from "react";
 import {createPortal} from "react-dom";
 import {ChevronLeft, ChevronRight, Maximize2, X} from "lucide-react";
 import {ImageWithFallback} from "@/components/image-with-fallback";
+import {useLoopingTrack} from "@/components/use-looping-track";
 
 function Lightbox({
   images,
@@ -119,6 +120,13 @@ export function ProductGallery({
   const [imgOpacity, setImgOpacity] = useState(1);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const fadeTimeoutRef = useRef<number | null>(null);
+  // Phones: no thumbnails, just a swipeable strip that loops round in both directions.
+  const swipe = useLoopingTrack(images.length, setActiveImage);
+  const {showInstantly} = swipe;
+  useEffect(() => {
+    if (!lightboxOpen) showInstantly(activeImage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lightboxOpen]);
 
   useEffect(
     () => () => {
@@ -148,7 +156,7 @@ export function ProductGallery({
         // Every photo shown whole in an equal square, never a side scroll: a
         // wrapping grid on phones, and on desktop a rail exactly as tall as the
         // main photo (its own height never stretches the row).
-        <div className="pdp-thumbs order-2 lg:order-1">
+        <div className="pdp-thumbs order-2 max-sm:hidden lg:order-1">
           <div className="pdp-thumbs-inner">
             {images.map((url, index) => (
               <button
@@ -167,7 +175,7 @@ export function ProductGallery({
       ) : null}
 
       <div
-        className="pdp-main relative order-1 aspect-[3/4] w-full overflow-hidden rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] lg:order-2"
+        className="pdp-main relative order-1 aspect-[3/4] w-full overflow-hidden rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] max-sm:hidden lg:order-2"
         style={{backgroundColor: tintHex}}
       >
         {images[activeImage] ? (
@@ -202,6 +210,66 @@ export function ProductGallery({
           )
         ) : null}
 
+        {zoomEnabled ? (
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(true)}
+            aria-label="View full image"
+            className="pdp-zoom absolute right-3 top-3 backdrop-blur-[6px]"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </button>
+        ) : null}
+      </div>
+
+      <div
+        className="pdp-swipe relative hidden aspect-[3/4] w-full overflow-hidden rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] max-sm:block"
+        style={{backgroundColor: tintHex}}
+      >
+        <div
+          ref={swipe.trackRef}
+          className="pdp-swipe-track"
+          onScroll={swipe.onScroll}
+          onTouchStart={swipe.touchHandlers.onTouchStart}
+          onTouchEnd={swipe.touchHandlers.onTouchEnd}
+          onTouchCancel={swipe.touchHandlers.onTouchCancel}
+        >
+          {(swipe.loop ? [images[images.length - 1], ...images, images[0]] : images).map((url, position) => {
+            const index = swipe.loop ? position - 1 : position;
+            const picture = (
+              <ImageWithFallback
+                src={url}
+                alt={name}
+                fill
+                priority={index === 0 && position === (swipe.loop ? 1 : 0)}
+                sizes="(max-width: 1024px) 100vw, 55vw"
+                className="object-cover"
+              />
+            );
+            return zoomEnabled ? (
+              <button
+                key={`${position}-${url}`}
+                type="button"
+                onClick={() => setLightboxOpen(true)}
+                aria-label="Expand image"
+                className="pdp-swipe-slide"
+              >
+                {picture}
+              </button>
+            ) : (
+              <div key={`${position}-${url}`} className="pdp-swipe-slide">
+                {picture}
+              </div>
+            );
+          })}
+        </div>
+        {images.length > 1 ? (
+          <div className="pdp-swipe-dots" aria-hidden>
+            {images.map((url, index) => (
+              <span key={`${url}-${index}`} className={index === activeImage ? "is-active" : undefined} />
+            ))}
+          </div>
+        ) : null}
         {zoomEnabled ? (
           <button
             type="button"

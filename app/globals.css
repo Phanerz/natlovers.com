@@ -7328,3 +7328,48 @@ body:has(.outlets-stage--page) footer {
     min-height: 7.5rem;
   }
 }
+
+/* --- phone product photographs: one swipeable picture that loops, no thumbnail rail --- */
+.pdp-swipe-track {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.pdp-swipe-track::-webkit-scrollbar {
+  display: none;
+}
+.pdp-swipe-slide {
+  position: relative;
+  flex: 0 0 100%;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  cursor: zoom-in;
+}
+.pdp-swipe-dots {
+  position: absolute;
+  right: 0;
+  bottom: 0.8rem;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  pointer-events: none;
+}
+.pdp-swipe-dots span {
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.35);
+  transition: width 0.25s ease, background 0.25s ease;
+}
+.pdp-swipe-dots span.is-active {
+  width: 1.1rem;
+  background: #fff;
+}
