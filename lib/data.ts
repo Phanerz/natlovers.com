@@ -21,6 +21,10 @@ export type ProductCard = {
   maxPerOrder?: number | null;
   leadTimeWeeksMin?: number | null;
   leadTimeWeeksMax?: number | null;
+  // Ready to ship (finished stock) or made to order, the stock left, and the dispatch note.
+  fulfilmentType?: "made_to_order" | "ready_to_ship";
+  stock?: number | null;
+  dispatchNote?: string | null;
 };
 
 export const featuredProducts: Record<Locale, ProductCard[]> = {

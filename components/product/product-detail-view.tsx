@@ -1,6 +1,6 @@
 "use client";
 
-import {useMonthFull} from "@/components/atelier/product-atelier-notes";
+import {isReadySoldOut, useMonthFull} from "@/components/atelier/product-atelier-notes";
 import {useEffect, useRef, useState} from "react";
 import {lineExtrasTotal} from "@/lib/pricing";
 import {useSitePreferences} from "@/components/site-preferences-provider";
@@ -105,7 +105,7 @@ export function ProductDetailView({
   const {addToCart} = useStorefront();
   const [addedNotice, setAddedNotice] = useState(false);
   const monthFull = useMonthFull(product);
-  const outOfStock = product.soldOut || (product.stock !== null && product.stock <= 0);
+  const outOfStock = product.soldOut || (product.stock !== null && product.stock <= 0) || isReadySoldOut(product);
   function handleAddToBag() {
     addToCart(product.slug, 1, selection ?? null);
     setAddedNotice(true);

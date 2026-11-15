@@ -11,7 +11,8 @@ import {useSitePreferences} from "@/components/site-preferences-provider";
 import type {ProductSelection} from "@/lib/product-selection";
 import type {AdminProduct} from "@/lib/admin-products";
 import {ProductSpecsPanel} from "@/components/product/product-specs-panel";
-import {ProductAtelierNotes, useMonthFull} from "@/components/atelier/product-atelier-notes";
+import {isReadySoldOut, ProductAtelierNotes, useMonthFull} from "@/components/atelier/product-atelier-notes";
+import {isReadyToShip} from "@/lib/atelier-limits";
 
 // The colour/note selection is owned by ProductDetailView (the customiser sits
 // in the details section below); this column only carries it to the bag.
@@ -37,8 +38,12 @@ export function ProductPurchasePanel({
   const wishlisted = isWishlisted(product.slug);
 
   const monthFull = useMonthFull(product);
-  const outOfStock = product.soldOut || (product.stock !== null && product.stock <= 0);
-  const stockLabel = product.soldOut
+  const outOfStock = product.soldOut || (product.stock !== null && product.stock <= 0) || isReadySoldOut(product);
+  const stockLabel = outOfStock && isReadyToShip(product.fulfilmentType)
+    ? "Sold out"
+    : isReadyToShip(product.fulfilmentType)
+      ? "Ready to ship"
+      : product.soldOut
     ? "Sold out"
     : product.stock === null
       ? "Available to order"

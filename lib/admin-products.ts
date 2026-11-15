@@ -1,4 +1,4 @@
-import {resolveCapGroup, type CapGroup} from "@/lib/atelier-limits";
+import {DISPATCH_NOTE_MAX, resolveCapGroup, resolveFulfilmentType, type CapGroup, type FulfilmentType} from "@/lib/atelier-limits";
 import {and, desc, eq} from "drizzle-orm";
 import {z} from "zod";
 import {AdminBodyShape, assertBodyShapeExists, getBodyShapeById} from "@/lib/admin-body-shapes";
@@ -86,6 +86,8 @@ export type AdminProduct = ShopProduct & {
   maxPerOrder: number | null;
   leadTimeWeeksMin: number | null;
   leadTimeWeeksMax: number | null;
+  fulfilmentType: FulfilmentType;
+  dispatchNote: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -106,14 +108,25 @@ function positiveIntOrNull(value: FormDataEntryValue | null, label: string): num
   return number;
 }
 
-function limitFieldsFromForm(formData: FormData) {
+function limitFieldsFromForm(formData: FormData, stock: number | null) {
   const group = String(formData.get("capGroup") ?? "");
   const leadTimeWeeksMin = positiveIntOrNull(formData.get("leadTimeWeeksMin"), "Lead time (from)");
   const leadTimeWeeksMax = positiveIntOrNull(formData.get("leadTimeWeeksMax"), "Lead time (to)");
   if (leadTimeWeeksMin != null && leadTimeWeeksMax != null && leadTimeWeeksMin > leadTimeWeeksMax) {
     throw new Error("Lead time (from) cannot be longer than lead time (to).");
   }
+  // Ready to ship is limited by its stock, so it needs a stock quantity. Anything not sent, or not
+  // exactly "ready_to_ship", is made to order.
+  const fulfilment = formData.has("fulfilmentType") ? resolveFulfilmentType(String(formData.get("fulfilmentType"))) : null;
+  if (fulfilment === "ready_to_ship" && stock == null) {
+    throw new Error("A ready to ship product needs a stock quantity. Enter it under Inventory.");
+  }
+  const note = String(formData.get("dispatchNote") ?? "").trim();
+  if (note.length > DISPATCH_NOTE_MAX) {
+    throw new Error(`The dispatch note can be at most ${DISPATCH_NOTE_MAX} characters.`);
+  }
   return {
+    ...(fulfilment ? {fulfilmentType: fulfilment, dispatchNote: fulfilment === "ready_to_ship" && note ? note : null} : {}),
     capGroup: group === "PIECES" || group === "ATELIER_EXTRAS" ? group : null,
     maxPerOrder: positiveIntOrNull(formData.get("maxPerOrder"), "Max per order"),
     leadTimeWeeksMin,
@@ -378,6 +391,8 @@ function toAdminProduct(row: typeof products.$inferSelect, bodyShape: AdminBodyS
     maxPerOrder: row.maxPerOrder,
     leadTimeWeeksMin: row.leadTimeWeeksMin,
     leadTimeWeeksMax: row.leadTimeWeeksMax,
+    fulfilmentType: resolveFulfilmentType(row.fulfilmentType),
+    dispatchNote: row.dispatchNote,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString()
   };
@@ -668,7 +683,7 @@ export async function createProduct(formData: FormData): Promise<AdminProduct> {
       imageZoomEnabled: formData.get("imageZoomEnabled") !== "false",
       productType: parsed.productType,
       subcategory: parsed.subcategory ?? null,
-      ...limitFieldsFromForm(formData),
+      ...limitFieldsFromForm(formData, stock),
       materials: attributes.materials,
       bodyShapeId: attributes.bodyShapeId,
       size: attributes.size,
@@ -841,7 +856,7 @@ export async function updateProduct(slug: string, formData: FormData): Promise<A
       ...(parsed.shortDescription !== undefined ? {shortDescription: parsed.shortDescription} : {}),
       ...(parsed.productType !== undefined ? {productType: parsed.productType} : {}),
       ...(parsed.subcategory !== undefined ? {subcategory: parsed.subcategory} : {}),
-      ...(formData.has("capGroup") ? limitFieldsFromForm(formData) : {}),
+      ...(formData.has("capGroup") ? limitFieldsFromForm(formData, stock) : {}),
       ...(parsed.vendor !== undefined ? {vendor: parsed.vendor} : {}),
       ...(parsed.metaTitle !== undefined ? {metaTitle: parsed.metaTitle} : {}),
       ...(parsed.metaDescription !== undefined ? {metaDescription: parsed.metaDescription} : {}),

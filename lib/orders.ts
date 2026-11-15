@@ -16,6 +16,7 @@ import {
   extendedExpiry,
   extensionVerdict,
   checkOpenOrders,
+  isReadyToShip,
   productMaxPerOrder,
   resolveCapGroup,
   type CapGroup,
@@ -23,7 +24,7 @@ import {
   type LimitLine,
   type LimitViolation
 } from "@/lib/atelier-limits";
-import {getMonthlyUsage, lockLimits, nextMonthNumber} from "@/lib/limits";
+import {getMonthlyUsage, getReadyAvailability, lockLimits, nextMonthNumber} from "@/lib/limits";
 import {sendOrderPlacedEmail, sendOwnerNotice, sendPaymentReceivedEmail, sendStageEmail, type EmailOrder} from "@/lib/order-emails";
 
 export {orderStatusLabels} from "@/lib/order-status";
@@ -174,11 +175,13 @@ type PricedLine = {
   addons: AddonOrderLine[];
   group: CapGroup;
   ownMaxPerOrder: number | null;
+  // "ready_to_ship" for finished stock, null for made to order. Stored on the order line.
+  fulfilmentType: "ready_to_ship" | null;
 };
 
 // Merges lines for the same product, so a product's own per-order limit applies to its whole
-// quantity however the lines were sent.
-function toLimitLines(lines: PricedLine[], limits: Parameters<typeof productMaxPerOrder>[2]): LimitLine[] {
+// quantity however the lines were sent. `available` is what a ready-to-ship product still has.
+function toLimitLines(lines: PricedLine[], limits: Parameters<typeof productMaxPerOrder>[2], available: Map<string, number>): LimitLine[] {
   const bySlug = new Map<string, LimitLine>();
   for (const line of lines) {
     const existing = bySlug.get(line.productSlug);
@@ -188,12 +191,14 @@ function toLimitLines(lines: PricedLine[], limits: Parameters<typeof productMaxP
       existing.addonCount = (existing.addonCount ?? 0) + addonCount;
       continue;
     }
+    const ready = line.fulfilmentType === "ready_to_ship";
     bySlug.set(line.productSlug, {
       slug: line.productSlug,
       quantity: line.quantity,
       group: line.group,
       maxPerOrder: productMaxPerOrder({maxPerOrder: line.ownMaxPerOrder}, line.group, limits),
-      addonCount
+      addonCount,
+      ...(ready ? {ready: true, available: available.get(line.productSlug) ?? 0} : {})
     });
   }
   return [...bySlug.values()];
@@ -262,6 +267,7 @@ async function placeOrder(
       productType: products.productType,
       capGroup: products.capGroup,
       maxPerOrder: products.maxPerOrder,
+      fulfilmentType: products.fulfilmentType,
       priceIdr: products.priceIdr,
       priceUsdCents: products.priceUsdCents,
       customisation: products.customisation,
@@ -334,7 +340,8 @@ async function placeOrder(
       config,
       addons,
       group: resolveCapGroup(product.capGroup, product.productType),
-      ownMaxPerOrder: product.maxPerOrder
+      ownMaxPerOrder: product.maxPerOrder,
+      fulfilmentType: isReadyToShip(product.fulfilmentType) ? "ready_to_ship" : null
     });
   }
 
@@ -380,8 +387,11 @@ async function placeOrder(
     }
 
     // 3. The limits, against what the month has used so far. Inside the lock, so the answer holds.
+    // Ready-to-ship pieces are held to their stock, less what other unpaid orders already hold.
+    const readySlugs = lineItems.filter((line) => line.fulfilmentType === "ready_to_ship").map((line) => line.productSlug);
+    const available = await getReadyAvailability(tx, [...new Set(readySlugs)], createdAt);
     const used = await getMonthlyUsage(tx, createdAt);
-    const violation = checkAll(toLimitLines(lineItems, limits), limits, used);
+    const violation = checkAll(toLimitLines(lineItems, limits, available), limits, used);
     if (violation) {
       throw new LimitError(violation, nextMonthNumber(createdAt));
     }

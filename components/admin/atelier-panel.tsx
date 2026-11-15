@@ -77,7 +77,8 @@ export function AtelierPanel({
         <h2 className="font-display text-xl text-forest-900">This month, {monthLabel}</h2>
         <p className="text-sm text-forest-600">
           Counted: orders awaiting transfer that have not expired, paid orders and shipped orders. Cancelled and expired orders free
-          their places. Calendar months follow Jakarta time.
+          their places. Only made-to-order pieces are counted: ready-to-ship products are limited by their stock instead. Calendar
+          months follow Jakarta time.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-xl border border-[#d4c5ab] p-4">

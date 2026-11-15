@@ -44,6 +44,8 @@ export type AdminProduct = {
   maxPerOrder?: number | null;
   leadTimeWeeksMin?: number | null;
   leadTimeWeeksMax?: number | null;
+  fulfilmentType?: "made_to_order" | "ready_to_ship";
+  dispatchNote?: string | null;
   productType: ShopProductType;
   subcategory: string | null;
   materials: ShopMaterial[];
@@ -99,6 +101,8 @@ export type ProductFormState = {
   maxPerOrder: string;
   leadTimeWeeksMin: string;
   leadTimeWeeksMax: string;
+  fulfilmentType: string;
+  dispatchNote: string;
   productType: ShopProductType;
   subcategory: string;
   // Empty string means "unassigned"  -  the grandfathered state every
@@ -255,6 +259,8 @@ export function emptyForm(): ProductFormState {
     maxPerOrder: "",
     leadTimeWeeksMin: "",
     leadTimeWeeksMax: "",
+    fulfilmentType: "made_to_order",
+    dispatchNote: "",
     productType: shopProductTypes[0],
     subcategory: "",
     bodyShapeId: "",
@@ -307,6 +313,8 @@ export function formFromProduct(product: AdminProduct): ProductFormState {
     maxPerOrder: product.maxPerOrder != null ? String(product.maxPerOrder) : "",
     leadTimeWeeksMin: product.leadTimeWeeksMin != null ? String(product.leadTimeWeeksMin) : "",
     leadTimeWeeksMax: product.leadTimeWeeksMax != null ? String(product.leadTimeWeeksMax) : "",
+    fulfilmentType: product.fulfilmentType ?? "made_to_order",
+    dispatchNote: product.dispatchNote ?? "",
     productType: product.productType,
     subcategory: product.subcategory ?? "",
     bodyShapeId: product.bodyShapeId ?? "",
@@ -363,6 +371,8 @@ export function buildFormData(form: ProductFormState, bodyShapes: AdminBodyShape
   formData.set("maxPerOrder", form.maxPerOrder.trim());
   formData.set("leadTimeWeeksMin", form.leadTimeWeeksMin.trim());
   formData.set("leadTimeWeeksMax", form.leadTimeWeeksMax.trim());
+  formData.set("fulfilmentType", form.fulfilmentType);
+  formData.set("dispatchNote", form.dispatchNote.trim());
   formData.set("productType", form.productType);
   formData.set("subcategory", form.subcategory.trim());
 
