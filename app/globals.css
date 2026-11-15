@@ -4251,7 +4251,6 @@ html:has(.outlets-stage--page) {
   text-transform: uppercase;
   color: var(--pdp-muted);
 }
-<<<<<<< HEAD
 .pdp-journey-link {
   color: inherit;
   text-decoration: underline;
@@ -4260,14 +4259,6 @@ html:has(.outlets-stage--page) {
 }
 .pdp-journey-link:hover {
   text-decoration-color: currentColor;
-=======
-.pdp-promise-text {
-  margin-top: 0.5rem;
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 1.02rem;
-  line-height: 1.6;
-  color: var(--pdp-ink);
->>>>>>> origin/main
 }
 
 .pdp-heart svg {
