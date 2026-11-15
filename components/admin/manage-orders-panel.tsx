@@ -1,11 +1,12 @@
 "use client";
 
 import {useCallback, useEffect, useMemo, useState} from "react";
-import {CheckCircle2, Clock, Truck} from "lucide-react";
+import {CheckCircle2, Clock, MessageCircle, Truck} from "lucide-react";
 import {OrderItemDetails} from "@/components/order-item-details";
 import type {AddonOrderLine} from "@/lib/addon-shared";
 import {orderStatusLabels} from "@/lib/order-status";
 import {DEFAULT_PAGE_SIZE, PageSize, PaginationBar} from "./pagination-bar";
+import {toWhatsAppLink} from "@/lib/contact";
 import {formatOrderTotal} from "@/lib/format";
 import {Toast, ToastState} from "./toast";
 import {useConfirm} from "./use-confirm";
@@ -22,6 +23,8 @@ type AdminOrder = {
   createdAt: string;
   customerName: string | null;
   customerEmail: string | null;
+  shippingRecipientName?: string;
+  shippingPhone?: string;
   confirmedByEmail: string | null;
   confirmedAt: string | null;
   expiresAt: string | null;
@@ -331,6 +334,17 @@ export function ManageOrdersPanel() {
                   <td className="py-3 pr-3 text-forest-700">
                     <div>{order.customerName ?? "-"}</div>
                     <div className="text-xs text-forest-500">{order.customerEmail ?? "-"}</div>
+                    {order.shippingPhone ? (
+                      <a
+                        href={toWhatsAppLink(order.shippingPhone, `Hello ${order.shippingRecipientName ?? ""}, this is Natlovers about your order ${order.orderRef}.`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-forest-700 underline decoration-forest-300 underline-offset-2 hover:text-forest-900"
+                        aria-label={`Open a WhatsApp chat with ${order.shippingRecipientName ?? "the customer"} on ${order.shippingPhone}`}
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" aria-hidden /> {order.shippingPhone}
+                      </a>
+                    ) : null}
                   </td>
                   <td className="py-3 pr-3 text-forest-700">
                     <ul className="space-y-0.5">

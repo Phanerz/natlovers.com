@@ -5,7 +5,7 @@ import {LimitNoticeBox} from "@/components/atelier/limit-notice";
 import {WaitingListForm} from "@/components/atelier/waiting-list-form";
 import {useSitePreferences} from "@/components/site-preferences-provider";
 import {useStorefront} from "@/components/storefront-provider";
-import {copy, langForCurrency} from "@/lib/atelier-copy";
+import {copy, type Lang} from "@/lib/atelier-copy";
 import {isReadyToShip, leadTimeRange, monthName, readyAvailable} from "@/lib/atelier-limits";
 
 type NotesProduct = {
@@ -34,9 +34,9 @@ export function isReadySoldOut(product: {fulfilmentType?: string | null; stock?:
 // small-numbers line, and, when the month is full, the next month and the waiting list. Nothing
 // here shows a count or a countdown.
 export function ProductAtelierNotes({product}: {product: NotesProduct}) {
-  const {currency} = useSitePreferences();
+  const {locale} = useSitePreferences();
   const {availability, limitHit, dismissLimitHit} = useStorefront();
-  const lang = langForCurrency(currency);
+  const lang: Lang = locale;
   const t = copy[lang];
   const lead = leadTimeRange(product.leadTimeWeeksMin, product.leadTimeWeeksMax);
   const ready = isReadyToShip(product.fulfilmentType);

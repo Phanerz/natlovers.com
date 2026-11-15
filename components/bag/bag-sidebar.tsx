@@ -7,11 +7,15 @@ import type {Route} from "next";
 import {FormEvent, Ref, useEffect, useMemo, useRef, useState} from "react";
 import {Minus, Plus, Trash2, X} from "lucide-react";
 import {useSession} from "next-auth/react";
+import {isValidPhoneNumber} from "react-phone-number-input";
+import {PhoneInput} from "@/components/phone-input";
 import {LimitNoticeBox} from "@/components/atelier/limit-notice";
 import {useScrollLock} from "@/components/use-scroll-lock";
+import {useSitePreferences} from "@/components/site-preferences-provider";
 import {useStorefront, type LimitHit} from "@/components/storefront-provider";
-import {bagCopy, copy as atelierCopy, langForCurrency} from "@/lib/atelier-copy";
+import {bagCopy, copy as atelierCopy, type Lang} from "@/lib/atelier-copy";
 import {combinedLeadTime, isReadyToShip, type LimitViolation} from "@/lib/atelier-limits";
+import {phoneForInput} from "@/lib/contact";
 import {formatCurrency} from "@/lib/format";
 import {htmlToPlainText} from "@/lib/html-text";
 import {paymentRouteFor} from "@/lib/payment-routes";
@@ -98,7 +102,9 @@ export function BagSidebar({
   initialStep: Step;
 }) {
   useScrollLock(true);
-  const lang = langForCurrency(currency);
+  // The bag and checkout are in English unless the site language is Indonesian. The currency never decides it.
+  const {locale} = useSitePreferences();
+  const lang: Lang = locale;
   const t = bagCopy[lang];
   const route = paymentRouteFor(currency);
   const {data: session} = useSession();
@@ -135,7 +141,7 @@ export function BagSidebar({
         if (found) {
           setAddress({
             recipientName: found.recipientName,
-            phone: found.phone,
+            phone: phoneForInput(found.phone),
             street: found.street,
             city: found.city,
             province: found.province ?? "",
@@ -170,11 +176,43 @@ export function BagSidebar({
     for (const key of REQUIRED) {
       if (!address[key].trim()) result[key] = t.errors[key as keyof typeof t.errors];
     }
+    if (address.phone.trim() && !isValidPhoneNumber(address.phone)) result.phone = t.phoneInvalid;
     return result;
   }, [address, t]);
 
   function setField(key: keyof Address, value: string) {
     setAddress((current) => ({...current, [key]: value}));
+  }
+
+  // One labelled text field with its own error line.
+  function field(key: Exclude<keyof Address, "phone">, autoComplete: string, capitalise: "words" | "sentences" | "off") {
+    const message = touched[key] ? errors[key] : undefined;
+    return (
+      <div key={key} className="bs-field">
+        <label htmlFor={`bs-${key}`} className="bs-label">
+          {t.labels[key]}
+        </label>
+        <input
+          id={`bs-${key}`}
+          name={key}
+          type="text"
+          autoComplete={autoComplete}
+          autoCapitalize={capitalise}
+          value={address[key]}
+          onChange={(event) => setField(key, event.target.value)}
+          onBlur={() => setTouched((current) => ({...current, [key]: true}))}
+          aria-invalid={message ? true : undefined}
+          aria-describedby={message ? `bs-${key}-error` : undefined}
+          aria-required={REQUIRED.includes(key) ? true : undefined}
+          className="bs-input"
+        />
+        {message ? (
+          <p id={`bs-${key}-error`} className="bs-error">
+            {message}
+          </p>
+        ) : null}
+      </div>
+    );
   }
 
   async function placeOrder(event?: FormEvent) {
@@ -197,6 +235,7 @@ export function BagSidebar({
         body: JSON.stringify({
           method: route,
           currency,
+          lang,
           idempotencyKey: keyRef.current,
           items: activeItems.map((item) => ({slug: item.slug, quantity: item.quantity, config: item.config ?? null})),
           address
@@ -363,46 +402,37 @@ export function BagSidebar({
 
               <h3 className="bs-heading mt-5">{t.deliveryTitle}</h3>
 
-              {(
-                [
-                  ["recipientName", "name", "text", "words"],
-                  ["phone", "tel", "tel", "off"],
-                  ["street", "street-address", "text", "sentences"],
-                  ["city", "address-level2", "text", "words"],
-                  ["province", "address-level1", "text", "words"],
-                  ["postalCode", "postal-code", "text", "off"],
-                  ["country", "country-name", "text", "words"]
-                ] as const
-              ).map(([key, autoComplete, type, capitalise]) => {
-                const message = touched[key] ? errors[key] : undefined;
-                return (
-                  <div key={key} className="bs-field">
-                    <label htmlFor={`bs-${key}`} className="bs-label">
-                      {t.labels[key]}
-                    </label>
-                    <input
-                      id={`bs-${key}`}
-                      name={key}
-                      type={type}
-                      inputMode={key === "phone" ? "tel" : key === "postalCode" ? "text" : undefined}
-                      autoComplete={autoComplete}
-                      autoCapitalize={capitalise}
-                      value={address[key]}
-                      onChange={(event) => setField(key, event.target.value)}
-                      onBlur={() => setTouched((current) => ({...current, [key]: true}))}
-                      aria-invalid={message ? true : undefined}
-                      aria-describedby={message ? `bs-${key}-error` : undefined}
-                      aria-required={REQUIRED.includes(key) ? true : undefined}
-                      className="bs-input"
-                    />
-                    {message ? (
-                      <p id={`bs-${key}-error`} className="bs-error">
-                        {message}
-                      </p>
-                    ) : null}
-                  </div>
-                );
-              })}
+              <p className="bs-section">{t.sectionRecipient}</p>
+              {field("recipientName", "name", "words")}
+              <div className="bs-field">
+                <label htmlFor="bs-phone" className="bs-label">
+                  {t.labels.phone}
+                </label>
+                <PhoneInput
+                  id="bs-phone"
+                  value={address.phone}
+                  onChange={(value) => setField("phone", value)}
+                  required
+                />
+                {touched.phone && errors.phone ? (
+                  <p id="bs-phone-error" className="bs-error">
+                    {errors.phone}
+                  </p>
+                ) : (
+                  <p className="bs-hint">{t.phoneHint}</p>
+                )}
+              </div>
+
+              <p className="bs-section">{t.sectionAddress}</p>
+              {field("street", "street-address", "sentences")}
+              <div className="bs-row">
+                {field("city", "address-level2", "words")}
+                {field("province", "address-level1", "words")}
+              </div>
+              <div className="bs-row">
+                {field("postalCode", "postal-code", "off")}
+                {field("country", "country-name", "words")}
+              </div>
 
               {orderLimit ? (
                 <div className="mt-4">
