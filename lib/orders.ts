@@ -25,7 +25,15 @@ import {
   type LimitViolation
 } from "@/lib/atelier-limits";
 import {getMonthlyUsage, getReadyAvailability, lockLimits, nextMonthNumber} from "@/lib/limits";
-import {sendOrderPlacedEmail, sendOwnerNotice, sendPaymentReceivedEmail, sendStageEmail, type EmailOrder} from "@/lib/order-emails";
+import {
+  sendOrderCancelledEmail,
+  sendOrderExpiredEmail,
+  sendOrderPlacedEmail,
+  sendOwnerNotice,
+  sendPaymentReceivedEmail,
+  sendStageEmail,
+  type EmailOrder
+} from "@/lib/order-emails";
 
 export {orderStatusLabels} from "@/lib/order-status";
 
@@ -41,6 +49,12 @@ export type OrderItemView = {
   priceUsdCents: number | null;
   quantity: number;
   config: CartConfig | null;
+  // Snapshots from checkout, used by order emails. Absent on older lines.
+  imageUrl?: string | null;
+  shortDescription?: string | null;
+  baseColourHex?: string | null;
+  handleColourHex?: string | null;
+  fulfilmentType?: string | null;
 };
 
 export type OrderView = {
@@ -129,7 +143,12 @@ async function loadItems(orderIds: string[]): Promise<Map<string, OrderItemView[
       priceIdr: row.priceIdr,
       priceUsdCents: row.priceUsdCents,
       quantity: row.quantity,
-      config: row.config as CartConfig | null
+      config: row.config as CartConfig | null,
+      imageUrl: row.imageUrl,
+      shortDescription: row.shortDescription,
+      baseColourHex: row.baseColourHex,
+      handleColourHex: row.handleColourHex,
+      fulfilmentType: row.fulfilmentType
     });
     itemsByOrder.set(row.orderId, list);
   }
@@ -150,8 +169,19 @@ function toEmailOrder(view: OrderView, customer: {email: string | null; name?: s
     trackingNumber: view.trackingNumber,
     customerEmail: customer.email,
     customerName: customer.name ?? null,
-    itemSlugs: view.items.map((item) => item.slug),
-    itemCount: view.items.reduce((sum, item) => sum + item.quantity, 0)
+    items: view.items.map((item) => ({
+      slug: item.slug,
+      name: item.name,
+      quantity: item.quantity,
+      priceIdr: item.priceIdr,
+      priceUsdCents: item.priceUsdCents,
+      config: item.config,
+      imageUrl: item.imageUrl,
+      shortDescription: item.shortDescription,
+      baseColourHex: item.baseColourHex,
+      handleColourHex: item.handleColourHex,
+      fulfilmentType: item.fulfilmentType
+    }))
   };
 }
 
@@ -177,7 +207,18 @@ type PricedLine = {
   ownMaxPerOrder: number | null;
   // "ready_to_ship" for finished stock, null for made to order. Stored on the order line.
   fulfilmentType: "ready_to_ship" | null;
+  imageUrl: string | null;
+  shortDescription: string | null;
+  baseColourHex: string | null;
+  handleColourHex: string | null;
 };
+
+// The hex of a colour the customer chose, looked up by its name in the product's own options.
+function colourHex(options: {label: string; hex: string}[] | null | undefined, chosen: string | undefined): string | null {
+  if (!chosen || !options) return null;
+  const match = options.find((option) => option.label.trim().toLowerCase() === chosen.trim().toLowerCase());
+  return match && /^#[0-9a-f]{3,8}$/i.test(match.hex) ? match.hex : null;
+}
 
 // Merges lines for the same product, so a product's own per-order limit applies to its whole
 // quantity however the lines were sent. `available` is what a ready-to-ship product still has.
@@ -271,7 +312,11 @@ async function placeOrder(
       priceIdr: products.priceIdr,
       priceUsdCents: products.priceUsdCents,
       customisation: products.customisation,
-      hasPersonalisation: products.hasPersonalisation
+      hasPersonalisation: products.hasPersonalisation,
+      images: products.images,
+      shortDescription: products.shortDescription,
+      baseColourOptions: products.baseColourOptions,
+      handleColourOptions: products.handleColourOptions
     })
     .from(products)
     .where(inArray(products.slug, slugs));
@@ -341,7 +386,11 @@ async function placeOrder(
       addons,
       group: resolveCapGroup(product.capGroup, product.productType),
       ownMaxPerOrder: product.maxPerOrder,
-      fulfilmentType: isReadyToShip(product.fulfilmentType) ? "ready_to_ship" : null
+      fulfilmentType: isReadyToShip(product.fulfilmentType) ? "ready_to_ship" : null,
+      imageUrl: product.images?.[0] ?? null,
+      shortDescription: product.shortDescription?.trim() || null,
+      baseColourHex: colourHex(product.baseColourOptions, config?.baseColour),
+      handleColourHex: colourHex(product.handleColourOptions, config?.handleColour)
     });
   }
 
@@ -468,7 +517,12 @@ async function placeOrder(
       priceIdr: item.priceIdr,
       priceUsdCents: item.priceUsdCents,
       quantity: item.quantity,
-      config: item.config
+      config: item.config,
+      imageUrl: item.imageUrl,
+      shortDescription: item.shortDescription,
+      baseColourHex: item.baseColourHex,
+      handleColourHex: item.handleColourHex,
+      fulfilmentType: item.fulfilmentType
     }))
   );
 
@@ -632,7 +686,10 @@ export async function cancelOrder(orderId: string, adminEmail: string): Promise<
     .returning({id: orders.id});
 
   const order = await getAdminOrderById(orderId);
-  if (updated && order) return {ok: true, alreadyCancelled: false, order};
+  if (updated && order) {
+    await safely("Cancelled email", () => sendOrderCancelledEmail(adminToEmail(order)));
+    return {ok: true, alreadyCancelled: false, order};
+  }
   if (!order) return {ok: false, error: "not_found"};
   if (order.status === "cancelled") return {ok: true, alreadyCancelled: true, order};
   return {ok: false, error: "invalid_status"};
@@ -646,6 +703,11 @@ export async function expireOverdueOrders(now: Date = new Date()): Promise<{expi
     .set({status: "expired"})
     .where(and(eq(orders.status, "pending_transfer"), isNotNull(orders.expiresAt), lte(orders.expiresAt, now)))
     .returning({id: orders.id});
+  // Each customer is told once: only the rows this run just expired are mailed, and a second run matches nothing.
+  for (const row of rows) {
+    const order = await getAdminOrderById(row.id);
+    if (order) await safely("Expired email", () => sendOrderExpiredEmail(adminToEmail(order)));
+  }
   return {expired: rows.length};
 }
 

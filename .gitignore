@@ -152,3 +152,6 @@ vite.config.ts.timestamp-*
 
 # Backups written by scripts/reset-commerce-data.ts
 backups/
+
+# Rendered by npm run email:preview
+/email-previews/

@@ -465,6 +465,13 @@ export const orderItems = pgTable("order_items", {
   // to order. Ready lines are not counted towards the monthly cap, and the snapshot keeps that
   // true even if the product is switched later.
   fulfilmentType: text("fulfilment_type"),
+  // What the piece looked like and was called at checkout, so an order email can show it from this
+  // row alone. Null on every older line (those fall back to the live product).
+  imageUrl: text("image_url"),
+  shortDescription: text("short_description"),
+  // The hex of the chosen base and handle colour. The config only keeps their names.
+  baseColourHex: text("base_colour_hex"),
+  handleColourHex: text("handle_colour_hex"),
   // Snapshot of the cart line's config at checkout time, same snapshot
   // philosophy as productName/priceIdr above  -  what was actually ordered
   // must stay legible even if the cart line it came from is long gone.

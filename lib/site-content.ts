@@ -1,6 +1,6 @@
 import {eq} from "drizzle-orm";
 import {db, siteContent} from "@/lib/db";
-import {DEFAULT_CONTACT, isPlausibleEmail, isPlausibleNumber, type ContactSettings, type WhatsAppContact} from "@/lib/studio-contact";
+import {DEFAULT_CONTACT, instagramUrl, isPlausibleEmail, isPlausibleNumber, type ContactSettings, type WhatsAppContact} from "@/lib/studio-contact";
 
 // The "Anita Yan" card that follows the cursor on the laptop home page. Everything on it can be
 // edited in the admin panel; these are what shows until something is saved.
@@ -72,9 +72,13 @@ function sanitiseContact(raw: Partial<ContactSettings> | null | undefined): Cont
     if (!number || !isPlausibleNumber(number)) return DEFAULT_CONTACT.whatsapp[index];
     return {name: clean(entry?.name, DEFAULT_CONTACT.whatsapp[index].name, 40), number};
   };
+  const address = typeof saved.address === "string" ? saved.address.trim().slice(0, 240) : "";
+  const instagram = typeof saved.instagram === "string" ? saved.instagram.trim().slice(0, 120) : "";
   return {
     email: email && isPlausibleEmail(email) ? email : DEFAULT_CONTACT.email,
-    whatsapp: [pick(0), pick(1)]
+    whatsapp: [pick(0), pick(1)],
+    ...(address ? {address} : {}),
+    ...(instagram ? {instagram} : {})
   };
 }
 
@@ -101,7 +105,10 @@ export async function saveContactSettings(input: ContactSettings, adminEmail: st
     return {name: name.slice(0, 40), number: number.slice(0, 30)};
   });
   if (whatsapp.length !== 2) throw new Error("Both WhatsApp numbers are needed.");
-  const value = {email: email.slice(0, 120), whatsapp};
+  const address = String(input.address ?? "").trim().slice(0, 240);
+  const instagram = String(input.instagram ?? "").trim().slice(0, 120);
+  if (instagram && !instagramUrl(instagram)) throw new Error("Instagram needs a handle such as natlovers1998, or a link to the profile.");
+  const value = {email: email.slice(0, 120), whatsapp, address, instagram};
   await db
     .insert(siteContent)
     .values({key: CONTACT_KEY, value, updatedByEmail: adminEmail, updatedAt: new Date()})

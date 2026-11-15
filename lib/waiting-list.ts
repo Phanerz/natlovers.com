@@ -3,9 +3,11 @@ import {allowRequest} from "@/lib/rate-limit";
 import {and, asc, count, eq, gt, isNull, sql} from "drizzle-orm";
 import {z} from "zod";
 import {db, rateLimitHits, waitingList} from "@/lib/db";
-import {emailCopy, type Lang} from "@/lib/atelier-copy";
+import type {Lang} from "@/lib/atelier-copy";
 import {monthName} from "@/lib/atelier-limits";
-import {renderEmail, sendEmail, siteUrl} from "@/lib/email";
+import {emailSenderAddress, sendEmail, siteUrl} from "@/lib/email";
+import {buildReopened, buildWaitingJoined} from "@/lib/email-templates";
+import {getContactSettings} from "@/lib/site-content";
 import {getLimits, getMonthlyUsage} from "@/lib/limits";
 
 const emailSchema = z.string().trim().toLowerCase().email().max(254);
@@ -44,14 +46,10 @@ export async function joinWaitingList(email: string, lang: Lang): Promise<void> 
     await db.insert(waitingList).values({email, language: lang, unsubscribeToken: token});
   }
   if (!shouldSendJoinEmail(existing)) return;
-  const t = emailCopy[lang];
-  const html = renderEmail({
-    heading: t.waitingHeading,
-    paragraphs: [t.waitingBody],
-    smallPrint: [`<a href="${unsubscribeUrl(unsubscribeToken)}" style="color:#52634e;">${t.unsubscribe}</a>`],
-    footer: t.footer
-  });
-  await sendEmail({to: email, subject: t.waitingSubject, html});
+  const ctx = {baseUrl: siteUrl(), contact: await getContactSettings(), senderAddress: emailSenderAddress()};
+  const url = unsubscribeUrl(unsubscribeToken);
+  const rendered = buildWaitingJoined(lang, url, ctx);
+  await sendEmail({to: email, subject: rendered.subject, html: rendered.html, text: rendered.text, headers: {"List-Unsubscribe": `<${url}>`}});
 }
 
 export async function unsubscribe(token: string): Promise<boolean> {
@@ -76,18 +74,13 @@ export async function notifyWaitingList(now: Date, month: number): Promise<{noti
   if (used.PIECES >= limits.piecesMonthlyCap) return {notified: 0, skipped: "cap still reached"};
 
   const entries = await db.select().from(waitingList).where(and(isNull(waitingList.notifiedAt), isNull(waitingList.unsubscribedAt)));
+  const ctx = {baseUrl: siteUrl(), contact: await getContactSettings(), senderAddress: emailSenderAddress()};
   let notified = 0;
   for (const entry of entries) {
     const lang: Lang = entry.language === "id" ? "id" : "en";
-    const t = emailCopy[lang];
-    const html = renderEmail({
-      heading: t.reopenedHeading,
-      paragraphs: [t.reopenedBody(monthName(month, lang))],
-      button: {label: t.browse, url: `${siteUrl()}/catalogue`},
-      smallPrint: [`<a href="${unsubscribeUrl(entry.unsubscribeToken)}" style="color:#52634e;">${t.unsubscribe}</a>`],
-      footer: t.footer
-    });
-    const result = await sendEmail({to: entry.email, subject: t.reopenedSubject, html});
+    const url = unsubscribeUrl(entry.unsubscribeToken);
+    const rendered = buildReopened(lang, monthName(month, lang), url, ctx);
+    const result = await sendEmail({to: entry.email, subject: rendered.subject, html: rendered.html, text: rendered.text, headers: {"List-Unsubscribe": `<${url}>`}});
     if (result.ok) {
       await db.update(waitingList).set({notifiedAt: new Date()}).where(eq(waitingList.id, entry.id));
       notified += 1;
