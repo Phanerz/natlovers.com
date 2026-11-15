@@ -21,9 +21,12 @@ export async function allowRequest(rawKey: string, limit: number, windowMs: numb
     await tx.insert(rateLimitHits).values({key});
     return true;
   });
-  if (allowed) {
-    // Keep the table small.
-    await db.delete(rateLimitHits).where(sql`${rateLimitHits.createdAt} < now() - interval '2 days'`);
+  // Keep the table small. Tidying on one request in twenty is plenty and keeps it off the checkout path.
+  if (allowed && Math.random() < 0.05) {
+    void db
+      .delete(rateLimitHits)
+      .where(sql`${rateLimitHits.createdAt} < now() - interval '2 days'`)
+      .catch(() => undefined);
   }
   return allowed;
 }

@@ -22,6 +22,18 @@ function guessCurrencyFromDevice(): CurrencyCode {
   return "USD";
 }
 
+// The site language from the device: Indonesian when the browser's first language is Indonesian, English
+// for every other language (Mandarin included). A language the visitor chooses always wins over this.
+function guessLocaleFromDevice(): Locale {
+  try {
+    const primary = (navigator.languages?.length ? navigator.languages[0] : navigator.language) ?? "";
+    if (/^(id|in)(-|$)/i.test(primary)) return "id";
+  } catch {
+    // fall through to English
+  }
+  return "en";
+}
+
 type SitePreferencesContextValue = {
   locale: Locale;
   currency: CurrencyCode;
@@ -57,6 +69,9 @@ export function SitePreferencesProvider({children}: {children: ReactNode}) {
 
     if (savedLocale && locales.includes(savedLocale as Locale)) {
       setLocaleState(savedLocale as Locale);
+    } else {
+      // Nothing chosen yet: follow the device. Not saved, so choosing a language later is what sticks.
+      setLocaleState(guessLocaleFromDevice());
     }
     if (savedRegion) {
       setCountry(savedRegion.country);

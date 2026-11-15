@@ -36,8 +36,8 @@ const config: Config = {
         }
       },
       fontFamily: {
-        display: ["Georgia", "serif"],
-        body: ["'Trebuchet MS'", "sans-serif"]
+        display: ["var(--font-display)", "Georgia", "serif"],
+        body: ["var(--font-body)", "'Helvetica Neue'", "Helvetica", "Arial", "sans-serif"]
       },
       boxShadow: {
         card: "0 4px 12px rgba(0, 0, 0, 0.06)"

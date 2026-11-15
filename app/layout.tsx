@@ -1,4 +1,5 @@
 ﻿import "./globals.css";
+import {Cormorant_Garamond, Hanken_Grotesk} from "next/font/google";
 import {ReactNode} from "react";
 import {AuthSessionProvider} from "@/components/auth-session-provider";
 import {CookieConsent} from "@/components/cookie-consent";
@@ -9,6 +10,11 @@ import {HeaderFallback} from "@/components/header-fallback";
 import {SitePreferencesProvider} from "@/components/site-preferences-provider";
 import {StorefrontProvider} from "@/components/storefront-provider";
 import {ThemeProvider} from "@/components/theme-provider";
+
+// Cormorant Garamond for titles, prices and the quiet editorial lines: a high-contrast, fashion-house serif.
+// Hanken Grotesk for everything read at length: a calm, neutral grotesque. Both are served from this site.
+const display = Cormorant_Garamond({subsets: ["latin"], weight: ["400", "500", "600"], style: ["normal", "italic"], variable: "--font-display", display: "swap"});
+const body = Hanken_Grotesk({subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-body", display: "swap"});
 
 export const metadata = {
   title: "Natlovers",
@@ -23,7 +29,7 @@ const themeInitScript = `(function(){try{var t=localStorage.getItem('nl-theme');
 
 export default function RootLayout({children}: {children: ReactNode}) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${display.variable} ${body.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{__html: themeInitScript}} />
       </head>
