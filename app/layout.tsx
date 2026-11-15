@@ -1,5 +1,13 @@
 ﻿import "./globals.css";
-import {Cormorant_Garamond, Hanken_Grotesk} from "next/font/google";
+// Fonts come from npm and are served by this site: nothing is fetched from Google at build or run time.
+import "@fontsource/cormorant-garamond/latin-400.css";
+import "@fontsource/cormorant-garamond/latin-500.css";
+import "@fontsource/cormorant-garamond/latin-600.css";
+import "@fontsource/cormorant-garamond/latin-400-italic.css";
+import "@fontsource/cormorant-garamond/latin-500-italic.css";
+import "@fontsource/hanken-grotesk/latin-400.css";
+import "@fontsource/hanken-grotesk/latin-500.css";
+import "@fontsource/hanken-grotesk/latin-600.css";
 import {ReactNode} from "react";
 import {AuthSessionProvider} from "@/components/auth-session-provider";
 import {CookieConsent} from "@/components/cookie-consent";
@@ -10,11 +18,6 @@ import {HeaderFallback} from "@/components/header-fallback";
 import {SitePreferencesProvider} from "@/components/site-preferences-provider";
 import {StorefrontProvider} from "@/components/storefront-provider";
 import {ThemeProvider} from "@/components/theme-provider";
-
-// Cormorant Garamond for titles, prices and the quiet editorial lines: a high-contrast, fashion-house serif.
-// Hanken Grotesk for everything read at length: a calm, neutral grotesque. Both are served from this site.
-const display = Cormorant_Garamond({subsets: ["latin"], weight: ["400", "500", "600"], style: ["normal", "italic"], variable: "--font-display", display: "swap"});
-const body = Hanken_Grotesk({subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-body", display: "swap"});
 
 export const metadata = {
   title: "Natlovers",
@@ -29,7 +32,7 @@ const themeInitScript = `(function(){try{var t=localStorage.getItem('nl-theme');
 
 export default function RootLayout({children}: {children: ReactNode}) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${display.variable} ${body.variable}`}>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{__html: themeInitScript}} />
       </head>

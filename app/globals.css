@@ -43,6 +43,9 @@
 }
 
 :root {
+  /* Cormorant Garamond for titles, prices and quiet editorial lines; Hanken Grotesk for reading text. */
+  --font-display: "Cormorant Garamond";
+  --font-body: "Hanken Grotesk";
   color-scheme: light;
   --header-height: 5.75rem;
   --space-8: 8px;
