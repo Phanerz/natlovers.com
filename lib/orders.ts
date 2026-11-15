@@ -25,6 +25,7 @@ import {
   type LimitViolation
 } from "@/lib/atelier-limits";
 import {getMonthlyUsage, getReadyAvailability, lockLimits, nextMonthNumber} from "@/lib/limits";
+import {afterResponse} from "@/lib/after-response";
 import {
   sendOrderCancelledEmail,
   sendOrderExpiredEmail,
@@ -491,7 +492,7 @@ async function placeOrder(
   const order = result.created!;
 
   // Everything below is housekeeping after the order exists. None of it may fail the order.
-  await safely("Saving the address", async () => {
+  void afterResponse("Saving the address", async () => {
     // Checking out also keeps the customer's saved address current  -  updates
     // their existing default in place, or saves this as their first one  -  so
     // the next checkout (and the admin's view of this customer) reflects
@@ -505,7 +506,7 @@ async function placeOrder(
   });
   // The order is now the record of these items  -  clear them out of the
   // active cart so the drawer doesn't show already-ordered pieces.
-  await safely("Clearing the bag", () => clearCart(userId));
+  const clearing = safely("Clearing the bag", () => clearCart(userId));
 
   const view = toOrderView(
     order,
@@ -527,8 +528,12 @@ async function placeOrder(
   );
 
   const emailOrder = toEmailOrder(view, {email: options.customerEmail ?? null, name: options.customerName ?? null});
-  await safely("Order placed email", () => sendOrderPlacedEmail(emailOrder));
-  await safely("Owner notice", () => sendOwnerNotice("placed", emailOrder));
+  // The emails and the address save run after the response, so ordering does not wait on the mail service.
+  await Promise.all([
+    clearing,
+    afterResponse("Order placed email", () => sendOrderPlacedEmail(emailOrder)),
+    afterResponse("Owner notice", () => sendOwnerNotice("placed", emailOrder))
+  ]);
 
   return {order: view, replayed: false};
 }
@@ -564,6 +569,9 @@ export type AdminOrderView = OrderView & {
   confirmedAt: string | null;
   cancelledAt: string | null;
   cancelledByEmail: string | null;
+  // Who the piece is going to and the number to reach them on, frozen at checkout.
+  shippingRecipientName: string;
+  shippingPhone: string;
 };
 
 const adminOrderColumns = {
@@ -583,6 +591,8 @@ async function attachItemsForAdmin(rows: {order: OrderRow; customerName: string 
     confirmedAt: order.confirmedAt ? order.confirmedAt.toISOString() : null,
     cancelledAt: order.cancelledAt ? order.cancelledAt.toISOString() : null,
     cancelledByEmail: order.cancelledByEmail,
+    shippingRecipientName: order.shippingRecipientName,
+    shippingPhone: order.shippingPhone,
     customerName,
     customerEmail
   }));
@@ -654,8 +664,10 @@ export async function markOrderPaid(orderId: string, adminEmail: string): Promis
     await decrementStockForOrder(orderId);
     const order = await getAdminOrderById(orderId);
     const emailOrder = adminToEmail(order!);
-    await safely("Payment received email", () => sendPaymentReceivedEmail(emailOrder));
-    await safely("Owner notice", () => sendOwnerNotice("paid", emailOrder));
+    await Promise.all([
+      afterResponse("Payment received email", () => sendPaymentReceivedEmail(emailOrder)),
+      afterResponse("Owner notice", () => sendOwnerNotice("paid", emailOrder))
+    ]);
     return {ok: true, alreadyPaid: false, order: order!};
   }
 
@@ -687,7 +699,7 @@ export async function cancelOrder(orderId: string, adminEmail: string): Promise<
 
   const order = await getAdminOrderById(orderId);
   if (updated && order) {
-    await safely("Cancelled email", () => sendOrderCancelledEmail(adminToEmail(order)));
+    await afterResponse("Cancelled email", () => sendOrderCancelledEmail(adminToEmail(order)));
     return {ok: true, alreadyCancelled: false, order};
   }
   if (!order) return {ok: false, error: "not_found"};
@@ -759,7 +771,7 @@ export async function setFulfilmentStage(orderId: string, stage: FulfilmentStage
   if (!order) return {ok: false, error: "not_found"};
   if (!updated) return {ok: false, error: "invalid_status"};
   if (notify) {
-    await safely("Stage email", () => sendStageEmail(adminToEmail(order), stage));
+    await afterResponse("Stage email", () => sendStageEmail(adminToEmail(order), stage));
   }
   return {ok: true, order};
 }
@@ -803,7 +815,7 @@ export async function setOrderTracking(
 
   const order = await getAdminOrderById(orderId);
   if (notify && order) {
-    await safely("Shipped email", () => sendStageEmail(adminToEmail(order), "shipped"));
+    await afterResponse("Shipped email", () => sendStageEmail(adminToEmail(order), "shipped"));
   }
   return {ok: true, order: order!};
 }

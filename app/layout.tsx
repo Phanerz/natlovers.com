@@ -1,4 +1,13 @@
 ﻿import "./globals.css";
+// Fonts come from npm and are served by this site: nothing is fetched from Google at build or run time.
+import "@fontsource/cormorant-garamond/latin-400.css";
+import "@fontsource/cormorant-garamond/latin-500.css";
+import "@fontsource/cormorant-garamond/latin-600.css";
+import "@fontsource/cormorant-garamond/latin-400-italic.css";
+import "@fontsource/cormorant-garamond/latin-500-italic.css";
+import "@fontsource/hanken-grotesk/latin-400.css";
+import "@fontsource/hanken-grotesk/latin-500.css";
+import "@fontsource/hanken-grotesk/latin-600.css";
 import {ReactNode} from "react";
 import {AuthSessionProvider} from "@/components/auth-session-provider";
 import {CookieConsent} from "@/components/cookie-consent";

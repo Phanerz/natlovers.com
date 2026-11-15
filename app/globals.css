@@ -43,6 +43,9 @@
 }
 
 :root {
+  /* Cormorant Garamond for titles, prices and quiet editorial lines; Hanken Grotesk for reading text. */
+  --font-display: "Cormorant Garamond";
+  --font-body: "Hanken Grotesk";
   color-scheme: light;
   --header-height: 5.75rem;
   --space-8: 8px;
@@ -305,6 +308,10 @@ body {
   @apply bg-paper font-body antialiased;
   color: #112319;
   overflow-x: clip;
+  /* Lining figures everywhere: prices and dates read evenly, not rising and falling like an old-style face. */
+  font-variant-numeric: lining-nums;
+  font-feature-settings: "lnum" 1, "kern" 1;
+  text-rendering: optimizeLegibility;
   /* Solid fallback only  -  the actual photo lives on .site-background
      below, not here. Putting it on body directly would size background-
      size: cover against the full scrollable page height (which can run to
@@ -944,11 +951,11 @@ button {
 }
 
 .font-display {
-  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Garamond, Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
 }
 
 .font-body {
-  font-family: "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
+  font-family: var(--font-body), "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 .hero-stage {
@@ -2513,7 +2520,7 @@ html:has(.outlets-stage--page) {
   position: absolute;
   top: 0.55rem;
   right: 1rem;
-  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Garamond, Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 3.4rem;
   line-height: 1;
   color: var(--oc-faint);
@@ -2646,7 +2653,7 @@ html:has(.outlets-stage--page) {
 }
 
 .outlet-counter {
-  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Garamond, Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 0.95rem;
   font-variant-numeric: tabular-nums;
   color: #172015;
@@ -3032,7 +3039,7 @@ html:has(.outlets-stage--page) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: clamp(14px, 1.25vw, 19px);
   font-weight: 500;
   line-height: 1.25;
@@ -3047,7 +3054,7 @@ html:has(.outlets-stage--page) {
   align-items: baseline;
   gap: 5px;
   margin-top: 1px;
-  font-family: "Palatino Linotype", Palatino, "Book Antiqua", "Iowan Old Style", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   line-height: 1.35;
   color: var(--cat-price);
 }
@@ -3323,7 +3330,7 @@ html:has(.outlets-stage--page) {
 }
 
 .catalogue-banner-title {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: clamp(26px, 3vw, 46px);
   font-style: italic;
   font-weight: 400;
@@ -3334,7 +3341,7 @@ html:has(.outlets-stage--page) {
   display: -webkit-box;
   overflow: hidden;
   margin-top: 0.8rem;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: clamp(13px, 1.1vw, 16px);
   font-style: italic;
   line-height: 1.45;
@@ -3532,7 +3539,7 @@ html:has(.outlets-stage--page) {
 
 .bag-title {
   margin-top: 0.5rem;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: clamp(2rem, 6vw, 2.75rem);
   font-weight: 400;
   line-height: 1.05;
@@ -3541,7 +3548,7 @@ html:has(.outlets-stage--page) {
 
 .bag-subtitle {
   margin-top: 0.6rem;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1rem;
   font-style: italic;
   line-height: 1.4;
@@ -3626,7 +3633,7 @@ html:has(.outlets-stage--page) {
 }
 
 .bag-panel-title {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.5rem;
   line-height: 1.2;
   color: #f7f0de;
@@ -3717,7 +3724,7 @@ html:has(.outlets-stage--page) {
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.2rem;
   line-height: 1.25;
   color: #f7f0de;
@@ -3842,13 +3849,13 @@ html:has(.outlets-stage--page) {
 }
 
 .bag-empty-title {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.6rem;
   color: #f7f0de;
 }
 
 .bag-empty-copy {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-style: italic;
   color: #d8d0b8;
 }
@@ -3864,13 +3871,13 @@ html:has(.outlets-stage--page) {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.15rem;
   color: #f3ecd9;
 }
 
 .bag-subtotal strong {
-  font-family: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.25rem;
   font-weight: 400;
   letter-spacing: 0.02em;
@@ -3891,7 +3898,7 @@ html:has(.outlets-stage--page) {
   border-radius: 9999px;
   padding: 0.8rem 1.5rem;
   text-align: center;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.1rem;
   outline: none;
   transition: background-color 250ms ease, border-color 250ms ease, transform 150ms ease;
@@ -3945,7 +3952,7 @@ html:has(.outlets-stage--page) {
    ============================================================ */
 .pdp-title {
   margin-top: 0;
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: clamp(1.65rem, 2.3vw, 2.2rem);
   line-height: 1.2;
   padding-bottom: 0.12em;
@@ -3964,7 +3971,7 @@ html:has(.outlets-stage--page) {
   align-items: baseline;
   gap: 0.7rem;
   margin-top: 0.1rem;
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.75rem;
   letter-spacing: 0.02em;
   color: var(--pdp-ink);
@@ -3984,7 +3991,7 @@ html:has(.outlets-stage--page) {
 
 .pdp-lede {
   margin-top: 0.8rem;
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.22rem;
   line-height: 1.65;
   color: var(--pdp-soft);
@@ -4029,7 +4036,7 @@ html:has(.outlets-stage--page) {
 
 .pdp-spec-value {
   text-align: right;
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.1rem;
   line-height: 1.35;
   color: var(--pdp-ink);
@@ -4044,7 +4051,7 @@ html:has(.outlets-stage--page) {
 }
 
 .pdp-option-title {
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.15rem;
   color: var(--pdp-ink);
 }
@@ -4085,7 +4092,7 @@ html:has(.outlets-stage--page) {
 }
 
 .pdp-section-title {
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.6rem;
   font-weight: 400;
   letter-spacing: -0.005em;
@@ -4095,8 +4102,8 @@ html:has(.outlets-stage--page) {
 .pdp-prose {
   margin-top: 1.25rem;
   max-width: 78ch;
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-  font-size: 1.05rem;
+  font-size: 1.2rem;
+  font-family: var(--font-display), Georgia, serif;
   line-height: 1.8;
   color: var(--pdp-soft);
 }
@@ -4182,7 +4189,7 @@ html:has(.outlets-stage--page) {
 }
 .pdp-promise-text {
   margin-top: 0.5rem;
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.02rem;
   line-height: 1.6;
   color: var(--pdp-ink);
@@ -4244,7 +4251,7 @@ html:has(.outlets-stage--page) {
 
 .pdp-note-title {
   margin-top: 0.7rem;
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 2.15rem;
   font-style: italic;
   font-weight: 400;
@@ -4311,7 +4318,7 @@ html:has(.outlets-stage--page) {
   border-radius: 12px;
   background: transparent;
   padding: 0.85rem 1rem;
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1rem;
   line-height: 1.6;
   color: var(--pdp-ink);
@@ -5108,7 +5115,7 @@ html:has(.outlets-stage--page) {
 }
 .m-hero__title {
   margin-top: 0.3rem;
-  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: clamp(2.3rem, 9.4vw, 3.3rem);
   font-weight: 400;
   line-height: 1;
@@ -5123,7 +5130,7 @@ html:has(.outlets-stage--page) {
   margin-top: 0.35rem;
   padding-bottom: 0.55rem;
   border-bottom: 1px solid var(--m-line);
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1rem;
 }
 .m-hero__pos {
@@ -5135,7 +5142,7 @@ html:has(.outlets-stage--page) {
 .m-hero__definition {
   margin: 0.6rem auto 0;
   max-width: 24rem;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1rem;
   font-style: italic;
   line-height: 1.4;
@@ -5191,7 +5198,7 @@ html:has(.outlets-stage--page) {
   gap: 0.3rem;
   padding: 0 0.3rem;
   border-left: 1px solid var(--m-line);
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 0.82rem;
   line-height: 1.2;
 }
@@ -5210,7 +5217,7 @@ html:has(.outlets-stage--page) {
 }
 .m-hero__impact-title {
   margin-top: 0.15rem;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.2rem;
   font-weight: 400;
   line-height: 1.2;
@@ -5503,7 +5510,7 @@ html:has(.outlets-stage--page) {
   outline: 0;
   background: transparent;
   color: #1f2d1f;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 16px;
   font-style: italic;
 }
@@ -5537,7 +5544,7 @@ html:has(.outlets-stage--page) {
   padding: 0.95rem 0;
   border-top: 1px solid rgba(171, 139, 70, 0.28);
   color: #23331f;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.45rem;
   letter-spacing: 0.01em;
   -webkit-tap-highlight-color: transparent;
@@ -5585,7 +5592,7 @@ html:has(.outlets-stage--page) {
 .m-menu__rname {
   min-width: 0;
   flex: 1;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.05rem;
   line-height: 1.25;
 }
@@ -5596,7 +5603,7 @@ html:has(.outlets-stage--page) {
 }
 .m-menu__empty {
   padding: 1.4rem 0.4rem;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-style: italic;
   color: #6b7a62;
 }
@@ -5611,7 +5618,7 @@ html:has(.outlets-stage--page) {
 }
 .m-menu__sign {
   margin-top: 1.1rem;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 0.82rem;
   font-style: italic;
   letter-spacing: 0.06em;
@@ -5674,7 +5681,7 @@ html:has(.outlets-stage--page) {
   display: flex;
   align-items: center;
   padding: 0 0.25rem;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.06rem;
   -webkit-tap-highlight-color: transparent;
 }
@@ -5748,7 +5755,7 @@ html:has(.outlets-stage--page) {
 .m-cat-head__title {
   margin-top: 0.1rem;
   padding-bottom: 0.06em;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 2.6rem;
   font-weight: 400;
   line-height: 1.22;
@@ -5756,7 +5763,7 @@ html:has(.outlets-stage--page) {
 }
 .m-cat-head__sub {
   margin-top: 0.05rem;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 0.92rem;
   font-style: italic;
   color: #4a4a3f;
@@ -5771,7 +5778,7 @@ html:has(.outlets-stage--page) {
   position: absolute;
   z-index: 2;
   color: rgba(255, 248, 232, 0.94);
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
   pointer-events: none;
 }
@@ -6105,7 +6112,7 @@ html:has(.outlets-stage--page) {
 }
 .hero-kicker em {
   color: #f6ecd0;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1rem;
   font-style: italic;
   letter-spacing: 0.1em;
@@ -6360,14 +6367,14 @@ html:has(.outlets-stage--page) {
 }
 .m-fact__title {
   margin-top: 0.4rem;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.55rem;
   font-weight: 400;
   line-height: 1.2;
 }
 .m-fact__lede {
   margin-top: 0.25rem;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1rem;
   font-style: italic;
   color: #6b5a2c;
@@ -6429,7 +6436,7 @@ html:has(.outlets-stage--page) {
   border-radius: 9999px;
   box-shadow: 0 0 0 4px rgba(231, 207, 147, 0.12), inset 0 0 0 3px rgba(6, 17, 11, 0.35);
   color: #ecd9a2;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.55rem;
   font-style: italic;
   line-height: 1;
@@ -6610,7 +6617,7 @@ html:has(.outlets-stage--page) {
   margin-top: 0.85rem;
   padding-top: 0;
   border-top: 0;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.04rem;
   line-height: 1.5;
   color: #34412f;
@@ -6708,7 +6715,7 @@ html:has(.outlets-stage--page) {
 }
 .hero-brand em {
   color: #f6ecd0;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1rem;
   font-style: italic;
   letter-spacing: 0.1em;
@@ -6955,7 +6962,7 @@ html:has(.outlets-stage--page) {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.55rem;
   font-style: italic;
   font-weight: 500;
@@ -7035,7 +7042,7 @@ html:has(.outlets-stage--page) {
   color: #efe8d8;
 }
 .hero-house__by {
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.02rem;
   font-style: italic;
   letter-spacing: 0.02em;
@@ -7049,7 +7056,7 @@ html:has(.outlets-stage--page) {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 0.98rem;
   font-style: normal;
   font-weight: 500;
@@ -7183,7 +7190,7 @@ html:has(.outlets-stage--page) {
   min-width: 0;
 }
 .designer-card__name {
-  font-family: "Iowan Old Style", "Baskerville Old Face", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.2rem;
   line-height: 1.15;
 }
@@ -7306,7 +7313,7 @@ html:has(.outlets-stage--page) {
 }
 .pdp-personalise__title {
   display: block;
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.15rem;
   line-height: 1.25;
 }
@@ -7487,7 +7494,7 @@ html:has(.outlets-stage--page) {
 }
 .addon-title {
   flex: 1;
-  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Garamond, Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.625rem;
   font-weight: 500;
   line-height: 1.2;
@@ -7630,7 +7637,7 @@ html:has(.outlets-stage--page) {
 }
 .addon-panel-title {
   margin: 0.9rem 0 0.9rem;
-  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Garamond, Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.625rem;
   font-weight: 500;
   overflow-wrap: anywhere;
@@ -7641,7 +7648,7 @@ html:has(.outlets-stage--page) {
    so the choice never depends on colour or opacity alone. */
 .addon-label-serif {
   margin-bottom: 1rem;
-  font-family: "Iowan Old Style", "Baskerville Old Face", "Book Antiqua", Garamond, Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.25rem;
   font-weight: 400;
   line-height: 1.3;

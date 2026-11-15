@@ -3,7 +3,7 @@ import {isWholeQuantity} from "@/lib/quantity";
 import {logFailure} from "@/lib/safe-log";
 import {z} from "zod";
 import {addressInputSchema} from "@/lib/addresses";
-import {copy, langForCurrency} from "@/lib/atelier-copy";
+import {copy, langForCurrency, type Lang} from "@/lib/atelier-copy";
 import {createOrder, LimitError, OpenOrdersError, OrderInputError} from "@/lib/orders";
 import {allowRequest} from "@/lib/rate-limit";
 import {paymentRouteFor} from "@/lib/payment-routes";
@@ -71,7 +71,9 @@ export async function POST(request: NextRequest) {
   // own fixed price in each currency) and which payment route the order takes.
   const currency = normalizeCurrency(body?.currency);
   const route = paymentRouteFor(currency);
-  const lang = langForCurrency(currency);
+  // The customer's site language decides the wording of any refusal. Older clients send none, so the
+  // currency is the fallback.
+  const lang: Lang = body?.lang === "id" || body?.lang === "en" ? body.lang : langForCurrency(currency);
 
   // Whole numbers only. Anything else gets a calm message, never a database error. How many is too
   // many for a product is decided by its limit, below, inside the order itself.
@@ -82,7 +84,8 @@ export async function POST(request: NextRequest) {
   // Rate limit order creation, per account and per network address. Quiet: a calm message, no detail.
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   try {
-    const allowed = (await allowRequest(`order-user:${userId}`, 6, 3600_000)) && (await allowRequest(`order-ip:${ip}`, 20, 3600_000));
+    const [userAllowed, ipAllowed] = await Promise.all([allowRequest(`order-user:${userId}`, 6, 3600_000), allowRequest(`order-ip:${ip}`, 20, 3600_000)]);
+    const allowed = userAllowed && ipAllowed;
     if (!allowed) {
       return NextResponse.json({error: copy[lang].tooManyAttempts, code: "rate_limited"}, {status: 429});
     }

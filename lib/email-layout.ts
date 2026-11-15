@@ -77,7 +77,7 @@ const LINE = "#c9bca2";
 const GREEN = "#344332";
 
 const SERIF = "'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif";
-const SANS = "'Trebuchet MS','Segoe UI',Helvetica,Arial,sans-serif";
+const SANS = "'Helvetica Neue',Helvetica,Arial,sans-serif";
 const MONO = "'Courier New',Courier,monospace";
 
 const labelStyle = `font-family:${MONO};font-size:11px;line-height:16px;letter-spacing:0.2em;text-transform:uppercase;color:${MUTED};`;

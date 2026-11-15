@@ -117,7 +117,7 @@ export function StorefrontProvider({children}: {children: ReactNode}) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/admin/products", {cache: "no-store"})
+    fetch("/api/admin/products")
       .then((response) => (response.ok ? response.json() : []))
       .then((data: unknown) => {
         if (!cancelled && Array.isArray(data)) {

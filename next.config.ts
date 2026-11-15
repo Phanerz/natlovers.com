@@ -30,6 +30,8 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    // 75 is the default; the home page asks for 70.
+    qualities: [70, 75],
     remotePatterns: [
       {
         protocol: "https",

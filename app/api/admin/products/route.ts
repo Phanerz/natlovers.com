@@ -29,7 +29,9 @@ export async function GET(request: NextRequest) {
     const scope = new URL(request.url).searchParams.get("scope");
     const wantsAll = scope === "all" && (await requireAdmin());
     const products = wantsAll ? await getAllProductsForAdmin() : await getAllProducts();
-    return NextResponse.json(products);
+    // The public list is served from the edge for a few seconds, so a catalogue visit rarely waits on the
+    // database. An admin edit shows within about fifteen seconds; the admin's own view is never cached.
+    return NextResponse.json(products, {headers: {"Cache-Control": wantsAll ? "no-store" : "public, s-maxage=15, stale-while-revalidate=120"}});
   } catch (error) {
     console.error("Failed to read products:", error);
     return NextResponse.json([]);
