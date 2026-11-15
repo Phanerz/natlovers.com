@@ -84,6 +84,28 @@ export function ManageContactPanel() {
           />
         </label>
 
+        <label className="block space-y-2 text-sm text-forest-700">
+          <span className="muted">Address (shown in emails)</span>
+          <input
+            value={contact.address ?? ""}
+            onChange={(event) => setContact({...contact, address: event.target.value})}
+            maxLength={240}
+            placeholder="Street, district, city"
+            className={fieldClass}
+          />
+        </label>
+
+        <label className="block space-y-2 text-sm text-forest-700">
+          <span className="muted">Instagram (shown in emails)</span>
+          <input
+            value={contact.instagram ?? ""}
+            onChange={(event) => setContact({...contact, instagram: event.target.value})}
+            maxLength={120}
+            placeholder="natlovers1998"
+            className={fieldClass}
+          />
+        </label>
+
         {([0, 1] as const).map((index) => (
           <div key={index} className="grid gap-4 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]">
             <label className="block space-y-2 text-sm text-forest-700">

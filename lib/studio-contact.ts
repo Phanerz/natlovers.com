@@ -11,7 +11,19 @@ export type WhatsAppContact = {
 export type ContactSettings = {
   email: string;
   whatsapp: [WhatsAppContact, WhatsAppContact];
+  // Optional. Empty until the admin fills them in; emails skip a line that is empty.
+  address?: string;
+  instagram?: string;
 };
+
+// An Instagram handle or profile link, as a profile link. Empty when nothing usable was given.
+export function instagramUrl(value: string | undefined): string {
+  const raw = (value ?? "").trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return /^https:\/\/(www\.)?instagram\.com\//i.test(raw) ? raw : "";
+  const handle = raw.replace(/^@/, "").replace(/^(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "");
+  return /^[A-Za-z0-9._]{1,30}$/.test(handle) ? `https://www.instagram.com/${handle}/` : "";
+}
 
 export const DEFAULT_CONTACT: ContactSettings = {
   email: "natlovers@gmail.com",

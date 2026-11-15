@@ -7,7 +7,9 @@ import {DrizzleAdapter} from "@auth/drizzle-adapter";
 import {Resend} from "resend";
 import {db} from "@/lib/db";
 import {accounts, sessions, users, verificationTokens} from "@/lib/db/schema";
-import {renderEmail} from "@/lib/email";
+import {emailFrom, emailReplyTo, emailSenderAddress, siteUrl} from "@/lib/email";
+import {buildSignIn} from "@/lib/email-templates";
+import {getContactSettings} from "@/lib/site-content";
 
 function getAdminEmails(): string[] {
   return (process.env.ADMIN_EMAILS ?? "")
@@ -23,8 +25,6 @@ export function isAdminEmail(email?: string | null) {
   return getAdminEmails().includes(email.toLowerCase());
 }
 
-const magicLinkFrom = process.env.RESEND_FROM_EMAIL ?? "Natlovers <onboarding@resend.dev>";
-
 // Lazy + guarded: Resend throws synchronously if constructed without a key,
 // which previously crashed every route importing this file (build-time page
 // data collection included) whenever RESEND_API_KEY was unset.
@@ -37,16 +37,6 @@ function getResendClient(): Resend | null {
     resendClient = new Resend(process.env.RESEND_API_KEY);
   }
   return resendClient;
-}
-
-function magicLinkEmailHtml(url: string) {
-  return renderEmail({
-    heading: "Sign in to Natlovers",
-    paragraphs: ["Click the button below to sign in to your account. This link expires in 24 hours and can only be used once."],
-    button: {label: "Sign in", url},
-    smallPrint: ["If you did not request this email, you can safely ignore it. No account changes will be made."],
-    footer: "Handmade natural fiber goods from Yogyakarta, Indonesia."
-  });
 }
 
 export const authOptions: NextAuthOptions = {
@@ -82,17 +72,21 @@ export const authOptions: NextAuthOptions = {
       allowDangerousEmailAccountLinking: true
     }),
     EmailProvider({
-      from: magicLinkFrom,
+      from: emailFrom(),
       async sendVerificationRequest({identifier, url}) {
         const resend = getResendClient();
         if (!resend) {
           throw new Error("RESEND_API_KEY is not configured, so the magic-link email cannot be sent.");
         }
+        const rendered = buildSignIn(url, {baseUrl: siteUrl(), contact: await getContactSettings(), senderAddress: emailSenderAddress()});
+        const replyTo = emailReplyTo();
         const {error} = await resend.emails.send({
-          from: magicLinkFrom,
+          from: emailFrom(),
           to: identifier,
-          subject: "Sign in to Natlovers",
-          html: magicLinkEmailHtml(url)
+          subject: rendered.subject,
+          html: rendered.html,
+          text: rendered.text,
+          ...(replyTo ? {replyTo} : {})
         });
 
         if (error) {
