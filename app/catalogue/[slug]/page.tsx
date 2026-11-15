@@ -8,7 +8,8 @@ import {materialImageStyle, DEFAULT_IMAGE_STYLE, type ShopProductType} from "@/a
 import {ProductBreadcrumb} from "@/components/product/product-breadcrumb";
 import {ProductDetailView} from "@/components/product/product-detail-view";
 import {PreviewBanner} from "@/components/product/preview-banner";
-import {ReassuranceBar} from "@/components/product/reassurance-bar";
+import {ProductJourney} from "@/components/product/product-journey";
+import {getContactSettings} from "@/lib/site-content";
 
 // Live catalogue data (price, stock, images)  -  never served from the Full
 // Route Cache, same reasoning as /api/admin/products.
@@ -85,6 +86,7 @@ export default async function ProductPage({
   // only the animals that product allows (all of them, or the ones ticked in admin).
   const allowedAnimalIds = allowedAnimals(product.customisation);
   const addonCatalogue = allowedAnimalIds ? await getAddonCatalogue(allowedAnimalIds) : null;
+  const contact = await getContactSettings();
   const images = product.images.length ? product.images : [product.imageUrl].filter(Boolean);
   const tint = (product.materials[0] ? materialImageStyle[product.materials[0]] : null) ?? DEFAULT_IMAGE_STYLE;
 
@@ -95,9 +97,13 @@ export default async function ProductPage({
 
       <ProductDetailView product={product} images={images} tintHex={tint.bg} addonCatalogue={addonCatalogue} />
 
-      <div>
-        <ReassuranceBar />
-      </div>
+      <ProductJourney
+        hasMaterials={product.materials.length > 0}
+        fulfilmentType={product.fulfilmentType}
+        leadTimeWeeksMin={product.leadTimeWeeksMin}
+        leadTimeWeeksMax={product.leadTimeWeeksMax}
+        contact={contact}
+      />
     </main>
   );
 }
