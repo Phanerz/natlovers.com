@@ -58,9 +58,16 @@ export function ProductPurchasePanel({
   }
 
   // Takes the shopper to the colours and personalisation card (or, failing that, the details).
+  // Lands on the hairline above Product Details, a little clear of the sticky header, so the order note and the
+  // story of the piece both sit below it. Measured at click time: the header height changes with the screen.
   function scrollToCustomise() {
-    const target = document.getElementById("customise") ?? document.getElementById("details");
-    target?.scrollIntoView({behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start"});
+    // Pick the copy that is actually on screen: a streamed page can leave an empty, hidden twin behind.
+    const target = [...document.querySelectorAll<HTMLElement>("#details")].find((element) => element.getBoundingClientRect().height > 0);
+    if (!target) return;
+    const header = document.querySelector<HTMLElement>("header.site-header");
+    const headerHeight = header ? header.getBoundingClientRect().height : 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - headerHeight - 16;
+    window.scrollTo({top: Math.max(0, top), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
   }
 
   async function handleShare() {
