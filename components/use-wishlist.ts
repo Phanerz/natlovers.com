@@ -4,6 +4,24 @@ import {useCallback, useEffect, useState} from "react";
 import {usePathname, useRouter} from "next/navigation";
 import {useSession} from "next-auth/react";
 
+// Every product card calls this hook, so a catalogue page used to ask for the same wishlist once per card.
+// One request is shared between them for a few seconds, and dropped whenever the wishlist changes.
+let shared: Promise<string[]> | null = null;
+let sharedAt = 0;
+function loadWishlist(): Promise<string[]> {
+  const now = Date.now();
+  if (shared && now - sharedAt < 3000) return shared;
+  sharedAt = now;
+  shared = fetch("/api/wishlist", {cache: "no-store"})
+    .then((response) => (response.ok ? response.json() : {slugs: []}))
+    .then((data: {slugs: string[]}) => (Array.isArray(data.slugs) ? data.slugs : []))
+    .catch(() => {
+      shared = null;
+      return [];
+    });
+  return shared;
+}
+
 export function useWishlist() {
   const {status} = useSession();
   const router = useRouter();
@@ -21,11 +39,10 @@ export function useWishlist() {
       return;
     }
     let cancelled = false;
-    fetch("/api/wishlist", {cache: "no-store"})
-      .then((response) => (response.ok ? response.json() : {slugs: []}))
-      .then((data: {slugs: string[]}) => {
+    loadWishlist()
+      .then((list) => {
         if (!cancelled) {
-          setSlugs(new Set(data.slugs));
+          setSlugs(new Set(list));
         }
       })
       .catch(() => {
@@ -50,6 +67,7 @@ export function useWishlist() {
         return;
       }
 
+      shared = null;
       const wasWishlisted = slugs.has(slug);
       setSlugs((current) => {
         const next = new Set(current);
